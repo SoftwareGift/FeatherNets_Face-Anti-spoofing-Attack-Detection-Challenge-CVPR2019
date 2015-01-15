@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <errno.h>
 #include <sys/mman.h>
 
 #include "v4l2_buffer_proxy.h"
