@@ -1,0 +1,5 @@
+All files in xcore, tests directory are Apache 2.0 License.
+All header files in ext/atomisp are from Linux kernel user api headers
+All header files in ext/ia_imaging are Apache 2.0 License
+All dynamic libraries in ext/ia_imaging are provided by Intel Corporation
+

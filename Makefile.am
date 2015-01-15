@@ -1,0 +1,2 @@
+
+SUBDIRS = xcore tests pkgconfig
