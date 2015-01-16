@@ -1,13 +1,26 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([xcam_version], [0.1])
+m4_define([xcam_major_version], [0])
+m4_define([xcam_minor_version], [1])
+m4_define([xcam_micro_version], [0])
+m4_define([xcam_version], [xcam_major_version.xcam_minor_version.xcam_micro_version])
 
 AC_PREREQ([2.60])
 AC_CONFIG_MACRO_DIR([m4])
 AC_INIT([libxcam], [xcam_version], [feng.yuan@intel.com], [libxcam])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE
+
+#xcam version
+XCAM_MAJOR_VERSION=xcam_major_version
+XCAM_MINOR_VERSION=xcam_minor_version
+XCAM_MICRO_VERSION=xcam_micro_version
+XCAM_VERSION=xcam_version
+XCAM_VERSION_HEX="0x$XCAM_MAJOR_VERSION$XCAM_MINOR_VERSION$XCAM_MICRO_VERSION"
+AC_DEFINE_UNQUOTED(XCAM_VERSION, $XCAM_VERSION_HEX,
+    [define libxcam version])
+AC_SUBST(XCAM_VERSION)
 
 # Checks for programs.
 AC_PROG_CC
@@ -97,11 +110,6 @@ fi
 XCAM_CXXFLAGS="$XCAM_CFLAGS -std=c++0x"
 AC_SUBST(XCAM_CFLAGS)
 AC_SUBST(XCAM_CXXFLAGS)
-
-XCAM_VERSION=xcam_version
-AC_DEFINE_UNQUOTED(XCAM_VERSION, $XCAM_VERSION,
-    [define libxcam version])
-AC_SUBST(XCAM_VERSION)
 
 # define macor in config.h
 AC_DEFINE_UNQUOTED([HAVE_LIBDRM], $HAVE_LIBDRM,
