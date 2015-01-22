@@ -26,38 +26,13 @@
 #include "isp_image_processor.h"
 #include <unistd.h>
 #include <signal.h>
+#include "test_common.h"
 
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #endif
 
 using namespace XCam;
-
-#undef CHECK_DECLARE
-#undef CHECK
-#undef CHECK_CONTINUE
-
-#define CHECK_DECLARE(level, ret, statement, msg, ...) \
-    if ((ret) != XCAM_RETURN_NO_ERROR) {        \
-        XCAM_LOG_##level (msg, ## __VA_ARGS__);   \
-        statement;                              \
-    }
-
-#define CHECK(ret, msg, ...)  \
-    CHECK_DECLARE(ERROR, ret, return -1, msg, ## __VA_ARGS__)
-
-#define CHECK_CONTINUE(ret, msg, ...)  \
-    CHECK_DECLARE(WARNING, ret, , msg, ## __VA_ARGS__)
-
-#define XCAM_FAILED_STOP(exp, msg, ...)                 \
-    if ((exp) != XCAM_RETURN_NO_ERROR) {                \
-        XCAM_LOG_ERROR (msg, ## __VA_ARGS__);           \
-        return ret;                                     \
-    }
-
-#define DEFAULT_CAPTURE_DEVICE "/dev/video3"
-#define DEFAULT_EVENT_DEVICE   "/dev/v4l-subdev6"
-#define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
 
 class MainDeviceManager
     : public DeviceManager
@@ -82,8 +57,6 @@ private:
     FILE      *_file;
 };
 
-
-// DRM preview code start
 
 class PollCB: public PollCallback {
 public:
@@ -183,19 +156,19 @@ PollCB::dump_to_file (const void *buf, size_t nbyte)
 #define V4L2_CAPTURE_MODE_VIDEO   0x4000
 #define V4L2_CAPTURE_MODE_PREVIEW 0x8000
 
-
-//static SmartPtr<MainDeviceManager> g_device_manager;
-static SmartPtr<PollThread> g_poll_thread;
+static Mutex g_mutex;
+static Cond  g_cond;
+static bool  g_stop = false;
 
 void dev_stop_handler(int sig)
 {
-    (void)sig;          // suppress unused variable warning
+    XCAM_UNUSED (sig);
 
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    ret = g_poll_thread->stop();
-    CHECK_CONTINUE (ret, "poll thread stop failed");
+    SmartLock locker (g_mutex);
+    g_stop = true;
+    g_cond.broadcast ();
 
-    exit(0);
+    // exit(0);
 }
 
 int main (int argc, const char *argv[])
@@ -236,8 +209,8 @@ int main (int argc, const char *argv[])
         ret,
         "device(%s) subscribe event(%d) failed",
         event_device->get_device_name(), event);
-    XCAM_FAILED_STOP (ret = event_device->start(), "event device start failed");
-
+    ret = event_device->start();
+    CHECK (ret, "event device start failed");
 
     struct v4l2_format format;
     device->get_format(format);
@@ -255,11 +228,14 @@ int main (int argc, const char *argv[])
                       device->get_capture_buf_type(),
     { 0, 0, format.fmt.pix.width, format.fmt.pix.height });
     atom_isp_dev->set_drm_display(drmdisp);
-    XCAM_FAILED_STOP (ret = device->start(), "capture device start failed");
 
+    ret = device->start();
+    CHECK (ret, "capture device start failed");
     SmartPtr<PollThread> poll_thread = new PollThread();
     PollCB* poll_cb = new PollCB(drmdisp, format);
 #else
+    ret = device->start();
+    CHECK(ret, "capture device start failed");
     SmartPtr<PollThread> poll_thread = new PollThread();
     PollCB* poll_cb = new PollCB(format);
 #endif
@@ -269,14 +245,22 @@ int main (int argc, const char *argv[])
     poll_thread->set_isp_controller(isp_controller);
     poll_thread->set_callback(poll_cb);
 
-    g_poll_thread = poll_thread;
     signal(SIGINT, dev_stop_handler);
 
     poll_thread->start();
+    CHECK (ret, "poll thread start failed");
 
-    while (1) {
-        ::usleep (500000); // 500 ms
+    // wait for interruption
+    {
+        SmartLock locker (g_mutex);
+        while (!g_stop)
+            g_cond.wait (g_mutex);
     }
+
+    ret = poll_thread->stop();
+    CHECK_CONTINUE (ret, "poll thread stop failed");
+    device->close ();
+    event_device->close ();
 
     return 0;
 }

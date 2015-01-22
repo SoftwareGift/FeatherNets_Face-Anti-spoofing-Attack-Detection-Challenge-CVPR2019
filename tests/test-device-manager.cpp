@@ -29,30 +29,10 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
+#include "test_common.h"
+
 
 using namespace XCam;
-
-#undef CHECK_DECLARE
-#undef CHECK
-#undef CHECK_CONTINUE
-
-#define CHECK_DECLARE(level, ret, statement, msg, ...) \
-    if ((ret) != XCAM_RETURN_NO_ERROR) {        \
-        XCAM_LOG_##level (msg, ## __VA_ARGS__);   \
-        statement;                              \
-    }
-
-#define CHECK(ret, msg, ...)  \
-    CHECK_DECLARE(ERROR, ret, return -1, msg, ## __VA_ARGS__)
-
-#define CHECK_CONTINUE(ret, msg, ...)  \
-    CHECK_DECLARE(WARNING, ret, , msg, ## __VA_ARGS__)
-
-
-#define DEFAULT_CAPTURE_DEVICE "/dev/video3"
-#define DEFAULT_EVENT_DEVICE   "/dev/v4l-subdev6"
-#define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
-#define DEFAULT_SAVE_FILE_NAME "capture_buffer.raw"
 
 class MainDeviceManager
     : public DeviceManager
