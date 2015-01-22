@@ -2,6 +2,11 @@ noinst_PROGRAMS = test-device-manager test-poll-thread
 
 tests_cxxflags = $(XCAM_CXXFLAGS)
 
+if HAVE_LIBDRM
+tests_cxxflags += $(LIBDRM_CFLAGS) $(LIBDRM_LIBS)
+endif
+
+
 if USE_LOCAL_ATOMISP
 tests_cxxflags +=               \
     -I$(top_srcdir)/ext/atomisp \

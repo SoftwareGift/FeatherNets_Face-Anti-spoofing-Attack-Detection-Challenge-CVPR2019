@@ -76,6 +76,13 @@ xcam_sources =               \
 	xcam_thread.cpp          \
 	$(NULL)
 
+if HAVE_LIBDRM
+xcam_sources +=              \
+	drm_display.cpp	         \
+	drm_v4l2_buffer.cpp	 \
+	$(NULL)
+endif
+
 if HAVE_IA_AIQ
 xcam_sources +=              \
 	libtbd.c                 \
@@ -129,3 +136,9 @@ libxcam_coreinclude_HEADERS =  \
 	xcam_utils.h               \
 	$(NULL)
 
+if HAVE_LIBDRM
+libxcam_coreinclude_HEADERS +=  \
+	drm_display.h              \
+	drm_v4l2_buffer.h	   \
+	$(NULL)
+endif

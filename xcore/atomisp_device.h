@@ -24,8 +24,15 @@
 #include "xcam_common.h"
 #include "xcam_defs.h"
 #include "v4l2_device.h"
+#if HAVE_LIBDRM
+#include "drm_display.h"
+#endif
 
 namespace XCam {
+
+#if HAVE_LIBDRM
+class DrmDisplay;
+#endif
 
 class AtomispDevice
     : public V4l2Device
@@ -35,6 +42,12 @@ class AtomispDevice
 public:
     explicit AtomispDevice (const char *name = NULL);
     ~AtomispDevice ();
+
+#if HAVE_LIBDRM
+    void set_drm_display(DrmDisplay* drm_disp) {
+        _drm_disp = drm_disp;
+    };
+#endif
 
 protected:
     virtual XCamReturn pre_set_format (struct v4l2_format &format);
@@ -47,14 +60,9 @@ private:
     XCAM_DEAD_COPY (AtomispDevice);
 
 #if HAVE_LIBDRM
-    int get_drm_handle () const {
-        return _drm_handle;
-    }
-    SmartPtr<V4l2Buffer> create_drm_buf (const struct v4l2_format &format, const uint32_t index);
-#endif
-
 private:
-    int _drm_handle;
+    DrmDisplay* _drm_disp;
+#endif
 };
 
 };

@@ -72,7 +72,7 @@ V4l2BufferProxy::v4l2_format_to_video_info (
         info.offsets[0] = 0;
         info.offsets[1] = info.strides [0] * format.fmt.pix.height;
         break;
-    case V4L2_PIX_FMT_YUV422P: // 422
+    case V4L2_PIX_FMT_YUV422P: // 422 Planar
         info.components = 3;
         info.strides [0] = format.fmt.pix.bytesperline / 2;
         info.strides [1] = info.strides [0] / 2 ;
@@ -80,6 +80,11 @@ V4l2BufferProxy::v4l2_format_to_video_info (
         info.offsets[0] = 0;
         info.offsets[1] = info.strides [0] * format.fmt.pix.height;
         info.offsets[2] = info.offsets[1] + info.strides [1] * format.fmt.pix.height;
+        break;
+    case V4L2_PIX_FMT_YUYV: // 422
+        info.components = 1;
+        info.strides [0] = format.fmt.pix.bytesperline;
+        info.offsets[0] = 0;
         break;
     default:
         XCAM_LOG_WARNING (

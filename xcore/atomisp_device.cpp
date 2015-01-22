@@ -21,29 +21,19 @@
 #include "atomisp_device.h"
 #include "v4l2_buffer_proxy.h"
 #include <linux/v4l2-subdev.h>
-#if HAVE_LIBDRM
-#include <drm.h>
-#include <drm_mode.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
-
-#define DEFAULT_DRM_DEVICE "i915"
-#endif
 
 namespace XCam {
 
 AtomispDevice::AtomispDevice (const char *name)
     : V4l2Device (name)
-    , _drm_handle (-1)
+#if HAVE_LIBDRM
+    , _drm_disp (NULL)
+#endif
 {
 }
 
 AtomispDevice::~AtomispDevice ()
 {
-#if HAVE_LIBDRM
-    if (_drm_handle > 0)
-        drmClose (_drm_handle);
-#endif
 }
 
 XCamReturn
@@ -91,8 +81,8 @@ AtomispDevice::allocate_buffer (
     const uint32_t index)
 {
 #if HAVE_LIBDRM
-    if (get_mem_type () == V4L2_MEMORY_DMABUF) {
-        buf = create_drm_buf (format, index);
+    if (get_mem_type () == V4L2_MEMORY_DMABUF && _drm_disp != NULL) {
+        buf = _drm_disp->create_drm_buf (format, index, this);
         if (!buf.ptr()) {
             XCAM_LOG_WARNING ("atomisp device(%s) allocate buffer failed", XCAM_STR (get_device_name()));
             return XCAM_RETURN_ERROR_MEM;
@@ -103,84 +93,5 @@ AtomispDevice::allocate_buffer (
 
     return V4l2Device::allocate_buffer (buf, format, index);
 }
-
-#if HAVE_LIBDRM
-
-class DrmV4l2Buffer
-    : public V4l2Buffer
-{
-public:
-    explicit DrmV4l2Buffer (
-        uint32_t gem_handle,
-        const struct v4l2_buffer &buf,
-        const struct v4l2_format &format,
-        AtomispDevice *device
-    )
-        : V4l2Buffer (buf, format)
-        , _gem_handle (gem_handle)
-        , _device (device)
-    {}
-    ~DrmV4l2Buffer ();
-
-private:
-    uint32_t       _gem_handle;
-    AtomispDevice *_device;
-};
-
-DrmV4l2Buffer::~DrmV4l2Buffer ()
-{
-    XCAM_ASSERT (_device);
-    int handle = _device->get_drm_handle ();
-    if (handle > 0) {
-        struct drm_mode_destroy_dumb gem;
-        xcam_mem_clear (&gem);
-        gem.handle = _gem_handle;
-        xcam_device_ioctl (handle, DRM_IOCTL_MODE_DESTROY_DUMB, &gem);
-    }
-}
-
-
-SmartPtr<V4l2Buffer>
-AtomispDevice::create_drm_buf (const struct v4l2_format &format, const uint32_t index)
-{
-    struct drm_mode_create_dumb gem;
-    struct drm_prime_handle prime;
-    struct v4l2_buffer v4l2_buf;
-    int ret = 0;
-
-    xcam_mem_clear (&gem);
-    xcam_mem_clear (&prime);
-    xcam_mem_clear (&v4l2_buf);
-
-    if (_drm_handle < 0)
-        _drm_handle = drmOpen (DEFAULT_DRM_DEVICE, NULL);
-    if (_drm_handle < 0) {
-        XCAM_LOG_WARNING ("open drm device(%s) failed", DEFAULT_DRM_DEVICE);
-        return NULL;
-    }
-
-    gem.width = format.fmt.pix.bytesperline;
-    gem.height = format.fmt.pix.height;
-    gem.bpp = 8;
-    ret = xcam_device_ioctl (_drm_handle, DRM_IOCTL_MODE_CREATE_DUMB, &gem);
-    XCAM_ASSERT (ret >= 0);
-
-    prime.handle = gem.handle;
-    ret = xcam_device_ioctl (_drm_handle, DRM_IOCTL_PRIME_HANDLE_TO_FD, &prime);
-    if (ret < 0) {
-        XCAM_LOG_WARNING ("create drm failed on DRM_IOCTL_PRIME_HANDLE_TO_FD");
-        return NULL;
-    }
-
-    v4l2_buf.index = index;
-    v4l2_buf.type = get_capture_buf_type ();
-    v4l2_buf.memory = V4L2_MEMORY_DMABUF;
-    v4l2_buf.m.fd = prime.fd;
-    v4l2_buf.length = XCAM_MAX (format.fmt.pix.sizeimage, gem.size); // todo check gem.size and format.fmt.pix.length
-    XCAM_LOG_DEBUG ("create drm buffer size:%lld", gem.size);
-    return new DrmV4l2Buffer (gem.handle, v4l2_buf, format, this);
-}
-
-#endif
 
 };
