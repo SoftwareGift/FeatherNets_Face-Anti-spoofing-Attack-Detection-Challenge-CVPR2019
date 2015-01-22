@@ -22,7 +22,7 @@
 #define XCAM_DEVICE_MANAGER_H
 
 #include "xcam_common.h"
-#include "xcam_defs.h"
+#include "xcam_utils.h"
 #include "smartptr.h"
 #include "v4l2_device.h"
 #include "v4l2_buffer_proxy.h"

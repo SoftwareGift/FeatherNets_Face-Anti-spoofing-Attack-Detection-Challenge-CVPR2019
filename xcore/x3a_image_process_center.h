@@ -22,7 +22,6 @@
 #define XCAM_3A_IMAGE_PROCESS_CENTER_H
 
 #include "xcam_common.h"
-#include "xcam_defs.h"
 #include "xcam_utils.h"
 #include "image_processor.h"
 

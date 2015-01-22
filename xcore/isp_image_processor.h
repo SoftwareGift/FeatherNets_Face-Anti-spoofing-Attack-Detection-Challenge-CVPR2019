@@ -22,7 +22,6 @@
 #define XCAM_ISP_IMAGE_PROCESSOR_H
 
 #include "xcam_common.h"
-#include "xcam_defs.h"
 #include "xcam_utils.h"
 #include "image_processor.h"
 

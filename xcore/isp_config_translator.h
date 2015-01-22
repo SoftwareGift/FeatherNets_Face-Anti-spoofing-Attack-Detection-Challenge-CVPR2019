@@ -22,7 +22,6 @@
 #define XCAM_ISP_CONFIG_TRANSLATOR_H
 
 #include "xcam_common.h"
-#include "xcam_defs.h"
 #include "xcam_utils.h"
 #include "x3a_result.h"
 #include "sensor_descriptor.h"

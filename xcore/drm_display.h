@@ -22,6 +22,7 @@
 #define XCAM_DRM_DISPLAY_H
 
 #include "xcam_common.h"
+#include "xcam_utils.h"
 #include "smartptr.h"
 #include "xcam_mutex.h"
 #include "atomisp_device.h"

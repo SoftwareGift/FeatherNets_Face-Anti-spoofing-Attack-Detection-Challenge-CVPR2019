@@ -22,9 +22,8 @@
 #define XCAM_HANDLER_INTERFACE_H
 
 #include "xcam_common.h"
-#include "xcam_defs.h"
-#include "xcam_mutex.h"
 #include "xcam_utils.h"
+#include "xcam_mutex.h"
 #include "x3a_result.h"
 #include "xcam_3a_types.h"
 

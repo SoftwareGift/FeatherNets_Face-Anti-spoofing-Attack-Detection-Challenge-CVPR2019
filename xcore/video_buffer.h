@@ -21,7 +21,6 @@
 #ifndef XCAM_VIDEO_BUFFER_H
 #define XCAM_VIDEO_BUFFER_H
 
-#include "xcam_defs.h"
 #include "xcam_common.h"
 #include "xcam_utils.h"
 

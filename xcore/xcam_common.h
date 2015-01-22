@@ -21,10 +21,6 @@
 #ifndef XCAM_COMMON_H
 #define XCAM_COMMON_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <string.h>
 #include <stddef.h>
 #include <stdio.h>

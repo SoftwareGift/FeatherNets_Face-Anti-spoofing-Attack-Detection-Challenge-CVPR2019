@@ -22,6 +22,7 @@
 #define XCAM_V4L2_DEVICE_H
 
 #include "xcam_common.h"
+#include "xcam_utils.h"
 #include "smartptr.h"
 #include <linux/videodev2.h>
 #include <list>

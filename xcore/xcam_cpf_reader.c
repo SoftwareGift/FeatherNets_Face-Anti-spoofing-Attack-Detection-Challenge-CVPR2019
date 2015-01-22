@@ -20,7 +20,6 @@
 
 
 #include "xcam_cpf_reader.h"
-#include "xcam_common.h"
 
 #include <string.h>
 #include <stdlib.h>

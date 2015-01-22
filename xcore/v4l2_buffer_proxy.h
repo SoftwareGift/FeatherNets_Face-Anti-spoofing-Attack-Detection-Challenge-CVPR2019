@@ -21,6 +21,7 @@
 #ifndef XCAM_V4L2_BUFFER_PROXY_H
 #define XCAM_V4L2_BUFFER_PROXY_H
 
+#include "xcam_utils.h"
 #include "video_buffer.h"
 #include "smartptr.h"
 #include <linux/videodev2.h>

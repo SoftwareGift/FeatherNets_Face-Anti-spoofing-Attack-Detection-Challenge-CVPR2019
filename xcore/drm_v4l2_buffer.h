@@ -22,6 +22,7 @@
 #ifndef XCAM_DRM_V4L2_BUFFER_H
 #define XCAM_DRM_V4L2_BUFFER_H
 
+#include "xcam_utils.h"
 #include "v4l2_buffer_proxy.h"
 #include "drm_display.h"
 

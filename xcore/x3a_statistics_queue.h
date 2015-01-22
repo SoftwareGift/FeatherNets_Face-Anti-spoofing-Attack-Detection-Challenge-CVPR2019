@@ -22,6 +22,7 @@
 #define XCAM_3A_STATISTIC_QUEUE_H
 
 #include "xcam_common.h"
+#include "xcam_utils.h"
 #include "x3a_event.h"
 #include "xcam_mutex.h"
 #include "xcam_utils.h"

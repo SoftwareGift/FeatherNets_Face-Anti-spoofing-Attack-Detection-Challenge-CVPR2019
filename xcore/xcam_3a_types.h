@@ -28,6 +28,9 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
+#include "xcam_defs.h"
+
+XCAM_BEGIN_DECLARE
 
 typedef enum  {
     XCAM_MODE_NONE = -1,
@@ -127,6 +130,8 @@ typedef struct _XCamExposureResult {
     double aperture_fn;
     int32_t iso;
 } XCamExposureResult;
+
+XCAM_END_DECLARE
 
 #endif //__XCAM_3A_TYPES_H
 
