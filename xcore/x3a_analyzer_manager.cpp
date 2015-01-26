@@ -24,6 +24,7 @@
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
 #endif
+#include "analyzer_loader.h"
 
 #include <sys/types.h>
 #include <dirent.h>
@@ -62,16 +63,6 @@ X3aAnalyzerManager::create_analyzer()
         analyzer = new X3aAnalyzerSimple;
     return analyzer;
 }
-
-#if 0
-/* C interface of 3A lib */
-typedef struct _XCam3ADescription {
-    XCamReturn (*run_awb) (XCamAwbParams *params, uint64_t timestamp);
-    XCamReturn (*run_awb) (XCamAwbParams *params, uint64_t timestamp);
-    XCamReturn (*run_awb) (XCamAwbParams *params, uint64_t timestamp);
-    XCamReturn (*get_combined_result) (XCam3aResultList *results , uint64_t *timestamp);
-} XCam3ADescription;
-#endif
 
 SmartPtr<X3aAnalyzer>
 X3aAnalyzerManager::find_analyzer ()

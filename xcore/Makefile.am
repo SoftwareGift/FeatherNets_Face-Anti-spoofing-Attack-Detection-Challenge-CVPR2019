@@ -71,6 +71,7 @@ xcam_sources =               \
 	x3a_image_process_center.cpp  \
 	x3a_isp_config.cpp       \
 	x3a_result.cpp           \
+	x3a_result_factory.cpp   \
 	x3a_statistics_queue.cpp \
 	xcam_common.cpp          \
 	xcam_thread.cpp          \

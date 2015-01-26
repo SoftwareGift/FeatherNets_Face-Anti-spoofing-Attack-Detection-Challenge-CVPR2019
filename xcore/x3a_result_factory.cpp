@@ -63,7 +63,7 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
 {
     SmartPtr<X3aResult> result (NULL);
     uint32_t type = xcam_3a_result_type (from);
-
+    
     XCAM_ASSERT (from);
     if (!from)
         return result;
@@ -121,7 +121,7 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
         result = create_b_gamma_table ((XCam3aResultGammaTable*)from);
         break;
     default:
-        XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", );
+        XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", type);
         break;
     }
 
@@ -227,7 +227,7 @@ X3aResultFactory::create_macc (XCam3aResultMaccMatrix *from)
 SmartPtr<X3aChromaToneControlResult>
 X3aResultFactory::create_chroma_tone_control (XCam3aResultChromaToneControl *from)
 {
-    XCAM_3A_RESULT_FACTORY (X3aMaccMatrixResult, XCAM_3A_RESULT_CHROMA_TONE_CONTROL, from);
+    XCAM_3A_RESULT_FACTORY (X3aChromaToneControlResult, XCAM_3A_RESULT_CHROMA_TONE_CONTROL, from);
 }
 
 };

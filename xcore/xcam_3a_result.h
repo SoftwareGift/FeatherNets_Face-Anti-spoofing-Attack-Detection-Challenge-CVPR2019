@@ -28,12 +28,15 @@
 
 XCAM_BEGIN_DECLARE
 
+#define xcam_3a_result_type(result)  (((XCam3aResultHead*)result)->type)
+
 typedef enum _ImageProcessType {
     XCAM_IMAGE_PROCESS_ONCE,
     XCAM_IMAGE_PROCESS_ALWAYS,
 } XCamImageProcessType;
 
 typedef enum _XCam3aResultType {
+    XCAM_3A_RESULT_NULL            = 0,
     /* White Balance */
     XCAM_3A_RESULT_WHITE_BALANCE,
     XCAM_3A_RESULT_BLACK_LEVEL,
@@ -84,11 +87,6 @@ typedef struct _XCam3aResultHead {
     uint32_t              version;
     void                  (*destroy) (void);
 } XCam3aResultHead;
-
-typedef struct _XCam3aResultList {
-    XCam3aResultHead *result;
-    XCam3aResultHead *next;
-} XCam3aResultList;
 
 typedef struct _XCam3aResultWhiteBalance {
     XCam3aResultHead head;

@@ -24,6 +24,7 @@
 #include "xcam_common.h"
 #include "xcam_utils.h"
 #include "smartptr.h"
+#include "xcam_mutex.h"
 #include "x3a_result.h"
 
 namespace XCam {
