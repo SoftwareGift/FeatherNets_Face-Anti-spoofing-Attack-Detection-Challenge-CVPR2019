@@ -26,8 +26,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <linux/atomisp.h>
-#include "xcam_defs.h"
-#include "xcam_params.h"
+#include <base/xcam_defs.h>
+#include <base/xcam_params.h>
+#include <base/xcam_3a_result.h>
 
 XCAM_BEGIN_DECLARE
 

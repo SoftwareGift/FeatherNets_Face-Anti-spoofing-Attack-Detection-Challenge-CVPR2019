@@ -28,7 +28,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
-#include "xcam_defs.h"
+#include <base/xcam_defs.h>
 
 XCAM_BEGIN_DECLARE
 

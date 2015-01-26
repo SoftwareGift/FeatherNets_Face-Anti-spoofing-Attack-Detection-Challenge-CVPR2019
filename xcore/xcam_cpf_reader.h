@@ -24,7 +24,7 @@
 #ifndef _XCAM_CPF_READER_H
 #define _XCAM_CPF_READER_H
 
-#include "xcam_common.h"
+#include <base/xcam_common.h>
 #include <stdint.h>
 #include <string.h>
 #include <stddef.h>

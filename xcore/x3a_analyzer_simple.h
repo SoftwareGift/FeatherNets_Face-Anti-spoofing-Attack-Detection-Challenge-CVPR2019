@@ -21,7 +21,6 @@
 #ifndef XCAM_3A_ANALYZER_SIMPLE_H
 #define XCAM_3A_ANALYZER_SIMPLE_H
 
-#include "xcam_common.h"
 #include "xcam_utils.h"
 #include "x3a_analyzer.h"
 #include <linux/atomisp.h>

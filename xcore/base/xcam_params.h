@@ -21,8 +21,9 @@
 #ifndef C_XCAM_PARAMS_H
 #define C_XCAM_PARAMS_H
 
-#include <xcam_defs.h>
-#include <xcam_common.h>
+#include <base/xcam_defs.h>
+#include <base/xcam_common.h>
+#include <base/xcam_3a_types.h>
 
 XCAM_BEGIN_DECLARE
 

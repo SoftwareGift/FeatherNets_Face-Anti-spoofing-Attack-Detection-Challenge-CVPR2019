@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include <atomic>
-#include "xcam_defs.h"
+#include <base/xcam_defs.h>
 
 namespace XCam {
 

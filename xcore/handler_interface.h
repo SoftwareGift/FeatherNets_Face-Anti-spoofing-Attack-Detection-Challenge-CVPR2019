@@ -21,12 +21,13 @@
 #ifndef XCAM_HANDLER_INTERFACE_H
 #define XCAM_HANDLER_INTERFACE_H
 
-#include "xcam_common.h"
+#include <base/xcam_common.h>
+#include <base/xcam_3a_types.h>
+#include <base/xcam_params.h>
+
 #include "xcam_utils.h"
 #include "xcam_mutex.h"
 #include "x3a_result.h"
-#include "xcam_3a_types.h"
-#include "xcam_params.h"
 
 namespace XCam {
 

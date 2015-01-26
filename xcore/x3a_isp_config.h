@@ -21,11 +21,10 @@
 #ifndef XCAM_3A_ISP_CONFIG_H
 #define XCAM_3A_ISP_CONFIG_H
 
-#include "xcam_common.h"
 #include "xcam_utils.h"
-#include "xcam_3a_result.h"
 #include "x3a_result.h"
 #include <linux/atomisp.h>
+#include <base/xcam_3a_result.h>
 
 namespace XCam {
 

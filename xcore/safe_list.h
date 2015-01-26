@@ -21,12 +21,12 @@
 #ifndef XCAM_SAFE_LIST_H
 #define XCAM_SAFE_LIST_H
 
-#include "xcam_defs.h"
-#include "xcam_common.h"
-#include "smartptr.h"
-#include "xcam_mutex.h"
+#include <base/xcam_defs.h>
+#include <base/xcam_common.h>
 #include <errno.h>
 #include <list>
+#include "smartptr.h"
+#include "xcam_mutex.h"
 
 namespace XCam {
 

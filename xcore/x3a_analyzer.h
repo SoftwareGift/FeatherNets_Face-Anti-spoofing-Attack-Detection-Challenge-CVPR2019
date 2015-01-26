@@ -21,7 +21,6 @@
 #ifndef XCAM_3A_ANALYZER_H
 #define XCAM_3A_ANALYZER_H
 
-#include "xcam_common.h"
 #include "xcam_utils.h"
 #include "handler_interface.h"
 

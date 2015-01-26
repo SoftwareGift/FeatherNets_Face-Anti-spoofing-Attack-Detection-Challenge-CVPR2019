@@ -21,7 +21,6 @@
 #ifndef XCAM_POLL_THREAD_H
 #define XCAM_POLL_THREAD_H
 
-#include "xcam_common.h"
 #include "xcam_utils.h"
 #include "xcam_mutex.h"
 #include "x3a_event.h"

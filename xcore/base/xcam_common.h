@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <pthread.h>
-#include "xcam_defs.h"
+#include <base/xcam_defs.h>
 
 XCAM_BEGIN_DECLARE
 

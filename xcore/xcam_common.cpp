@@ -18,7 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_common.h"
+#include <base/xcam_common.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/ioctl.h>

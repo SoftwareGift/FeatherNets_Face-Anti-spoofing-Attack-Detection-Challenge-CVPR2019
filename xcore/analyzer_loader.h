@@ -21,10 +21,10 @@
 #ifndef XCAM_ANALYZER_LOADER_H
 #define XCAM_ANALYZER_LOADER_H
 
-#include "xcam_common.h"
+#include <base/xcam_common.h>
+#include <base/xcam_3a_description.h>
 #include "xcam_utils.h"
 #include "x3a_analyzer.h"
-#include "xcam_3a_description.h"
 
 namespace XCam {
 

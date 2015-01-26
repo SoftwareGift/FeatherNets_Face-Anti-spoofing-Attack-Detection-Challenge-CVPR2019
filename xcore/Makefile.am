@@ -3,7 +3,7 @@ lib_LTLIBRARIES = libxcam_core.la
 PTHREAD_LDFLAGS = -pthread
 
 XCAM_CORE_CXXFLAGS = $(XCAM_CXXFLAGS)
-XCAM_CORE_LIBS =    \
+XCAM_CORE_LIBS = -ldl   \
 	$(NULL)
 
 if DEBUG
@@ -95,7 +95,7 @@ xcam_sources +=              \
 endif
 
 libxcam_core_la_CXXFLAGS  =  \
-	$(XCAM_CORE_CXXFLAGS)         \
+	$(XCAM_CORE_CXXFLAGS)    \
 	$(NULL)
 
 libxcam_core_la_SOURCES =    \
@@ -114,7 +114,13 @@ libxcam_core_la_LIBADD =     \
 
 libxcam_coreincludedir =  $(includedir)/xcam
 
-libxcam_coreinclude_HEADERS =  \
+nobase_libxcam_coreinclude_HEADERS =  \
+	base/xcam_3a_result.h      \
+	base/xcam_3a_types.h       \
+	base/xcam_3a_description.h \
+	base/xcam_params.h         \
+	base/xcam_common.h         \
+	base/xcam_defs.h           \
 	device_manager.h           \
 	handler_interface.h        \
 	image_processor.h          \
@@ -129,17 +135,13 @@ libxcam_coreinclude_HEADERS =  \
 	x3a_image_process_center.h \
 	x3a_isp_config.h           \
 	x3a_result.h               \
-	xcam_3a_result.h           \
-	xcam_3a_types.h            \
-	xcam_common.h              \
-	xcam_defs.h                \
 	xcam_mutex.h               \
 	xcam_thread.h              \
 	xcam_utils.h               \
 	$(NULL)
 
 if HAVE_LIBDRM
-libxcam_coreinclude_HEADERS +=  \
+nobase_libxcam_coreinclude_HEADERS +=  \
 	drm_display.h              \
 	drm_v4l2_buffer.h	   \
 	$(NULL)

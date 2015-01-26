@@ -21,7 +21,6 @@
 #ifndef XCAM_IMAGE_PROCESSOR_H
 #define XCAM_IMAGE_PROCESSOR_H
 
-#include "xcam_common.h"
 #include "xcam_utils.h"
 #include "video_buffer.h"
 #include "x3a_result.h"

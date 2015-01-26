@@ -25,7 +25,7 @@
 #include "config.h"
 #endif
 
-#include "xcam_common.h"
+#include <base/xcam_common.h>
 
 namespace XCam {
 

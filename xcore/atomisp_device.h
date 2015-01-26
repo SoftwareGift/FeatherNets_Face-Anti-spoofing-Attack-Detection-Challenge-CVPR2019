@@ -21,7 +21,6 @@
 #ifndef XCAM_ATOMISP_DEVICE_H
 #define XCAM_ATOMISP_DEVICE_H
 
-#include "xcam_common.h"
 #include "xcam_utils.h"
 #include "v4l2_device.h"
 #if HAVE_LIBDRM
