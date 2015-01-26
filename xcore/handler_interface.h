@@ -26,6 +26,7 @@
 #include "xcam_mutex.h"
 #include "x3a_result.h"
 #include "xcam_3a_types.h"
+#include "xcam_params.h"
 
 namespace XCam {
 
@@ -79,47 +80,55 @@ public:
     virtual double get_max_analog_gain ();
 
 protected:
+    const XCamAeParam &get_params_unlock () const {
+        return _params;
+    }
+
     XCamAeMode get_mode_unlock() const {
-        return _mode;
+        return _params.mode;
     }
     XCamAeMeteringMode get_metering_mode_unlock() const {
-        return _metering_mode;
+        return _params.metering_mode;
     }
     const XCam3AWindow &get_window_unlock() const {
-        return _window;
+        return _params.window;
     }
     XCamFlickerMode get_flicker_mode_unlock() const {
-        return _flicker_mode;
+        return _params.flicker_mode;
     }
     double get_speed_unlock() const {
-        return _speed;
+        return _params.speed;
     }
     double get_ev_shift_unlock() const {
-        return _ev_shift;
+        return _params.ev_shift;
+    }
+
+    uint64_t get_manual_exposure_time_unlock () const {
+        return _params.manual_exposure_time;
+    }
+    double get_manual_analog_gain_unlock () const {
+        return _params.manual_analog_gain;
+    }
+
+    double get_aperture_fn_unlock () const {
+        return _params.aperture_fn;
+    }
+
+    void get_exposure_time_range_unlock (uint64_t &min, uint64_t &max) const {
+        min = _params.exposure_time_min;
+        max = _params.exposure_time_max;
+    }
+
+    double get_max_analog_gain_unlock () const {
+        return _params.max_analog_gain;
     }
 
 private:
+    void reset_parameters ();
     XCAM_DEAD_COPY (AeHandler);
 
 protected:
-    XCamAeMode              _mode;
-    XCamAeMeteringMode      _metering_mode;
-    XCam3AWindow            _window;
-    XCamFlickerMode         _flicker_mode;
-    double                  _speed;
-
-    /* exposure limitation */
-    uint64_t                _exposure_time_min, _exposure_time_max; // exposure time range
-    double                  _max_analog_gain;
-
-    /* exposure manual values */
-    uint64_t                _manual_exposure_time;
-    double                  _manual_analog_gain;
-
-    double                  _aperture_fn;
-
-    /*ev*/
-    double                  _ev_shift;
+    XCamAeParam   _params;
 };
 
 class AwbHandler
@@ -135,27 +144,32 @@ public:
     bool set_manual_gain (double gr, double r, double b, double gb);
 
 protected:
+    const XCamAwbParam &get_params_unlock () const {
+        return _params;
+    }
+
     XCamAwbMode get_mode_unlock() const {
-        return _mode;
+        return _params.mode;
     }
     double get_speed_unlock () const {
-        return _speed;
+        return _params.speed;
+    }
+
+    const XCam3AWindow &get_window_unlock () const {
+        return _params.window;
+    }
+
+    void get_cct_range_unlock (uint32_t &cct_min, uint32_t &cct_max) const {
+        cct_min = _params.cct_min;
+        cct_max = _params.cct_max;
     }
 
 private:
+    void reset_parameters ();
     XCAM_DEAD_COPY (AwbHandler);
 
 protected:
-    XCamAwbMode             _mode;
-    double                  _speed;
-    uint32_t                _cct_min, _cct_max;
-    XCam3AWindow            _window;
-
-    /* manual gain */
-    double                  _gr_gain;
-    double                  _r_gain;
-    double                  _b_gain;
-    double                  _gb_gain;
+    XCamAwbParam _params;
 };
 
 class AfHandler
@@ -168,6 +182,12 @@ private:
     XCAM_DEAD_COPY (AfHandler);
 
 protected:
+    const XCamAfParam &get_params_unlock () const {
+        return _params;
+    }
+
+protected:
+    XCamAfParam _params;
 };
 
 class CommonHandler
@@ -191,66 +211,48 @@ public:
     bool set_manual_sharpness (double level);
     bool set_gamma_table (double *r_table, double *g_table, double *b_table);
 
-public:
+protected:
+    const XCamCommonParam &get_params_unlock () const {
+        return _params;
+    }
     bool has_gbce_unlock () const {
-        return _enable_gbce;
+        return _params.enable_gbce;
     }
     bool has_dvs_unlock () const {
-        return _enable_dvs;
+        return _params.enable_dvs;
     }
     bool has_night_mode_unlock () const {
-        return _enable_night_mode;
+        return _params.enable_night_mode;
     }
 
     double get_nr_level_unlock () const {
-        return _nr_level;
+        return _params.nr_level;
     }
     double get_tnr_level_unlock () const {
-        return _tnr_level;
+        return _params.tnr_level;
     }
     double get_brightness_unlock () const {
-        return _brightness;
+        return _params.brightness;
     }
     double get_contrast_unlock () const {
-        return _contrast;
+        return _params.contrast;
     }
     double get_hue_unlock () const {
-        return _hue;
+        return _params.hue;
     }
     double get_saturation_unlock () const {
-        return _saturation;
+        return _params.saturation;
     }
     double get_sharpness_unlock () const {
-        return _sharpness;
+        return _params.sharpness;
     }
 
 private:
+    void reset_parameters ();
     XCAM_DEAD_COPY (CommonHandler);
 
 protected:
-    /* R, G, B gamma table, size = XCAM_GAMMA_TABLE_SIZE */
-    bool                      _is_manual_gamma;
-    double                    _r_gamma [XCAM_GAMMA_TABLE_SIZE];
-    double                    _g_gamma [XCAM_GAMMA_TABLE_SIZE];
-    double                    _b_gamma [XCAM_GAMMA_TABLE_SIZE];
-
-    /*
-     * manual brightness, contrast, hue, saturation, sharpness
-     * -1.0 < value < 1.0
-     */
-    double                     _nr_level;
-    double                     _tnr_level;
-
-    double                     _brightness;
-    double                     _contrast;
-    double                     _hue;
-    double                     _saturation;
-    double                     _sharpness;
-
-    /* others */
-    bool                       _enable_dvs;
-    bool                       _enable_gbce;
-    bool                       _enable_night_mode;
+    XCamCommonParam _params;
 };
 
 };

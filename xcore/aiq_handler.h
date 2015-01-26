@@ -202,6 +202,7 @@ protected:
 class AiqCommonHandler
     : public CommonHandler
 {
+    friend class AiqCompositor;
 public:
     explicit AiqCommonHandler (SmartPtr<AiqCompositor> &aiq_compositor);
     ~AiqCommonHandler () {}

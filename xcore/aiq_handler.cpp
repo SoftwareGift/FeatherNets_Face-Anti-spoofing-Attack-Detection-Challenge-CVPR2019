@@ -445,8 +445,8 @@ bool AiqAeHandler::ensure_ae_flicker_mode ()
 
 bool AiqAeHandler::ensure_ae_manual ()
 {
-    _input.manual_exposure_time_us = this->_manual_exposure_time;
-    _input.manual_analog_gain = this->_manual_analog_gain;
+    _input.manual_exposure_time_us = get_manual_exposure_time_unlock ();
+    _input.manual_analog_gain = get_manual_analog_gain_unlock ();
     return true;
 }
 
@@ -582,10 +582,11 @@ void
 AiqAeHandler::adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res)
 {
     ia_aiq_exposure_sensor_descriptor * desc = &_sensor_descriptor;
-    uint64_t exposure_min = this->_exposure_time_min;
-    uint64_t exposure_max = this->_exposure_time_max;
-    double analog_max = this->_max_analog_gain;
+    uint64_t exposure_min = 0, exposure_max = 0;
+    double analog_max = get_max_analog_gain_unlock ();
     uint32_t min_coarse_value = 0, max_coarse_value = 0;
+
+    get_exposure_time_range_unlock (exposure_min, exposure_max);
 
     if (exposure_min) {
         min_coarse_value =  _time_to_coarse_line (desc, exposure_min);
@@ -713,15 +714,18 @@ AiqAwbHandler::ensure_awb_mode ()
     case XCAM_AWB_MODE_AUTO:
         _input.scene_mode = ia_aiq_awb_operation_mode_auto;
         break;
-    case XCAM_AWB_MODE_MANUAL:
-        if (this->_cct_min && this->_cct_max) {
+    case XCAM_AWB_MODE_MANUAL: {
+        uint32_t cct_min = 0, cct_max = 0;
+        get_cct_range_unlock (cct_min, cct_max);
+        if (cct_min  && cct_max) {
             _input.scene_mode = ia_aiq_awb_operation_mode_manual_cct_range;
-            _cct_range.max_cct = this->_cct_max;
-            _cct_range.min_cct = this->_cct_min;
+            _cct_range.max_cct = cct_min;
+            _cct_range.min_cct = cct_max;
             _input.manual_cct_range = &_cct_range;
         } else
             _input.scene_mode = ia_aiq_awb_operation_mode_auto;
         break;
+    }
     case XCAM_AWB_MODE_DAYLIGHT:
         _input.scene_mode = ia_aiq_awb_operation_mode_daylight;
         break;
