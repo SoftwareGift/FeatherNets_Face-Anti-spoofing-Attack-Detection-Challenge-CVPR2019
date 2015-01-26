@@ -127,6 +127,7 @@ X3aAnalyzer::X3aAnalyzer (const char *name)
     : _name (NULL)
     , _width (0)
     , _height (0)
+    , _framerate (30.0)
     , _ae_handler (NULL)
     , _awb_handler (NULL)
     , _af_handler (NULL)
@@ -153,7 +154,7 @@ X3aAnalyzer::set_results_callback (AnalyzerCallback *callback)
 }
 
 XCamReturn
-X3aAnalyzer::init (uint32_t width, uint32_t height)
+X3aAnalyzer::init (uint32_t width, uint32_t height, double framerate)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<AeHandler> ae_handler;
@@ -165,6 +166,7 @@ X3aAnalyzer::init (uint32_t width, uint32_t height)
     XCAM_ASSERT (!_width && !_height);
     _width = width;
     _height = height;
+    _framerate = framerate;
 
     XCAM_ASSERT (!_ae_handler.ptr() || !_awb_handler.ptr() ||
                  !_af_handler.ptr() || !_common_handler.ptr());
@@ -184,7 +186,7 @@ X3aAnalyzer::init (uint32_t width, uint32_t height)
     _af_handler = af_handler;
     _common_handler = common_handler;
 
-    ret = internal_init (width, height);
+    ret = internal_init (width, height, _framerate);
     if (ret != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_WARNING ("analyzer init failed");
         deinit ();

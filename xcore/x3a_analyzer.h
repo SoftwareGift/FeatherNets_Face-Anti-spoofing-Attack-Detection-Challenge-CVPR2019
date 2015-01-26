@@ -51,7 +51,7 @@ public:
 
     bool set_results_callback (AnalyzerCallback *callback);
 
-    XCamReturn init (uint32_t width, uint32_t height);
+    XCamReturn init (uint32_t width, uint32_t height, double framerate);
     XCamReturn deinit ();
     XCamReturn start ();
     XCamReturn stop ();
@@ -106,6 +106,10 @@ public:
     uint32_t get_height () const {
         return _height;
     }
+
+    double get_framerate () const {
+        return _framerate;
+    }
     const char * get_name () const {
         return _name;
     }
@@ -129,7 +133,7 @@ protected:
     virtual SmartPtr<AwbHandler> create_awb_handler () = 0;
     virtual SmartPtr<AfHandler> create_af_handler () = 0;
     virtual SmartPtr<CommonHandler> create_common_handler () = 0;
-    virtual XCamReturn internal_init (uint32_t width, uint32_t height) = 0;
+    virtual XCamReturn internal_init (uint32_t width, uint32_t height, double framerate) = 0;
     virtual XCamReturn internal_deinit () = 0;
 
     // in 3a stats thread
@@ -152,6 +156,7 @@ private:
     char                    *_name;
     uint32_t                 _width;
     uint32_t                 _height;
+    double                   _framerate;
 
     SmartPtr<AeHandler>      _ae_handler;
     SmartPtr<AwbHandler>     _awb_handler;

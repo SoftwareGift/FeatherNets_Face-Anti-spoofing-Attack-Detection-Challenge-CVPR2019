@@ -45,9 +45,10 @@ protected:
     virtual SmartPtr<AfHandler> create_af_handler ();
     virtual SmartPtr<CommonHandler> create_common_handler ();
 
-    virtual XCamReturn internal_init (uint32_t width, uint32_t height) {
+    virtual XCamReturn internal_init (uint32_t width, uint32_t height, double framerate) {
         XCAM_UNUSED (width);
         XCAM_UNUSED (height);
+        XCAM_UNUSED (framerate);
         return XCAM_RETURN_NO_ERROR;
     }
     virtual XCamReturn internal_deinit () {

@@ -120,8 +120,9 @@ X3aAnalyzerAiq::create_common_handler ()
 }
 
 XCamReturn
-X3aAnalyzerAiq::internal_init (uint32_t width, uint32_t height)
+X3aAnalyzerAiq::internal_init (uint32_t width, uint32_t height, double framerate)
 {
+    XCAM_UNUSED (framerate);
     XCAM_ASSERT (_cpf_path);
     CpfReader reader (_cpf_path);
     ia_binary_data binary;

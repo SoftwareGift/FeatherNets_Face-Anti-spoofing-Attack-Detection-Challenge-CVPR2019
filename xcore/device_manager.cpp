@@ -170,6 +170,8 @@ DeviceManager::start ()
     if (_has_3a) {
         // Initialize and start analyzer
         uint32_t width = 0, height = 0;
+        uint32_t fps_n = 0, fps_d = 0;
+        double framerate = 30.0;
 
         if (!_3a_analyzer.ptr()) {
             _3a_analyzer = X3aAnalyzerManager::instance()->create_analyzer();
@@ -180,7 +182,12 @@ DeviceManager::start ()
         _3a_analyzer->set_results_callback (this);
 
         _device->get_size (width, height);
-        XCAM_FAILED_STOP (ret = _3a_analyzer->init (width, height), "initialize analyzer failed");
+        _device->get_framerate (fps_n, fps_d);
+        if (fps_d)
+            framerate = (double)fps_n / (double)fps_d;
+        XCAM_FAILED_STOP (
+            ret = _3a_analyzer->init (width, height, framerate),
+            "initialize analyzer failed");
 
         XCAM_FAILED_STOP (ret = _3a_analyzer->start (), "start analyzer failed");
 
