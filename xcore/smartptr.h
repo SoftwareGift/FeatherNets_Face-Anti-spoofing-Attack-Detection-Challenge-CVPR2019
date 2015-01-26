@@ -92,6 +92,7 @@ public:
     SmartPtr<Obj> & operator = (const SmartPtr<ObjDerive> &obj) {
         release ();
         new_pointer (obj._ptr, obj._ref);
+        return *this;
     }
 
     Obj *operator -> () const {
