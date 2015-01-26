@@ -51,15 +51,13 @@ DrmDisplay::DrmDisplay()
     , _crtc_id (0)
     , _con_id (0)
     , _plane_id (0)
-    , _mode ({0})
-, _format (0)
-, _width (0)
-, _height (0)
-, _capture_buf_type (V4L2_BUF_TYPE_VIDEO_CAPTURE)
-, _compose({0})
-, _buf_fb_handle(std::map<uint32_t, uint32_t>())
-
+    , _format (0)
+    , _width (0)
+    , _height (0)
+    , _capture_buf_type (V4L2_BUF_TYPE_VIDEO_CAPTURE)
 {
+    xcam_mem_clear(&_compose);
+
     _fd = drmOpen (DEFAULT_DRM_DEVICE, NULL);
     if (_fd < 0)
         XCAM_LOG_ERROR("failed to open drm device %s", DEFAULT_DRM_DEVICE);
@@ -136,7 +134,7 @@ DrmDisplay::get_plane()
 }
 
 XCamReturn
-DrmDisplay::drm_init(const struct v4l2_pix_format *fmt,
+DrmDisplay::drm_init(const struct v4l2_pix_format* fmt,
                      const char* module,
                      uint32_t con_id,
                      uint32_t crtc_id,
@@ -144,7 +142,7 @@ DrmDisplay::drm_init(const struct v4l2_pix_format *fmt,
                      uint32_t height,
                      uint32_t format,
                      enum v4l2_buf_type capture_buf_type,
-                     struct v4l2_rect compose)
+                     const struct v4l2_rect* compose)
 {
     XCamReturn ret;
 
@@ -155,14 +153,10 @@ DrmDisplay::drm_init(const struct v4l2_pix_format *fmt,
     _height = height;
     _format = format;
     _capture_buf_type = capture_buf_type;
-    _compose = compose;
+    _compose = *compose;
     _crtc_index = -1;
     _plane_id = 0;
     _connector = NULL;
-
-    // _fd = drmOpen (DEFAULT_DRM_DEVICE, NULL);
-    // XCAM_FAIL_RETURN(ERROR, _fd >= 0, XCAM_RETURN_ERROR_IOCTL,
-    //           "failed to open drm device(%s): %s", DEFAULT_DRM_DEVICE);
 
     drmModeRes *resource = drmModeGetResources(_fd);
     XCAM_FAIL_RETURN(ERROR, resource, XCAM_RETURN_ERROR_PARAM,

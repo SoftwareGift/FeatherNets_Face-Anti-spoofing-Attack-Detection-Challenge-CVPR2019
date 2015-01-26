@@ -54,7 +54,7 @@ public:
 
     static SmartPtr<DrmDisplay> instance();
 
-    XCamReturn drm_init(const struct v4l2_pix_format *fmt,
+    XCamReturn drm_init(const struct v4l2_pix_format* fmt,
                         const char* module,
                         uint32_t con_id,
                         uint32_t crtc_id,
@@ -62,7 +62,7 @@ public:
                         uint32_t height,
                         uint32_t format,
                         enum v4l2_buf_type capture_buf_type,
-                        struct v4l2_rect compose);
+                        const struct v4l2_rect* compose);
 
     bool has_fb_handle(SmartPtr<V4l2BufferProxy> &buf) {
         return _buf_fb_handle.find(buf->get_v4l2_buf_index()) != _buf_fb_handle.end();
@@ -94,8 +94,6 @@ private:
     unsigned int _con_id;
     unsigned int _plane_id;
     drmModeConnector *_connector;
-
-    drmModeModeInfo _mode;
 
     unsigned int _format;
     unsigned int _width;

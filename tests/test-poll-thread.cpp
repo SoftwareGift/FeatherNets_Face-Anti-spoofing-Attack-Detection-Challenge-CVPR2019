@@ -63,9 +63,10 @@ public:
 
 #if HAVE_LIBDRM
     PollCB(DrmDisplay* drm_dev, struct v4l2_format &format)
-        : _file (NULL),
-          _drm_dev(drm_dev),
-          _format(format)
+        : _file (NULL)
+        , _format(format)
+        , _drm_dev(drm_dev)
+
     {
         open_file();
     };
@@ -84,10 +85,13 @@ public:
     XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf);
     XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg)
     {
+        XCAM_UNUSED(timestamp);
+        XCAM_UNUSED(msg);
         XCAM_LOG_DEBUG("%s", __FUNCTION__);
         return XCAM_RETURN_NO_ERROR;
     }
     XCamReturn poll_3a_stats_ready (SmartPtr<X3aIspStatistics> &stats) {
+        XCAM_UNUSED(stats);
         XCAM_LOG_DEBUG("%s", __FUNCTION__);
         return XCAM_RETURN_NO_ERROR;
     }
@@ -218,6 +222,7 @@ int main (int argc, const char *argv[])
 #if HAVE_LIBDRM
     AtomispDevice* atom_isp_dev = (AtomispDevice*)device.ptr();
     DrmDisplay* drmdisp = DrmDisplay::instance().ptr();
+    struct v4l2_rect rect = { 0, 0, (int)format.fmt.pix.width, (int)format.fmt.pix.height };
     drmdisp->drm_init(&format.fmt.pix,
                       "i915",
                       9,
@@ -226,7 +231,7 @@ int main (int argc, const char *argv[])
                       1080,
                       format.fmt.pix.pixelformat,
                       device->get_capture_buf_type(),
-    { 0, 0, format.fmt.pix.width, format.fmt.pix.height });
+                      &rect);
     atom_isp_dev->set_drm_display(drmdisp);
 
     ret = device->start();
