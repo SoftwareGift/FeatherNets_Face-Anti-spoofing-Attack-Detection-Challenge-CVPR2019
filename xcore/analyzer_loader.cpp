@@ -244,7 +244,7 @@ DynamicAnalyzer::internal_deinit ()
 XCamReturn
 DynamicAnalyzer::configure_3a ()
 {
-    uint32_t width= get_width ();
+    uint32_t width = get_width ();
     uint32_t height = get_height ();
     double framerate = get_framerate ();
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -252,9 +252,9 @@ DynamicAnalyzer::configure_3a ()
     XCAM_ASSERT (_context);
 
     XCAM_FAIL_RETURN (WARNING,
-        ret = _desc->configure_3a (_context,width, height, framerate),
-        ret,
-        "dynamic analyzer configure 3a failed");
+                      ret = _desc->configure_3a (_context, width, height, framerate),
+                      ret,
+                      "dynamic analyzer configure 3a failed");
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -268,15 +268,15 @@ DynamicAnalyzer::pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats)
     _cur_stats = stats;
     ret = _desc->set_3a_stats (_context, stats->get_3a_stats());
     XCAM_FAIL_RETURN (WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "dynamic analyzer set_3a_stats failed");
+                      ret == XCAM_RETURN_NO_ERROR,
+                      ret,
+                      "dynamic analyzer set_3a_stats failed");
 
     ret = _desc->update_common_params (_context, &common_params);
     XCAM_FAIL_RETURN (WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "dynamic analyzer update common params failed");
+                      ret == XCAM_RETURN_NO_ERROR,
+                      ret,
+                      "dynamic analyzer update common params failed");
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -291,18 +291,18 @@ DynamicAnalyzer::post_3a_analyze (X3aResultList &results)
     XCAM_ASSERT (_context);
     ret = _desc->combine_analyze_results (_context, &res_array, &res_count);
     XCAM_FAIL_RETURN (WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "dynamic analyzer combine_analyze_results failed");
+                      ret == XCAM_RETURN_NO_ERROR,
+                      ret,
+                      "dynamic analyzer combine_analyze_results failed");
 
     _cur_stats.release ();
 
     if (res_count) {
         ret = convert_results (res_array, res_count, results);
         XCAM_FAIL_RETURN (WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            ret,
-            "dynamic analyzer convert_results failed");
+                          ret == XCAM_RETURN_NO_ERROR,
+                          ret,
+                          "dynamic analyzer convert_results failed");
         _desc->free_results (res_array, res_count);
     }
 
@@ -312,9 +312,9 @@ DynamicAnalyzer::post_3a_analyze (X3aResultList &results)
 XCamReturn
 DynamicAnalyzer::convert_results (XCam3aResultHead *from, uint32_t from_count, X3aResultList &to)
 {
-    for (uint32_t i = 0; i < from_count; ++i) {        
+    for (uint32_t i = 0; i < from_count; ++i) {
         SmartPtr<X3aResult> standard_res =
-           X3aResultFactory::instance ()->create_3a_result (&from[i]);
+            X3aResultFactory::instance ()->create_3a_result (&from[i]);
         to.push_back (standard_res);
     }
 
@@ -332,6 +332,8 @@ AnalyzerLoader::AnalyzerLoader (const char *lib_path)
 AnalyzerLoader::~AnalyzerLoader ()
 {
     close_handle ();
+    if (_path)
+        xcam_free (_path);
 }
 
 SmartPtr<X3aAnalyzer>
@@ -408,10 +410,10 @@ AnalyzerLoader::get_symbol (const char *symbol)
     }
 
     if (!desc->create_context || !desc->destroy_context ||
-        !desc->configure_3a || !desc->set_3a_stats ||
-        !desc->analyze_awb || !desc->analyze_ae ||
-        !desc->analyze_af || !desc->combine_analyze_results ||
-        !desc->free_results) {
+            !desc->configure_3a || !desc->set_3a_stats ||
+            !desc->analyze_awb || !desc->analyze_ae ||
+            !desc->analyze_af || !desc->combine_analyze_results ||
+            !desc->free_results) {
         XCAM_LOG_DEBUG ("some functions in symbol(%s) not set from lib(%s)", symbol, XCAM_STR (_path));
         return NULL;
     }

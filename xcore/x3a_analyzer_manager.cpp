@@ -76,6 +76,7 @@ X3aAnalyzerManager::find_analyzer ()
     dir_path = getenv ("XCAM_3A_LIB");
     if (!dir_path) {
         dir_path = XCAM_DEFAULT_3A_LIB_DIR;
+        XCAM_LOG_INFO ("doesn't find environment=>XCAM_3A_LIB, change to default dir:%s", dir_path);
     }
     dir_3a = opendir (dir_path);
     if (dir_3a) {
@@ -97,9 +98,19 @@ X3aAnalyzerManager::find_analyzer ()
 SmartPtr<X3aAnalyzer>
 X3aAnalyzerManager::load_analyzer_from_binary (const char *path)
 {
-    SmartPtr<X3aAnalyzer> loaded_analyzer;
-    // TODO
-    return loaded_analyzer;
+    SmartPtr<X3aAnalyzer> analyzer;
+
+    XCAM_ASSERT (path);
+
+    _loader.release ();
+    _loader = new AnalyzerLoader (path);
+    analyzer = _loader->load_analyzer ();
+
+    if (analyzer.ptr ())
+        return analyzer;
+
+    XCAM_LOG_WARNING ("load 3A analyzer failed from: %s", path);
+    return NULL;
 }
 
 };
