@@ -1,0 +1,355 @@
+/*
+ * cl_context.cpp - CL context
+ *
+ *  Copyright (c) 2015 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Wind Yuan <feng.yuan@intel.com>
+ */
+
+
+#include "cl_context.h"
+#include "cl_kernel.h"
+#include "cl_device.h"
+#include <utility>
+
+#undef XCAM_CL_MAX_STR_SIZE
+#define XCAM_CL_MAX_STR_SIZE 1024
+
+namespace XCam {
+
+class CLKernel;
+
+void
+CLContext::context_pfn_notify (
+    const char* erro_info,
+    const void *private_info,
+    size_t cb,
+    void *user_data
+)
+{
+    CLContext *context = (CLContext*) user_data;
+    XCAM_UNUSED (context);
+    XCAM_UNUSED (private_info);
+    XCAM_UNUSED (cb);
+    XCAM_LOG_WARNING ("cl context pfn error:%s", XCAM_STR (erro_info));
+}
+
+void CLContext::program_pfn_notify (
+    cl_program program, void *user_data)
+{
+    CLContext *context = (CLContext*) user_data;
+    char kernel_names [XCAM_CL_MAX_STR_SIZE];
+
+    XCAM_UNUSED (context);
+    xcam_mem_clear (kernel_names);
+    clGetProgramInfo (program, CL_PROGRAM_KERNEL_NAMES, sizeof (kernel_names) - 1, kernel_names, NULL);
+    XCAM_LOG_WARNING ("cl program report error on kernels: %s", kernel_names);
+}
+
+CLContext::CLContext (SmartPtr<CLDevice> &device)
+    : _context_id (NULL)
+    , _device (device)
+{
+    if (!init_context ()) {
+        XCAM_LOG_DEBUG ("CL init context failed");
+    }
+
+    XCAM_LOG_DEBUG ("CLContext constructed");
+}
+
+CLContext::~CLContext ()
+{
+    destroy_context ();
+    XCAM_LOG_DEBUG ("CLContext destructed");
+}
+
+void
+CLContext::terminate ()
+{
+    //_kernel_map.clear ();
+    _cmd_queue_list.clear ();
+}
+
+bool
+CLContext::init_context ()
+{
+    cl_context context_id = NULL;
+    cl_int err_code = 0;
+    cl_device_id device_id = _device->get_device_id ();
+
+    XCAM_ASSERT (_context_id);
+
+    if (!_device->is_inited()) {
+        XCAM_LOG_DEBUG ("create cl context failed since device ");
+        return false;
+    }
+
+    context_id =
+        clCreateContext (NULL, 1, &device_id,
+                         CLContext::context_pfn_notify, this,
+                         &err_code);
+    if (err_code != CL_SUCCESS)
+    {
+        XCAM_LOG_WARNING ("create cl context failed, error:%d", err_code);
+        return false;
+    }
+    _context_id = context_id;
+    return true;
+}
+
+bool
+CLContext::init_cmd_queue (SmartPtr<CLContext> &self)
+{
+    XCAM_ASSERT (_cmd_queue_list.empty ());
+    XCAM_ASSERT (self.ptr() == this);
+    SmartPtr<CLCommandQueue> cmd_queue = create_cmd_queue (self);
+    if (!cmd_queue.ptr ())
+        return false;
+
+    _cmd_queue_list.push_back (cmd_queue);
+    return true;
+}
+
+SmartPtr<CLCommandQueue>
+CLContext::get_default_cmd_queue ()
+{
+    CLCmdQueueList::iterator iter;
+
+    XCAM_ASSERT (!_cmd_queue_list.empty ());
+    if (_cmd_queue_list.empty ())
+        return NULL;
+    iter = _cmd_queue_list.begin ();
+    return *iter;
+}
+
+void
+CLContext::destroy_context ()
+{
+    if (!is_valid ())
+        return;
+    clReleaseContext (_context_id);
+    _context_id = NULL;
+}
+
+XCamReturn
+CLContext::execute_kernel (
+    CLKernel *kernel,
+    CLCommandQueue *queue,
+    const cl_event *events_wait, uint32_t num_of_events_wait,
+    cl_event *event_out)
+{
+    cl_int error_code = CL_SUCCESS;
+    cl_command_queue cmd_queue_id = NULL;
+    cl_kernel kernel_id = kernel->get_kernel_id ();
+    uint32_t work_dims = kernel->get_work_dims ();
+    const size_t *global_sizes = kernel->get_work_global_size ();
+    const size_t *local_sizes = kernel->get_work_local_size ();
+
+    XCAM_ASSERT (kernel);
+
+    if (queue == NULL) {
+        SmartPtr<CLCommandQueue> cmd_queue = get_default_cmd_queue ();
+        queue = cmd_queue.ptr ();
+    }
+    XCAM_ASSERT (queue);
+
+    cmd_queue_id = queue->get_cmd_queue_id ();
+
+    error_code =
+        clEnqueueNDRangeKernel (
+            cmd_queue_id, kernel_id,
+            work_dims, NULL, global_sizes, local_sizes,
+            num_of_events_wait, events_wait,
+            event_out);
+
+    XCAM_FAIL_RETURN(
+        WARNING,
+        error_code == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "execute kernel(%s) failed with error_code:%d",
+        kernel->get_kernel_name (), error_code);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+SmartPtr<CLCommandQueue>
+CLContext::create_cmd_queue (SmartPtr<CLContext> &self)
+{
+    cl_device_id device_id = _device->get_device_id ();
+    cl_command_queue cmd_queue_id = NULL;
+    cl_int err_code = 0;
+    SmartPtr<CLCommandQueue> result;
+
+    XCAM_ASSERT (self.ptr() == this);
+
+    cmd_queue_id = clCreateCommandQueue (_context_id, device_id, 0, &err_code);
+    if (err_code != CL_SUCCESS) {
+        XCAM_LOG_WARNING ("create CL command queue failed.");
+        return NULL;
+    }
+
+    result = new CLCommandQueue (self, cmd_queue_id);
+    return result;
+}
+
+cl_kernel
+CLContext::generate_kernel_id (
+    CLKernel *kernel,
+    const uint8_t *source, size_t length,
+    CLContext::KernelBuildType type)
+{
+    struct CLProgram {
+        cl_program id;
+
+        CLProgram ()
+            : id (NULL)
+        {}
+        ~CLProgram () {
+            if (id)
+                clReleaseProgram (id);
+        }
+    };
+
+    CLProgram program;
+    cl_kernel kernel_id = NULL;
+    cl_int error_code = CL_SUCCESS;
+    cl_device_id device_id = _device->get_device_id ();
+    const char * name = kernel->get_kernel_name ();
+
+    XCAM_ASSERT (source && length);
+    XCAM_ASSERT (name);
+
+    switch (type) {
+    case KERNEL_BUILD_SOURCE:
+        program.id =
+            clCreateProgramWithSource (
+                _context_id, 1,
+                (const char**)(&source), (const size_t *)&length,
+                &error_code);
+        break;
+    case KERNEL_BUILD_BINARY:
+        program.id =
+            clCreateProgramWithBinary (
+                _context_id, 1, &device_id,
+                (const size_t *)&length, (const uint8_t**)(&source),
+                NULL, &error_code);
+        break;
+    }
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        error_code != CL_SUCCESS,
+        NULL,
+        "cl create program failed with error_cod:%d", error_code);
+    XCAM_ASSERT (program.id);
+
+    error_code = clBuildProgram (program.id, 1, &device_id, NULL, CLContext::program_pfn_notify, this);
+    if (error_code != CL_SUCCESS) {
+        char error_log [XCAM_CL_MAX_STR_SIZE];
+        xcam_mem_clear (error_log);
+        clGetProgramBuildInfo (program.id, device_id, CL_PROGRAM_BUILD_LOG, sizeof (error_log) - 1, error_log, NULL);
+        XCAM_LOG_WARNING ("CL build program failed on %s, build log:%s", name, error_log);
+        return NULL;
+    }
+
+    kernel_id = clCreateKernel (program.id, name, &error_code);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        error_code != CL_SUCCESS,
+        NULL,
+        "cl create kernel(%s) failed with error_cod:%d", name, error_code);
+
+    return kernel_id;
+}
+
+void
+CLContext::destroy_kernel_id (cl_kernel &kernel_id)
+{
+    if (kernel_id) {
+        clReleaseKernel (kernel_id);
+        kernel_id = NULL;
+    }
+}
+
+#if 0
+bool
+CLContext::insert_kernel (SmartPtr<CLKernel> &kernel)
+{
+    std::string kernel_name = kernel->get_kernel_name ();
+    CLKernelMap::iterator i_pos = _kernel_map.lower_bound (kernel_name);
+
+    XCAM_ASSERT (!kernel_name.empty());
+    if (i_pos != _kernel_map.end () && !_kernel_map.key_comp ()(kernel_name, i_pos->first)) {
+        // need update
+        i_pos->second = kernel;
+        XCAM_LOG_DEBUG ("kernel:%s already exist in context, now update to new one", kernel_name.c_str());
+        return true;
+    }
+
+    _kernel_map.insert (i_pos, std::make_pair (kernel_name, kernel));
+    return true;
+}
+#endif
+
+cl_mem
+CLContext::create_va_image (const cl_libva_image &image_info)
+{
+    cl_mem mem_id = NULL;
+    cl_int errcode = CL_SUCCESS;
+    if (!is_valid())
+        return NULL;
+
+    mem_id = clCreateImageFromLibvaIntel (_context_id, &image_info, &errcode);
+    XCAM_FAIL_RETURN(
+        WARNING,
+        errcode == CL_SUCCESS,
+        NULL,
+        "create cl memory from va image failed");
+    return mem_id;
+}
+
+void
+CLContext::destroy_mem (cl_mem mem_id)
+{
+    if (mem_id)
+        clReleaseMemObject (mem_id);
+}
+
+CLCommandQueue::CLCommandQueue (SmartPtr<CLContext> &context, cl_command_queue id)
+    : _context (context)
+    , _cmd_queue_id (id)
+{
+    XCAM_ASSERT (context.ptr ());
+    XCAM_ASSERT (id);
+    XCAM_LOG_DEBUG ("CLCommandQueue constructed");
+}
+
+CLCommandQueue::~CLCommandQueue ()
+{
+    destroy ();
+    XCAM_LOG_DEBUG ("CLCommandQueue desstructed");
+}
+
+void
+CLCommandQueue::destroy ()
+{
+    if (_cmd_queue_id == NULL)
+        return;
+
+    clReleaseCommandQueue (_cmd_queue_id);
+    _cmd_queue_id = NULL;
+}
+
+};
