@@ -41,12 +41,6 @@ XCAM_CORE_LIBS +=                 \
 
 endif
 
-
-if HAVE_LIBDRM
-XCAM_CORE_CXXFLAGS += $(LIBDRM_CFLAGS)
-XCAM_CORE_LIBS += $(LIBDRM_LIBS)
-endif
-
 if USE_LOCAL_ATOMISP
 XCAM_CORE_CXXFLAGS +=        \
 	-I$(top_srcdir)/ext/atomisp \
@@ -78,19 +72,45 @@ xcam_sources =               \
 	xcam_thread.cpp          \
 	$(NULL)
 
-if HAVE_LIBDRM
-xcam_sources +=              \
-	drm_display.cpp	         \
-	drm_v4l2_buffer.cpp	 \
-	$(NULL)
-endif
-
 if HAVE_IA_AIQ
 xcam_sources +=              \
 	libtbd.c                 \
 	xcam_cpf_reader.c        \
 	aiq_handler.cpp          \
 	x3a_analyzer_aiq.cpp     \
+	$(NULL)
+endif
+
+if HAVE_LIBCL
+XCAM_CORE_CXXFLAGS +=        \
+	$(LIBCL_CFLAGS)          \
+	$(NULL)
+
+XCAM_CORE_LIBS +=            \
+	$(LIBCL_LIBS)            \
+	$(NULL)
+
+xcam_sources +=              \
+	cl_context.cpp           \
+	cl_device.cpp            \
+	cl_kernel.cpp            \
+	cl_memory.cpp            \
+	cl_image_handler.cpp     \
+	cl_image_processor.cpp   \
+	drm_bo_buffer.cpp        \
+	$(NULL)
+endif
+
+if HAVE_LIBDRM
+XCAM_CORE_CXXFLAGS += $(LIBDRM_CFLAGS)
+XCAM_CORE_LIBS +=            \
+	-ldrm_intel              \
+	$(LIBDRM_LIBS)           \
+	$(NULL)
+
+xcam_sources +=              \
+	drm_display.cpp	         \
+	drm_v4l2_buffer.cpp	 \
 	$(NULL)
 endif
 

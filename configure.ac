@@ -44,6 +44,11 @@ AC_ARG_ENABLE([aiq],
                    [enable Aiq 3A algorithm build, @<:@default=no@:>@]),
     [], [enable_aiq="no"])
 
+AC_ARG_ENABLE(libcl,
+    AS_HELP_STRING([--enable-libcl],
+                   [enable libcl image processor, @<:@default=yes@:>@]),
+    [], [enable_libcl="yes"])
+
 # documentation
 AC_ARG_ENABLE(docs,
     [AC_HELP_STRING([--enable-docs],
@@ -63,6 +68,12 @@ AM_CONDITIONAL(ENABLE_DOCS, test "$enable_docs" = "yes")
 HAVE_LIBDRM=0
 if test "$enable_drm" = "yes"; then
     PKG_CHECK_MODULES(LIBDRM, [libdrm], [HAVE_LIBDRM=1], [HAVE_LIBDRM=0])
+fi
+
+# check libcl
+HAVE_LIBCL=0
+if test "$enable_libcl" = "yes"; then
+    PKG_CHECK_MODULES(LIBCL, [libcl], [HAVE_LIBCL=1], [HAVE_LIBCL=0])
 fi
 
 # check AIQ
@@ -116,6 +127,10 @@ AC_DEFINE_UNQUOTED([HAVE_LIBDRM], $HAVE_LIBDRM,
     [have libdrm])
 AM_CONDITIONAL([HAVE_LIBDRM], [test "$HAVE_LIBDRM" -eq 1])
 
+AC_DEFINE_UNQUOTED([HAVE_LIBCL], $HAVE_LIBCL,
+    [have libcl])
+AM_CONDITIONAL([HAVE_LIBCL], [test "$HAVE_LIBCL" -eq 1])
+
 #atomisp
 AM_CONDITIONAL([USE_LOCAL_ATOMISP], [test "$USE_LOCAL_ATOMISP" -eq 1])
 
@@ -136,6 +151,7 @@ AC_OUTPUT
 
 if test "$USE_LOCAL_AIQ" -eq 1; then use_local_aiq="yes"; else  use_local_aiq="no"; fi
 if test "$USE_LOCAL_ATOMISP" -eq 1; then use_local_atomisp="yes"; else  use_local_atomisp="no"; fi
+if test "$HAVE_LIBCL" -eq 1; then have_libcl="yes"; else  have_libcl="no"; fi
 
 echo "
      libxcam configuration summary
@@ -144,4 +160,5 @@ echo "
      build aiq analyzer         : $enable_aiq
      use local aiq              : $use_local_aiq
      use local atomisp          : $use_local_atomisp
+     have opencl lib            : $have_libcl
 "
