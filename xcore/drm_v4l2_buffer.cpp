@@ -25,7 +25,7 @@ namespace XCam {
 
 DrmV4l2Buffer::~DrmV4l2Buffer ()
 {
-    XCAM_ASSERT (_display);
+    XCAM_ASSERT (_display.ptr());
     int handle = _display->get_drm_handle ();
     if (handle > 0) {
         struct drm_mode_destroy_dumb gem;

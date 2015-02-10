@@ -21,13 +21,10 @@
 
 #include "drm_display.h"
 #include "drm_v4l2_buffer.h"
-
-#include <drm.h>
-#include <drm_mode.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
+#include "drm_bo_buffer.h"
 
 #define DEFAULT_DRM_DEVICE "i915"
+#define DEFAULT_DRM_BATCH_SIZE 0x80000
 
 namespace XCam {
 
@@ -47,6 +44,7 @@ DrmDisplay::instance()
 DrmDisplay::DrmDisplay()
     : _module(NULL)
     , _fd (-1)
+    , _buf_manager (NULL)
     , _crtc_index (-1)
     , _crtc_id (0)
     , _con_id (0)
@@ -58,10 +56,22 @@ DrmDisplay::DrmDisplay()
 {
     xcam_mem_clear(&_compose);
 
+    //_fd = drmOpenRender (128);
     _fd = drmOpen (DEFAULT_DRM_DEVICE, NULL);
     if (_fd < 0)
         XCAM_LOG_ERROR("failed to open drm device %s", DEFAULT_DRM_DEVICE);
+
+    _buf_manager = drm_intel_bufmgr_gem_init (_fd, DEFAULT_DRM_BATCH_SIZE);
+    drm_intel_bufmgr_gem_enable_reuse (_buf_manager);
 }
+
+DrmDisplay::~DrmDisplay()
+{
+    if (_buf_manager)
+        drm_intel_bufmgr_destroy (_buf_manager);
+    if (_fd > 0)
+        drmClose(_fd);
+};
 
 XCamReturn
 DrmDisplay::get_crtc(drmModeRes *res)
@@ -183,7 +193,7 @@ DrmDisplay::drm_init(const struct v4l2_pix_format* fmt,
 
 
 SmartPtr<V4l2Buffer>
-DrmDisplay::create_drm_buf (const struct v4l2_format &format, const uint32_t index, AtomispDevice *device)
+DrmDisplay::create_drm_buf (const struct v4l2_format &format, const uint32_t index)
 {
     struct drm_mode_create_dumb gem;
     struct drm_prime_handle prime;
@@ -213,10 +223,8 @@ DrmDisplay::create_drm_buf (const struct v4l2_format &format, const uint32_t ind
     v4l2_buf.m.fd = prime.fd;
     v4l2_buf.length = XCAM_MAX (format.fmt.pix.sizeimage, gem.size); // todo check gem.size and format.fmt.pix.length
     XCAM_LOG_DEBUG ("create drm buffer size:%lld", gem.size);
-    return new DrmV4l2Buffer (gem.handle, v4l2_buf, format, device, this);
+    return new DrmV4l2Buffer (gem.handle, v4l2_buf, format, _instance);
 }
-
-
 
 XCamReturn
 DrmDisplay::drm_setup_framebuffer(SmartPtr<V4l2BufferProxy> &buf,
@@ -300,6 +308,53 @@ DrmDisplay::display_buffer(SmartPtr<V4l2BufferProxy> &buf)
     return _plane_id ? set_plane(buf) : page_flip(buf);
 }
 
+
+SmartPtr<DrmBoBuffer>
+DrmDisplay::convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuffer> &buf_in)
+{
+    drm_intel_bo *bo = NULL;
+    int dma_fd = 0;
+    SmartPtr<V4l2BufferProxy> v4l2_proxy;
+    SmartPtr<DrmBoBuffer> new_bo_buf;
+    SmartPtr<DrmBoWrapper> bo_wrapper;
+
+    XCAM_ASSERT (self.ptr () == this);
+
+    new_bo_buf = buf_in.dynamic_cast_ptr<DrmBoBuffer> ();
+    if (new_bo_buf.ptr ())
+        return new_bo_buf;
+
+    v4l2_proxy = buf_in.dynamic_cast_ptr<V4l2BufferProxy> ();
+    if (!v4l2_proxy.ptr () || v4l2_proxy->get_v4l2_mem_type () != V4L2_MEMORY_DMABUF) {
+        XCAM_LOG_DEBUG ("DrmDisplay only support dma buffer conversion to drm bo by now");
+        return NULL;
+    }
+
+    dma_fd = v4l2_proxy->get_v4l2_dma_fd ();
+    XCAM_ASSERT (dma_fd > 0);
+    bo = drm_intel_bo_gem_create_from_prime (_buf_manager, dma_fd, v4l2_proxy->get_v4l2_buf_length ());
+    if (bo == NULL) {
+        XCAM_LOG_WARNING ("convert dma fd to drm bo failed");
+        return NULL;
+    }
+    bo_wrapper = new DrmBoWrapper (self, bo);
+    new_bo_buf = new DrmBoBuffer (self, buf_in->get_video_info (), bo_wrapper);
+    new_bo_buf->set_parent (buf_in);
+    return new_bo_buf;
+}
+
+SmartPtr<DrmBoWrapper>
+DrmDisplay::create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo &info)
+{
+    SmartPtr<DrmBoWrapper> new_bo;
+
+    XCAM_ASSERT (_buf_manager);
+    XCAM_ASSERT (self.ptr() == this);
+    drm_intel_bo *bo = drm_intel_bo_alloc (
+                           _buf_manager, "xcam drm bo buf", info.size, 0x1000);
+
+    new_bo = new DrmBoWrapper (self, bo);
+    return new_bo;
+}
+
 };
-
-

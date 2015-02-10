@@ -27,30 +27,33 @@
 #include "atomisp_device.h"
 #include "v4l2_buffer_proxy.h"
 
+extern "C" {
+#include <drm.h>
+#include <drm_mode.h>
+#include <intel_bufmgr.h>
+#include <linux/videodev2.h>
+}
+
 #include <errno.h>
 #include <unistd.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
-#include <linux/videodev2.h>
 #include <list>
 #include <vector>
 #include <map>
 
-extern "C" {
-    struct v4l2_pix_format;
-}
-
 namespace XCam {
 
 class AtomispDevice;
+class DrmBoWrapper;
+class DrmBoBufferPool;
+class DrmBoBuffer;
 
 class DrmDisplay {
+    friend class DrmBoBufferPool;
 public:
-    virtual ~DrmDisplay() {
-        if (_fd > 0)
-            drmClose(_fd);
-    };
+    virtual ~DrmDisplay();
 
     static SmartPtr<DrmDisplay> instance();
 
@@ -74,10 +77,13 @@ public:
         return _fd;
     };
 
-    SmartPtr<V4l2Buffer> create_drm_buf (const struct v4l2_format &format, const uint32_t index, AtomispDevice *device);
+    SmartPtr<V4l2Buffer> create_drm_buf (const struct v4l2_format &format, const uint32_t index);
+    SmartPtr<DrmBoBuffer> convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuffer> &buf_in);
 
 private:
     DrmDisplay();
+
+    SmartPtr<DrmBoWrapper> create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo& info);
 
     XCamReturn get_crtc(drmModeRes *res);
     XCamReturn get_connector(drmModeRes *res);
@@ -88,6 +94,7 @@ private:
 private:
     const char *_module;
     int _fd;
+    drm_intel_bufmgr *_buf_manager;
 
     int _crtc_index;
     unsigned int _crtc_id;

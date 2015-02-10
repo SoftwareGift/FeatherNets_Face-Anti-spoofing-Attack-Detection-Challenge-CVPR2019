@@ -38,12 +38,10 @@ public:
         uint32_t gem_handle,
         const struct v4l2_buffer &buf,
         const struct v4l2_format &format,
-        AtomispDevice *device,
-        DrmDisplay* display
+        SmartPtr<DrmDisplay> &display
     )
         : V4l2Buffer (buf, format)
         , _gem_handle (gem_handle)
-        , _device (device)
         , _display (display)
     {}
     ~DrmV4l2Buffer ();
@@ -53,8 +51,7 @@ private:
 
 private:
     uint32_t       _gem_handle;
-    AtomispDevice *_device;
-    DrmDisplay* _display;
+    SmartPtr<DrmDisplay> _display;
 };
 
 };
