@@ -114,6 +114,19 @@ public:
         _ptr = NULL;
         _ref = NULL;
     }
+
+    template <typename ObjDerive>
+    SmartPtr<ObjDerive> dynamic_cast_ptr () {
+        SmartPtr<ObjDerive> ret(NULL);
+        ObjDerive *obj_derive(NULL);
+        if (!_ref)
+            return ret;
+        obj_derive = dynamic_cast<ObjDerive*>(_ptr);
+        if (!obj_derive)
+            return ret;
+        ret.new_pointer (obj_derive, _ref);
+        return ret;
+    }
 private:
     void new_pointer (Obj *obj, RefCount *ref) {
         if (!obj) {
