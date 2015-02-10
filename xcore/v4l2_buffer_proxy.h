@@ -86,8 +86,8 @@ public:
         return get_v4l2_buf().index;
     }
 
-    int get_v4l2_mem_type () {
-        return get_v4l2_buf().memory;
+    enum v4l2_memory get_v4l2_mem_type () {
+        return (enum v4l2_memory)(get_v4l2_buf().memory);
     }
 
     int get_v4l2_buf_length () {
