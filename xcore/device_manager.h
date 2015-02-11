@@ -67,11 +67,11 @@ public:
     DeviceManager();
     virtual ~DeviceManager();
 
-    bool set_capture_device (SmartPtr<V4l2Device> &device);
-    bool set_event_device (SmartPtr<V4l2SubDevice> &device);
-    bool set_isp_controller (SmartPtr<IspController> &controller);
-    bool set_analyzer (SmartPtr<X3aAnalyzer> &analyzer);
-    bool add_image_processor (SmartPtr<ImageProcessor> &processor);
+    bool set_capture_device (SmartPtr<V4l2Device> device);
+    bool set_event_device (SmartPtr<V4l2SubDevice> device);
+    bool set_isp_controller (SmartPtr<IspController> controller);
+    bool set_analyzer (SmartPtr<X3aAnalyzer> analyzer);
+    bool add_image_processor (SmartPtr<ImageProcessor> processor);
 
     bool is_running () const {
         return _is_running;

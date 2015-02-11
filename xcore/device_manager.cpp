@@ -91,7 +91,7 @@ DeviceManager::~DeviceManager()
 }
 
 bool
-DeviceManager::set_capture_device (SmartPtr<V4l2Device> &device)
+DeviceManager::set_capture_device (SmartPtr<V4l2Device> device)
 {
     if (is_running())
         return false;
@@ -101,7 +101,7 @@ DeviceManager::set_capture_device (SmartPtr<V4l2Device> &device)
     return true;
 }
 bool
-DeviceManager::set_event_device (SmartPtr<V4l2SubDevice> &device)
+DeviceManager::set_event_device (SmartPtr<V4l2SubDevice> device)
 {
     if (is_running())
         return false;
@@ -112,7 +112,7 @@ DeviceManager::set_event_device (SmartPtr<V4l2SubDevice> &device)
 }
 
 bool
-DeviceManager::set_isp_controller (SmartPtr<IspController> &controller)
+DeviceManager::set_isp_controller (SmartPtr<IspController> controller)
 {
     if (is_running())
         return false;
@@ -123,7 +123,7 @@ DeviceManager::set_isp_controller (SmartPtr<IspController> &controller)
 }
 
 bool
-DeviceManager::set_analyzer (SmartPtr<X3aAnalyzer> &analyzer)
+DeviceManager::set_analyzer (SmartPtr<X3aAnalyzer> analyzer)
 {
     if (is_running())
         return false;
@@ -134,7 +134,7 @@ DeviceManager::set_analyzer (SmartPtr<X3aAnalyzer> &analyzer)
 }
 
 bool
-DeviceManager::add_image_processor (SmartPtr<ImageProcessor> &processor)
+DeviceManager::add_image_processor (SmartPtr<ImageProcessor> processor)
 {
     if (is_running())
         return false;
