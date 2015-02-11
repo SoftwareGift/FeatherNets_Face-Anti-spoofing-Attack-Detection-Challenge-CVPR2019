@@ -43,7 +43,7 @@ public:
     ~AtomispDevice ();
 
 #if HAVE_LIBDRM
-    void set_drm_display(DrmDisplay* drm_disp) {
+    void set_drm_display(SmartPtr<DrmDisplay> &drm_disp) {
         _drm_disp = drm_disp;
     };
 #endif
@@ -60,7 +60,7 @@ private:
 
 #if HAVE_LIBDRM
 private:
-    DrmDisplay* _drm_disp;
+    SmartPtr<DrmDisplay> _drm_disp;
 #endif
 };
 

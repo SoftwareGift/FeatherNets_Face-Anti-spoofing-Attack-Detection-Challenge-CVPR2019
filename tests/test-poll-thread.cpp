@@ -62,7 +62,7 @@ class PollCB: public PollCallback {
 public:
 
 #if HAVE_LIBDRM
-    PollCB(DrmDisplay* drm_dev, struct v4l2_format &format)
+    PollCB(SmartPtr<DrmDisplay> &drm_dev, struct v4l2_format &format)
         : _file (NULL)
         , _format(format)
         , _drm_dev(drm_dev)
@@ -108,7 +108,7 @@ private:
     FILE      *_file;
     struct v4l2_format _format;
 #if HAVE_LIBDRM
-    DrmDisplay* _drm_dev;
+    SmartPtr<DrmDisplay> _drm_dev;
 #endif
 };
 
@@ -221,7 +221,7 @@ int main (int argc, const char *argv[])
 
 #if HAVE_LIBDRM
     AtomispDevice* atom_isp_dev = (AtomispDevice*)device.ptr();
-    DrmDisplay* drmdisp = DrmDisplay::instance().ptr();
+    SmartPtr<DrmDisplay> drmdisp = DrmDisplay::instance();
     struct v4l2_rect rect = { 0, 0, (int)format.fmt.pix.width, (int)format.fmt.pix.height };
     drmdisp->drm_init(&format.fmt.pix,
                       "i915",

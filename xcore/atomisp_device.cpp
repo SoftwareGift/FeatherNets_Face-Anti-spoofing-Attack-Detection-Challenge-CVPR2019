@@ -26,10 +26,10 @@ namespace XCam {
 
 AtomispDevice::AtomispDevice (const char *name)
     : V4l2Device (name)
-#if HAVE_LIBDRM
-    , _drm_disp (NULL)
-#endif
 {
+#if HAVE_LIBDRM
+    _drm_disp = DrmDisplay::instance ();
+#endif
 }
 
 AtomispDevice::~AtomispDevice ()
@@ -81,7 +81,7 @@ AtomispDevice::allocate_buffer (
     const uint32_t index)
 {
 #if HAVE_LIBDRM
-    if (get_mem_type () == V4L2_MEMORY_DMABUF && _drm_disp != NULL) {
+    if (get_mem_type () == V4L2_MEMORY_DMABUF && _drm_disp.ptr () != NULL) {
         buf = _drm_disp->create_drm_buf (format, index);
         if (!buf.ptr()) {
             XCAM_LOG_WARNING ("atomisp device(%s) allocate buffer failed", XCAM_STR (get_device_name()));
