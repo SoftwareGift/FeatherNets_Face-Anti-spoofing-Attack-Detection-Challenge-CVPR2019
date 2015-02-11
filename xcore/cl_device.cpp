@@ -48,7 +48,7 @@ CLDevice::CLDevice()
     , _device_id (NULL)
     , _inited (false)
 {
-    if (!_instance->init()) {
+    if (!init()) {
         XCAM_LOG_WARNING ("CL device init failed");
     }
     XCAM_LOG_DEBUG ("CL device constructed");
@@ -99,7 +99,7 @@ CLDevice::init ()
     XCAM_ASSERT (num_device >= 1);
 
     // only query first device info
-    if (query_device_info (device_id, device_info) != CL_SUCCESS) {
+    if (!query_device_info (device_id, device_info)) {
         //continue
         XCAM_LOG_WARNING ("cl get device info failed but continue");
     } else {

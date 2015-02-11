@@ -89,7 +89,7 @@ CLContext::init_context ()
     cl_int err_code = 0;
     cl_device_id device_id = _device->get_device_id ();
 
-    XCAM_ASSERT (_context_id);
+    XCAM_ASSERT (_context_id == NULL);
 
     if (!_device->is_inited()) {
         XCAM_LOG_DEBUG ("create cl context failed since device ");
