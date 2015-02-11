@@ -26,13 +26,13 @@
 #include <CL/cl.h>
 #include <string>
 
+
 #define XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(func)  \
-    const char *func##_name = #func;   \
-    const char *func##_body=
+    const char func##_body []=
+    //const char *func##_name = #func;
 
 #define XCAM_CL_KERNEL_FUNC_BINARY_BEGIN(func)  \
-    const char *func##_name = #func;   \
-    const char func##_body[] =
+    const uint8_t func##_body[] =
 
 #define XCAM_CL_KERNEL_FUNC_END
 
@@ -45,7 +45,7 @@ class CLContext;
 /*
  * Example to create a kernel
  * XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_demo)
- * #include "cl_kernel/kernel_demo.cl"
+ * #include "kernel_demo.cl"
  * XCAM_CL_KERNEL_FUNC_END
  * SmartPtr<CLKernel> kernel = new CLKernel (context, kernel_demo);
  * kernel->load_from_source (kernel_demo_body, strlen(kernel_demo_body));

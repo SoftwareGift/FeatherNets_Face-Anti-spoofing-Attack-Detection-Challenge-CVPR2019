@@ -39,6 +39,15 @@ CLImageProcessor::~CLImageProcessor ()
 }
 
 bool
+CLImageProcessor::add_handler (SmartPtr<CLImageHandler> &handler)
+{
+    XCAM_ASSERT (handler.ptr ());
+    _handlers.push_back (handler);
+    return true;
+}
+
+
+bool
 CLImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
 {
     XCAM_UNUSED (result);
@@ -96,15 +105,26 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
 XCamReturn
 CLImageProcessor::create_handlers ()
 {
-    //SmartPtr<CLImageHandler> new_handler;
-    //SmartPtr<CLImageKernel> image_kernel;
+    SmartPtr<CLImageHandler> demo_handler;
+    SmartPtr<CLImageKernel> demo_kernel;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    // new_kernel = new CLImageKernel (_context, "sample");
-    // new_kernel->load_from_source ();
-    // XCAM_ASSERT (new_kernel->is_valid ());
-    // new_handler = new CLImageHandler ("sample");
-    // new_handler->add_kernel  (new_kernel);
-    //_handlers.push_back (new_handler);
+    demo_kernel = new CLImageKernel (_context, "kernel_demo");
+    {
+        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_demo)
+        #include "kernel_demo.cl"
+        XCAM_CL_KERNEL_FUNC_END;
+        ret = demo_kernel->load_from_source (kernel_demo_body, strlen (kernel_demo_body));
+        XCAM_FAIL_RETURN (
+            WARNING,
+            ret == XCAM_RETURN_NO_ERROR,
+            ret,
+            "CL image handler(%s) load source failed", demo_kernel->get_kernel_name());
+    }
+    XCAM_ASSERT (demo_kernel->is_valid ());
+    demo_handler = new CLImageHandler ("cl_handler_demo");
+    demo_handler->add_kernel  (demo_kernel);
+    add_handler (demo_handler);
 
     return XCAM_RETURN_ERROR_CL;
 }

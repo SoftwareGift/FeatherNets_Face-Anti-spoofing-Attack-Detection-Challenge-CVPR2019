@@ -39,6 +39,8 @@ public:
     virtual ~CLImageProcessor ();
 
 protected:
+    bool add_handler (SmartPtr<CLImageHandler> &handler);
+
     //derive from ImageProcessor
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
     virtual XCamReturn apply_3a_results (X3aResultList &results);
