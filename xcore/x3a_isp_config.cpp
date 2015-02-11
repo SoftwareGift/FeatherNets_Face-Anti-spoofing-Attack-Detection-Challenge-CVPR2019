@@ -212,18 +212,18 @@ X3aIspConfig::attach (SmartPtr<X3aResult> &result, IspConfigTranslator *translat
     }
     switch (type) {
     case X3aIspConfig::IspAllParameters: {
-        X3aAtomIspParametersResult *isp_3a =
-            dynamic_cast<X3aAtomIspParametersResult*>(result.ptr());
-        XCAM_ASSERT (isp_3a);
+        SmartPtr<X3aAtomIspParametersResult> isp_3a =
+            result.dynamic_cast_ptr<X3aAtomIspParametersResult> ();
+        XCAM_ASSERT (isp_3a.ptr ());
         _isp_content.copy (isp_3a->get_isp_config());
     }
     break;
 
     case XCAM_3A_RESULT_WHITE_BALANCE: {
         struct atomisp_wb_config wb;
-        X3aWhiteBalanceResult *wb_res =
-            dynamic_cast<X3aWhiteBalanceResult*>(result.ptr());
-        XCAM_ASSERT (wb_res);
+        SmartPtr<X3aWhiteBalanceResult> wb_res =
+            result.dynamic_cast_ptr<X3aWhiteBalanceResult> ();
+        XCAM_ASSERT (wb_res.ptr ());
         xcam_mem_clear (&wb);
         if (translator->translate_white_balance (wb_res->get_standard_result(), wb)
                 != XCAM_RETURN_NO_ERROR) {
@@ -236,9 +236,9 @@ X3aIspConfig::attach (SmartPtr<X3aResult> &result, IspConfigTranslator *translat
     break;
     case XCAM_3A_RESULT_BLACK_LEVEL: {
         struct atomisp_ob_config ob;
-        X3aBlackLevelResult *bl_res =
-            dynamic_cast<X3aBlackLevelResult*>(result.ptr());
-        XCAM_ASSERT (bl_res);
+        SmartPtr<X3aBlackLevelResult> bl_res =
+            result.dynamic_cast_ptr<X3aBlackLevelResult> ();
+        XCAM_ASSERT (bl_res.ptr ());
         xcam_mem_clear (&ob);
         if (translator->translate_black_level (bl_res->get_standard_result(), ob)
                 != XCAM_RETURN_NO_ERROR) {
@@ -253,9 +253,9 @@ X3aIspConfig::attach (SmartPtr<X3aResult> &result, IspConfigTranslator *translat
     case XCAM_3A_RESULT_RGB2YUV_MATRIX:
     {
         struct atomisp_cc_config cc;
-        X3aColorMatrixResult *cc_res =
-            dynamic_cast<X3aColorMatrixResult*>(result.ptr());
-        XCAM_ASSERT (cc_res);
+        SmartPtr<X3aColorMatrixResult> cc_res =
+            result.dynamic_cast_ptr<X3aColorMatrixResult> ();
+        XCAM_ASSERT (cc_res.ptr ());
         xcam_mem_clear (&cc);
         if (translator->translate_color_matrix (cc_res->get_standard_result(), cc)
                 != XCAM_RETURN_NO_ERROR) {

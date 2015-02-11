@@ -145,16 +145,18 @@ IspImageProcessor::apply_exposure_result (X3aResultList &results)
             iter != results.end ();)
     {
         if ((*iter)->get_type() == X3aIspConfig::IspExposureParameters) {
-            X3aIspExposureResult *res = dynamic_cast<X3aIspExposureResult*> ((*iter).ptr());
-            if (!res || ((ret = _controller->set_3a_exposure (res)) != XCAM_RETURN_NO_ERROR)) {
+            SmartPtr<X3aIspExposureResult> res = (*iter).dynamic_cast_ptr<X3aIspExposureResult> ();
+            if (!res.ptr () ||
+                    ((ret = _controller->set_3a_exposure (res.ptr ())) != XCAM_RETURN_NO_ERROR)) {
                 XCAM_LOG_WARNING ("set 3a exposure to sensor failed");
             }
             res->set_done (true);
             results.erase (iter++);
         } else if ((*iter)->get_type() == XCAM_3A_RESULT_EXPOSURE) {
-            X3aExposureResult *res = dynamic_cast<X3aExposureResult*>((*iter).ptr());
+            SmartPtr<X3aExposureResult> res = (*iter).dynamic_cast_ptr<X3aExposureResult> ();
             struct atomisp_exposure isp_exposure;
             xcam_mem_clear (&isp_exposure);
+            XCAM_ASSERT (res.ptr ());
             ret = _translator->translate_exposure (res->get_standard_result (), isp_exposure);
             if (ret != XCAM_RETURN_NO_ERROR) {
                 XCAM_LOG_WARNING ("translate 3a exposure to sensor failed");
