@@ -26,6 +26,10 @@
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
 #endif
+#if HAVE_LIBCL
+#include "cl_image_processor.h"
+#endif
+
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -138,8 +142,11 @@ void print_help (const char *bin_name)
     printf ("Usage: %s [-a analyzer]\n"
             "\t -a analyzer  specify a analyzer\n"
             "\t              select from [simple, aiq], default is [simple]\n"
+            "\t -m mem_type  specify video memory type\n"
+            "\t              mem_type select from [dma, mmap], default is [mmap]\n"
             "\t -s           save file to %s\n"
             "\t -n interval  save file on every [interval] frame\n"
+            "\t -c           process image with cl kernel\n"
             "\t -h           help\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
@@ -154,10 +161,15 @@ int main (int argc, char *argv[])
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
     SmartPtr<ImageProcessor> processor;
+#if HAVE_LIBCL
+    SmartPtr<CLImageProcessor> cl_processor;
+#endif
+    bool have_cl_processor = false;
+    enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
     const char *bin_name = argv[0];
     int opt;
 
-    while ((opt =  getopt(argc, argv, "sa:n:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "sca:n:m:h")) != -1) {
         switch (opt) {
         case 'a': {
             if (!strcmp (optarg, "simple"))
@@ -173,11 +185,24 @@ int main (int argc, char *argv[])
             break;
         }
 
+        case 'm': {
+            if (!strcmp (optarg, "dma"))
+                v4l2_mem_type = V4L2_MEMORY_DMABUF;
+            else if (!strcmp (optarg, "mmap"))
+                v4l2_mem_type = V4L2_MEMORY_MMAP;
+            else
+                print_help (bin_name);
+            break;
+        }
+
         case 's':
             device_manager->enable_save_file (true);
             break;
         case 'n':
             device_manager->set_interval (atoi(optarg));
+            break;
+        case 'c':
+            have_cl_processor = true;
             break;
         case 'h':
             print_help (bin_name);
@@ -205,7 +230,7 @@ int main (int argc, char *argv[])
     device->set_sensor_id (0);
     device->set_capture_mode (V4L2_CAPTURE_MODE_VIDEO);
     //device->set_mem_type (V4L2_MEMORY_DMABUF);
-    device->set_mem_type (V4L2_MEMORY_MMAP);
+    device->set_mem_type (v4l2_mem_type);
     device->set_buffer_count (8);
     device->set_framerate (25, 1);
     ret = device->open ();
@@ -234,7 +259,12 @@ int main (int argc, char *argv[])
     if (analyzer.ptr())
         device_manager->set_analyzer (analyzer);
     device_manager->add_image_processor (processor);
-
+#if HAVE_LIBCL
+    if (have_cl_processor) {
+        cl_processor = new CLImageProcessor ();
+        device_manager->add_image_processor (cl_processor);
+    }
+#endif
     ret = device_manager->start ();
     CHECK (ret, "device manager start failed");
 
