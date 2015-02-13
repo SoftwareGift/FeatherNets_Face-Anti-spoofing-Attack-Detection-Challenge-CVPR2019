@@ -43,7 +43,7 @@ CLContext::context_pfn_notify (
     XCAM_UNUSED (context);
     XCAM_UNUSED (private_info);
     XCAM_UNUSED (cb);
-    XCAM_LOG_WARNING ("cl context pfn error:%s", XCAM_STR (erro_info));
+    XCAM_LOG_DEBUG ("cl context pfn error:%s", XCAM_STR (erro_info));
 }
 
 void CLContext::program_pfn_notify (
@@ -54,8 +54,8 @@ void CLContext::program_pfn_notify (
 
     XCAM_UNUSED (context);
     xcam_mem_clear (kernel_names);
-    clGetProgramInfo (program, CL_PROGRAM_KERNEL_NAMES, sizeof (kernel_names) - 1, kernel_names, NULL);
-    XCAM_LOG_WARNING ("cl program report error on kernels: %s", kernel_names);
+    //clGetProgramInfo (program, CL_PROGRAM_KERNEL_NAMES, sizeof (kernel_names) - 1, kernel_names, NULL);
+    //XCAM_LOG_DEBUG ("cl program report error on kernels: %s", kernel_names);
 }
 
 CLContext::CLContext (SmartPtr<CLDevice> &device)
@@ -250,7 +250,7 @@ CLContext::generate_kernel_id (
 
     XCAM_FAIL_RETURN (
         WARNING,
-        error_code != CL_SUCCESS,
+        error_code == CL_SUCCESS,
         NULL,
         "cl create program failed with error_cod:%d", error_code);
     XCAM_ASSERT (program.id);
@@ -267,7 +267,7 @@ CLContext::generate_kernel_id (
     kernel_id = clCreateKernel (program.id, name, &error_code);
     XCAM_FAIL_RETURN (
         WARNING,
-        error_code != CL_SUCCESS,
+        error_code == CL_SUCCESS,
         NULL,
         "cl create kernel(%s) failed with error_cod:%d", name, error_code);
 

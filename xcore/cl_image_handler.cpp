@@ -51,6 +51,7 @@ CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> 
     uint32_t dim = XCAM_DEFAULT_IMAGE_DIM;
     size_t global[XCAM_DEFAULT_IMAGE_DIM] = {0};
     size_t local[XCAM_DEFAULT_IMAGE_DIM] = {1, 1};
+    cl_mem mem0 = NULL, mem1 = NULL;
 
 
     _image_in = new CLVaImage (context, input);
@@ -64,14 +65,16 @@ CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> 
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     //set args;
-    ret = set_argument (0, _image_in->get_mem_id (), sizeof (cl_mem));
+    mem0 = _image_in->get_mem_id ();
+    ret = set_argument (0, &mem0, sizeof (mem0));
     XCAM_FAIL_RETURN (
         WARNING,
         ret == XCAM_RETURN_NO_ERROR,
         ret,
         "cl image kernel(%s) set argc(0) failed", get_kernel_name ());
 
-    ret = set_argument (1, _image_out->get_mem_id (), sizeof (cl_mem));
+    mem1 = _image_out->get_mem_id ();
+    ret = set_argument (1, &mem1, sizeof (mem1));
     XCAM_FAIL_RETURN (
         WARNING,
         ret == XCAM_RETURN_NO_ERROR,

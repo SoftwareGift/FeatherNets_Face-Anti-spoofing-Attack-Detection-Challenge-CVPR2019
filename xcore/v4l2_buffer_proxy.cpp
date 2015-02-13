@@ -68,7 +68,7 @@ V4l2BufferProxy::v4l2_format_to_video_info (
     case V4L2_PIX_FMT_NV21:
         info.components = 2;
         info.strides [0] = format.fmt.pix.bytesperline * 2 / 3;
-        info.strides [1] = format.fmt.pix.bytesperline;
+        info.strides [1] = info.strides [0];
         info.offsets[0] = 0;
         info.offsets[1] = info.strides [0] * format.fmt.pix.height;
         break;

@@ -52,11 +52,11 @@ CLVaImage::CLVaImage (
     } else {
         const VideoBufferInfo & video_info = bo->get_video_info ();
         xcam_mem_clear (&_image_info);
-        _image_info.fmt.image_channel_order = CL_RGBA;
+        _image_info.fmt.image_channel_order = CL_R;
         _image_info.fmt.image_channel_data_type = CL_UNORM_INT8;
         _image_info.offset = 0;
         _image_info.width = video_info.width;
-        _image_info.height = video_info.width;
+        _image_info.height = video_info.height;
         _image_info.row_pitch = video_info.strides[0];
     }
 

@@ -72,7 +72,7 @@ public:
         return  _context;
     }
 
-    XCamReturn set_argument (uint32_t arg_i, void *arg, uint32_t arg_size);
+    XCamReturn set_argument (uint32_t arg_i, void *arg_addr, uint32_t arg_size);
     XCamReturn set_work_size (uint32_t dim, size_t *global, size_t *local);
 
     uint32_t get_work_dims () const {

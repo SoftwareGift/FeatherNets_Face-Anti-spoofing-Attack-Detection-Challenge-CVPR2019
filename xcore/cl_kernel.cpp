@@ -125,9 +125,9 @@ CLKernel::load_from_binary (const uint8_t *binary, size_t length)
 }
 
 XCamReturn
-CLKernel::set_argument (uint32_t arg_i, void *arg, uint32_t arg_size)
+CLKernel::set_argument (uint32_t arg_i, void *arg_addr, uint32_t arg_size)
 {
-    cl_int error_code = clSetKernelArg (_kernel_id, arg_i, arg_size, arg);
+    cl_int error_code = clSetKernelArg (_kernel_id, arg_i, arg_size, arg_addr);
     if (error_code != CL_SUCCESS) {
         XCAM_LOG_DEBUG ("kernel(%s) set arg_i(%d) failed", _name, arg_i);
         return XCAM_RETURN_ERROR_CL;
