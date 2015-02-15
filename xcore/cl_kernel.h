@@ -29,7 +29,7 @@
 
 #define XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(func)  \
     const char func##_body []=
-    //const char *func##_name = #func;
+//const char *func##_name = #func;
 
 #define XCAM_CL_KERNEL_FUNC_BINARY_BEGIN(func)  \
     const uint8_t func##_body[] =

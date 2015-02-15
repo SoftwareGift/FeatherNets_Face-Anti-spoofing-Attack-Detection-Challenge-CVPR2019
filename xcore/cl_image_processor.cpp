@@ -22,6 +22,7 @@
 #include "cl_device.h"
 #include "cl_image_handler.h"
 #include "drm_display.h"
+#include "cl_demo_handler.h"
 
 namespace XCam {
 
@@ -106,27 +107,15 @@ XCamReturn
 CLImageProcessor::create_handlers ()
 {
     SmartPtr<CLImageHandler> demo_handler;
-    SmartPtr<CLImageKernel> demo_kernel;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    demo_kernel = new CLImageKernel (_context, "kernel_demo");
-    {
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_demo)
-        #include "kernel_demo.cl"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = demo_kernel->load_from_source (kernel_demo_body, strlen (kernel_demo_body));
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            ret,
-            "CL image handler(%s) load source failed", demo_kernel->get_kernel_name());
-    }
-    XCAM_ASSERT (demo_kernel->is_valid ());
-    demo_handler = new CLImageHandler ("cl_handler_demo");
-    demo_handler->add_kernel  (demo_kernel);
+    demo_handler = create_cl_demo_image_handler (_context);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        demo_handler.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLImageProcessor create demo handler failed");
     add_handler (demo_handler);
 
-    return XCAM_RETURN_ERROR_CL;
+    return XCAM_RETURN_NO_ERROR;
 }
 
 };

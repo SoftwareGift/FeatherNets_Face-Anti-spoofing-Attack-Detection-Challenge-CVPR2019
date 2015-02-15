@@ -30,6 +30,21 @@ namespace XCam {
 
 #define XCAM_DEFAULT_IMAGE_DIM 2
 
+struct CLWorkSize
+{
+    uint32_t dim;
+    size_t global[XCAM_CL_KERNEL_MAX_WORK_DIM];
+    size_t local[XCAM_CL_KERNEL_MAX_WORK_DIM];
+    CLWorkSize();
+};
+
+struct CLArgument
+{
+    void     *arg_adress;
+    uint32_t  arg_size;
+    CLArgument ();
+};
+
 class CLImageKernel
     : public CLKernel
 {
@@ -37,8 +52,14 @@ public:
     explicit CLImageKernel (SmartPtr<CLContext> &context, const char *name);
     virtual ~CLImageKernel ();
 
-    virtual XCamReturn pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn post_execute ();
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
 
 private:
     XCAM_DEAD_COPY (CLImageKernel);
@@ -64,6 +85,9 @@ public:
 
 protected:
     XCamReturn ensure_buffer_pool (const VideoBufferInfo &video_info);
+    SmartPtr<DrmBoBufferPool> &get_buffer_pool () {
+        return _buf_pool;
+    }
 
 private:
     XCAM_DEAD_COPY (CLImageHandler);

@@ -25,6 +25,20 @@ namespace XCam {
 
 #define XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM 6
 
+CLWorkSize::CLWorkSize ()
+    : dim (XCAM_DEFAULT_IMAGE_DIM)
+{
+    xcam_mem_clear (global);
+    for (uint32_t i = 0; i < XCAM_CL_KERNEL_MAX_WORK_DIM; ++i)
+        local [i] = 1;
+}
+
+CLArgument::CLArgument()
+    : arg_adress (NULL)
+    , arg_size (0)
+{
+}
+
 CLImageKernel::CLImageKernel (SmartPtr<CLContext> &context, const char *name)
     : CLKernel (context, name)
 {
@@ -48,11 +62,40 @@ CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> 
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLContext> context = get_context ();
-    uint32_t dim = XCAM_DEFAULT_IMAGE_DIM;
-    size_t global[XCAM_DEFAULT_IMAGE_DIM] = {0};
-    size_t local[XCAM_DEFAULT_IMAGE_DIM] = {1, 1};
-    cl_mem mem0 = NULL, mem1 = NULL;
+#define XCAM_CL_MAX_ARGS 10
+    CLArgument args[XCAM_CL_MAX_ARGS];
+    uint32_t arg_count = XCAM_CL_MAX_ARGS;
+    CLWorkSize work_size;
 
+    ret = prepare_arguments (input, output, args, arg_count, work_size);
+
+    XCAM_ASSERT (arg_count);
+    for (uint32_t i = 0; i < arg_count; ++i) {
+        ret = set_argument (0, args[i].arg_adress, args[i].arg_size);
+        XCAM_FAIL_RETURN (
+            WARNING,
+            ret == XCAM_RETURN_NO_ERROR,
+            ret,
+            "cl image kernel(%s) set argc(%d) failed", get_kernel_name (), i);
+    }
+
+    XCAM_ASSERT (work_size.global[0]);
+    ret = set_work_size (work_size.dim, work_size.global, work_size.local);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "cl image kernel(%s) set work size failed", get_kernel_name ());
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLImageKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count, CLWorkSize &work_size)
+{
+    SmartPtr<CLContext> context = get_context ();
 
     _image_in = new CLVaImage (context, input);
     _image_out = new CLVaImage (context, output);
@@ -65,33 +108,20 @@ CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> 
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     //set args;
-    mem0 = _image_in->get_mem_id ();
-    ret = set_argument (0, &mem0, sizeof (mem0));
-    XCAM_FAIL_RETURN (
-        WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "cl image kernel(%s) set argc(0) failed", get_kernel_name ());
+    args[0].arg_adress = &_image_in->get_mem_id ();
+    args[0].arg_size = sizeof (cl_mem);
+    args[1].arg_adress = &_image_out->get_mem_id ();
+    args[1].arg_size = sizeof (cl_mem);
+    arg_count = 2;
 
-    mem1 = _image_out->get_mem_id ();
-    ret = set_argument (1, &mem1, sizeof (mem1));
-    XCAM_FAIL_RETURN (
-        WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "cl image kernel(%s) set argc(1) failed", get_kernel_name ());
-
+    work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     {
         const cl_libva_image &out_info = _image_out->get_image_info ();
-        global[0] = out_info.row_pitch / 4;
-        global[1] = out_info.height / 4;
+        work_size.global[0] = out_info.row_pitch;
+        work_size.global[1] = out_info.height;
     }
-    ret = set_work_size (dim, global, local);
-    XCAM_FAIL_RETURN (
-        WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "cl image kernel(%s) set work size failed", get_kernel_name ());
+    work_size.local[0] = 4;
+    work_size.local[1] = 4;
 
     return XCAM_RETURN_NO_ERROR;
 }

@@ -32,7 +32,7 @@ public:
     CLMemory (SmartPtr<CLContext> &context);
     virtual ~CLMemory ();
 
-    cl_mem get_mem_id () {
+    cl_mem &get_mem_id () {
         return _mem_id;
     }
     bool is_valid () const {
