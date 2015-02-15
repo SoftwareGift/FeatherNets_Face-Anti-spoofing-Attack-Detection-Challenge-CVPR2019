@@ -25,6 +25,7 @@ namespace XCam {
 DrmBoWrapper::DrmBoWrapper (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo)
     : _display (display)
     , _bo (bo)
+    , _buf ((intptr_t)NULL)
 {
     XCAM_ASSERT (display.ptr());
     XCAM_ASSERT (bo);
@@ -32,8 +33,33 @@ DrmBoWrapper::DrmBoWrapper (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo)
 
 DrmBoWrapper::~DrmBoWrapper ()
 {
+    unmap ();
     if (_bo)
         drm_intel_bo_unreference (_bo);
+}
+
+bool
+DrmBoWrapper::map (intptr_t &ptr)
+{
+    if (_buf) {
+        ptr = _buf;
+        return true;
+    }
+    if (drm_intel_bo_map (_bo, 1) != 0)
+        return false;
+    _buf = (intptr_t)_bo->virt;
+    ptr = _buf;
+    return  true;
+}
+
+bool
+DrmBoWrapper::unmap ()
+{
+    if (!_buf || !_bo)
+        return true;
+    drm_intel_bo_unmap (_bo);
+    _buf = (intptr_t)(NULL);
+    return true;
 }
 
 DrmBoBuffer::DrmBoBuffer (
@@ -72,12 +98,15 @@ DrmBoBuffer::set_buf_pool (SmartPtr<DrmBoBufferPool> &buf_pool)
 uint8_t *
 DrmBoBuffer::map ()
 {
+    intptr_t pointer(0);
+    if (_bo->map (pointer))
+        return (uint8_t *)pointer;
     return NULL;
 }
 
 bool DrmBoBuffer::unmap ()
 {
-    return true;
+    return _bo->unmap ();
 }
 
 DrmBoBufferPool::DrmBoBufferPool (SmartPtr<DrmDisplay> &display)

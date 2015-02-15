@@ -38,12 +38,16 @@ public:
     drm_intel_bo *get_bo () {
         return _bo;
     }
+
+    bool map (intptr_t &ptr);
+    bool unmap ();
 private:
     explicit DrmBoWrapper (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo);
     XCAM_DEAD_COPY (DrmBoWrapper);
 private:
     SmartPtr<DrmDisplay>       _display;
     drm_intel_bo              *_bo;
+    intptr_t                   _buf;
 };
 
 class DrmBoBuffer
