@@ -71,7 +71,7 @@ CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> 
 
     XCAM_ASSERT (arg_count);
     for (uint32_t i = 0; i < arg_count; ++i) {
-        ret = set_argument (0, args[i].arg_adress, args[i].arg_size);
+        ret = set_argument (i, args[i].arg_adress, args[i].arg_size);
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,
