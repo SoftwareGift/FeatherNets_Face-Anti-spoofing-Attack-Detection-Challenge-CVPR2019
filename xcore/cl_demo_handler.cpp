@@ -42,7 +42,7 @@ CLDemoImageKernel::prepare_arguments (
     image_info.fmt.image_channel_data_type = CL_UNORM_INT8;
     image_info.offset = 0;
     image_info.width = video_info.width;
-    image_info.height = video_info.height;
+    image_info.height = (video_info.size / video_info.strides[0])/4*4;
     image_info.row_pitch = video_info.strides[0];
 
     _image_in = new CLVaImage (context, input, &image_info);
@@ -65,8 +65,8 @@ CLDemoImageKernel::prepare_arguments (
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = image_info.row_pitch;
     work_size.global[1] = image_info.height;
-    work_size.local[0] = 1;
-    work_size.local[1] = 1;
+    work_size.local[0] = 8;
+    work_size.local[1] = 4;
 
     return XCAM_RETURN_NO_ERROR;
 }
