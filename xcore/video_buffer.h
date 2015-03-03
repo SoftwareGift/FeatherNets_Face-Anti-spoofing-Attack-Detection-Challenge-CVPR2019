@@ -27,15 +27,28 @@ namespace XCam {
 
 #define XCAM_VIDEO_MAX_COMPONENTS 4
 
-typedef struct _VideoBufferInfo {
+struct VideoBufferInfo {
     uint32_t format;
+    uint32_t color_bits;
     uint32_t width;
     uint32_t height;
     uint32_t size;
     uint32_t components;
     uint32_t strides [XCAM_VIDEO_MAX_COMPONENTS];
     uint32_t offsets [XCAM_VIDEO_MAX_COMPONENTS];
-} VideoBufferInfo;
+
+    VideoBufferInfo ()
+        : format (0)
+        , color_bits (8)
+        , width (0)
+        , height (0)
+        , size (0)
+        , components (0)
+    {
+        xcam_mem_clear (strides);
+        xcam_mem_clear (offsets);
+    }
+};
 
 class VideoBuffer {
 public:
