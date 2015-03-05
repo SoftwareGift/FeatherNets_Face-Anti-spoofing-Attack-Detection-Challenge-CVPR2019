@@ -1,5 +1,9 @@
 noinst_PROGRAMS = test-device-manager test-poll-thread
 
+if HAVE_LIBCL
+noinst_PROGRAMS += test-cl-image
+endif
+
 tests_cxxflags = $(XCAM_CXXFLAGS)
 
 if HAVE_LIBDRM
@@ -33,3 +37,14 @@ test_poll_thread_CXXFLAGS =    \
 test_poll_thread_LDADD =       \
 	$(top_builddir)/xcore/libxcam_core.la \
 	$(NULL)
+if HAVE_LIBCL
+test_cl_image_SOURCES = test-cl-image.cpp
+test_cl_image_CXXFLAGS =    \
+	$(tests_cxxflags)          \
+	-I$(top_builddir)/xcore    \
+	$(NULL)
+
+test_cl_image_LDADD =       \
+	$(top_builddir)/xcore/libxcam_core.la \
+	$(NULL)
+endif
