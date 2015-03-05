@@ -36,10 +36,14 @@ CLDemoImageKernel::prepare_arguments (
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info = input->get_video_info ();
     cl_libva_image image_info;
+    uint32_t channel_bits = XCAM_ALIGN_UP (video_info.color_bits, 8);
 
     xcam_mem_clear (&image_info);
     image_info.fmt.image_channel_order = CL_R;
-    image_info.fmt.image_channel_data_type = CL_UNORM_INT8;
+    if (channel_bits == 8)
+        image_info.fmt.image_channel_data_type = CL_UNORM_INT8;
+    else if (channel_bits == 16)
+        image_info.fmt.image_channel_data_type = CL_UNORM_INT16;
     image_info.offset = 0;
     image_info.width = video_info.width;
     image_info.height = (video_info.size / video_info.strides[0])/4*4;
