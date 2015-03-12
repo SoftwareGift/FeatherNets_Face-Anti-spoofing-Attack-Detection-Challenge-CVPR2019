@@ -22,6 +22,7 @@
 #include "cl_device.h"
 #include "cl_context.h"
 #include "cl_demo_handler.h"
+#include "cl_hdr_handler.h"
 #include "drm_bo_buffer.h"
 
 using namespace XCam;
@@ -187,6 +188,7 @@ int main (int argc, char *argv[])
     case TestHandlerColorConversion:
         break;
     case TestHandlerHDR:
+		image_handler = create_cl_hdr_image_handler (context);
         break;
 
     default:
