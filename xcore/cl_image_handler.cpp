@@ -156,13 +156,13 @@ CLImageHandler::add_kernel (SmartPtr<CLImageKernel> &kernel)
 }
 
 XCamReturn
-CLImageHandler::ensure_buffer_pool (const VideoBufferInfo &video_info)
+CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
 {
     SmartPtr<DrmBoBufferPool> buffer_pool;
     SmartPtr<DrmDisplay> display;
 
     if (_buf_pool.ptr ())
-        return XCAM_RETURN_NO_ERROR;
+        return XCAM_RETURN_ERROR_PARAM;
 
     display = DrmDisplay::instance ();
     XCAM_FAIL_RETURN(
@@ -185,18 +185,37 @@ CLImageHandler::ensure_buffer_pool (const VideoBufferInfo &video_info)
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn CLImageHandler::prepare_buffer_pool_video_info (
+    const VideoBufferInfo &input,
+    VideoBufferInfo &output)
+{
+    output = input;
+    return XCAM_RETURN_NO_ERROR;
+}
+
 XCamReturn
 CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     SmartPtr<DrmBoBuffer> new_buf;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    ret = ensure_buffer_pool (input->get_video_info ());
-    XCAM_FAIL_RETURN(
-        WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "CLImageHandler(%s) ensure drm buffer pool failed", XCAM_STR (_name));
+    if (!_buf_pool.ptr ()) {
+        VideoBufferInfo output_video_info;
+
+        ret = prepare_buffer_pool_video_info (input->get_video_info (), output_video_info);
+        XCAM_FAIL_RETURN(
+            WARNING,
+            ret == XCAM_RETURN_NO_ERROR,
+            ret,
+            "CLImageHandler(%s) prepare output video info failed", XCAM_STR (_name));
+
+        ret = create_buffer_pool (output_video_info);
+        XCAM_FAIL_RETURN(
+            WARNING,
+            ret == XCAM_RETURN_NO_ERROR,
+            ret,
+            "CLImageHandler(%s) ensure drm buffer pool failed", XCAM_STR (_name));
+    }
 
     new_buf = _buf_pool->get_buffer (_buf_pool);
     XCAM_FAIL_RETURN(
