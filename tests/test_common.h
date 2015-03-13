@@ -38,7 +38,10 @@
 #define CHECK_CONTINUE(ret, msg, ...)  \
     CHECK_DECLARE(WARNING, ret, , msg, ## __VA_ARGS__)
 
-#define DEFAULT_CAPTURE_DEVICE "/dev/video3"
+#define CAPTURE_DEVICE_VIDEO "/dev/video3"
+#define CAPTURE_DEVICE_STILL "/dev/video0"
+#define DEFAULT_CAPTURE_DEVICE CAPTURE_DEVICE_VIDEO
+
 #define DEFAULT_EVENT_DEVICE   "/dev/v4l-subdev6"
 #define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
 #define DEFAULT_SAVE_FILE_NAME "capture_buffer.raw"

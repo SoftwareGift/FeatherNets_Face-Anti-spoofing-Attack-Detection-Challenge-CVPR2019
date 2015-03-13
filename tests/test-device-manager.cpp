@@ -91,10 +91,32 @@ MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
 
     const VideoBufferInfo & frame_info = buf->get_video_info ();
     uint8_t *frame = buf->map ();
-    // only for NV12
-    uint32_t size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 3 / 2;
+
     if (frame == NULL)
         return;
+
+    uint32_t size = 0;
+
+    switch(frame_info.format)  {
+    case V4L2_PIX_FMT_NV12:  // 420
+    case V4L2_PIX_FMT_NV21:
+        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 3 / 2;
+        break;
+    case V4L2_PIX_FMT_YUV422P: // 422 Planar
+    case V4L2_PIX_FMT_YUYV: // 422
+    case V4L2_PIX_FMT_SBGGR10:
+    case V4L2_PIX_FMT_SGBRG10:
+    case V4L2_PIX_FMT_SGRBG10:
+    case V4L2_PIX_FMT_SRGGB10:
+        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 2;
+        break;
+    default:
+        XCAM_LOG_ERROR (
+            "unknown v4l2 format(%s) in buffer handle",
+            xcam_fourcc_to_string (frame_info.format));
+        return;
+    }
+
     open_file ();
     if (fwrite (frame, size, 1, _file) <= 0) {
         XCAM_LOG_WARNING ("write frame failed.");
@@ -147,6 +169,10 @@ void print_help (const char *bin_name)
             "\t -s           save file to %s\n"
             "\t -n interval  save file on every [interval] frame\n"
             "\t -c           process image with cl kernel\n"
+            "\t -f pixel_fmt specify output pixel format\n"
+            "\t              pixel_fmt select from [NV12, YUYV, BA10], default is [NV12]\n"
+            "\t -d cap_mode  specify capture mode\n"
+            "\t              cap_mode select from [video, still], default is [video]\n"
             "\t -h           help\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
@@ -168,8 +194,10 @@ int main (int argc, char *argv[])
     enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
     const char *bin_name = argv[0];
     int opt;
+    uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
+    uint32_t pixel_format = V4L2_PIX_FMT_NV12;
 
-    while ((opt =  getopt(argc, argv, "sca:n:m:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "sca:n:m:f:d:h")) != -1) {
         switch (opt) {
         case 'a': {
             if (!strcmp (optarg, "simple"))
@@ -204,6 +232,23 @@ int main (int argc, char *argv[])
         case 'c':
             have_cl_processor = true;
             break;
+        case 'f':
+            CHECK ((strlen(optarg) != 4), "invalid pixel format\n");
+            pixel_format = ((unsigned)optarg[0] << 0) |
+                           ((unsigned)optarg[1] << 8) |
+                           ((unsigned)optarg[2] << 16) |
+                           ((unsigned)optarg[3] << 24);
+            break;
+        case 'd':
+            if (!strcmp (optarg, "still"))
+                capture_mode = V4L2_CAPTURE_MODE_STILL;
+            else if (!strcmp (optarg, "video"))
+                capture_mode = V4L2_CAPTURE_MODE_VIDEO;
+            else  {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
         case 'h':
             print_help (bin_name);
             return 0;
@@ -214,8 +259,14 @@ int main (int argc, char *argv[])
         }
     }
 
-    if (!device.ptr ())
-        device = new AtomispDevice (DEFAULT_CAPTURE_DEVICE);
+    if (!device.ptr ())  {
+        if (capture_mode == V4L2_CAPTURE_MODE_STILL)
+            device = new AtomispDevice (CAPTURE_DEVICE_STILL);
+        else if (capture_mode == V4L2_CAPTURE_MODE_VIDEO)
+            device = new AtomispDevice (CAPTURE_DEVICE_VIDEO);
+        else
+            device = new AtomispDevice (DEFAULT_CAPTURE_DEVICE);
+    }
     if (!event_device.ptr ())
         event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
     if (!isp_controller.ptr ())
@@ -228,14 +279,14 @@ int main (int argc, char *argv[])
     signal(SIGINT, dev_stop_handler);
 
     device->set_sensor_id (0);
-    device->set_capture_mode (V4L2_CAPTURE_MODE_VIDEO);
+    device->set_capture_mode (capture_mode);
     //device->set_mem_type (V4L2_MEMORY_DMABUF);
     device->set_mem_type (v4l2_mem_type);
     device->set_buffer_count (8);
     device->set_framerate (25, 1);
     ret = device->open ();
     CHECK (ret, "device(%s) open failed", device->get_device_name());
-    ret = device->set_format (1920, 1080, V4L2_PIX_FMT_NV12, V4L2_FIELD_NONE, 1920 * 2);
+    ret = device->set_format (1920, 1080, pixel_format, V4L2_FIELD_NONE, 1920 * 2);
     CHECK (ret, "device(%s) set format failed", device->get_device_name());
 
     ret = event_device->open ();
