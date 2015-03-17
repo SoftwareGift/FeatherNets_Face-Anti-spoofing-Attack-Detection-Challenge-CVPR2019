@@ -1,2 +1,2 @@
 
-SUBDIRS = xcore tests pkgconfig
+SUBDIRS = xcore wrapper tests pkgconfig 

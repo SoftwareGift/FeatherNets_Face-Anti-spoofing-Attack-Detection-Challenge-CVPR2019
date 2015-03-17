@@ -142,6 +142,8 @@ AM_CONDITIONAL([USE_LOCAL_AIQ], [test "$USE_LOCAL_AIQ" -eq 1])
 
 AC_CONFIG_FILES([Makefile
                  xcore/Makefile
+                 wrapper/Makefile
+                 wrapper/gstreamer/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc
