@@ -60,6 +60,12 @@ public:
         return _image_info;
     }
 
+    static bool video_info_2_cl_image_info (
+        const VideoBufferInfo & video_info,
+        cl_libva_image &cl_image_info);
+
+    static uint32_t get_pixel_bytes (cl_image_format fmt);
+
 private:
     XCAM_DEAD_COPY (CLVaImage);
 private:

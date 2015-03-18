@@ -60,6 +60,7 @@ xcam_sources =               \
 	sensor_descriptor.cpp    \
 	v4l2_buffer_proxy.cpp    \
 	v4l2_device.cpp          \
+	video_buffer.cpp         \
 	x3a_analyzer.cpp         \
 	x3a_analyzer_manager.cpp \
 	x3a_analyzer_simple.cpp  \

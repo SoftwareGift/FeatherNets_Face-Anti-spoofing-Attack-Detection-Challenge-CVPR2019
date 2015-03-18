@@ -25,6 +25,18 @@
 
 namespace XCam {
 
+/*
+ * Define special format for 16 bit color
+ * every format start with 'X'
+ *
+ * XCAM_PIX_FMT_RGB48: RGB with color-bits = 16
+ * XCAM_PIX_FMT_RGBA64, RGBA with color-bits = 16
+ * XCAM_PIX_FMT_SGRBG16, Bayer, with color-bits = 16
+ */
+#define XCAM_PIX_FMT_RGB48     v4l2_fourcc('w', 'R', 'G', 'B')
+#define XCAM_PIX_FMT_RGBA64     v4l2_fourcc('w', 'R', 'G', 'a')
+#define XCAM_PIX_FMT_SGRBG16   v4l2_fourcc('w', 'B', 'A', '0')
+
 #define XCAM_VIDEO_MAX_COMPONENTS 4
 
 struct VideoBufferInfo {
@@ -37,17 +49,11 @@ struct VideoBufferInfo {
     uint32_t strides [XCAM_VIDEO_MAX_COMPONENTS];
     uint32_t offsets [XCAM_VIDEO_MAX_COMPONENTS];
 
-    VideoBufferInfo ()
-        : format (0)
-        , color_bits (8)
-        , width (0)
-        , height (0)
-        , size (0)
-        , components (0)
-    {
-        xcam_mem_clear (strides);
-        xcam_mem_clear (offsets);
-    }
+    VideoBufferInfo ();
+    bool init (
+        uint32_t format,
+        uint32_t width, uint32_t height,
+        uint32_t align_width = 4, uint32_t align_height = 2);
 };
 
 class VideoBuffer {
