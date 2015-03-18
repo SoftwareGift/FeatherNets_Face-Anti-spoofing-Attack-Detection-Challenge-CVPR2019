@@ -24,6 +24,7 @@
 #include "cl_demo_handler.h"
 #include "cl_hdr_handler.h"
 #include "drm_bo_buffer.h"
+#include "cl_demosaic_handler.h"
 
 using namespace XCam;
 
@@ -32,7 +33,7 @@ enum TestHandlerType {
     TestHandlerDemo,
     TestHandlerBlackLevel,
     TestHandlerDefect,
-    TestHandlerDemosic,
+    TestHandlerDemosaic,
     TestHandlerColorConversion,
     TestHandlerHDR,
 };
@@ -103,7 +104,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosic, csc, hdr]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr]\n"
             "\t -f format    specify a format\n"
             "\t              select from [NV12, BA10]\n"
             "\t -i input     specify input file path\n"
@@ -156,8 +157,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerBlackLevel;
             else if (!strcasecmp (optarg, "defect"))
                 handler_type = TestHandlerDefect;
-            else if (!strcasecmp (optarg, "demosic"))
-                handler_type = TestHandlerDemosic;
+            else if (!strcasecmp (optarg, "demosaic"))
+                handler_type = TestHandlerDemosaic;
             else if (!strcasecmp (optarg, "csc"))
                 handler_type = TestHandlerColorConversion;
             else if (!strcasecmp (optarg, "hdr"))
@@ -201,8 +202,14 @@ int main (int argc, char *argv[])
         break;
     case TestHandlerDefect:
         break;
-    case TestHandlerDemosic:
+    case TestHandlerDemosaic: {
+        SmartPtr<CLBayer2RGBImageHandler> ba2rgb_handler;
+        image_handler = create_cl_demosaic_image_handler (context);
+        ba2rgb_handler = image_handler.dynamic_cast_ptr<CLBayer2RGBImageHandler> ();
+        XCAM_ASSERT (ba2rgb_handler.ptr ());
+        ba2rgb_handler->set_output_format (V4L2_PIX_FMT_RGB32);
         break;
+    }
     case TestHandlerColorConversion:
         break;
     case TestHandlerHDR:
