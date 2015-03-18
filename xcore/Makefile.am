@@ -101,7 +101,8 @@ xcam_sources +=              \
 	cl_image_processor.cpp   \
 	cl_demo_handler.cpp      \
 	drm_bo_buffer.cpp        \
-	cl_hdr_handler.cpp  \
+	cl_hdr_handler.cpp       \
+	cl_demosaic_handler.cpp  \
 	$(NULL)
 endif
 
