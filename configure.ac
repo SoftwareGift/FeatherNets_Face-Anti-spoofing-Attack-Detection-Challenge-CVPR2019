@@ -44,6 +44,11 @@ AC_ARG_ENABLE([aiq],
                    [enable Aiq 3A algorithm build, @<:@default=no@:>@]),
     [], [enable_aiq="no"])
 
+AC_ARG_ENABLE([gst],
+    AS_HELP_STRING([--enable-gst],
+                   [enable gstreamer plugin build, @<:@default=no@:>@]),
+    [], [enable_gst="no"])
+
 AC_ARG_ENABLE(libcl,
     AS_HELP_STRING([--enable-libcl],
                    [enable libcl image processor, @<:@default=yes@:>@]),
@@ -113,6 +118,18 @@ AC_CACHE_CHECK([for linux/atomisp.h],
 ])
 
 
+# build gstreamer plugin
+GST_API_VERSION=1.0
+GST_VERSION_REQUIRED=1.2.3
+ENABLE_GST=0
+if test "$enable_gst" = "yes"; then
+    ENABLE_GST=1
+    PKG_CHECK_MODULES([GST], [gstreamer-$GST_API_VERSION >= $GST_VERSION_REQUIRED])
+    PKG_CHECK_MODULES([GST_ALLOCATOR], [gstreamer-allocators-$GST_API_VERSION >= $GST_VERSION_REQUIRED])
+    PKG_CHECK_MODULES([GST_VIDEO], [gstreamer-video-$GST_API_VERSION >= $GST_VERSION_REQUIRED])
+fi
+AM_CONDITIONAL([ENABLE_GST], [test "$ENABLE_GST" -eq 1])
+
 dnl set XCAM_CFLAGS and XCAM_CXXFLAGS
 XCAM_CFLAGS=" -fPIC -DSTDC99 -W -Wall -D_REENTRANT"
 if test "$enable_debug" = "yes"; then
@@ -160,6 +177,7 @@ echo "
      version                    : $XCAM_VERSION
      enable debug               : $enable_debug
      build aiq analyzer         : $enable_aiq
+     build GStreamer plugin     : $enable_gst
      use local aiq              : $use_local_aiq
      use local atomisp          : $use_local_atomisp
      have opencl lib            : $have_libcl
