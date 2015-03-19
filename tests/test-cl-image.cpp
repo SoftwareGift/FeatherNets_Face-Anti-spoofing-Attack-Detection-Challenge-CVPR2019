@@ -85,6 +85,19 @@ write_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
     return ret;
 }
 
+static XCamReturn
+kernel_loop(SmartPtr<CLImageHandler> &image_handler, SmartPtr<DrmBoBuffer> &input_buf, SmartPtr<DrmBoBuffer> &output_buf, uint32_t kernel_loop_count)
+{
+    int i;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    for (i = 0; i < kernel_loop_count; i++) {
+        PROFILING_START(cl_kernel);
+        ret = image_handler->execute (input_buf, output_buf);
+        PROFILING_END(cl_kernel, kernel_loop_count)
+    }
+    return ret;
+}
+
 static void
 print_help (const char *bin_name)
 {
@@ -95,6 +108,7 @@ print_help (const char *bin_name)
             "\t              select from [NV12, BA10]\n"
             "\t -i input     specify input file path\n"
             "\t -o output    specify output file path\n"
+            "\t -p count     specify cl kernel loop count\n"
             "\t -h           help\n"
             , bin_name);
 }
@@ -103,6 +117,7 @@ int main (int argc, char *argv[])
 {
     uint32_t format = 0;
     uint32_t buf_count = 0;
+    uint32_t kernel_loop_count = 0;
     const char *input_file = NULL, *output_file = NULL;
     TestFileHandle input_fp, output_fp;
     const char *bin_name = argv[0];
@@ -116,7 +131,7 @@ int main (int argc, char *argv[])
     SmartPtr<DrmBoBufferPool> buf_pool;
     int opt = 0;
 
-    while ((opt =  getopt(argc, argv, "f:i:o:t:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:i:o:t:p:h")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
@@ -151,6 +166,9 @@ int main (int argc, char *argv[])
                 print_help (bin_name);
             break;
         }
+        case 'p':
+            kernel_loop_count = atoi (optarg);
+            break;
         case 'h':
             print_help (bin_name);
             return 0;
@@ -188,7 +206,7 @@ int main (int argc, char *argv[])
     case TestHandlerColorConversion:
         break;
     case TestHandlerHDR:
-		image_handler = create_cl_hdr_image_handler (context);
+        image_handler = create_cl_hdr_image_handler (context);
         break;
 
     default:
@@ -237,6 +255,14 @@ int main (int argc, char *argv[])
         if (ret == XCAM_RETURN_BYPASS)
             break;
         CHECK (ret, "read buffer from %s failed", input_file);
+
+        if (kernel_loop_count != 0)
+        {
+            kernel_loop (image_handler, input_buf, output_buf, kernel_loop_count);
+            CHECK (ret, "execute kernels failed");
+            return 0;
+        }
+
         ret = image_handler->execute (input_buf, output_buf);
         CHECK (ret, "execute kernels failed");
         XCAM_ASSERT (output_buf.ptr ());

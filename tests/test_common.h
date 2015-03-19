@@ -46,4 +46,22 @@
 #define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
 #define DEFAULT_SAVE_FILE_NAME "capture_buffer.raw"
 
+#define PROFILING_START(name) \
+    static unsigned int name##_times = 0;                   \
+    static struct timeval name##_start_time;         \
+    static struct timeval name##_end_time;           \
+    gettimeofday (& name##_start_time, NULL);        \
+    ++ name##_times;
+
+#define PROFILING_END(name, times_of_print) \
+    static double name##_sum_time = 0;        \
+    gettimeofday (& name##_end_time, NULL); \
+    name##_sum_time += (name##_end_time.tv_sec - name##_start_time.tv_sec)*1000.0f +  \
+                   (name##_end_time.tv_usec - name##_start_time.tv_usec)/1000.0f;      \
+    if (name##_times >= times_of_print) {                  \
+        printf ("profiling %s, fps:%d duration:%.2fms\n", #name, name##_sum_time/name##_times); \
+        name##_times = 0;                   \
+        name##_sum_time = 0.0;       \
+    }
+
 #endif  // XCAM_TEST_COMMON_H
