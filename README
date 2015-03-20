@@ -14,12 +14,13 @@ Features:
   * 3A common APIs for Auto whitebalance, auto exposure, noise reduction, color correction,
     edge enhancement, gamma correction and so on.
   * Capture features support memory type of mmap and dma buffer.
-  * 3A algorithm with AIQ binary(provided by Intel Corporation).
+  * 3A algorithms: 'simple' to guilde users how to write specific algorithm
+  * Support dynamically load a 3rd party 3A algorithm
   * image processing based on Atom isp.
-  * A simple 3A algorithm to guide users how to write specific algorithm.
+  * OpenCL image processing interface is ready and some basic features in progress
+  * gstreamer plugin, xcamsrc is in progress
 
 Plans
-  * Implement a gstreamer wrapper under Linux.
-  * Implement auto focus based on AIQ.
-  * Support dynamically load a 3rd party 3A algorithm.
-  * Add OpenCL/vaapi image processing to co-work with ISP.
+  * Improve gstreamer wrapper with different image processor.
+  * Improve cl features.
+  * Add vaapi image processing to co-work with CL and ISP.
