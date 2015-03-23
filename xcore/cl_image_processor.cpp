@@ -23,6 +23,8 @@
 #include "cl_image_handler.h"
 #include "drm_display.h"
 #include "cl_demo_handler.h"
+#include "cl_blc_handler.h"
+
 
 namespace XCam {
 
@@ -114,6 +116,15 @@ CLImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLImageProcessor create demo handler failed");
     add_handler (demo_handler);
+
+    SmartPtr<CLImageHandler> blc_handler;
+    blc_handler = create_cl_blc_image_handler (_context);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        blc_handler.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLImageProcessor create blc handler failed");
+    add_handler (blc_handler);
 
     return XCAM_RETURN_NO_ERROR;
 }

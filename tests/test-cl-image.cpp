@@ -23,6 +23,7 @@
 #include "cl_context.h"
 #include "cl_demo_handler.h"
 #include "cl_hdr_handler.h"
+#include "cl_blc_handler.h"
 #include "drm_bo_buffer.h"
 #include "cl_demosaic_handler.h"
 #include "cl_csc_handler.h"
@@ -202,6 +203,7 @@ int main (int argc, char *argv[])
         image_handler = create_cl_demo_image_handler (context);
         break;
     case TestHandlerBlackLevel:
+        image_handler = create_cl_blc_image_handler (context);
         break;
     case TestHandlerDefect:
         break;
