@@ -103,6 +103,7 @@ xcam_sources +=              \
 	drm_bo_buffer.cpp        \
 	cl_hdr_handler.cpp       \
 	cl_demosaic_handler.cpp  \
+	cl_csc_handler.cpp       \
 	$(NULL)
 endif
 

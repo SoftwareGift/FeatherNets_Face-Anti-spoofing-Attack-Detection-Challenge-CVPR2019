@@ -25,6 +25,7 @@
 #include "cl_hdr_handler.h"
 #include "drm_bo_buffer.h"
 #include "cl_demosaic_handler.h"
+#include "cl_csc_handler.h"
 
 using namespace XCam;
 
@@ -146,6 +147,8 @@ int main (int argc, char *argv[])
                 format = V4L2_PIX_FMT_NV12;
             else if (!strcasecmp (optarg, "ba10"))
                 format = V4L2_PIX_FMT_SGRBG10;
+            else if (! strcasecmp (optarg, "rgba"))
+                format = V4L2_PIX_FMT_RGB32;
             else
                 print_help (bin_name);
             break;
@@ -210,8 +213,14 @@ int main (int argc, char *argv[])
         ba2rgb_handler->set_output_format (V4L2_PIX_FMT_RGB32);
         break;
     }
-    case TestHandlerColorConversion:
+    case TestHandlerColorConversion: {
+        SmartPtr<CLRgba2Nv12ImageHandler> rgba2nv12_handler;
+        image_handler = create_cl_csc_image_handler (context);
+        rgba2nv12_handler = image_handler.dynamic_cast_ptr<CLRgba2Nv12ImageHandler> ();
+        XCAM_ASSERT (rgba2nv12_handler.ptr ());
+        rgba2nv12_handler->set_output_format (V4L2_PIX_FMT_NV12);
         break;
+    }
     case TestHandlerHDR:
         image_handler = create_cl_hdr_image_handler (context);
         break;
@@ -242,6 +251,13 @@ int main (int argc, char *argv[])
         input_buf_info.color_bits = 10;
         input_buf_info.components = 1;
         input_buf_info.strides[0] = input_buf_info.width * 2;
+        input_buf_info.offsets[0] = 0;
+        input_buf_info.size = input_buf_info.strides[0] * input_buf_info.height;
+        break;
+    case V4L2_PIX_FMT_RGB32:
+        input_buf_info.color_bits = 8;
+        input_buf_info.components = 1;
+        input_buf_info.strides[0] = input_buf_info.width * 4;
         input_buf_info.offsets[0] = 0;
         input_buf_info.size = input_buf_info.strides[0] * input_buf_info.height;
         break;
