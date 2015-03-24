@@ -18,7 +18,7 @@ libstub_la_CXXFLAGS = -I$(top_builddir)/xcore -I$(top_builddir)/xcore/base \
 			 $(STUB_CXXFLAGS)	\
 			 $(NULL)    
 libstub_la_LDFLAGS = \
-			-no-undefined	\
+			-static	\
 			$(PTHREAD_LDFLAGS)  \
 			$(NULL)
 
