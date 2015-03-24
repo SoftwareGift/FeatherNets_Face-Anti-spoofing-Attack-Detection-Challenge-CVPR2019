@@ -17,7 +17,6 @@
 "    float4 p[16];                                                                             "
 "    for (int i = 0; i < 16; ++i) {                                                            "
 "        p[i] = read_imagef (input, sampler, (int2)(x0 + i % 4, y0 + i / 4));                  "
-"        p[i].x *= 64.0;                                                                       "
 "    }                                                                                         "
 "                                                                                              "
 "    float4 p00, p01, p10, p11;                                                                "
@@ -37,6 +36,6 @@
 "    write_imagef (output, (int2)(x, y), p00);                                                 "
 "    write_imagef (output, (int2)(x + 1, y), p01);                                             "
 "    write_imagef (output, (int2)(x, y + 1), p10);                                             "
-"    write_imagef (output, (int2)(x + 1, y + 1), p10);                                         "
+"    write_imagef (output, (int2)(x + 1, y + 1), p11);                                         "
 "}                                                                                             "
 
