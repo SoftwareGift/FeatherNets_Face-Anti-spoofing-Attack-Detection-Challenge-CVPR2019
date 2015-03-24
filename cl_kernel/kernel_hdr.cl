@@ -14,7 +14,7 @@
 "    int2 pos = (int2)(x, y);                                                                  "
 "    float4 pixel_in,pixel_out;									"
 "    pixel_in = read_imagef(input, sampler, pos);                             		   "
-"    pixel_out.x = convert_float(HDRTable[convert_int(pixel_in.x*65535)]/65535.0);		"
+"    pixel_out.x = convert_float(HDRTable[convert_int(pixel_in.x*1024)]/1024.0);		"
 "    pixel_out.y = 0.0;											"
 "    pixel_out.z = 0.0;											"
 "    pixel_out.w = 1.0;											"
