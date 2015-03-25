@@ -44,6 +44,8 @@ struct VideoBufferInfo {
     uint32_t color_bits;
     uint32_t width;
     uint32_t height;
+    uint32_t aligned_width;
+    uint32_t aligned_height;
     uint32_t size;
     uint32_t components;
     uint32_t strides [XCAM_VIDEO_MAX_COMPONENTS];
@@ -53,7 +55,7 @@ struct VideoBufferInfo {
     bool init (
         uint32_t format,
         uint32_t width, uint32_t height,
-        uint32_t align_width = 4, uint32_t align_height = 2);
+        uint32_t alignment_w = 4, uint32_t alignment_h = 2);
 };
 
 class VideoBuffer {

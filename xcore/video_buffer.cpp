@@ -28,6 +28,8 @@ VideoBufferInfo::VideoBufferInfo ()
     , color_bits (8)
     , width (0)
     , height (0)
+    , aligned_width (0)
+    , aligned_height (0)
     , size (0)
     , components (0)
 {
@@ -39,17 +41,19 @@ bool
 VideoBufferInfo::init (
     uint32_t format,
     uint32_t width, uint32_t height,
-    uint32_t align_width, uint32_t align_height)
+    uint32_t alignment_w, uint32_t alignment_h)
 {
-    XCAM_ASSERT ((align_width & (align_width - 1)) == 0 && align_width != 0);
-    XCAM_ASSERT ((align_height & (align_height - 1)) == 0 && align_height != 0);
+    XCAM_ASSERT ((alignment_w & (alignment_w - 1)) == 0 && alignment_w != 0);
+    XCAM_ASSERT ((alignment_h & (alignment_h - 1)) == 0 && alignment_h != 0);
 
-    uint32_t final_width = XCAM_ALIGN_UP (width, align_width);
-    uint32_t final_height = XCAM_ALIGN_UP (height, align_height);
+    uint32_t final_width = XCAM_ALIGN_UP (width, alignment_w);
+    uint32_t final_height = XCAM_ALIGN_UP (height, alignment_h);
 
     this->format = format;
     this->width = width;
     this->height = height;
+    this->aligned_width = final_width;
+    this->aligned_height = final_height;
 
     switch (format) {
     case V4L2_PIX_FMT_NV12:

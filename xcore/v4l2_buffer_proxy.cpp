@@ -60,6 +60,8 @@ V4l2BufferProxy::v4l2_format_to_video_info (
     info.color_bits = 8;
     info.width = format.fmt.pix.width;
     info.height = format.fmt.pix.height;
+    info.aligned_width = 0;
+    info.aligned_height = 0;
     info.size = format.fmt.pix.sizeimage;
     switch (format.fmt.pix.pixelformat) {
     case V4L2_PIX_FMT_NV12:  // 420
@@ -83,6 +85,7 @@ V4l2BufferProxy::v4l2_format_to_video_info (
         info.components = 1;
         info.strides [0] = format.fmt.pix.bytesperline;
         info.offsets[0] = 0;
+        info.aligned_width = info.strides [0] / 2;
         break;
     case V4L2_PIX_FMT_SBGGR10:
     case V4L2_PIX_FMT_SGBRG10:
@@ -99,6 +102,12 @@ V4l2BufferProxy::v4l2_format_to_video_info (
             xcam_fourcc_to_string (format.fmt.pix.pixelformat));
         break;
     }
+
+    if (!info.aligned_width)
+        info.aligned_width = info.strides [0];
+
+    if (!info.aligned_height)
+        info.aligned_height = info.height;
 
 }
 
