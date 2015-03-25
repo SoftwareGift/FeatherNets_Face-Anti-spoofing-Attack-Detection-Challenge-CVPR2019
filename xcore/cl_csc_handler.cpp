@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: wangfei <feix.w.wang@intel.com>
+ * Author: Wind Yuan <feng.yuan@intel.com>
  */
 #include "xcam_utils.h"
 #include "cl_csc_handler.h"
@@ -24,6 +25,7 @@ namespace XCam {
 
 CLCscImageKernel::CLCscImageKernel (SmartPtr<CLContext> &context)
     : CLImageKernel (context, "kernel_csc")
+    , _vertical_offset (0)
 {
 }
 
@@ -38,6 +40,7 @@ CLCscImageKernel::prepare_arguments (
 
     _image_in = new CLVaImage (context, input, NULL);
     _image_out = new CLVaImage (context, output, NULL);
+    _vertical_offset = video_info.aligned_height;
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
@@ -51,7 +54,9 @@ CLCscImageKernel::prepare_arguments (
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    arg_count = 2;
+    args[2].arg_adress = &_vertical_offset;
+    args[2].arg_size = sizeof (_vertical_offset);
+    arg_count = 3;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = video_info.width / 2;
@@ -64,22 +69,7 @@ CLCscImageKernel::prepare_arguments (
 
 CLRgba2Nv12ImageHandler::CLRgba2Nv12ImageHandler (const char *name)
     : CLImageHandler (name)
-    , _output_format (V4L2_PIX_FMT_NV12)
 {
-}
-
-bool
-CLRgba2Nv12ImageHandler::set_output_format (uint32_t fourcc)
-{
-    XCAM_FAIL_RETURN (
-        WARNING,
-        fourcc == V4L2_PIX_FMT_NV12,
-        false,
-        "CL image handler(%s) doesn't support format(%s) settings",
-        get_name (), xcam_fourcc_to_string (fourcc));
-
-    _output_format = fourcc;
-    return true;
 }
 
 XCamReturn
@@ -87,14 +77,14 @@ CLRgba2Nv12ImageHandler::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input,
     VideoBufferInfo &output)
 {
-    bool format_inited = output.init (_output_format, input.width, input.height, 8, 8);
+    bool format_inited = output.init (V4L2_PIX_FMT_NV12, input.width, input.height, 8, 8);
 
     XCAM_FAIL_RETURN (
         WARNING,
         format_inited,
         XCAM_RETURN_ERROR_PARAM,
         "CL image handler(%s) ouput format(%s) unsupported",
-        get_name (), xcam_fourcc_to_string (_output_format));
+        get_name (), xcam_fourcc_to_string (V4L2_PIX_FMT_NV12));
 
     return XCAM_RETURN_NO_ERROR;
 }

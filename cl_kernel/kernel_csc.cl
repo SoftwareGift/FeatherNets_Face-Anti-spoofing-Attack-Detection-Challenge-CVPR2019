@@ -2,9 +2,10 @@
  * function: kernel_csc
  * input:    image2d_t as read only
  * output:   image2d_t as write only
+ * vertical_offset, vertical offset from y to uv
  */
 
-"__kernel void kernel_csc (__read_only image2d_t input, __write_only image2d_t output)        "
+"__kernel void kernel_csc (__read_only image2d_t input, __write_only image2d_t output, uint vertical_offset)        "
 "{                                                                                             "
 "    int x = get_global_id (0);                                                            "
 "    int y = get_global_id (1);                                                             "
@@ -42,7 +43,7 @@
 "    write_imagef(output, (int2)(2*x+1,2*y), pixel_out_y2);                                                        "
 "    write_imagef(output, (int2)(2*x,2*y+1), pixel_out_y3);                                                        "
 "    write_imagef(output, (int2)(2*x+1,2*y+1), pixel_out_y4);                                                        "
-"    write_imagef(output, (int2)(2*x,y + 1080), pixel_out_u);                                                        "
-"    write_imagef(output, (int2)(2*x+1,y + 1080), pixel_out_v);                                                        "
+"    write_imagef(output, (int2)(2*x,y + vertical_offset), pixel_out_u);                                                        "
+"    write_imagef(output, (int2)(2*x+1,y + vertical_offset), pixel_out_v);                                                        "
 "}                                                                                             "
 

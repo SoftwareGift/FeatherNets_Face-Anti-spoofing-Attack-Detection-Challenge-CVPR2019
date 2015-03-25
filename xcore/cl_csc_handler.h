@@ -40,6 +40,8 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLCscImageKernel);
+
+    uint32_t _vertical_offset;
 };
 
 class CLRgba2Nv12ImageHandler
@@ -47,7 +49,6 @@ class CLRgba2Nv12ImageHandler
 {
 public:
     explicit CLRgba2Nv12ImageHandler (const char *name);
-    bool set_output_format (uint32_t fourcc);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
@@ -56,9 +57,6 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLRgba2Nv12ImageHandler);
-
-private:
-    uint32_t  _output_format;
 };
 
 SmartPtr<CLImageHandler>

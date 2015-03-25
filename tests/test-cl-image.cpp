@@ -216,11 +216,8 @@ int main (int argc, char *argv[])
         break;
     }
     case TestHandlerColorConversion: {
-        SmartPtr<CLRgba2Nv12ImageHandler> rgba2nv12_handler;
         image_handler = create_cl_csc_image_handler (context);
-        rgba2nv12_handler = image_handler.dynamic_cast_ptr<CLRgba2Nv12ImageHandler> ();
-        XCAM_ASSERT (rgba2nv12_handler.ptr ());
-        rgba2nv12_handler->set_output_format (V4L2_PIX_FMT_NV12);
+        XCAM_ASSERT (image_handler.ptr ());
         break;
     }
     case TestHandlerHDR:
