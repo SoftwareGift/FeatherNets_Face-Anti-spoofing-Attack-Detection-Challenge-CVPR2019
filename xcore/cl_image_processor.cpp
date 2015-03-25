@@ -28,8 +28,8 @@
 
 namespace XCam {
 
-CLImageProcessor::CLImageProcessor ()
-    : ImageProcessor ("CLImageProcessor")
+CLImageProcessor::CLImageProcessor (const char* name)
+    : ImageProcessor (name ? name : "CLImageProcessor")
 {
     _context = CLDevice::instance ()->get_context ();
     XCAM_ASSERT (_context.ptr());
@@ -49,6 +49,11 @@ CLImageProcessor::add_handler (SmartPtr<CLImageHandler> &handler)
     return true;
 }
 
+SmartPtr<CLContext>
+CLImageProcessor::get_cl_context ()
+{
+    return _context;
+}
 
 bool
 CLImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
@@ -116,15 +121,6 @@ CLImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLImageProcessor create demo handler failed");
     add_handler (demo_handler);
-
-    SmartPtr<CLImageHandler> blc_handler;
-    blc_handler = create_cl_blc_image_handler (_context);
-    XCAM_FAIL_RETURN (
-        WARNING,
-        blc_handler.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CLImageProcessor create blc handler failed");
-    add_handler (blc_handler);
 
     return XCAM_RETURN_NO_ERROR;
 }

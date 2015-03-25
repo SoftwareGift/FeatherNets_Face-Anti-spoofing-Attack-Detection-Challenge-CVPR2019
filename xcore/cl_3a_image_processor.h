@@ -1,5 +1,5 @@
 /*
- * cl_image_processor.h - CL image processor
+ * cl_3a_image_processor.h - CL 3A image processor
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -18,27 +18,28 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#ifndef XCAM_CL_IMAGE_PROCESSOR_H
-#define XCAM_CL_IMAGE_PROCESSOR_H
+#ifndef XCAM_CL_3A_IMAGE_PROCESSOR_H
+#define XCAM_CL_3A_IMAGE_PROCESSOR_H
 
 #include "xcam_utils.h"
-#include "image_processor.h"
-#include <list>
+#include "cl_image_processor.h"
 
 namespace XCam {
 
-class CLImageHandler;
-class CLContext;
+class CLBayer2RGBImageHandler;
+class CLRgba2Nv12ImageHandler;
 
-class CLImageProcessor
-    : public ImageProcessor
+class CL3aImageProcessor
+    : public CLImageProcessor
 {
-    typedef std::list<SmartPtr<CLImageHandler>>  ImageHandlerList;
 public:
-    explicit CLImageProcessor (const char* name = NULL);
-    virtual ~CLImageProcessor ();
+    explicit CL3aImageProcessor ();
+    virtual ~CL3aImageProcessor ();
 
-    bool add_handler (SmartPtr<CLImageHandler> &handler);
+    bool set_output_format (uint32_t fourcc);
+    void set_hdr (bool enable) {
+        _enable_hdr = enable;
+    }
 
 protected:
 
@@ -46,18 +47,20 @@ protected:
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
     virtual XCamReturn apply_3a_results (X3aResultList &results);
     virtual XCamReturn apply_3a_result (SmartPtr<X3aResult> &result);
-    virtual XCamReturn process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
-
-    SmartPtr<CLContext> get_cl_context ();
 
 private:
     virtual XCamReturn create_handlers ();
-    XCAM_DEAD_COPY (CLImageProcessor);
+    XCAM_DEAD_COPY (CL3aImageProcessor);
 
 private:
-    SmartPtr<CLContext>            _context;
-    ImageHandlerList               _handlers;
+    uint32_t                           _output_fourcc;
+    bool                               _enable_hdr;
+
+    SmartPtr<CLImageHandler>           _black_level;
+    SmartPtr<CLBayer2RGBImageHandler>  _demosaic;
+    SmartPtr<CLImageHandler>           _hdr;
+    SmartPtr<CLRgba2Nv12ImageHandler>  _csc;
 };
 
 };
-#endif //XCAM_CL_IMAGE_PROCESSOR_H
+#endif //XCAM_CL_3A_IMAGE_PROCESSOR_H
