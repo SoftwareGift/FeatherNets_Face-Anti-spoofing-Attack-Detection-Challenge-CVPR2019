@@ -31,6 +31,8 @@ namespace XCam {
 SmartPtr<DrmDisplay> DrmDisplay::_instance(NULL);
 Mutex DrmDisplay::_mutex;
 
+static std::atomic<uint32_t> global_signal_index(0);
+
 SmartPtr<DrmDisplay>
 DrmDisplay::instance()
 {
@@ -41,7 +43,7 @@ DrmDisplay::instance()
     return _instance;
 }
 
-DrmDisplay::DrmDisplay()
+DrmDisplay::DrmDisplay(const char* module)
     : _module(NULL)
     , _fd (-1)
     , _buf_manager (NULL)
@@ -49,17 +51,23 @@ DrmDisplay::DrmDisplay()
     , _crtc_id (0)
     , _con_id (0)
     , _plane_id (0)
+    , _connector (NULL)
+    , _is_render_inited (false)
     , _format (0)
     , _width (0)
     , _height (0)
-    , _capture_buf_type (V4L2_BUF_TYPE_VIDEO_CAPTURE)
 {
     xcam_mem_clear(&_compose);
 
+    if (module)
+        _module = strdup (module);
+    else
+        _module = strdup (DEFAULT_DRM_DEVICE);
+
     //_fd = drmOpenRender (128);
-    _fd = drmOpen (DEFAULT_DRM_DEVICE, NULL);
+    _fd = drmOpen (_module, NULL);
     if (_fd < 0)
-        XCAM_LOG_ERROR("failed to open drm device %s", DEFAULT_DRM_DEVICE);
+        XCAM_LOG_ERROR("failed to open drm device %s", _module);
 
     _buf_manager = drm_intel_bufmgr_gem_init (_fd, DEFAULT_DRM_BATCH_SIZE);
     drm_intel_bufmgr_gem_enable_reuse (_buf_manager);
@@ -71,6 +79,8 @@ DrmDisplay::~DrmDisplay()
         drm_intel_bufmgr_destroy (_buf_manager);
     if (_fd > 0)
         drmClose(_fd);
+    if (_module)
+        xcam_free (_module);
 };
 
 XCamReturn
@@ -97,7 +107,7 @@ DrmDisplay::get_connector(drmModeRes *res)
                      "No connector found");
     _connector = drmModeGetConnector(_fd, _con_id);
     XCAM_FAIL_RETURN(ERROR, _connector, XCAM_RETURN_ERROR_PARAM,
-                     "drmModeGetConnector failed: %s\n", strerror(errno));
+                     "drmModeGetConnector failed: %s", strerror(errno));
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -144,25 +154,24 @@ DrmDisplay::get_plane()
 }
 
 XCamReturn
-DrmDisplay::drm_init(const struct v4l2_pix_format* fmt,
-                     const char* module,
-                     uint32_t con_id,
-                     uint32_t crtc_id,
-                     uint32_t width,
-                     uint32_t height,
-                     uint32_t format,
-                     enum v4l2_buf_type capture_buf_type,
-                     const struct v4l2_rect* compose)
+DrmDisplay::render_init (
+    uint32_t con_id,
+    uint32_t crtc_id,
+    uint32_t width,
+    uint32_t height,
+    uint32_t format,
+    const struct v4l2_rect* compose)
 {
-    XCamReturn ret;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    _module = module;
+    if (is_render_inited ())
+        return ret;
+
     _con_id = con_id;
     _crtc_id = crtc_id;
     _width = width;
     _height = height;
     _format = format;
-    _capture_buf_type = capture_buf_type;
     _compose = *compose;
     _crtc_index = -1;
     _plane_id = 0;
@@ -188,12 +197,17 @@ DrmDisplay::drm_init(const struct v4l2_pix_format* fmt,
                      "failed to get plane with required format %s", strerror(errno));
 
     drmModeFreeResources(resource);
+
+    _is_render_inited = true;
     return XCAM_RETURN_NO_ERROR;
 }
 
 
 SmartPtr<V4l2Buffer>
-DrmDisplay::create_drm_buf (const struct v4l2_format &format, const uint32_t index)
+DrmDisplay::create_drm_buf (
+    const struct v4l2_format &format,
+    const uint32_t index,
+    const enum v4l2_buf_type buf_type)
 {
     struct drm_mode_create_dumb gem;
     struct drm_prime_handle prime;
@@ -218,7 +232,7 @@ DrmDisplay::create_drm_buf (const struct v4l2_format &format, const uint32_t ind
     }
 
     v4l2_buf.index = index;
-    v4l2_buf.type = _capture_buf_type;
+    v4l2_buf.type = buf_type;
     v4l2_buf.memory = V4L2_MEMORY_DMABUF;
     v4l2_buf.m.fd = prime.fd;
     v4l2_buf.length = XCAM_MAX (format.fmt.pix.sizeimage, gem.size); // todo check gem.size and format.fmt.pix.length
@@ -227,46 +241,66 @@ DrmDisplay::create_drm_buf (const struct v4l2_format &format, const uint32_t ind
 }
 
 XCamReturn
-DrmDisplay::drm_setup_framebuffer(SmartPtr<V4l2BufferProxy> &buf,
-                                  const struct v4l2_format &format)
+DrmDisplay::render_setup_frame_buffer (SmartPtr<VideoBuffer> &buf)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    VideoBufferInfo video_info = buf->get_video_info ();
+    uint32_t fourcc = video_info.format;
+    uint32_t fb_handle = 0;
+    uint32_t bo_handle = 0;
+    uint32_t bo_handles[4] = { 0 };
+    FB fb;
+    SmartPtr<V4l2BufferProxy> v4l2_proxy;
+    SmartPtr<DrmBoBuffer> bo_buf;
 
-    struct drm_prime_handle prime;
-    memset(&prime, 0, sizeof (prime));
-    prime.fd = buf->get_v4l2_dma_fd();
+    if (has_frame_buffer (buf))
+        return XCAM_RETURN_NO_ERROR;
 
-    ret = (XCamReturn) xcam_device_ioctl(_fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &prime);
-    if (ret) {
-        XCAM_LOG_WARNING("FD_TO_PRIME_HANDLE failed: %s\n", strerror(errno));
-        return XCAM_RETURN_ERROR_IOCTL;
+    v4l2_proxy = buf.dynamic_cast_ptr<V4l2BufferProxy> ();
+    bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
+    if (v4l2_proxy.ptr ()) {
+        struct drm_prime_handle prime;
+        memset(&prime, 0, sizeof (prime));
+        prime.fd = v4l2_proxy->get_v4l2_dma_fd();
+
+        ret = (XCamReturn) xcam_device_ioctl(_fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &prime);
+        if (ret) {
+            XCAM_LOG_WARNING("FD_TO_PRIME_HANDLE failed: %s", strerror(errno));
+            return XCAM_RETURN_ERROR_IOCTL;
+        }
+        bo_handle = prime.handle;
+    } else if (bo_buf.ptr ()) {
+        const drm_intel_bo* bo = bo_buf->get_bo ();
+        bo_handle = bo->handle;
+    } else {
+        XCAM_ASSERT (false);
+        XCAM_LOG_WARNING("drm setup framebuffer doesn't support this buffer");
+        return XCAM_RETURN_ERROR_PARAM;
     }
 
-    uint32_t offsets[4] = { 0 };
-    uint32_t pitches[4] = { format.fmt.pix.bytesperline };
-    uint32_t bo_handles[4] = { prime.handle };
+    for (uint32_t i = 0; i < 4; ++i) {
+        bo_handles [i] = bo_handle;
+    }
 
-    uint32_t width = format.fmt.pix.width;
-    uint32_t height = format.fmt.pix.height;
-    uint32_t fourcc = format.fmt.pix.pixelformat;
-    uint32_t fb_handle;
+    ret = (XCamReturn) drmModeAddFB2(_fd, video_info.width, video_info.height, fourcc, bo_handles,
+                                     video_info.strides, video_info.offsets, &fb_handle, 0);
 
-    ret = (XCamReturn) drmModeAddFB2(_fd, width, height, fourcc, bo_handles,
-                                     pitches, offsets, &fb_handle, 0);
-
-    _buf_fb_handle[buf->get_v4l2_buf_index()] = fb_handle;
+    fb.fb_handle = fb_handle;
+    fb.index = global_signal_index++;
+    _buf_fb_handles[buf.ptr ()] = fb;
 
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_PARAM,
-                     "drmModeAddFB2 failed: %s\n", strerror(errno));
+                     "drmModeAddFB2 failed: %s", strerror(errno));
 
     return ret;
 }
 
 XCamReturn
-DrmDisplay::set_plane(SmartPtr<V4l2BufferProxy> &buf)
+DrmDisplay::set_plane (const FB &fb)
 {
-    XCamReturn ret;
-    uint32_t fb_handle = _buf_fb_handle[buf->get_v4l2_buf_index()];
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    uint32_t fb_handle = fb.fb_handle;
+    uint32_t index = fb.index;
 
     ret = (XCamReturn) drmModeSetPlane(_fd, _plane_id, _crtc_id,
                                        fb_handle, 0,
@@ -274,38 +308,46 @@ DrmDisplay::set_plane(SmartPtr<V4l2BufferProxy> &buf)
                                        _compose.width, _compose.height,
                                        0, 0, _width << 16, _height << 16);
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_IOCTL,
-                     "failed to set plane via drm: %s\n", strerror(errno));
+                     "failed to set plane via drm: %s", strerror(errno));
 
     drmVBlank vblank;
     vblank.request.type = (drmVBlankSeqType) (DRM_VBLANK_EVENT | DRM_VBLANK_RELATIVE);
     vblank.request.sequence = 1;
-    vblank.request.signal = (unsigned long) buf->get_v4l2_buf_index();
+    vblank.request.signal = (unsigned long) index;
     ret = (XCamReturn) drmWaitVBlank(_fd, &vblank);
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_IOCTL,
-                     "failed to wait vblank: %s\n", strerror(errno));
+                     "failed to wait vblank: %s", strerror(errno));
 
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
-DrmDisplay::page_flip(SmartPtr<V4l2BufferProxy> &buf)
+DrmDisplay::page_flip (const FB &fb)
 {
     XCamReturn ret;
-    uint32_t fb_handle = _buf_fb_handle[buf->get_v4l2_buf_index()];
+    uint32_t fb_handle = fb.fb_handle;
+    uint32_t index = fb.index;
 
     ret = (XCamReturn) drmModePageFlip(_fd, _crtc_id, fb_handle,
                                        DRM_MODE_PAGE_FLIP_EVENT,
-                                       (void*)(unsigned long) buf->get_v4l2_buf_index());
+                                       (void*)(unsigned long) index);
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_IOCTL,
-                     "failed on page flip: %s\n", strerror(errno));
+                     "failed on page flip: %s", strerror(errno));
 
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
-DrmDisplay::display_buffer(SmartPtr<V4l2BufferProxy> &buf)
+DrmDisplay::render_buffer(SmartPtr<VideoBuffer> &buf)
 {
-    return _plane_id ? set_plane(buf) : page_flip(buf);
+    FBMap::iterator iter = _buf_fb_handles.find (buf.ptr ());
+    XCAM_FAIL_RETURN(
+        ERROR,
+        iter != _buf_fb_handles.end (),
+        XCAM_RETURN_ERROR_PARAM,
+        "buffer not register on framebuf");
+
+    return _plane_id ? set_plane(iter->second) : page_flip(iter->second);
 }
 
 

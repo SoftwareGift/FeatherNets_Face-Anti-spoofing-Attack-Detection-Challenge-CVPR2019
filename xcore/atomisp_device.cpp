@@ -82,7 +82,7 @@ AtomispDevice::allocate_buffer (
 {
 #if HAVE_LIBDRM
     if (get_mem_type () == V4L2_MEMORY_DMABUF && _drm_disp.ptr () != NULL) {
-        buf = _drm_disp->create_drm_buf (format, index);
+        buf = _drm_disp->create_drm_buf (format, index, get_capture_buf_type ());
         if (!buf.ptr()) {
             XCAM_LOG_WARNING ("atomisp device(%s) allocate buffer failed", XCAM_STR (get_device_name()));
             return XCAM_RETURN_ERROR_MEM;

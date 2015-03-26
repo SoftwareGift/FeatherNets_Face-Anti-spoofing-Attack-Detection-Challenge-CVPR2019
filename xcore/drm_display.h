@@ -52,47 +52,63 @@ class DrmBoBuffer;
 
 class DrmDisplay {
     friend class DrmBoBufferPool;
-public:
-    virtual ~DrmDisplay();
 
-    static SmartPtr<DrmDisplay> instance();
+    struct FB {
+        uint32_t fb_handle;
+        uint32_t index;
 
-    XCamReturn drm_init(const struct v4l2_pix_format* fmt,
-                        const char* module,
-                        uint32_t con_id,
-                        uint32_t crtc_id,
-                        uint32_t width,
-                        uint32_t height,
-                        uint32_t format,
-                        enum v4l2_buf_type capture_buf_type,
-                        const struct v4l2_rect* compose);
-
-    bool has_fb_handle(SmartPtr<V4l2BufferProxy> &buf) {
-        return _buf_fb_handle.find(buf->get_v4l2_buf_index()) != _buf_fb_handle.end();
+        FB () : fb_handle (0), index (0) {}
     };
-    XCamReturn drm_setup_framebuffer(SmartPtr<V4l2BufferProxy> &buf, const struct v4l2_format &format);
-    XCamReturn display_buffer(SmartPtr<V4l2BufferProxy> &buf);
+
+public:
+    static SmartPtr<DrmDisplay> instance();
+    virtual ~DrmDisplay();
+    const char *get_module_name () const {
+        return _module;
+    }
+
+    bool is_render_inited () const {
+        return _is_render_inited;
+    }
+    XCamReturn render_init (
+        uint32_t con_id,
+        uint32_t crtc_id,
+        uint32_t width,
+        uint32_t height,
+        uint32_t format,
+        const struct v4l2_rect* compose);
+
+    bool has_frame_buffer (SmartPtr<VideoBuffer> &buf) {
+        return _buf_fb_handles.find (buf.ptr ()) != _buf_fb_handles.end ();
+    };
+    XCamReturn render_setup_frame_buffer (SmartPtr<VideoBuffer> &buf);
+    XCamReturn render_buffer (SmartPtr<VideoBuffer> &buf);
 
     int get_drm_handle() const {
         return _fd;
     };
 
-    SmartPtr<V4l2Buffer> create_drm_buf (const struct v4l2_format &format, const uint32_t index);
+    SmartPtr<V4l2Buffer> create_drm_buf (
+        const struct v4l2_format &format,
+        const uint32_t index,
+        const enum v4l2_buf_type buf_type);
     SmartPtr<DrmBoBuffer> convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuffer> &buf_in);
 
 private:
-    DrmDisplay();
+    DrmDisplay (const char* module = NULL);
 
     SmartPtr<DrmBoWrapper> create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo& info);
 
     XCamReturn get_crtc(drmModeRes *res);
     XCamReturn get_connector(drmModeRes *res);
     XCamReturn get_plane();
-    XCamReturn set_plane(SmartPtr<V4l2BufferProxy> &buf);
-    XCamReturn page_flip(SmartPtr<V4l2BufferProxy> &buf);
+    XCamReturn set_plane(const FB &fb);
+    XCamReturn page_flip(const FB &fb);
 
 private:
-    const char *_module;
+    typedef std::map<const VideoBuffer *, FB> FBMap;
+
+    char *_module;
     int _fd;
     drm_intel_bufmgr *_buf_manager;
 
@@ -101,16 +117,15 @@ private:
     unsigned int _con_id;
     unsigned int _plane_id;
     drmModeConnector *_connector;
+    bool _is_render_inited;
 
     unsigned int _format;
     unsigned int _width;
     unsigned int _height;
 
-    enum v4l2_buf_type _capture_buf_type;
-
     struct v4l2_rect _compose;
 
-    std::map<uint32_t, uint32_t> _buf_fb_handle;
+    FBMap _buf_fb_handles;
 
 private:
     XCAM_DEAD_COPY (DrmDisplay);
