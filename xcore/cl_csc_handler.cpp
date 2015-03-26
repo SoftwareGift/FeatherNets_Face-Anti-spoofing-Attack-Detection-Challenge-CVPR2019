@@ -23,8 +23,8 @@
 
 namespace XCam {
 
-CLCscImageKernel::CLCscImageKernel (SmartPtr<CLContext> &context)
-    : CLImageKernel (context, "kernel_csc")
+CLCscImageKernel::CLCscImageKernel (SmartPtr<CLContext> &context, const char *name)
+    : CLImageKernel (context, name)
     , _vertical_offset (0)
 {
 }
@@ -56,60 +56,109 @@ CLCscImageKernel::prepare_arguments (
     args[1].arg_size = sizeof (cl_mem);
     args[2].arg_adress = &_vertical_offset;
     args[2].arg_size = sizeof (_vertical_offset);
-    arg_count = 3;
+
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = video_info.width / 2;
-    work_size.global[1] = video_info.height / 2;
+    if (video_info.format == V4L2_PIX_FMT_NV12) {
+        work_size.global[0] = video_info.width / 2;
+        work_size.global[1] = video_info.height / 2;
+        arg_count = 3;
+    }
+    else if (video_info.format == XCAM_PIX_FMT_LAB) {
+        work_size.global[0] = video_info.width;
+        work_size.global[1] = video_info.height;
+        arg_count = 2;
+    }
     work_size.local[0] = 4;
     work_size.local[1] = 4;
 
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLRgba2Nv12ImageHandler::CLRgba2Nv12ImageHandler (const char *name)
+CLCscImageHandler::CLCscImageHandler (const char *name)
     : CLImageHandler (name)
 {
 }
 
+bool
+CLCscImageHandler::set_output_format (uint32_t fourcc)
+{
+    XCAM_FAIL_RETURN (
+        WARNING,
+        fourcc == V4L2_PIX_FMT_NV12 || fourcc == XCAM_PIX_FMT_LAB,
+        false,
+        "CL image handler(%s) doesn't support format(%s) settings",
+        get_name (), xcam_fourcc_to_string (fourcc));
+
+    _output_format = fourcc;
+    return true;
+}
+
+bool
+CLCscImageHandler::set_csc_type (CLCscType type)
+{
+    XCAM_FAIL_RETURN (
+        WARNING,
+        type == CL_CSC_TYPE_RGBATONV12 || type == CL_CSC_TYPE_RGBATOLAB,
+        false,
+        "CL image handler(%s) doesn't support type(%d) settings",
+        get_name (), (int)type);
+
+    _csc_type = type;
+    return true;
+}
+
+
 XCamReturn
-CLRgba2Nv12ImageHandler::prepare_buffer_pool_video_info (
+CLCscImageHandler::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input,
     VideoBufferInfo &output)
 {
-    bool format_inited = output.init (V4L2_PIX_FMT_NV12, input.width, input.height, 8, 8);
+    bool format_inited = output.init (_output_format, input.width, input.height, 8, 8);
 
     XCAM_FAIL_RETURN (
         WARNING,
         format_inited,
         XCAM_RETURN_ERROR_PARAM,
         "CL image handler(%s) ouput format(%s) unsupported",
-        get_name (), xcam_fourcc_to_string (V4L2_PIX_FMT_NV12));
+        get_name (), xcam_fourcc_to_string (_output_format));
 
     return XCAM_RETURN_NO_ERROR;
 }
 
 SmartPtr<CLImageHandler>
-create_cl_csc_image_handler (SmartPtr<CLContext> &context)
+create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
 {
     SmartPtr<CLImageHandler> csc_handler;
     SmartPtr<CLImageKernel> csc_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    csc_kernel = new CLCscImageKernel (context);
-    {
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc)
-#include "kernel_csc.cl"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = csc_kernel->load_from_source (kernel_csc_body, strlen (kernel_csc_body));
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", csc_kernel->get_kernel_name());
+
+    XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_rgbatonv12)
+#include "kernel_csc_rgbatonv12.cl"
+    XCAM_CL_KERNEL_FUNC_END;
+
+    XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_rgbatolab)
+#include "kernel_csc_rgbatolab.cl"
+    XCAM_CL_KERNEL_FUNC_END;
+
+    if (type == CL_CSC_TYPE_RGBATONV12) {
+        csc_kernel = new CLCscImageKernel (context, "kernel_csc_rgbatonv12");
+        ret = csc_kernel->load_from_source (kernel_csc_rgbatonv12_body, strlen (kernel_csc_rgbatonv12_body));
     }
+    else if (type == CL_CSC_TYPE_RGBATOLAB) {
+        csc_kernel = new CLCscImageKernel (context, "kernel_csc_rgbatolab");
+        ret = csc_kernel->load_from_source (kernel_csc_rgbatolab_body, strlen (kernel_csc_rgbatolab_body));
+    }
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        NULL,
+        "CL image handler(%s) load source failed", csc_kernel->get_kernel_name());
+
     XCAM_ASSERT (csc_kernel->is_valid ());
-    csc_handler = new CLRgba2Nv12ImageHandler ("cl_handler_csc");
+    csc_handler = new CLCscImageHandler ("cl_handler_csc");
     csc_handler->add_kernel (csc_kernel);
 
     return csc_handler;

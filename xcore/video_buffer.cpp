@@ -142,6 +142,14 @@ VideoBufferInfo::init (
         this->offsets [0] = 0;
         this->size = this->strides [0] * final_height;
         break;
+
+    case XCAM_PIX_FMT_LAB:
+        this->color_bits = 32;
+        this->components = 1;
+        this->strides [0] = final_width * 3 * 4;
+        this->offsets [0] = 0;
+        this->size = this->strides [0] * final_height;
+        break;
     default:
         XCAM_LOG_WARNING ("VideoBufferInfo init failed, unsupported format:%s", xcam_fourcc_to_string (format));
         return false;

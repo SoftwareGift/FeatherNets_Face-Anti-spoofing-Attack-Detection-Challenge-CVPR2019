@@ -26,11 +26,17 @@
 
 namespace XCam {
 
+enum CLCscType {
+    CL_CSC_TYPE_NONE = 0,
+    CL_CSC_TYPE_RGBATONV12,
+    CL_CSC_TYPE_RGBATOLAB,
+};
+
 class CLCscImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLCscImageKernel (SmartPtr<CLContext> &context);
+    explicit CLCscImageKernel (SmartPtr<CLContext> &context, const char *name);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -44,11 +50,13 @@ private:
     uint32_t _vertical_offset;
 };
 
-class CLRgba2Nv12ImageHandler
+class CLCscImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLRgba2Nv12ImageHandler (const char *name);
+    explicit CLCscImageHandler (const char *name);
+    bool set_output_format (uint32_t fourcc);
+    bool set_csc_type(CLCscType type);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
@@ -56,11 +64,15 @@ protected:
         VideoBufferInfo &output);
 
 private:
-    XCAM_DEAD_COPY (CLRgba2Nv12ImageHandler);
+    XCAM_DEAD_COPY (CLCscImageHandler);
+
+private:
+    uint32_t  _output_format;
+    CLCscType _csc_type;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_csc_image_handler (SmartPtr<CLContext> &context);
+create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type);
 
 };
 

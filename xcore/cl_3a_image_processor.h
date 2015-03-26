@@ -27,7 +27,7 @@
 namespace XCam {
 
 class CLBayer2RGBImageHandler;
-class CLRgba2Nv12ImageHandler;
+class CLCscImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -59,7 +59,7 @@ private:
     SmartPtr<CLImageHandler>           _black_level;
     SmartPtr<CLBayer2RGBImageHandler>  _demosaic;
     SmartPtr<CLImageHandler>           _hdr;
-    SmartPtr<CLRgba2Nv12ImageHandler>  _csc;
+    SmartPtr<CLCscImageHandler>  _csc;
 };
 
 };

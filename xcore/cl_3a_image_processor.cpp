@@ -116,8 +116,8 @@ CL3aImageProcessor::create_handlers ()
 
     /* color space conversion */
     if (_output_fourcc == V4L2_PIX_FMT_NV12) {
-        image_handler = create_cl_csc_image_handler (context);
-        _csc = image_handler.dynamic_cast_ptr<CLRgba2Nv12ImageHandler> ();
+        image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_RGBATONV12);
+        _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
         XCAM_FAIL_RETURN (
             WARNING,
             _csc .ptr (),

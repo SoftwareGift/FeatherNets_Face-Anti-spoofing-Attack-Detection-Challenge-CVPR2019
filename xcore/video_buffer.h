@@ -36,6 +36,7 @@ namespace XCam {
 #define XCAM_PIX_FMT_RGB48     v4l2_fourcc('w', 'R', 'G', 'B')
 #define XCAM_PIX_FMT_RGBA64     v4l2_fourcc('w', 'R', 'G', 'a')
 #define XCAM_PIX_FMT_SGRBG16   v4l2_fourcc('w', 'B', 'A', '0')
+#define XCAM_PIX_FMT_LAB    v4l2_fourcc('h', 'L', 'a', 'b')
 
 #define XCAM_VIDEO_MAX_COMPONENTS 4
 

@@ -165,6 +165,11 @@ CLVaImage::video_info_2_cl_image_info (
         cl_image_info.width /= 2;
         break;
 
+    case XCAM_PIX_FMT_LAB:
+        cl_image_info.fmt.image_channel_order = CL_R;
+        cl_image_info.fmt.image_channel_data_type = CL_FLOAT;
+        break;
+
     default:
         XCAM_LOG_WARNING (
             "video_info to cl_image_info doesn't support format:%s",
