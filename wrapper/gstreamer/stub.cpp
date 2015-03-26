@@ -86,21 +86,6 @@ int libxcam_start ()
     SmartPtr<V4l2Device> device = V4l2Dev::instance();
     struct v4l2_format format;
     device->get_format (format);
-#if HAVE_LIBDRM
-    AtomispDevice *atom_isp_dev = (AtomispDevice *) device.ptr();
-    SmartPtr<DrmDisplay> drmdisp = DrmDisplay::instance();
-    struct v4l2_rect rect = {0, 0, (int)format.fmt.pix.width, (int)format.fmt.pix.height};
-    drmdisp->drm_init (&format.fmt.pix,
-                       "i915",
-                       9,
-                       3,
-                       1920,
-                       1080,
-                       format.fmt.pix.pixelformat,
-                       device->get_capture_buf_type(),
-                       &rect);
-    atom_isp_dev->set_drm_display (drmdisp);
-#endif
     return (int) device->start();
 }
 
