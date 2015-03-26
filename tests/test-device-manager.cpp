@@ -27,7 +27,10 @@
 #include "x3a_analyzer_aiq.h"
 #endif
 #if HAVE_LIBCL
-#include "cl_image_processor.h"
+#include "cl_3a_image_processor.h"
+#endif
+#if HAVE_LIBDRM
+#include "drm_display.h"
 #endif
 
 #include <unistd.h>
@@ -47,7 +50,11 @@ public:
         , _save_file (false)
         , _interval (1)
         , _frame_count (0)
-    {}
+    {
+#if HAVE_LIBDRM
+        _display = DrmDisplay::instance();
+#endif
+    }
 
     ~MainDeviceManager () {
         close_file ();
@@ -64,6 +71,8 @@ protected:
     virtual void handle_message (SmartPtr<XCamMessage> &msg);
     virtual void handle_buffer (SmartPtr<VideoBuffer> &buf);
 
+    int display_buf (SmartPtr<VideoBuffer> &buf);
+
 private:
     void open_file ();
     void close_file ();
@@ -72,6 +81,7 @@ private:
     bool       _save_file;
     uint32_t   _interval;
     uint32_t   _frame_count;
+    SmartPtr<DrmDisplay> _display;
 };
 
 void
@@ -83,6 +93,8 @@ MainDeviceManager::handle_message (SmartPtr<XCamMessage> &msg)
 void
 MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
 {
+    display_buf (buf);
+
     if (!_save_file)
         return ;
 
@@ -122,6 +134,27 @@ MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
         XCAM_LOG_WARNING ("write frame failed.");
     }
 }
+
+int
+MainDeviceManager::display_buf (SmartPtr<VideoBuffer> &buf)
+{
+#if HAVE_LIBDRM
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    const VideoBufferInfo & frame_info = buf->get_video_info ();
+    struct v4l2_rect rect = { 0, 0, (int)frame_info.width, (int)frame_info.height };
+
+    if (!_display->is_render_inited ()) {
+        ret = _display->render_init (9, 3, 1920, 1080, frame_info.format, &rect);
+        CHECK (ret, "display failed on render_init");
+    }
+    ret = _display->render_setup_frame_buffer (buf);
+    CHECK (ret, "display failed on framebuf set");
+    ret = _display->render_buffer (buf);
+    CHECK (ret, "display failed on rendering");
+#endif
+    return 0;
+}
+
 
 void
 MainDeviceManager::open_file ()
@@ -173,6 +206,7 @@ void print_help (const char *bin_name)
             "\t              pixel_fmt select from [NV12, YUYV, BA10], default is [NV12]\n"
             "\t -d cap_mode  specify capture mode\n"
             "\t              cap_mode select from [video, still], default is [video]\n"
+            "\t -p           preview on local display\n"
             "\t -h           help\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
@@ -186,18 +220,23 @@ int main (int argc, char *argv[])
     SmartPtr<V4l2SubDevice> event_device;
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
-    SmartPtr<ImageProcessor> processor;
+    SmartPtr<ImageProcessor> isp_processor;
+#if HAVE_LIBDRM
+    SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance();
+#endif
+
 #if HAVE_LIBCL
-    SmartPtr<CLImageProcessor> cl_processor;
+    SmartPtr<CL3aImageProcessor> cl_processor;
 #endif
     bool have_cl_processor = false;
+    bool need_display = false;
     enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
     const char *bin_name = argv[0];
     int opt;
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
 
-    while ((opt =  getopt(argc, argv, "sca:n:m:f:d:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "sca:n:m:f:d:ph")) != -1) {
         switch (opt) {
         case 'a': {
             if (!strcmp (optarg, "simple"))
@@ -249,6 +288,9 @@ int main (int argc, char *argv[])
                 return -1;
             }
             break;
+        case 'p':
+            need_display = true;
+            break;
         case 'h':
             print_help (bin_name);
             return 0;
@@ -271,8 +313,8 @@ int main (int argc, char *argv[])
         event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
     if (!isp_controller.ptr ())
         isp_controller = new IspController (device);
-    if (!processor.ptr ())
-        processor = new IspImageProcessor (isp_controller);
+    if (!isp_processor.ptr ())
+        isp_processor = new IspImageProcessor (isp_controller);
     //if (!analyzer.ptr())
     //    analyzer = new X3aAnalyzerSimple ();
 
@@ -309,13 +351,18 @@ int main (int argc, char *argv[])
     device_manager->set_isp_controller (isp_controller);
     if (analyzer.ptr())
         device_manager->set_analyzer (analyzer);
-    device_manager->add_image_processor (processor);
+    device_manager->add_image_processor (isp_processor);
 #if HAVE_LIBCL
     if (have_cl_processor) {
-        cl_processor = new CLImageProcessor ();
+        cl_processor = new CL3aImageProcessor ();
+        cl_processor->set_hdr (true);
+        if (need_display) {
+            cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+        }
         device_manager->add_image_processor (cl_processor);
     }
 #endif
+
     ret = device_manager->start ();
     CHECK (ret, "device manager start failed");
 

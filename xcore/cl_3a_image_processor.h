@@ -32,6 +32,12 @@ class CLCscImageHandler;
 class CL3aImageProcessor
     : public CLImageProcessor
 {
+    enum OutSampleType {
+        OutSampleYuv,
+        OutSampleRGB,
+        OutSampleBayer,
+    };
+
 public:
     explicit CL3aImageProcessor ();
     virtual ~CL3aImageProcessor ();
@@ -55,11 +61,12 @@ private:
 private:
     uint32_t                           _output_fourcc;
     bool                               _enable_hdr;
+    OutSampleType                      _out_smaple_type;
 
     SmartPtr<CLImageHandler>           _black_level;
     SmartPtr<CLBayer2RGBImageHandler>  _demosaic;
     SmartPtr<CLImageHandler>           _hdr;
-    SmartPtr<CLCscImageHandler>  _csc;
+    SmartPtr<CLCscImageHandler>        _csc;
 };
 
 };

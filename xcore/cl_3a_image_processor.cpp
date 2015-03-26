@@ -30,6 +30,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _enable_hdr (false)
+    , _out_smaple_type (OutSampleYuv)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
@@ -42,12 +43,25 @@ CL3aImageProcessor::~CL3aImageProcessor ()
 bool
 CL3aImageProcessor::set_output_format (uint32_t fourcc)
 {
-    XCAM_FAIL_RETURN (
-        WARNING,
-        fourcc == V4L2_PIX_FMT_NV12 || fourcc == V4L2_PIX_FMT_RGB32,
-        false,
-        "CL3aImageProcessor doesn't support format(%s) output",
-        xcam_fourcc_to_string (fourcc));
+    switch (fourcc) {
+    case XCAM_PIX_FMT_RGBA64:
+    case V4L2_PIX_FMT_XBGR32:
+    case V4L2_PIX_FMT_ABGR32:
+    case V4L2_PIX_FMT_BGR32:
+    case V4L2_PIX_FMT_RGB32:
+    case V4L2_PIX_FMT_ARGB32:
+    case V4L2_PIX_FMT_XRGB32:
+        _out_smaple_type = OutSampleRGB;
+        break;
+    case V4L2_PIX_FMT_NV12:
+        _out_smaple_type = OutSampleYuv;
+        break;
+    default:
+        XCAM_LOG_WARNING (
+            "cl 3a processor doesn't support output format:%s",
+            xcam_fourcc_to_string(fourcc));
+        return false;
+    }
 
     _output_fourcc = fourcc;
     return true;
@@ -92,16 +106,6 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create blc handler failed");
     add_handler (image_handler);
 
-    /* demosaic */
-    image_handler = create_cl_demosaic_image_handler (context);
-    _demosaic = image_handler.dynamic_cast_ptr<CLBayer2RGBImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _demosaic.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create demosaic handler failed");
-    add_handler (image_handler);
-
     /* hdr */
     if (_enable_hdr) {
         image_handler = create_cl_hdr_image_handler (context);
@@ -114,8 +118,18 @@ CL3aImageProcessor::create_handlers ()
         add_handler (image_handler);
     }
 
+    /* demosaic */
+    image_handler = create_cl_demosaic_image_handler (context);
+    _demosaic = image_handler.dynamic_cast_ptr<CLBayer2RGBImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _demosaic.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create demosaic handler failed");
+    add_handler (image_handler);
+
     /* color space conversion */
-    if (_output_fourcc == V4L2_PIX_FMT_NV12) {
+    if (_out_smaple_type == OutSampleYuv) {
         image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_RGBATONV12);
         _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
         XCAM_FAIL_RETURN (
@@ -124,6 +138,8 @@ CL3aImageProcessor::create_handlers ()
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create csc handler failed");
         add_handler (image_handler);
+    } else if (_out_smaple_type == OutSampleRGB) {
+        _demosaic->set_output_format (_output_fourcc);
     }
 
     return XCAM_RETURN_NO_ERROR;
