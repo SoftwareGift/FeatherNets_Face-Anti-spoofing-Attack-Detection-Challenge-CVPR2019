@@ -108,7 +108,7 @@ print_help (const char *bin_name)
             "\t -t type      specify image handler type\n"
             "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr]\n"
             "\t -f format    specify a format\n"
-            "\t              select from [NV12, BA10]\n"
+            "\t              select from [NV12, BA10, RGBA]\n"
             "\t -i input     specify input file path\n"
             "\t -o output    specify output file path\n"
             "\t -p count     specify cl kernel loop count\n"
@@ -232,36 +232,8 @@ int main (int argc, char *argv[])
         XCAM_LOG_ERROR ("create image_handler failed");
         return -1;
     }
-    input_buf_info.format = format;
-    input_buf_info.color_bits = 8;
-    input_buf_info.width = 1920;
-    input_buf_info.height = 1080;
-    switch (format) {
-    case V4L2_PIX_FMT_NV12:
-        input_buf_info.color_bits = 8;
-        input_buf_info.components = 2;
-        input_buf_info.strides[0] = input_buf_info.width;
-        input_buf_info.strides[1] = input_buf_info.strides[0];
-        input_buf_info.offsets[0] = 0;
-        input_buf_info.offsets[1] = input_buf_info.strides[0] * input_buf_info.height;
-        input_buf_info.size = input_buf_info.strides[0] * input_buf_info.height * 3 / 2;
-        break;
-    case V4L2_PIX_FMT_SGRBG10:
-        input_buf_info.color_bits = 10;
-        input_buf_info.components = 1;
-        input_buf_info.strides[0] = input_buf_info.width * 2;
-        input_buf_info.offsets[0] = 0;
-        input_buf_info.size = input_buf_info.strides[0] * input_buf_info.height;
-        break;
-    case V4L2_PIX_FMT_RGB32:
-        input_buf_info.color_bits = 8;
-        input_buf_info.components = 1;
-        input_buf_info.strides[0] = input_buf_info.width * 4;
-        input_buf_info.offsets[0] = 0;
-        input_buf_info.size = input_buf_info.strides[0] * input_buf_info.height;
-        break;
-    }
 
+    input_buf_info.init (format, 1920, 1080, 8, 4);
     display = DrmDisplay::instance ();
     buf_pool = new DrmBoBufferPool (display);
     buf_pool->set_buffer_info (input_buf_info);
