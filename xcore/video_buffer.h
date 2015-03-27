@@ -25,6 +25,22 @@
 
 namespace XCam {
 
+#ifndef V4L2_PIX_FMT_XBGR32
+#define V4L2_PIX_FMT_XBGR32 v4l2_fourcc('X', 'R', '2', '4')
+#endif
+
+#ifndef V4L2_PIX_FMT_ABGR32
+#define V4L2_PIX_FMT_ABGR32 v4l2_fourcc('A', 'R', '2', '4')
+#endif
+
+#ifndef V4L2_PIX_FMT_XRGB32
+#define V4L2_PIX_FMT_XRGB32 v4l2_fourcc('B', 'X', '2', '4')
+#endif
+
+#ifndef V4L2_PIX_FMT_ARGB32
+#define V4L2_PIX_FMT_ARGB32 v4l2_fourcc('B', 'A', '2', '4')
+#endif
+
 /*
  * Define special format for 16 bit color
  * every format start with 'X'

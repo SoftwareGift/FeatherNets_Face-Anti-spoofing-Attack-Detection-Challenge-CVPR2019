@@ -26,7 +26,9 @@
 #endif
 
 #include <base/xcam_common.h>
-
+extern "C" {
+#include <linux/videodev2.h>
+}
 namespace XCam {
 
 static const int64_t InvalidTimestamp = INT64_C(-1);

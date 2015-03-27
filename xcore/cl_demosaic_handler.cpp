@@ -73,7 +73,9 @@ CLBayer2RGBImageHandler::set_output_format (uint32_t fourcc)
 {
     XCAM_FAIL_RETURN (
         WARNING,
-        fourcc == XCAM_PIX_FMT_RGBA64 || fourcc == V4L2_PIX_FMT_RGB24 || fourcc == V4L2_PIX_FMT_RGB32,
+        fourcc == XCAM_PIX_FMT_RGBA64 || fourcc == V4L2_PIX_FMT_RGB24 ||
+        fourcc == V4L2_PIX_FMT_XBGR32 || fourcc == V4L2_PIX_FMT_ABGR32 || V4L2_PIX_FMT_BGR32 ||
+        fourcc == V4L2_PIX_FMT_RGB32 || fourcc == V4L2_PIX_FMT_ARGB32 || V4L2_PIX_FMT_XRGB32,
         false,
         "CL image handler(%s) doesn't support format(%s) settings",
         get_name (), xcam_fourcc_to_string (fourcc));

@@ -62,6 +62,8 @@ class DrmDisplay {
 
 public:
     static SmartPtr<DrmDisplay> instance();
+    static uint32_t to_drm_fourcc (uint32_t fourcc_of_v4l2);
+
     virtual ~DrmDisplay();
     const char *get_module_name () const {
         return _module;

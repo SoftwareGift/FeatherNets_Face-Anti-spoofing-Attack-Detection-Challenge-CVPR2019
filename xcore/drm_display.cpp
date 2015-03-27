@@ -22,6 +22,7 @@
 #include "drm_display.h"
 #include "drm_v4l2_buffer.h"
 #include "drm_bo_buffer.h"
+#include <drm_fourcc.h>
 
 #define DEFAULT_DRM_DEVICE "i915"
 #define DEFAULT_DRM_BATCH_SIZE 0x80000
@@ -82,6 +83,18 @@ DrmDisplay::~DrmDisplay()
     if (_module)
         xcam_free (_module);
 };
+
+uint32_t
+DrmDisplay::to_drm_fourcc (uint32_t fourcc_of_v4l2)
+{
+    switch (fourcc_of_v4l2) {
+    case V4L2_PIX_FMT_RGB565:
+        return DRM_FORMAT_RGB565;
+    default:
+        break;
+    }
+    return fourcc_of_v4l2;
+}
 
 XCamReturn
 DrmDisplay::get_crtc(drmModeRes *res)
@@ -171,7 +184,7 @@ DrmDisplay::render_init (
     _crtc_id = crtc_id;
     _width = width;
     _height = height;
-    _format = format;
+    _format = to_drm_fourcc (format);
     _compose = *compose;
     _crtc_index = -1;
     _plane_id = 0;

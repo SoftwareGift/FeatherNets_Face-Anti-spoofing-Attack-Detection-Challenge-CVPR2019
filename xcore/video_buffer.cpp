@@ -72,6 +72,13 @@ VideoBufferInfo::init (
         this->offsets [0] = 0;
         this->size = this->strides [0] * final_height;
         break;
+    case V4L2_PIX_FMT_RGB565:
+        this->color_bits = 16;
+        this->components = 1;
+        this->strides [0] = final_width * 2;
+        this->offsets [0] = 0;
+        this->size = this->strides [0] * final_height;
+        break;
     case V4L2_PIX_FMT_RGB24:
         this->color_bits = 8;
         this->components = 1;
@@ -79,7 +86,14 @@ VideoBufferInfo::init (
         this->offsets [0] = 0;
         this->size = this->strides [0] * final_height;
         break;
+        // memory order: BGRA
+    case V4L2_PIX_FMT_XBGR32:
+    case V4L2_PIX_FMT_ABGR32:
+    case V4L2_PIX_FMT_BGR32:
+        // memory order: ARGB
     case V4L2_PIX_FMT_RGB32:
+    case V4L2_PIX_FMT_ARGB32:
+    case V4L2_PIX_FMT_XRGB32:
         this->color_bits = 8;
         this->components = 1;
         this->strides [0] = final_width * 4;

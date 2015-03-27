@@ -126,8 +126,20 @@ CLVaImage::video_info_2_cl_image_info (
         cl_image_info.fmt.image_channel_data_type = CL_UNORM_INT8;
         break;
 
+    case V4L2_PIX_FMT_RGB565:
+        cl_image_info.fmt.image_channel_order = CL_RGB;
+        cl_image_info.fmt.image_channel_data_type = CL_UNORM_SHORT_565;
+        break;
+    case V4L2_PIX_FMT_XBGR32:
+    case V4L2_PIX_FMT_ABGR32:
+    case V4L2_PIX_FMT_BGR32:
+        cl_image_info.fmt.image_channel_order = CL_BGRA;
+        cl_image_info.fmt.image_channel_data_type = CL_UNORM_INT8;
+        break;
     case V4L2_PIX_FMT_RGB32:
-        cl_image_info.fmt.image_channel_order = CL_RGBA;
+    case V4L2_PIX_FMT_ARGB32:
+    case V4L2_PIX_FMT_XRGB32:
+        cl_image_info.fmt.image_channel_order = CL_ARGB;
         cl_image_info.fmt.image_channel_data_type = CL_UNORM_INT8;
         break;
 
