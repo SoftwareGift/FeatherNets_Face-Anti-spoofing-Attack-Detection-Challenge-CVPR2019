@@ -44,7 +44,7 @@
 
 #define DEFAULT_EVENT_DEVICE   "/dev/v4l-subdev6"
 #define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
-#define DEFAULT_SAVE_FILE_NAME "capture_buffer.raw"
+#define DEFAULT_SAVE_FILE_NAME "capture_buffer"
 
 #define PROFILING_START(name) \
     static unsigned int name##_times = 0;                   \
