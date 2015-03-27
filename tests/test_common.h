@@ -46,6 +46,34 @@
 #define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
 #define DEFAULT_SAVE_FILE_NAME "capture_buffer"
 
+#define FPS_CALCULATION(objname, count)                     \
+    do{                                              \
+        static uint32_t num_frame = 0;                  \
+        static struct timeval last_sys_time;         \
+        static struct timeval first_sys_time;        \
+        static bool b_last_sys_time_init = false;     \
+        if (!b_last_sys_time_init) {                 \
+          gettimeofday (&last_sys_time, NULL);       \
+          gettimeofday (&first_sys_time, NULL);      \
+          b_last_sys_time_init = true;               \
+        } else {                                     \
+          if ((num_frame%count)==0) {                   \
+            double total, current;                   \
+            struct timeval cur_sys_time;             \
+            gettimeofday (&cur_sys_time, NULL);      \
+            total = (cur_sys_time.tv_sec - first_sys_time.tv_sec)*1.0f +       \
+                   (cur_sys_time.tv_usec - first_sys_time.tv_usec)/1000000.0f; \
+            current = (cur_sys_time.tv_sec - last_sys_time.tv_sec)*1.0f +      \
+                    (cur_sys_time.tv_usec - last_sys_time.tv_usec)/1000000.0f; \
+            printf("%s Current fps: %.2f, Total avg fps: %.2f\n",              \
+                    #objname, ((float)(count))/current, (float)num_frame/total);   \
+            last_sys_time = cur_sys_time;            \
+          }                                          \
+        }                                            \
+        ++num_frame;                                 \
+    }while(0)
+
+
 #define PROFILING_START(name) \
     static unsigned int name##_times = 0;                   \
     static struct timeval name##_start_time;         \
@@ -59,7 +87,7 @@
     name##_sum_time += (name##_end_time.tv_sec - name##_start_time.tv_sec)*1000.0f +  \
                    (name##_end_time.tv_usec - name##_start_time.tv_usec)/1000.0f;      \
     if (name##_times >= times_of_print) {                  \
-        printf ("profiling %s, fps:%d duration:%.2fms\n", #name, name##_sum_time/name##_times); \
+        printf ("profiling %s, fps:%.2f duration:%.2fms\n", #name, (name##_times*1000.0f/name##_sum_time), name##_sum_time/name##_times); \
         name##_times = 0;                   \
         name##_sum_time = 0.0;       \
     }

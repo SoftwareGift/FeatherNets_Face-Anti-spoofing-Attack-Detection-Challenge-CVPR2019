@@ -123,8 +123,8 @@ PollCB::poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf) {
     //             );
 
 #if HAVE_LIBDRM
-    if (!_drm_dev->has_frame_buffer (base))
-        _drm_dev->render_setup_frame_buffer (base);
+    //if (!_drm_dev->has_frame_buffer (base))
+    _drm_dev->render_setup_frame_buffer (base);
 
     _drm_dev->render_buffer (base);
 #endif

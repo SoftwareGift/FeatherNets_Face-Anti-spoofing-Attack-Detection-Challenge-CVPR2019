@@ -55,6 +55,7 @@ public:
         , _interval (1)
         , _frame_count (0)
         , _frame_save (0)
+        , _enable_display (false)
     {
 #if HAVE_LIBDRM
         _display = DrmDisplay::instance();
@@ -75,6 +76,10 @@ public:
         _frame_save = frame_save;
     }
 
+    void enable_display(bool value) {
+        _enable_display = value;
+    }
+
 protected:
     virtual void handle_message (SmartPtr<XCamMessage> &msg);
     virtual void handle_buffer (SmartPtr<VideoBuffer> &buf);
@@ -91,6 +96,7 @@ private:
     uint32_t   _frame_count;
     uint32_t   _frame_save;
     SmartPtr<DrmDisplay> _display;
+    bool       _enable_display;
 };
 
 void
@@ -102,7 +108,10 @@ MainDeviceManager::handle_message (SmartPtr<XCamMessage> &msg)
 void
 MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
 {
-    display_buf (buf);
+    FPS_CALCULATION (fps_buf, 30);
+
+    if (_enable_display)
+        display_buf (buf);
 
     if (!_save_file)
         return ;
@@ -323,6 +332,9 @@ int main (int argc, char *argv[])
             return -1;
         }
     }
+
+    if (need_display)
+        device_manager->enable_display (true);
 
     if (!device.ptr ())  {
         if (capture_mode == V4L2_CAPTURE_MODE_STILL)
