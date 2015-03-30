@@ -227,15 +227,7 @@ int main (int argc, char *argv[])
         break;
     }
     case TestHandlerColorConversion: {
-        SmartPtr<CLCscImageHandler> csc_handler;
         image_handler = create_cl_csc_image_handler (context, csc_type);
-        csc_handler = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
-        XCAM_ASSERT (csc_handler.ptr ());
-        csc_handler->set_csc_type(csc_type);
-        if(csc_type == CL_CSC_TYPE_RGBATONV12)
-            csc_handler->set_output_format (V4L2_PIX_FMT_NV12);
-        else if(csc_type == CL_CSC_TYPE_RGBATOLAB)
-            csc_handler->set_output_format (XCAM_PIX_FMT_LAB);
         break;
     }
     case TestHandlerHDR:

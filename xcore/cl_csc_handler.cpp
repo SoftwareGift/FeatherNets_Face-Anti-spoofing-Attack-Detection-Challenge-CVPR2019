@@ -75,39 +75,22 @@ CLCscImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLCscImageHandler::CLCscImageHandler (const char *name)
+CLCscImageHandler::CLCscImageHandler (const char *name, CLCscType type)
     : CLImageHandler (name)
+    , _output_format (V4L2_PIX_FMT_NV12)
+    , _csc_type (type)
 {
+    switch (type) {
+    case CL_CSC_TYPE_RGBATONV12:
+        _output_format = V4L2_PIX_FMT_NV12;
+        break;
+    case CL_CSC_TYPE_RGBATOLAB:
+        _output_format = XCAM_PIX_FMT_LAB;
+        break;
+    default:
+        break;
+    }
 }
-
-bool
-CLCscImageHandler::set_output_format (uint32_t fourcc)
-{
-    XCAM_FAIL_RETURN (
-        WARNING,
-        fourcc == V4L2_PIX_FMT_NV12 || fourcc == XCAM_PIX_FMT_LAB,
-        false,
-        "CL image handler(%s) doesn't support format(%s) settings",
-        get_name (), xcam_fourcc_to_string (fourcc));
-
-    _output_format = fourcc;
-    return true;
-}
-
-bool
-CLCscImageHandler::set_csc_type (CLCscType type)
-{
-    XCAM_FAIL_RETURN (
-        WARNING,
-        type == CL_CSC_TYPE_RGBATONV12 || type == CL_CSC_TYPE_RGBATOLAB,
-        false,
-        "CL image handler(%s) doesn't support type(%d) settings",
-        get_name (), (int)type);
-
-    _csc_type = type;
-    return true;
-}
-
 
 XCamReturn
 CLCscImageHandler::prepare_buffer_pool_video_info (
@@ -158,7 +141,8 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
         "CL image handler(%s) load source failed", csc_kernel->get_kernel_name());
 
     XCAM_ASSERT (csc_kernel->is_valid ());
-    csc_handler = new CLCscImageHandler ("cl_handler_csc");
+
+    csc_handler = new CLCscImageHandler ("cl_handler_csc", type);
     csc_handler->add_kernel (csc_kernel);
 
     return csc_handler;

@@ -54,9 +54,7 @@ class CLCscImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLCscImageHandler (const char *name);
-    bool set_output_format (uint32_t fourcc);
-    bool set_csc_type(CLCscType type);
+    explicit CLCscImageHandler (const char *name, CLCscType type);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
