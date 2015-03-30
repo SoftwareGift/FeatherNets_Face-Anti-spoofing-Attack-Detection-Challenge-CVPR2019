@@ -121,6 +121,8 @@ DrmDisplay::get_connector(drmModeRes *res)
     _connector = drmModeGetConnector(_fd, _con_id);
     XCAM_FAIL_RETURN(ERROR, _connector, XCAM_RETURN_ERROR_PARAM,
                      "drmModeGetConnector failed: %s", strerror(errno));
+    XCAM_FAIL_RETURN(ERROR, _connector->connection == DRM_MODE_CONNECTED,
+                      XCAM_RETURN_ERROR_PARAM, "get_connector failed since it is not connected");
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -322,7 +324,7 @@ DrmDisplay::set_plane (const FB &fb)
                                        0, 0, _width << 16, _height << 16);
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_IOCTL,
                      "failed to set plane via drm: %s", strerror(errno));
-
+#if 0
     drmVBlank vblank;
     vblank.request.type = (drmVBlankSeqType) (DRM_VBLANK_EVENT | DRM_VBLANK_RELATIVE);
     vblank.request.sequence = 1;
@@ -330,7 +332,7 @@ DrmDisplay::set_plane (const FB &fb)
     ret = (XCamReturn) drmWaitVBlank(_fd, &vblank);
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_IOCTL,
                      "failed to wait vblank: %s", strerror(errno));
-
+#endif
     return XCAM_RETURN_NO_ERROR;
 }
 

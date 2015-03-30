@@ -117,6 +117,7 @@ PollCB::poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf) {
 
     SmartPtr<VideoBuffer> base = buf;
     XCAM_LOG_DEBUG("%s", __FUNCTION__);
+    FPS_CALCULATION (fps_buf, 30);
 
     // dump_to_file( (void*) buf->get_v4l2_userptr(),
     //               buf->get_v4l2_buf_length()
@@ -226,7 +227,7 @@ int main (int argc, const char *argv[])
     SmartPtr<DrmDisplay> drmdisp = DrmDisplay::instance();
     struct v4l2_rect rect = { 0, 0, (int)format.fmt.pix.width, (int)format.fmt.pix.height };
     drmdisp->render_init(
-        9,
+        12,
         3,
         1920,
         1080,
