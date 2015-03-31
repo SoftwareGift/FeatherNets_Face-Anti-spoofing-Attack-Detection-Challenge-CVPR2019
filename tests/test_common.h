@@ -26,17 +26,20 @@
 #undef CHECK
 #undef CHECK_CONTINUE
 
-#define CHECK_DECLARE(level, ret, statement, msg, ...) \
-    if ((ret) != XCAM_RETURN_NO_ERROR) {        \
+#define CHECK_DECLARE(level, exp, statement, msg, ...) \
+    if (!(exp)) {        \
         XCAM_LOG_##level (msg, ## __VA_ARGS__);   \
         statement;                              \
     }
 
 #define CHECK(ret, msg, ...)  \
-    CHECK_DECLARE(ERROR, ret, return -1, msg, ## __VA_ARGS__)
+    CHECK_DECLARE(ERROR, (ret) == XCAM_RETURN_NO_ERROR, return -1, msg, ## __VA_ARGS__)
 
 #define CHECK_CONTINUE(ret, msg, ...)  \
-    CHECK_DECLARE(WARNING, ret, , msg, ## __VA_ARGS__)
+    CHECK_DECLARE(WARNING, (ret) == XCAM_RETURN_NO_ERROR, , msg, ## __VA_ARGS__)
+
+#define CHECK_EXP(exp, msg, ...) \
+    CHECK_DECLARE(ERROR, exp, return -1, msg, ## __VA_ARGS__)
 
 #define CAPTURE_DEVICE_VIDEO "/dev/video3"
 #define CAPTURE_DEVICE_STILL "/dev/video0"

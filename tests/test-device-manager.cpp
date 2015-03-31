@@ -301,11 +301,11 @@ int main (int argc, char *argv[])
             have_cl_processor = true;
             break;
         case 'f':
-            CHECK ((strlen(optarg) != 4), "invalid pixel format\n");
-            pixel_format = ((unsigned)optarg[0] << 0) |
-                           ((unsigned)optarg[1] << 8) |
-                           ((unsigned)optarg[2] << 16) |
-                           ((unsigned)optarg[3] << 24);
+            CHECK_EXP ((strlen(optarg) == 4), "invalid pixel format\n");
+            pixel_format = v4l2_fourcc ((unsigned)optarg[0],
+                                        (unsigned)optarg[1],
+                                        (unsigned)optarg[2],
+                                        (unsigned)optarg[3]);
             break;
         case 'd':
             if (!strcmp (optarg, "still"))
