@@ -1,5 +1,5 @@
 /*
- * gstxcambufferpool.c - bufferpool
+ * gstxcambufferpool.cpp - bufferpool
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -31,16 +31,33 @@
  * </refsect2>
  */
 
+#include "stub.h"
+#include "bufmap.h"
+#include "v4l2dev.h"
+
+using namespace XCam;
+
+XCAM_BEGIN_DECLARE
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
+
 #include <stdint.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#ifndef __user
+#define __user
+#endif
+#include <linux/atomisp.h>
 
 #include <gst/gst.h>
 #include <gst/video/gstvideopool.h>
 
 #include "gstxcambufferpool.h"
+
 
 GST_DEBUG_CATEGORY_STATIC (gst_xcam_debug);
 #define GST_CAT_DEFAULT gst_xcam_debug
@@ -56,6 +73,17 @@ gst_xcambufferpool_release_buffer (GstBufferPool *bpool, GstBuffer *buffer);
 
 #define gst_xcambufferpool_parent_class parent_class
 G_DEFINE_TYPE (Gstxcambufferpool, gst_xcambufferpool, GST_TYPE_BUFFER_POOL);
+
+static void
+gst_xcambufferpool_class_init (GstxcambufferpoolClass * klass);
+static void
+gst_xcambufferpool_init (Gstxcambufferpool *pool);
+static gboolean
+gst_xcambufferpool_start (GstBufferPool *bpool);
+GstBufferPool *
+gst_xcambufferpool_new (Gstxcamsrc *xcamsrc, GstCaps *caps);
+
+XCAM_END_DECLARE
 
 static void
 gst_xcambufferpool_class_init (GstxcambufferpoolClass * klass)
@@ -81,8 +109,13 @@ static gboolean
 gst_xcambufferpool_start (GstBufferPool *bpool)
 {
     Gstxcambufferpool *pool = GST_XCAMBUFFERPOOL_CAST (bpool);
+    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
+    SmartPtr<V4l2SubDevice> sub_device = device_manager->get_sub_device();
 
-    libxcam_start ();
+    sub_device->open();
+    sub_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
+    sub_device->subscribe_event (V4L2_EVENT_FRAME_SYNC);
+    device_manager->start ();
 
     pool->allocator = gst_dmabuf_allocator_new();
     if (pool->allocator == NULL) {

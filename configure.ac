@@ -161,6 +161,7 @@ AC_CONFIG_FILES([Makefile
                  xcore/Makefile
                  wrapper/Makefile
                  wrapper/gstreamer/Makefile
+                 wrapper/gstreamer/interface/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc

@@ -22,16 +22,11 @@
 #define __FMT_H__
 
 #include <gst/video/video-format.h>
-#include <stdint.h>
+#include <xcam_defs.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+XCAM_BEGIN_DECLARE
 
 void caps_append(GstCaps *caps);
 
-#ifdef __cplusplus
-}
-#endif
-
+XCAM_END_DECLARE
 #endif  // __FMT_H__

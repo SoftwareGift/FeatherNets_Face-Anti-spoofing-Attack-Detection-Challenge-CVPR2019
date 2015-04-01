@@ -24,6 +24,25 @@
 #include <gst/gst.h>
 #include <gst/base/gstpushsrc.h>
 #include <linux/videodev2.h>
+#include <xcam_defs.h>
+
+#define DEFAULT_BLOCKSIZE   1843200
+#define DEFAULT_CAPTURE_DEVICE  "/dev/video3"
+#define DEFAULT_EVENT_DEVICE    "/dev/v4l-subdev6"
+#define DEFAULT_CPF_FILE_NAME   "/etc/atomisp/imx185.cpf"
+
+#define DEFAULT_PROP_DEVICE_NAME    "/dev/video3"
+#define DEFAULT_PROP_SENSOR     0
+#define DEFAULT_PROP_CAPTURE_MODE    0
+#define DEFAULT_PROP_IO_MODE        4
+#define DEFAULT_PROP_BUFFERCOUNT    8
+#define DEFAULT_PROP_FPSN       25
+#define DEFAULT_PROP_FPSD       1
+#define DEFAULT_PROP_WIDTH      1920
+#define DEFAULT_PROP_HEIGHT     1080
+#define DEFAULT_PROP_PIXELFORMAT    V4L2_PIX_FMT_NV12 //420 instead of 0
+#define DEFAULT_PROP_FIELD      V4L2_FIELD_NONE // 0
+#define DEFAULT_PROP_BYTESPERLINE   3840
 
 G_BEGIN_DECLS
 

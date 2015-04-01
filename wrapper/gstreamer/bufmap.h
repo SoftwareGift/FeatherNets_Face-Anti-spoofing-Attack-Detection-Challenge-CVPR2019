@@ -33,37 +33,34 @@ class BufMap {
 public:
     static SmartPtr<BufMap> instance();
 
-    GstBuffer* gbuf(SmartPtr<V4l2Buffer> &buf) {
-        uint32_t vbuf_idx = buf->get_buf().index;
+    GstBuffer* gbuf(SmartPtr<V4l2BufferProxy> &buf) {
+        uint32_t vbuf_idx = buf->get_v4l2_buf_index();
         if (_v2g.find(vbuf_idx) == _v2g.end()) { //non-existing
             return NULL;
         }
         return _v2g[vbuf_idx];
     }
-    SmartPtr<V4l2Buffer> vbuf(GstBuffer* gbuf) {
+    SmartPtr<V4l2BufferProxy> vbuf(GstBuffer* gbuf) {
         if (_g2v.find(gbuf) == _g2v.end()) { //non-existing
             return NULL;
         }
         return _g2v[gbuf];
     }
-    void setmap(GstBuffer* gbuf, SmartPtr<V4l2Buffer>& buf) {
-        _g2v[gbuf] = buf;
-        _v2g[buf->get_buf().index] = gbuf;
+    void setmap(GstBuffer* gbuf, SmartPtr<V4l2BufferProxy>& buf) {
+        //_g2v[gbuf] = buf;
+        _v2g[buf->get_v4l2_buf_index()] = gbuf;
     }
 
 private:
     XCAM_DEAD_COPY (BufMap);
 
 private:
-    BufMap()
-        : _g2v(std::map<GstBuffer*, SmartPtr<V4l2Buffer> >())
-        , _v2g(std::map<uint32_t, GstBuffer*>())
-    {};
+    BufMap() {};
 
     static SmartPtr<BufMap> _instance;
     static Mutex        _mutex;
 
-    std::map <GstBuffer*, SmartPtr<V4l2Buffer> > _g2v;
+    std::map <GstBuffer*, SmartPtr<V4l2BufferProxy> > _g2v;
     std::map <uint32_t, GstBuffer*> _v2g;
 };
 

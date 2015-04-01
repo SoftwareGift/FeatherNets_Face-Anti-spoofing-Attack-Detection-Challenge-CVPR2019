@@ -21,41 +21,57 @@
 #ifndef __STUB_H__
 #define __STUB_H__
 
-#include <unistd.h>
-#include <stdint.h>
+#include <xcam_defs.h>
 #include <linux/videodev2.h>
 
 #include <gst/gst.h>
 #include <gst/allocators/allocators.h>
 #include <gst/video/gstvideopool.h>
+#include "gstxcaminterface.h"
 #include "gstxcambufferpool.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+XCAM_BEGIN_DECLARE
 
 enum v4l2_memory;
 enum v4l2_field;
 struct v4l2_format;
 struct v4l2_buffer;
 
-int libxcam_set_device_name (const char* ch);
-int libxcam_set_sensor_id (int id);
-int libxcam_set_capture_mode (uint32_t cap_mode);
-int libxcam_set_mem_type (enum v4l2_memory mem_type);
-int libxcam_set_buffer_count (uint32_t buf_count);
-int libxcam_set_framerate (uint32_t fps_n, uint32_t fps_d);
-int libxcam_open ();
-int libxcam_close ();
-int libxcam_set_format (uint32_t width, uint32_t height, uint32_t pixelformat, enum v4l2_field field, uint32_t bytes_perline);
-int libxcam_get_blocksize (uint32_t *blocksize);
-int libxcam_start ();
-int libxcam_stop ();
 GstFlowReturn xcam_bufferpool_acquire_buffer (GstBufferPool *bpool, GstBuffer **buffer, GstBufferPoolAcquireParams *params);
 void xcambufferpool_release_buffer (GstBufferPool *bpool, GstBuffer *buffer);
 
-#ifdef __cplusplus
-}
-#endif
+gboolean gst_xcamsrc_set_white_balance_mode (GstXCam3A *xcam3a, XCamAwbMode mode);
+gboolean gst_xcamsrc_set_awb_speed (GstXCam3A *xcam3a, double speed);
+gboolean gst_xcamsrc_set_wb_color_temperature_range (GstXCam3A *xcam3a, guint cct_min, guint cct_max);
+gboolean gst_xcamsrc_set_manual_wb_gain (GstXCam3A *xcam3a, double gr, double r, double b, double gb);
+gboolean gst_xcamsrc_set_exposure_mode (GstXCam3A *xcam3a, XCamAeMode mode);
+gboolean gst_xcamsrc_set_ae_metering_mode (GstXCam3A *xcam3a, XCamAeMeteringMode mode);
+gboolean gst_xcamsrc_set_exposure_window (GstXCam3A *xcam3a, XCam3AWindow *window);
+gboolean gst_xcamsrc_set_exposure_value_offset (GstXCam3A *xcam3a, double ev_offset);
+gboolean gst_xcamsrc_set_ae_speed (GstXCam3A *xcam3a, double speed);
+gboolean gst_xcamsrc_set_exposure_flicker_mode (GstXCam3A *xcam3a, XCamFlickerMode flicker);
+XCamFlickerMode gst_xcamsrc_get_exposure_flicker_mode (GstXCam3A *xcam3a);
+gint64 gst_xcamsrc_get_current_exposure_time (GstXCam3A *xcam3a);
+double gst_xcamsrc_get_current_analog_gain (GstXCam3A *xcam3a);
+gboolean gst_xcamsrc_set_manual_exposure_time (GstXCam3A *xcam3a, gint64 time_in_us);
+gboolean gst_xcamsrc_set_manual_analog_gain (GstXCam3A *xcam3a, double gain);
+gboolean gst_xcamsrc_set_aperture (GstXCam3A *xcam3a, double fn);
+gboolean gst_xcamsrc_set_max_analog_gain (GstXCam3A *xcam3a, double max_gain);
+double gst_xcamsrc_get_max_analog_gain (GstXCam3A *xcam3a);
+gboolean gst_xcamsrc_set_exposure_time_range (GstXCam3A *xcam3a, gint64 min_time_in_us, gint64 max_time_in_us);
+gboolean gst_xcamsrc_get_exposure_time_range (GstXCam3A *xcam3a, gint64 *min_time_in_us, gint64 *max_time_in_us);
+gboolean gst_xcamsrc_set_noise_reduction_level (GstXCam3A *xcam3a, guint8 level);
+gboolean gst_xcamsrc_set_temporal_noise_reduction_level (GstXCam3A *xcam3a, guint8 level);
+gboolean gst_xcamsrc_set_gamma_table (GstXCam3A *xcam3a, double *r_table, double *g_table, double *b_table);
+gboolean gst_xcamsrc_set_gbce (GstXCam3A *xcam3a, gboolean enable);
+gboolean gst_xcamsrc_set_manual_brightness (GstXCam3A *xcam3a, guint8 value);
+gboolean gst_xcamsrc_set_manual_contrast (GstXCam3A *xcam3a, guint8 value);
+gboolean gst_xcamsrc_set_manual_hue (GstXCam3A *xcam3a, guint8 value);
+gboolean gst_xcamsrc_set_manual_saturation (GstXCam3A *xcam3a, guint8 value);
+gboolean gst_xcamsrc_set_manual_sharpness (GstXCam3A *xcam3a, guint8 value);
+gboolean gst_xcamsrc_set_dvs (GstXCam3A *xcam3a, gboolean enable);
+gboolean gst_xcamsrc_set_night_mode (GstXCam3A *xcam3a, gboolean enable);
+
+XCAM_END_DECLARE
 
 #endif  //__STUB_H__

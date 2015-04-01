@@ -1,5 +1,5 @@
 /*
- * gstxcamsrc.c - gst xcamsrc plugin
+ * gstxcamsrc.cpp - gst xcamsrc plugin
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -33,6 +33,15 @@
  * </refsect2>
  */
 
+#include "gstxcamsrc.h"
+#include "v4l2dev.h"
+#include "stub.h"
+#include "fmt.h"
+
+using namespace XCam;
+
+XCAM_BEGIN_DECLARE
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -45,34 +54,23 @@
 #include <stdio.h>
 #include <signal.h>
 
-#include "stub.h"
-#include "fmt.h"
 #include "gstxcamsrc.h"
+#include "gstxcaminterface.h"
+
 
 GST_DEBUG_CATEGORY_STATIC (gst_xcamsrc_debug);
 #define GST_CAT_DEFAULT gst_xcamsrc_debug
 
-#define DEFAULT_BLOCKSIZE   1843200
-#define DEFAULT_CAPTURE_DEVICE  "/dev/video3"
-
-#define DEFAULT_PROP_SENSOR     0
-#define DEFAULT_PROP_CAPTUREMODE    0
-#define DEFAULT_PROP_MEMTYPE        1
-#define DEFAULT_PROP_BUFFERCOUNT    6
-#define DEFAULT_PROP_FPSN       0
-#define DEFAULT_PROP_FPSD       0
-#define DEFAULT_PROP_WIDTH      0
-#define DEFAULT_PROP_HEIGHT     0
-#define DEFAULT_PROP_PIXELFORMAT    0
-#define DEFAULT_PROP_FIELD      0
-#define DEFAULT_PROP_BYTESPERLINE   0
 
 enum
 {
     PROP_0,
+    PROP_DEVICE,
+    PROP_COLOREFFECT,
     PROP_SENSOR,
-    PROP_CAPTUREMODE,
-    PROP_MEMTYPE,
+    PROP_CAPTURE_MODE,
+    PROP_ENABLE_3A,
+    PROP_IO_MODE,
     PROP_BUFFERCOUNT,
     PROP_FPSN,
     PROP_FPSD,
@@ -83,9 +81,12 @@ enum
     PROP_BYTESPERLINE
 };
 
+static void gst_xcamsrc_xcam_3a_interface_init (GstXCam3AInterface *iface);
 
 #define gst_xcamsrc_parent_class parent_class
-G_DEFINE_TYPE (Gstxcamsrc, gst_xcamsrc, GST_TYPE_PUSH_SRC);
+G_DEFINE_TYPE_WITH_CODE  (Gstxcamsrc, gst_xcamsrc, GST_TYPE_PUSH_SRC,
+                          G_IMPLEMENT_INTERFACE (GST_TYPE_XCAM_3A_IF,
+                                  gst_xcamsrc_xcam_3a_interface_init));
 
 GstCaps *gst_xcamsrc_get_all_caps (void);
 
@@ -98,6 +99,10 @@ static gboolean gst_xcamsrc_start (GstBaseSrc *src);
 static gboolean gst_xcamsrc_stop (GstBaseSrc * basesrc);
 static GstFlowReturn gst_xcamsrc_alloc (GstBaseSrc *src, guint64 offset, guint size, GstBuffer **buffer);
 static GstFlowReturn gst_xcamsrc_fill (GstPushSrc *src, GstBuffer *out);
+
+static gboolean xcamsrc_init (GstPlugin * xcamsrc);
+
+XCAM_END_DECLARE
 
 static void
 gst_xcamsrc_class_init (GstxcamsrcClass * klass)
@@ -116,40 +121,52 @@ gst_xcamsrc_class_init (GstxcamsrcClass * klass)
     gobject_class->set_property = gst_xcamsrc_set_property;
     gobject_class->get_property = gst_xcamsrc_get_property;
 
-    g_object_class_install_property (gobject_class, PROP_SENSOR,
-                                     g_param_spec_int ("sensor", "Sensor id", "Sensor id",
-                                             0, G_MAXINT, DEFAULT_PROP_SENSOR, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property (gobject_class, PROP_DEVICE,
+                                     g_param_spec_string ("device", "Device", "Device location",
+                                             DEFAULT_PROP_DEVICE_NAME, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
-    g_object_class_install_property (gobject_class, PROP_CAPTUREMODE,
-                                     g_param_spec_int ("capturemode", "capture mode", "capture mode",
-                                             0, G_MAXINT, DEFAULT_PROP_CAPTUREMODE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-    g_object_class_install_property (gobject_class, PROP_MEMTYPE,
-                                     g_param_spec_int ("memtype", "memory type", "memory type",
-                                             0, G_MAXINT, DEFAULT_PROP_MEMTYPE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property (gobject_class, PROP_COLOREFFECT,
+                                     g_param_spec_int ("coloreffect", "color effect", "0, none\t 1,sky blue\t 2,skin whiten low\t 3,skin whiten\t 4,skin whiten hight\t 5,sepia",
+                                             G_MININT, G_MAXINT, 0, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE)));
+
+    g_object_class_install_property (gobject_class, PROP_ENABLE_3A,
+                                     g_param_spec_boolean ("enable-3a", "Enable 3A", "Enable 3A",
+                                             true, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (gobject_class, PROP_SENSOR,
+                                     g_param_spec_int ("sensor-id", "Sensor id", "Sensor id to input",
+                                             0, G_MAXINT, DEFAULT_PROP_SENSOR, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
+
+    g_object_class_install_property (gobject_class, PROP_CAPTURE_MODE,
+                                     g_param_spec_int ("capture-mode", "capture mode", "capture mode",
+                                             0, G_MAXINT, DEFAULT_PROP_CAPTURE_MODE, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
+    g_object_class_install_property (gobject_class, PROP_IO_MODE,
+                                     g_param_spec_int ("io-mode", "IO mode", "I/O mode",
+                                             0, G_MAXINT, DEFAULT_PROP_IO_MODE, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_BUFFERCOUNT,
                                      g_param_spec_int ("buffercount", "buffer count", "buffer count",
-                                             0, G_MAXINT, DEFAULT_PROP_BUFFERCOUNT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0, G_MAXINT, DEFAULT_PROP_BUFFERCOUNT, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_FPSN,
                                      g_param_spec_int ("fpsn", "fps n", "fps n",
-                                             0 , G_MAXINT, DEFAULT_PROP_FPSN, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0 , G_MAXINT, DEFAULT_PROP_FPSN, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_FPSD,
                                      g_param_spec_int ("fpsd", "fps d", "fps d",
-                                             0, G_MAXINT, DEFAULT_PROP_FPSD, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0, G_MAXINT, DEFAULT_PROP_FPSD, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_WIDTH,
                                      g_param_spec_int ("width", "width", "width",
-                                             0, G_MAXINT, DEFAULT_PROP_WIDTH, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0, G_MAXINT, DEFAULT_PROP_WIDTH, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_HEIGHT,
                                      g_param_spec_int ("height", "height", "height",
-                                             0, G_MAXINT, DEFAULT_PROP_HEIGHT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0, G_MAXINT, DEFAULT_PROP_HEIGHT, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_PIXELFORMAT,
                                      g_param_spec_int ("pixelformat", "pixelformat", "pixelformat",
-                                             0, G_MAXINT, DEFAULT_PROP_PIXELFORMAT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0, G_MAXINT, DEFAULT_PROP_PIXELFORMAT, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_FIELD,
                                      g_param_spec_int ("field", "field", "field",
-                                             0, G_MAXINT, DEFAULT_PROP_FIELD, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0, G_MAXINT, DEFAULT_PROP_FIELD, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
     g_object_class_install_property (gobject_class, PROP_BYTESPERLINE,
                                      g_param_spec_int ("bytesperline", "bytes perline", "bytes perline",
-                                             0, G_MAXINT, DEFAULT_PROP_BYTESPERLINE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                             0, G_MAXINT, DEFAULT_PROP_BYTESPERLINE, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
 
     gst_element_class_set_details_simple(element_class,
                                          "Libxcam Source",
@@ -169,26 +186,25 @@ gst_xcamsrc_class_init (GstxcamsrcClass * klass)
     pushsrc_class->fill = GST_DEBUG_FUNCPTR (gst_xcamsrc_fill);
 }
 
-Gstxcamsrc *g_src;
-
-void handler (int sig)
-{
-    libxcam_stop ();
-    libxcam_close ();
-    exit (1);
-}
-
+// FIXME remove this function?
 static void
 gst_xcamsrc_init (Gstxcamsrc *xcamsrc)
 {
-    g_src = xcamsrc;
-    signal (SIGSEGV, handler);
-    libxcam_set_device_name (DEFAULT_CAPTURE_DEVICE);
+    MainDeviceManager::set_capture_device_name (DEFAULT_CAPTURE_DEVICE);
+    MainDeviceManager::set_event_device_name (DEFAULT_EVENT_DEVICE);
+    MainDeviceManager::set_cpf_file_name (DEFAULT_CPF_FILE_NAME);
+
     gst_base_src_set_format (GST_BASE_SRC (xcamsrc), GST_FORMAT_TIME);
     gst_base_src_set_live (GST_BASE_SRC (xcamsrc), TRUE);
 
-    xcamsrc->_fps_n = 0;
-    xcamsrc->_fps_d = 0;
+    xcamsrc->buf_count = DEFAULT_PROP_BUFFERCOUNT; //8
+    xcamsrc->_fps_n = DEFAULT_PROP_FPSN; //25
+    xcamsrc->_fps_d = DEFAULT_PROP_FPSD; //1
+    xcamsrc->width = DEFAULT_PROP_WIDTH; //1920
+    xcamsrc->height = DEFAULT_PROP_HEIGHT; //1080
+    xcamsrc->pixelformat = V4L2_PIX_FMT_NV12; //420
+    xcamsrc->field = V4L2_FIELD_NONE; //0
+    xcamsrc->bytes_perline = DEFAULT_PROP_BYTESPERLINE; // 3840
 
     gst_base_src_set_blocksize (GST_BASE_SRC (xcamsrc), DEFAULT_BLOCKSIZE);
 }
@@ -196,11 +212,6 @@ gst_xcamsrc_init (Gstxcamsrc *xcamsrc)
 static void
 gst_xcamsrc_finalize (GObject * object)
 {
-    Gstxcamsrc *src = GST_XCAMSRC (object);
-
-    libxcam_stop ();
-    libxcam_close ();
-
     G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 
@@ -221,7 +232,11 @@ static gboolean
 gst_xcamsrc_stop (GstBaseSrc * basesrc)
 {
     Gstxcamsrc *src = GST_XCAMSRC_CAST (basesrc);
-    libxcam_stop ();
+    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
+
+    device_manager->stop();
+    device_manager->get_device()->close ();
+    device_manager->get_sub_device()->close ();
     return TRUE;
 }
 
@@ -232,12 +247,18 @@ gst_xcamsrc_get_caps (GstBaseSrc *src, GstCaps *filter)
     return gst_pad_get_pad_template_caps (GST_BASE_SRC_PAD (xcamsrc));
 }
 
+extern "C" GstBufferPool *
+gst_xcambufferpool_new (Gstxcamsrc *xcamsrc, GstCaps *caps);
+
 static gboolean
 gst_xcamsrc_set_caps (GstBaseSrc *src, GstCaps *caps)
 {
     Gstxcamsrc *xcamsrc = GST_XCAMSRC (src);
 
     guint32 block_size = DEFAULT_BLOCKSIZE;
+    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
+    SmartPtr<V4l2Device> device = device_manager->get_device();
+
     /**
      * set_sensor_id
      * set_capture_mode
@@ -248,15 +269,19 @@ gst_xcamsrc_set_caps (GstBaseSrc *src, GstCaps *caps)
      * set_format
      *
      **/
-    libxcam_set_framerate (xcamsrc->_fps_n, xcamsrc->_fps_d);
-    libxcam_open ();
-    libxcam_set_format (xcamsrc->width, xcamsrc->height, xcamsrc->pixelformat, xcamsrc->field, xcamsrc->bytes_perline);
+    device->set_buffer_count (xcamsrc->buf_count);
+    device->set_framerate (xcamsrc->_fps_n, xcamsrc->_fps_d);
+    device->open ();
+    device->set_format  (xcamsrc->width, xcamsrc->height, xcamsrc->pixelformat, xcamsrc->field, xcamsrc->bytes_perline);
 
-    libxcam_get_blocksize (&block_size);
+    struct v4l2_format format;
+    device->get_format (format);
+    block_size = format.fmt.pix.sizeimage;
+
     gst_base_src_set_blocksize (GST_BASE_SRC (xcamsrc), block_size);
 
     xcamsrc->duration = gst_util_uint64_scale_int (GST_SECOND, xcamsrc->_fps_d, xcamsrc->_fps_n);
-    xcamsrc->pool = gst_xcambufferpool_new (src, caps);
+    xcamsrc->pool = gst_xcambufferpool_new ((Gstxcamsrc*)src, caps);
 
     gst_buffer_pool_set_active (GST_BUFFER_POOL_CAST (xcamsrc->pool), TRUE);
     return TRUE;
@@ -367,15 +392,21 @@ static void gst_xcamsrc_set_property (GObject *object,
     Gstxcamsrc *src = GST_XCAMSRC (object);
     int val;
     enum v4l2_memory set_val;
+    SmartPtr<V4l2Device> device = DeviceManagerInstance::device_manager_instance()->get_device();
 
     switch (prop_id) {
+    case PROP_DEVICE:
+    case PROP_ENABLE_3A:
+    case PROP_COLOREFFECT:
+        break;
     case PROP_SENSOR:
-        libxcam_set_sensor_id (g_value_get_int (value));
+        device->set_sensor_id (g_value_get_int (value));
         break;
-    case PROP_CAPTUREMODE:
-        libxcam_set_capture_mode (g_value_get_int (value));
+    case PROP_CAPTURE_MODE:
+        val = g_value_get_int (value);
+        device->set_capture_mode (1 << (13 + val));
         break;
-    case PROP_MEMTYPE:
+    case PROP_IO_MODE:
         val = g_value_get_int (value);
         if (val == 1)
             set_val = V4L2_MEMORY_MMAP;
@@ -385,11 +416,10 @@ static void gst_xcamsrc_set_property (GObject *object,
             set_val = V4L2_MEMORY_OVERLAY;
         else
             set_val = V4L2_MEMORY_DMABUF;
-        libxcam_set_mem_type (set_val);
+        device->set_mem_type (set_val);
         break;
     case PROP_BUFFERCOUNT:
         src->buf_count = g_value_get_int (value);
-        libxcam_set_buffer_count (g_value_get_int (value));
         break;
     case PROP_FPSN:
         src->_fps_n = g_value_get_int (value);
@@ -431,6 +461,44 @@ gst_xcamsrc_get_all_caps (void)
     return gst_caps_ref (caps);
 }
 
+static void
+gst_xcamsrc_xcam_3a_interface_init (GstXCam3AInterface *iface)
+{
+    iface->set_white_balance_mode = gst_xcamsrc_set_white_balance_mode;
+    iface->set_awb_speed = gst_xcamsrc_set_awb_speed;
+
+    iface->set_wb_color_temperature_range = gst_xcamsrc_set_wb_color_temperature_range;
+    iface->set_manual_wb_gain = gst_xcamsrc_set_manual_wb_gain;
+
+    iface->set_exposure_mode = gst_xcamsrc_set_exposure_mode;
+    iface->set_ae_metering_mode = gst_xcamsrc_set_ae_metering_mode;
+    iface->set_exposure_window = gst_xcamsrc_set_exposure_window;
+    iface->set_exposure_value_offset = gst_xcamsrc_set_exposure_value_offset;
+    iface->set_ae_speed = gst_xcamsrc_set_ae_speed;
+
+    iface->set_exposure_flicker_mode = gst_xcamsrc_set_exposure_flicker_mode;
+    iface->get_exposure_flicker_mode = gst_xcamsrc_get_exposure_flicker_mode;
+    iface->get_current_exposure_time = gst_xcamsrc_get_current_exposure_time;
+    iface->get_current_analog_gain = gst_xcamsrc_get_current_analog_gain;
+    iface->set_manual_exposure_time = gst_xcamsrc_set_manual_exposure_time;
+    iface->set_manual_analog_gain = gst_xcamsrc_set_manual_analog_gain;
+    iface->set_aperture = gst_xcamsrc_set_aperture;
+    iface->set_max_analog_gain = gst_xcamsrc_set_max_analog_gain;
+    iface->get_max_analog_gain = gst_xcamsrc_get_max_analog_gain;
+    iface->set_exposure_time_range = gst_xcamsrc_set_exposure_time_range;
+    iface->get_exposure_time_range = gst_xcamsrc_get_exposure_time_range;
+    iface->set_dvs = gst_xcamsrc_set_dvs;
+    iface->set_noise_reduction_level = gst_xcamsrc_set_noise_reduction_level;
+    iface->set_temporal_noise_reduction_level = gst_xcamsrc_set_temporal_noise_reduction_level;
+    iface->set_gamma_table = gst_xcamsrc_set_gamma_table;
+    iface->set_gbce = gst_xcamsrc_set_gbce;
+    iface->set_manual_brightness = gst_xcamsrc_set_manual_brightness;
+    iface->set_manual_contrast = gst_xcamsrc_set_manual_contrast;
+    iface->set_manual_hue = gst_xcamsrc_set_manual_hue;
+    iface->set_manual_saturation = gst_xcamsrc_set_manual_saturation;
+    iface->set_manual_sharpness = gst_xcamsrc_set_manual_sharpness;
+    iface->set_night_mode = gst_xcamsrc_set_night_mode;
+}
 
 static gboolean
 xcamsrc_init (GstPlugin * xcamsrc)
