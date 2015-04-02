@@ -27,6 +27,7 @@
 #include "drm_bo_buffer.h"
 #include "cl_demosaic_handler.h"
 #include "cl_csc_handler.h"
+#include "cl_wb_handler.h"
 
 using namespace XCam;
 
@@ -38,6 +39,7 @@ enum TestHandlerType {
     TestHandlerDemosaic,
     TestHandlerColorConversion,
     TestHandlerHDR,
+    TestHandlerWhiteBalance,
 };
 
 struct TestFileHandle {
@@ -106,7 +108,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb]\n"
             "\t -f format    specify a format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
             "\t -i input     specify input file path\n"
@@ -170,6 +172,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerColorConversion;
             else if (!strcasecmp (optarg, "hdr"))
                 handler_type = TestHandlerHDR;
+            else if (!strcasecmp (optarg, "wb"))
+                handler_type = TestHandlerWhiteBalance;
             else
                 print_help (bin_name);
             break;
@@ -233,7 +237,19 @@ int main (int argc, char *argv[])
     case TestHandlerHDR:
         image_handler = create_cl_hdr_image_handler (context);
         break;
-
+    case TestHandlerWhiteBalance: {
+        XCam3aResultWhiteBalance wb;
+        wb.r_gain = 1.0;
+        wb.gr_gain = 1.0;
+        wb.gb_gain = 1.0;
+        wb.b_gain = 1.0;
+        SmartPtr<CLWbImageHandler> wb_handler;
+        image_handler = create_cl_wb_image_handler (context);
+        wb_handler = image_handler.dynamic_cast_ptr<CLWbImageHandler> ();
+        XCAM_ASSERT (wb_handler.ptr ());
+        wb_handler->set_wb_config (wb);
+        break;
+    }
     default:
         XCAM_LOG_ERROR ("unsupported image handler type:%d", handler_type);
         return -1;
