@@ -32,8 +32,22 @@ V4l2Buffer::~V4l2Buffer ()
 {
 }
 
+uint8_t *
+V4l2Buffer::map ()
+{
+    if (_buf.memory == V4L2_MEMORY_DMABUF)
+        return NULL;
+    return (uint8_t *)(_buf.m.userptr);
+}
+
+bool
+V4l2Buffer::unmap ()
+{
+    return true;
+}
+
 V4l2BufferProxy::V4l2BufferProxy (SmartPtr<V4l2Buffer> &buf, SmartPtr<V4l2Device> &device)
-    : _buf (buf)
+    : BufferProxy (buf)
     , _device (device)
 {
     VideoBufferInfo info;
@@ -46,9 +60,10 @@ V4l2BufferProxy::V4l2BufferProxy (SmartPtr<V4l2Buffer> &buf, SmartPtr<V4l2Device
 
 V4l2BufferProxy::~V4l2BufferProxy ()
 {
-    XCAM_ASSERT (_buf.ptr());
-    if (_device.ptr())
-        _device->queue_buffer (_buf);
+    SmartPtr<BufferData> data = get_buffer_data ();
+    SmartPtr<V4l2Buffer> v4l2_data = data.dynamic_cast_ptr<V4l2Buffer> ();
+    if (_device.ptr () && v4l2_data.ptr ())
+        _device->queue_buffer (v4l2_data);
     XCAM_LOG_DEBUG ("v4l2 buffer released");
 }
 
@@ -114,23 +129,10 @@ V4l2BufferProxy::v4l2_format_to_video_info (
 const struct v4l2_buffer &
 V4l2BufferProxy::get_v4l2_buf () const
 {
-    XCAM_ASSERT (_buf.ptr());
-    return _buf->get_buf ();
-}
-
-uint8_t *
-V4l2BufferProxy::map ()
-{
-    const struct v4l2_buffer & v4l2_buf = get_v4l2_buf ();
-    if (v4l2_buf.memory == V4L2_MEMORY_DMABUF)
-        return NULL;
-    return (uint8_t *)(v4l2_buf.m.userptr);
-}
-
-bool
-V4l2BufferProxy::unmap ()
-{
-    return true;
+    SmartPtr<BufferData> data = get_buffer_data ();
+    SmartPtr<V4l2Buffer> v4l2_data = data.dynamic_cast_ptr<V4l2Buffer> ();
+    XCAM_ASSERT (v4l2_data.ptr ());
+    return v4l2_data->get_buf ();
 }
 
 };

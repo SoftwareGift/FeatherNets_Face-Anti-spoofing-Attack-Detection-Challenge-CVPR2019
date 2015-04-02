@@ -22,7 +22,7 @@
 #define XCAM_V4L2_BUFFER_PROXY_H
 
 #include "xcam_utils.h"
-#include "video_buffer.h"
+#include "buffer_pool.h"
 #include "smartptr.h"
 #include <linux/videodev2.h>
 
@@ -30,7 +30,9 @@ namespace XCam {
 
 class V4l2Device;
 
-class V4l2Buffer {
+class V4l2Buffer
+    : public BufferData
+{
 public:
     explicit V4l2Buffer (const struct v4l2_buffer &buf, const struct v4l2_format &format);
     virtual ~V4l2Buffer ();
@@ -66,6 +68,10 @@ public:
         return _format;
     }
 
+    // derived from BufferData
+    virtual uint8_t *map ();
+    virtual bool unmap ();
+
 private:
     XCAM_DEAD_COPY (V4l2Buffer);
 
@@ -75,7 +81,7 @@ private:
 };
 
 class V4l2BufferProxy
-    : public VideoBuffer
+    : public BufferProxy
 {
 public:
     explicit V4l2BufferProxy (SmartPtr<V4l2Buffer> &buf, SmartPtr<V4l2Device> &device);
@@ -102,9 +108,6 @@ public:
         return get_v4l2_buf().m.userptr;
     }
 
-    virtual uint8_t *map ();
-    virtual bool unmap ();
-
 private:
     const struct v4l2_buffer & get_v4l2_buf () const;
 
@@ -114,7 +117,6 @@ private:
     XCAM_DEAD_COPY (V4l2BufferProxy);
 
 private:
-    SmartPtr<V4l2Buffer>  _buf;
     SmartPtr<V4l2Device>  _device;
 };
 };
