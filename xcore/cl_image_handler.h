@@ -81,6 +81,7 @@ public:
 
     bool add_kernel (SmartPtr<CLImageKernel> &kernel);
     XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    void emit_stop ();
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
@@ -88,7 +89,7 @@ protected:
         VideoBufferInfo &output);
     XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     XCamReturn create_buffer_pool (const VideoBufferInfo &video_info);
-    SmartPtr<DrmBoBufferPool> &get_buffer_pool () {
+    SmartPtr<BufferPool> &get_buffer_pool () {
         return _buf_pool;
     }
 
@@ -98,7 +99,7 @@ private:
 private:
     char                      *_name;
     KernelList                 _kernels;
-    SmartPtr<DrmBoBufferPool>  _buf_pool;
+    SmartPtr<BufferPool>       _buf_pool;
 };
 
 };

@@ -47,6 +47,7 @@ protected:
     virtual XCamReturn apply_3a_results (X3aResultList &results);
     virtual XCamReturn apply_3a_result (SmartPtr<X3aResult> &result);
     virtual XCamReturn process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual void emit_stop ();
 
     SmartPtr<CLContext> get_cl_context ();
 

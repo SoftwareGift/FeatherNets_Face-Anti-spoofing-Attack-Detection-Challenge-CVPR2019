@@ -46,7 +46,7 @@ extern "C" {
 namespace XCam {
 
 class AtomispDevice;
-class DrmBoWrapper;
+class DrmBoData;
 class DrmBoBufferPool;
 class DrmBoBuffer;
 
@@ -99,7 +99,7 @@ public:
 private:
     DrmDisplay (const char* module = NULL);
 
-    SmartPtr<DrmBoWrapper> create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo& info);
+    SmartPtr<DrmBoData> create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo& info);
 
     XCamReturn get_crtc(drmModeRes *res);
     XCamReturn get_connector(drmModeRes *res);

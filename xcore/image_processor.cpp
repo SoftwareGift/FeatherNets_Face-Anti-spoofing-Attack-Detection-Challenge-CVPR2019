@@ -124,6 +124,9 @@ XCamReturn
 ImageProcessor::stop()
 {
     _video_buf_queue.wakeup ();
+
+    emit_stop ();
+
     _processor_thread->stop ();
     XCAM_LOG_DEBUG ("ImageProcessor(%s) stopped", XCAM_STR (_name));
     return XCAM_RETURN_NO_ERROR;
@@ -227,5 +230,10 @@ XCamReturn ImageProcessor::buffer_process_loop ()
     return XCAM_RETURN_NO_ERROR;
 }
 
+
+void
+ImageProcessor::emit_stop ()
+{
+}
 
 };

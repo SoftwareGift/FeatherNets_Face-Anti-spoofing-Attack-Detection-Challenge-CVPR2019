@@ -50,6 +50,7 @@ endif
 xcam_sources =               \
 	atomisp_device.cpp       \
 	analyzer_loader.cpp      \
+	buffer_pool.cpp          \
 	device_manager.cpp       \
 	handler_interface.cpp    \
 	image_processor.cpp      \

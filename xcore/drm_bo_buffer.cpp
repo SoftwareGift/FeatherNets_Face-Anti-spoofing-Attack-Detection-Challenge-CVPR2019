@@ -22,96 +22,66 @@
 
 namespace XCam {
 
-DrmBoWrapper::DrmBoWrapper (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo)
+DrmBoData::DrmBoData (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo)
     : _display (display)
     , _bo (bo)
-    , _buf ((intptr_t)NULL)
+    , _buf (NULL)
 {
-    XCAM_ASSERT (display.ptr());
+    XCAM_ASSERT (display.ptr ());
     XCAM_ASSERT (bo);
 }
 
-DrmBoWrapper::~DrmBoWrapper ()
+DrmBoData::~DrmBoData ()
 {
     unmap ();
     if (_bo)
         drm_intel_bo_unreference (_bo);
 }
 
-bool
-DrmBoWrapper::map (intptr_t &ptr)
+uint8_t *
+DrmBoData::map ()
 {
     if (_buf) {
-        ptr = _buf;
-        return true;
+        return _buf;
     }
     if (drm_intel_bo_map (_bo, 1) != 0)
-        return false;
-    _buf = (intptr_t)_bo->virt;
-    ptr = _buf;
-    return  true;
+        return NULL;
+    _buf = (uint8_t *)_bo->virt;
+    return  _buf;
 }
 
 bool
-DrmBoWrapper::unmap ()
+DrmBoData::unmap ()
 {
     if (!_buf || !_bo)
         return true;
     drm_intel_bo_unmap (_bo);
-    _buf = (intptr_t)(NULL);
+    _buf = NULL;
     return true;
 }
 
-DrmBoBuffer::DrmBoBuffer (
-    SmartPtr<DrmDisplay> display,
-    const VideoBufferInfo &info,
-    SmartPtr<DrmBoWrapper> &bo)
-    : VideoBuffer (info)
-    , _display (display)
-    , _bo (bo)
+DrmBoBuffer::DrmBoBuffer (const VideoBufferInfo &info, const SmartPtr<DrmBoData> &data)
+    : BufferProxy (info, data)
 {
-    XCAM_ASSERT (bo.ptr ());
+    XCAM_ASSERT (data.ptr ());
 }
 
-DrmBoBuffer::~DrmBoBuffer ()
+drm_intel_bo *
+DrmBoBuffer::get_bo ()
 {
-    if (_pool.ptr ()) {
-        _pool->release (_bo);
-    } else if (_bo.ptr())
-        _bo.release ();
-    _parent.release ();
-    _pool.release ();
-}
+    SmartPtr<BufferData> data = get_buffer_data ();
+    SmartPtr<DrmBoData> bo = data.dynamic_cast_ptr<DrmBoData> ();
 
-void
-DrmBoBuffer::set_parent (SmartPtr<VideoBuffer> &parent)
-{
-    _parent = parent;
-}
-
-void
-DrmBoBuffer::set_buf_pool (SmartPtr<DrmBoBufferPool> &buf_pool)
-{
-    _pool = buf_pool;
-}
-
-uint8_t *
-DrmBoBuffer::map ()
-{
-    intptr_t pointer(0);
-    if (_bo->map (pointer))
-        return (uint8_t *)pointer;
-    return NULL;
-}
-
-bool DrmBoBuffer::unmap ()
-{
-    return _bo->unmap ();
+    XCAM_FAIL_RETURN(
+        WARNING,
+        bo.ptr(),
+        NULL,
+        "DrmBoBuffer get_buffer_data failed with NULL");
+    return bo->get_bo ();
 }
 
 DrmBoBufferPool::DrmBoBufferPool (SmartPtr<DrmDisplay> &display)
     : _display (display)
-    , _buf_count (0)
 {
     XCAM_ASSERT (display.ptr ());
     XCAM_LOG_DEBUG ("DrmBoBufferPool constructed");
@@ -119,80 +89,25 @@ DrmBoBufferPool::DrmBoBufferPool (SmartPtr<DrmDisplay> &display)
 
 DrmBoBufferPool::~DrmBoBufferPool ()
 {
-    deinit ();
     _display.release ();
     XCAM_LOG_DEBUG ("DrmBoBufferPool destructed");
 }
 
-bool
-DrmBoBufferPool::set_buffer_info (const VideoBufferInfo &info)
+SmartPtr<BufferData>
+DrmBoBufferPool::allocate_data (const VideoBufferInfo &buffer_info)
 {
-    XCAM_ASSERT (info.format && info.width && info.height);
-    _buf_info = info;
-    return true;
+    SmartPtr<DrmBoData> bo = _display->create_drm_bo (_display, buffer_info);
+    return bo;
 }
 
-bool
-DrmBoBufferPool::init (uint32_t buf_num)
+SmartPtr<BufferProxy>
+DrmBoBufferPool::create_buffer_from_data (SmartPtr<BufferData> &data)
 {
-    uint32_t i = 0;
+    const VideoBufferInfo & info = get_video_info ();
+    SmartPtr<DrmBoData> bo_data = data.dynamic_cast_ptr<DrmBoData> ();
+    XCAM_ASSERT (bo_data.ptr ());
 
-    XCAM_ASSERT (_buf_info.format);
-    XCAM_ASSERT (buf_num > 0);
-
-    for (i = 0; i < buf_num; ++i) {
-        SmartPtr<DrmBoWrapper> bo = _display->create_drm_bo (_display, _buf_info);
-        if (!bo.ptr())
-            break;
-        _buf_list.push (bo);
-    }
-    if (i == 0) {
-        XCAM_LOG_ERROR ("DrmBoBufferPool failed to allocate %d buffers", buf_num);
-        return false;
-    }
-    if (i != buf_num) {
-        XCAM_LOG_WARNING (
-            "DrmBoBufferPool expect for %d buf but only allocate %d buf",
-            buf_num, i);
-    }
-    _buf_count = i;
-    return true;
-}
-
-void
-DrmBoBufferPool::deinit ()
-{
-    _buf_list.wakeup ();
-    _buf_list.clear ();
-}
-
-void
-DrmBoBufferPool::release (SmartPtr<DrmBoWrapper> &bo)
-{
-    _buf_list.push (bo);
-}
-
-SmartPtr<DrmBoBuffer>
-DrmBoBufferPool::get_buffer (SmartPtr<DrmBoBufferPool> &self)
-{
-    SmartPtr<DrmBoBuffer> bo_buf;
-    SmartPtr<DrmBoWrapper> bo;
-
-    XCAM_ASSERT (self.ptr () == this);
-    XCAM_FAIL_RETURN(
-        WARNING,
-        self.ptr () == this,
-        NULL,
-        "DrmBoBufferPool get_buffer failed since parameter<self> not this");
-
-    bo = _buf_list.pop ();
-    if (!bo.ptr ()) {
-        XCAM_LOG_DEBUG ("DrmBoBufferPool failed to get buffer");
-        return NULL;
-    }
-    bo_buf =  new DrmBoBuffer (_display, _buf_info, bo);
-    bo_buf->set_buf_pool (self);
-    return bo_buf;
+    return new DrmBoBuffer (info, bo_data);
 }
 
 };

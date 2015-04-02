@@ -24,86 +24,70 @@
 #include "smartptr.h"
 #include "safe_list.h"
 #include "xcam_mutex.h"
-#include "video_buffer.h"
+#include "buffer_pool.h"
 #include "drm_display.h"
 
 namespace XCam {
 
 class DrmBoBufferPool;
 
-class DrmBoWrapper {
+class DrmBoData
+    : public BufferData
+{
     friend class DrmDisplay;
+
 public:
-    ~DrmBoWrapper ();
+    ~DrmBoData ();
     drm_intel_bo *get_bo () {
         return _bo;
     }
 
-    bool map (intptr_t &ptr);
-    bool unmap ();
-private:
-    explicit DrmBoWrapper (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo);
-    XCAM_DEAD_COPY (DrmBoWrapper);
-private:
-    SmartPtr<DrmDisplay>       _display;
-    drm_intel_bo              *_bo;
-    intptr_t                   _buf;
-};
-
-class DrmBoBuffer
-    : public VideoBuffer
-{
-    friend class DrmDisplay;
-    friend class DrmBoBufferPool;
-public:
-    virtual ~DrmBoBuffer ();
-
-    drm_intel_bo *get_bo () {
-        return _bo->get_bo ();
-    }
-
-    //abstract from VideoBuffer
+    //derived from BufferData
     virtual uint8_t *map ();
     virtual bool unmap ();
 
 private:
-    explicit DrmBoBuffer (
-        SmartPtr<DrmDisplay> display,
-        const VideoBufferInfo &info,
-        SmartPtr<DrmBoWrapper> &bo);
-
-    void set_parent (SmartPtr<VideoBuffer> &parent);
-    void set_buf_pool (SmartPtr<DrmBoBufferPool> &buf_pool);
-
-    XCAM_DEAD_COPY (DrmBoBuffer);
-
+    explicit DrmBoData (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo);
+    XCAM_DEAD_COPY (DrmBoData);
 private:
     SmartPtr<DrmDisplay>       _display;
-    SmartPtr<DrmBoBufferPool>  _pool;
-    SmartPtr<VideoBuffer>      _parent;
-    SmartPtr<DrmBoWrapper>     _bo;
+    drm_intel_bo              *_bo;
+    uint8_t                   *_buf;
 };
 
-class DrmBoBufferPool {
+class DrmBoBuffer
+    : public BufferProxy
+{
+    friend class DrmBoBufferPool;
+    friend class DrmDisplay;
+public:
+    virtual ~DrmBoBuffer () {}
+    drm_intel_bo *get_bo ();
+
+private:
+    DrmBoBuffer (const VideoBufferInfo &info, const SmartPtr<DrmBoData> &data);
+    XCAM_DEAD_COPY (DrmBoBuffer);
+};
+
+class DrmBoBufferPool
+    : public BufferPool
+{
     friend class DrmBoBuffer;
 
 public:
     explicit DrmBoBufferPool (SmartPtr<DrmDisplay> &display);
     ~DrmBoBufferPool ();
-    bool set_buffer_info (const VideoBufferInfo &info);
-    bool init (uint32_t buf_num = 6);
-    void deinit ();
-    SmartPtr<DrmBoBuffer> get_buffer (SmartPtr<DrmBoBufferPool> &self);
+
+protected:
+    // derived from BufferPool
+    virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info);
+    virtual SmartPtr<BufferProxy> create_buffer_from_data (SmartPtr<BufferData> &data);
 
 private:
-    void release (SmartPtr<DrmBoWrapper> &bo);
     XCAM_DEAD_COPY (DrmBoBufferPool);
 
 private:
     SmartPtr<DrmDisplay>     _display;
-    VideoBufferInfo          _buf_info;
-    SafeList<DrmBoWrapper>   _buf_list;
-    uint32_t                 _buf_count;
 };
 
 

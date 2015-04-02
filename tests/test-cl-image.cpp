@@ -133,10 +133,9 @@ int main (int argc, char *argv[])
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLImageHandler> image_handler;
     VideoBufferInfo input_buf_info;
-    SmartPtr<DrmBoBuffer> input_buf, output_buf;
     SmartPtr<CLContext> context;
     SmartPtr<DrmDisplay> display;
-    SmartPtr<DrmBoBufferPool> buf_pool;
+    SmartPtr<BufferPool> buf_pool;
     int opt = 0;
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
     CLHdrType hdr_type = CL_HDR_TYPE_RGB;
@@ -274,14 +273,17 @@ int main (int argc, char *argv[])
     input_buf_info.init (format, 1920, 1080, 8, 4);
     display = DrmDisplay::instance ();
     buf_pool = new DrmBoBufferPool (display);
-    buf_pool->set_buffer_info (input_buf_info);
-    if (!buf_pool->init (6)) {
+    buf_pool->set_video_info (input_buf_info);
+    if (!buf_pool->reserve (6)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
         return -1;
     }
 
     while (!feof (input_fp.fp)) {
-        input_buf = buf_pool->get_buffer (buf_pool);
+        SmartPtr<DrmBoBuffer> input_buf, output_buf;
+        SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
+        input_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
+
         XCAM_ASSERT (input_buf.ptr ());
         ret = read_buf (input_buf, input_fp);
         if (ret == XCAM_RETURN_BYPASS)

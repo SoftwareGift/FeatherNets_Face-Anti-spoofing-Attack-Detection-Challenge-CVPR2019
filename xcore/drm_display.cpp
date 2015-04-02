@@ -122,7 +122,7 @@ DrmDisplay::get_connector(drmModeRes *res)
     XCAM_FAIL_RETURN(ERROR, _connector, XCAM_RETURN_ERROR_PARAM,
                      "drmModeGetConnector failed: %s", strerror(errno));
     XCAM_FAIL_RETURN(ERROR, _connector->connection == DRM_MODE_CONNECTED,
-                      XCAM_RETURN_ERROR_PARAM, "get_connector failed since it is not connected");
+                     XCAM_RETURN_ERROR_PARAM, "get_connector failed since it is not connected");
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -315,7 +315,7 @@ DrmDisplay::set_plane (const FB &fb)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     uint32_t fb_handle = fb.fb_handle;
-    uint32_t index = fb.index;
+    //uint32_t index = fb.index;
 
     ret = (XCamReturn) drmModeSetPlane(_fd, _plane_id, _crtc_id,
                                        fb_handle, 0,
@@ -373,7 +373,7 @@ DrmDisplay::convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuf
     int dma_fd = 0;
     SmartPtr<V4l2BufferProxy> v4l2_proxy;
     SmartPtr<DrmBoBuffer> new_bo_buf;
-    SmartPtr<DrmBoWrapper> bo_wrapper;
+    SmartPtr<DrmBoData> bo_data;
 
     XCAM_ASSERT (self.ptr () == this);
 
@@ -394,23 +394,23 @@ DrmDisplay::convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuf
         XCAM_LOG_WARNING ("convert dma fd to drm bo failed");
         return NULL;
     }
-    bo_wrapper = new DrmBoWrapper (self, bo);
-    new_bo_buf = new DrmBoBuffer (self, buf_in->get_video_info (), bo_wrapper);
+    bo_data = new DrmBoData (self, bo);
+    new_bo_buf = new DrmBoBuffer (buf_in->get_video_info (), bo_data);
     new_bo_buf->set_parent (buf_in);
     return new_bo_buf;
 }
 
-SmartPtr<DrmBoWrapper>
+SmartPtr<DrmBoData>
 DrmDisplay::create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo &info)
 {
-    SmartPtr<DrmBoWrapper> new_bo;
+    SmartPtr<DrmBoData> new_bo;
 
     XCAM_ASSERT (_buf_manager);
     XCAM_ASSERT (self.ptr() == this);
     drm_intel_bo *bo = drm_intel_bo_alloc (
                            _buf_manager, "xcam drm bo buf", info.size, 0x1000);
 
-    new_bo = new DrmBoWrapper (self, bo);
+    new_bo = new DrmBoData (self, bo);
     return new_bo;
 }
 

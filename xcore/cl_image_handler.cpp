@@ -158,7 +158,7 @@ CLImageHandler::add_kernel (SmartPtr<CLImageKernel> &kernel)
 XCamReturn
 CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
 {
-    SmartPtr<DrmBoBufferPool> buffer_pool;
+    SmartPtr<BufferPool> buffer_pool;
     SmartPtr<DrmDisplay> display;
 
     if (_buf_pool.ptr ())
@@ -173,11 +173,11 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
 
     buffer_pool = new DrmBoBufferPool (display);
     XCAM_ASSERT (buffer_pool.ptr ());
-    buffer_pool->set_buffer_info (video_info);
+    buffer_pool->set_video_info (video_info);
 
     XCAM_FAIL_RETURN(
         WARNING,
-        buffer_pool->init (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM),
+        buffer_pool->reserve (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM),
         XCAM_RETURN_ERROR_CL,
         "CLImageHandler(%s) failed to init drm buffer pool", XCAM_STR (_name));
 
@@ -196,7 +196,7 @@ XCamReturn CLImageHandler::prepare_buffer_pool_video_info (
 XCamReturn
 CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
-    SmartPtr<DrmBoBuffer> new_buf;
+    SmartPtr<BufferProxy> new_buf;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if (!_buf_pool.ptr ()) {
@@ -224,8 +224,16 @@ CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBo
         XCAM_RETURN_ERROR_UNKNOWN,
         "CLImageHandler(%s) failed to get drm buffer from pool", XCAM_STR (_name));
 
-    output = new_buf;
+    output = new_buf.dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_ASSERT (output.ptr ());
     return XCAM_RETURN_NO_ERROR;
+}
+
+void
+CLImageHandler::emit_stop ()
+{
+    if (_buf_pool.ptr ())
+        _buf_pool->stop ();
 }
 
 XCamReturn

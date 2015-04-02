@@ -75,6 +75,7 @@ protected:
     virtual XCamReturn apply_3a_result (SmartPtr<X3aResult> &result) = 0;
     // buffer runs in another thread
     virtual XCamReturn process_buffer(SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output) = 0;
+    virtual void emit_stop ();
 
 private:
     void filter_valid_results (X3aResultList &input, X3aResultList &valid_results);

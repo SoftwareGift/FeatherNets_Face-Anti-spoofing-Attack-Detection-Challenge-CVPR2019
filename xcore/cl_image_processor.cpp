@@ -110,6 +110,15 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
     return XCAM_RETURN_NO_ERROR;
 }
 
+void
+CLImageProcessor::emit_stop ()
+{
+    for (ImageHandlerList::iterator i_handler = _handlers.begin ();
+            i_handler != _handlers.end ();  ++i_handler) {
+        (*i_handler)->emit_stop ();
+    }
+}
+
 XCamReturn
 CLImageProcessor::create_handlers ()
 {
