@@ -109,13 +109,6 @@ static gboolean
 gst_xcambufferpool_start (GstBufferPool *bpool)
 {
     Gstxcambufferpool *pool = GST_XCAMBUFFERPOOL_CAST (bpool);
-    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
-    SmartPtr<V4l2SubDevice> sub_device = device_manager->get_sub_device();
-
-    sub_device->open();
-    sub_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
-    sub_device->subscribe_event (V4L2_EVENT_FRAME_SYNC);
-    device_manager->start ();
 
     pool->allocator = gst_dmabuf_allocator_new();
     if (pool->allocator == NULL) {

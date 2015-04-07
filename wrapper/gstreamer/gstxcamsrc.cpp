@@ -225,6 +225,30 @@ gst_xcamsrc_start (GstBaseSrc *src)
 
     gst_object_sync_values (GST_OBJECT (src), xcamsrc->ctrl_time);
 
+    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
+    SmartPtr<V4l2Device> device = device_manager->get_device();
+    SmartPtr<V4l2SubDevice> sub_device = device_manager->get_sub_device();
+
+    /**
+     * set_sensor_id
+     * set_capture_mode
+     * set_mem_type
+     * set_buffer_count
+     * set_framerate
+     * open
+     * set_format
+     *
+     **/
+    device->set_buffer_count (xcamsrc->buf_count);
+    device->set_framerate (xcamsrc->_fps_n, xcamsrc->_fps_d);
+    device->open ();
+    device->set_format  (xcamsrc->width, xcamsrc->height, xcamsrc->pixelformat, xcamsrc->field, xcamsrc->bytes_perline);
+
+    sub_device->open();
+    sub_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
+    sub_device->subscribe_event (V4L2_EVENT_FRAME_SYNC);
+    device_manager->start ();
+
     return TRUE;
 }
 
@@ -259,20 +283,6 @@ gst_xcamsrc_set_caps (GstBaseSrc *src, GstCaps *caps)
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<V4l2Device> device = device_manager->get_device();
 
-    /**
-     * set_sensor_id
-     * set_capture_mode
-     * set_mem_type
-     * set_buffer_count
-     * set_framerate
-     * open
-     * set_format
-     *
-     **/
-    device->set_buffer_count (xcamsrc->buf_count);
-    device->set_framerate (xcamsrc->_fps_n, xcamsrc->_fps_d);
-    device->open ();
-    device->set_format  (xcamsrc->width, xcamsrc->height, xcamsrc->pixelformat, xcamsrc->field, xcamsrc->bytes_perline);
 
     struct v4l2_format format;
     device->get_format (format);
