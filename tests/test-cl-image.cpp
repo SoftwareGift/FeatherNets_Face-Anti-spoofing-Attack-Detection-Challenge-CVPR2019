@@ -238,7 +238,7 @@ int main (int argc, char *argv[])
         image_handler = create_cl_demosaic_image_handler (context);
         ba2rgb_handler = image_handler.dynamic_cast_ptr<CLBayer2RGBImageHandler> ();
         XCAM_ASSERT (ba2rgb_handler.ptr ());
-        ba2rgb_handler->set_output_format (V4L2_PIX_FMT_RGB32);
+        ba2rgb_handler->set_output_format (V4L2_PIX_FMT_BGR32);
         break;
     }
     case TestHandlerColorConversion: {
