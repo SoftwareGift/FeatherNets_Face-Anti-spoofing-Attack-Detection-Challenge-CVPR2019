@@ -108,7 +108,7 @@ CL3aImageProcessor::create_handlers ()
 
     /* hdr */
     if (_enable_hdr) {
-        image_handler = create_cl_hdr_image_handler (context);
+        image_handler = create_cl_hdr_image_handler (context, CL_HDR_TYPE_RGB);
         _hdr = image_handler;
         XCAM_FAIL_RETURN (
             WARNING,

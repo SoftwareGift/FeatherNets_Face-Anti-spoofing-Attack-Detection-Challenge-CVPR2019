@@ -26,25 +26,13 @@
 
 namespace XCam {
 
-class CLHdrImageKernel
-    : public CLImageKernel
-{
-public:
-    explicit CLHdrImageKernel (SmartPtr<CLContext> &context);
-
-    virtual XCamReturn post_execute ();
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLHdrImageKernel);
+enum CLHdrType {
+    CL_HDR_TYPE_RGB,
+    CL_HDR_TYPE_LAB,
 };
 
 SmartPtr<CLImageHandler>
-create_cl_hdr_image_handler (SmartPtr<CLContext> &context);
+create_cl_hdr_image_handler (SmartPtr<CLContext> &context, CLHdrType type);
 
 };
 

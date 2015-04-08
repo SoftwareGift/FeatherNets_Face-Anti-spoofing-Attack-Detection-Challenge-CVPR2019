@@ -93,9 +93,8 @@ write_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
 static XCamReturn
 kernel_loop(SmartPtr<CLImageHandler> &image_handler, SmartPtr<DrmBoBuffer> &input_buf, SmartPtr<DrmBoBuffer> &output_buf, uint32_t kernel_loop_count)
 {
-    int i;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    for (i = 0; i < kernel_loop_count; i++) {
+    for (uint32_t i = 0; i < kernel_loop_count; i++) {
         PROFILING_START(cl_kernel);
         ret = image_handler->execute (input_buf, output_buf);
         PROFILING_END(cl_kernel, kernel_loop_count)
@@ -114,8 +113,10 @@ print_help (const char *bin_name)
             "\t -i input     specify input file path\n"
             "\t -o output    specify output file path\n"
             "\t -p count     specify cl kernel loop count\n"
-            "\t -c csc_type    specify csc type\n"
-            "\t 			 select from [rgba2nv12, rgba2lab]\n"
+            "\t -c csc_type  specify csc type, default:rgba2nv12\n"
+            "\t              select from [rgba2nv12, rgba2lab]\n"
+            "\t -d hdr_type  specify hdr type, default:rgb\n"
+            "\t              select from [rgb, lab]\n"
             "\t -h           help\n"
             , bin_name);
 }
@@ -137,9 +138,10 @@ int main (int argc, char *argv[])
     SmartPtr<DrmDisplay> display;
     SmartPtr<DrmBoBufferPool> buf_pool;
     int opt = 0;
-    CLCscType csc_type = CL_CSC_TYPE_NONE;
+    CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
+    CLHdrType hdr_type = CL_HDR_TYPE_RGB;
 
-    while ((opt =  getopt(argc, argv, "f:i:o:t:p:c:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:i:o:t:p:c:d:h")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
@@ -155,6 +157,7 @@ int main (int argc, char *argv[])
                 format = V4L2_PIX_FMT_SGRBG10;
             else if (! strcasecmp (optarg, "rgba"))
                 format = V4L2_PIX_FMT_RGB32;
+
             else
                 print_help (bin_name);
             break;
@@ -189,6 +192,15 @@ int main (int argc, char *argv[])
             else
                 print_help (bin_name);
             break;
+        case 'd':
+            if (!strcasecmp (optarg, "rgb"))
+                hdr_type = CL_HDR_TYPE_RGB;
+            else if (!strcasecmp (optarg, "lab"))
+                hdr_type = CL_HDR_TYPE_LAB;
+            else
+                print_help (bin_name);
+            break;
+
         case 'h':
             print_help (bin_name);
             return 0;
@@ -235,7 +247,7 @@ int main (int argc, char *argv[])
         break;
     }
     case TestHandlerHDR:
-        image_handler = create_cl_hdr_image_handler (context);
+        image_handler = create_cl_hdr_image_handler (context, hdr_type);
         break;
     case TestHandlerWhiteBalance: {
         XCam3aResultWhiteBalance wb;
