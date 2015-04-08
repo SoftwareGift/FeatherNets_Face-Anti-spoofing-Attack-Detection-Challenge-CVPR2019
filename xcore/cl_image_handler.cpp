@@ -116,8 +116,8 @@ CLImageKernel::prepare_arguments (
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     {
-        const cl_libva_image &out_info = _image_out->get_image_info ();
-        work_size.global[0] = out_info.row_pitch;
+        const CLImageDesc &out_info = _image_out->get_image_desc ();
+        work_size.global[0] = out_info.width;
         work_size.global[1] = out_info.height;
     }
     work_size.local[0] = 4;

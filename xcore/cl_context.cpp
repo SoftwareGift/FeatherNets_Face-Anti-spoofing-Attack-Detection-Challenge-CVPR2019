@@ -41,6 +41,7 @@ CLContext::context_pfn_notify (
 {
     CLContext *context = (CLContext*) user_data;
     XCAM_UNUSED (context);
+    XCAM_UNUSED (erro_info);
     XCAM_UNUSED (private_info);
     XCAM_UNUSED (cb);
     XCAM_LOG_DEBUG ("cl context pfn error:%s", XCAM_STR (erro_info));
@@ -53,6 +54,7 @@ void CLContext::program_pfn_notify (
     char kernel_names [XCAM_CL_MAX_STR_SIZE];
 
     XCAM_UNUSED (context);
+    XCAM_UNUSED (program);
     xcam_mem_clear (kernel_names);
     //clGetProgramInfo (program, CL_PROGRAM_KERNEL_NAMES, sizeof (kernel_names) - 1, kernel_names, NULL);
     //XCAM_LOG_DEBUG ("cl program report error on kernels: %s", kernel_names);
@@ -320,11 +322,48 @@ CLContext::create_va_image (const cl_libva_image &image_info)
     return mem_id;
 }
 
+cl_mem
+CLContext::create_image (
+    cl_mem_flags flags, const cl_image_format& format,
+    const cl_image_desc &image_info, void *host_ptr)
+{
+    cl_mem mem_id = NULL;
+    cl_int errcode = CL_SUCCESS;
+
+    mem_id = clCreateImage (
+                 _context_id, flags,
+                 &format, &image_info,
+                 host_ptr, &errcode);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        errcode == CL_SUCCESS,
+        NULL,
+        "create cl image failed");
+    return mem_id;
+}
+
 void
 CLContext::destroy_mem (cl_mem mem_id)
 {
     if (mem_id)
         clReleaseMemObject (mem_id);
+}
+
+int32_t
+CLContext::export_mem_fd (cl_mem mem_id)
+{
+    cl_int errcode = CL_SUCCESS;
+    int32_t fd = -1;
+
+    XCAM_ASSERT (mem_id);
+    errcode = clGetMemObjectFdIntel (_context_id, mem_id, &fd);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        errcode == CL_SUCCESS,
+        -1,
+        "export cl mem fd failed");
+    return fd;
 }
 
 CLCommandQueue::CLCommandQueue (SmartPtr<CLContext> &context, cl_command_queue id)

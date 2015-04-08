@@ -27,9 +27,19 @@
 
 namespace XCam {
 
+struct CLImageDesc {
+    cl_image_format         format;
+    uint32_t                width;
+    uint32_t                height;
+    uint32_t                row_pitch;
+    uint32_t                size;
+
+    CLImageDesc ();
+};
+
 class CLMemory {
 public:
-    CLMemory (SmartPtr<CLContext> &context);
+    explicit CLMemory (SmartPtr<CLContext> &context);
     virtual ~CLMemory ();
 
     cl_mem &get_mem_id () {
@@ -39,38 +49,104 @@ public:
         return _mem_id != NULL;
     }
 
+    bool get_cl_mem_info (
+        cl_image_info param_name, size_t param_size,
+        void *param, size_t *param_size_ret = NULL);
+
+    int32_t export_fd ();
+    void release_fd ();
+
+protected:
+    void set_mem_id (cl_mem &id) {
+        _mem_id = id;
+    }
+    SmartPtr<CLContext> &get_context () {
+        return _context;
+    }
+
 private:
     XCAM_DEAD_COPY (CLMemory);
 
-protected:
+private:
     SmartPtr<CLContext>   _context;
     cl_mem                _mem_id;
+    int32_t               _mem_fd;
+};
+
+class CLImage
+    : public CLMemory
+{
+public:
+    virtual ~CLImage () {}
+
+    const CLImageDesc &get_image_desc () const {
+        return _image_desc;
+    }
+    uint32_t get_pixel_bytes () const;
+
+    static uint32_t calculate_pixel_bytes (const cl_image_format &fmt);
+    static bool video_info_2_cl_image_desc (
+        const VideoBufferInfo & video_info,
+        CLImageDesc &cl_desc);
+
+protected:
+    explicit CLImage (SmartPtr<CLContext> &context);
+    void init_desc_by_image ();
+    bool get_cl_image_info (
+        cl_image_info param_name, size_t param_size,
+        void *param, size_t *param_size_ret = NULL);
+
+private:
+    XCAM_DEAD_COPY (CLImage);
+
+    CLImageDesc  _image_desc;
 };
 
 class CLVaImage
-    : public CLMemory
+    : public CLImage
 {
 public:
     explicit CLVaImage (
         SmartPtr<CLContext> &context,
         SmartPtr<DrmBoBuffer> &bo,
-        const cl_libva_image *image_info = NULL);
+        uint32_t offset = 0);
+    explicit CLVaImage (
+        SmartPtr<CLContext> &context,
+        SmartPtr<DrmBoBuffer> &bo,
+        const CLImageDesc &image_info,
+        uint32_t offset = 0);
     ~CLVaImage () {}
-    const cl_libva_image & get_image_info () const {
-        return _image_info;
-    }
-
-    static bool video_info_2_cl_image_info (
-        const VideoBufferInfo & video_info,
-        cl_libva_image &cl_image_info);
-
-    static uint32_t get_pixel_bytes (cl_image_format fmt);
 
 private:
+    bool init_va_image (
+        SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo,
+        const CLImageDesc &cl_desc, uint32_t offset);
+
     XCAM_DEAD_COPY (CLVaImage);
+
 private:
     SmartPtr<DrmBoBuffer>   _bo;
-    cl_libva_image          _image_info;
+    cl_libva_image          _va_image_info;
+};
+
+class CLImage2D
+    : public CLImage
+{
+public:
+    explicit CLImage2D (
+        SmartPtr<CLContext> &context,
+        const VideoBufferInfo &video_info,
+        cl_mem_flags  flags = CL_MEM_READ_WRITE);
+
+    ~CLImage2D () {}
+
+private:
+    bool init_image_2d (
+        SmartPtr<CLContext> &context,
+        const CLImageDesc &cl_desc,
+        cl_mem_flags  flags);
+
+    XCAM_DEAD_COPY (CLImage2D);
 };
 
 };

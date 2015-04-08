@@ -38,8 +38,8 @@ CLCscImageKernel::prepare_arguments (
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info = output->get_video_info ();
 
-    _image_in = new CLVaImage (context, input, NULL);
-    _image_out = new CLVaImage (context, output, NULL);
+    _image_in = new CLVaImage (context, input);
+    _image_out = new CLVaImage (context, output);
     _vertical_offset = video_info.aligned_height;
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
@@ -97,7 +97,7 @@ CLCscImageHandler::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input,
     VideoBufferInfo &output)
 {
-    bool format_inited = output.init (_output_format, input.width, input.height, 8, 8);
+    bool format_inited = output.init (_output_format, input.width, input.height);
 
     XCAM_FAIL_RETURN (
         WARNING,

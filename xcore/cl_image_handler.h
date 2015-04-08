@@ -65,8 +65,8 @@ private:
     XCAM_DEAD_COPY (CLImageKernel);
 
 protected:
-    SmartPtr<CLVaImage>   _image_in;
-    SmartPtr<CLVaImage>   _image_out;
+    SmartPtr<CLImage>   _image_in;
+    SmartPtr<CLImage>   _image_out;
 };
 
 class CLImageHandler

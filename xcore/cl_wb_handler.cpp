@@ -55,9 +55,9 @@ CLWbImageKernel::prepare_arguments (
     args[2].arg_size = sizeof (CLWBConfig);
     arg_count = 3;
 
-    const cl_libva_image &out_info = _image_out->get_image_info ();
+    const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = out_info.row_pitch / 2;
+    work_size.global[0] = out_info.width / 2;
     work_size.global[1] = out_info.height / 2;
     work_size.local[0] = 4;
     work_size.local[1] = 4;

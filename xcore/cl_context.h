@@ -46,6 +46,8 @@ class CLContext {
     friend class CLKernel;
     friend class CLMemory;
     friend class CLVaImage;
+    friend class CLImage2D;
+
 public:
     enum KernelBuildType {
         KERNEL_BUILD_BINARY = 0,
@@ -92,7 +94,12 @@ private:
 
     //Memory, Image
     cl_mem create_va_image (const cl_libva_image &image_info);
+    cl_mem create_image (
+        cl_mem_flags flags, const cl_image_format& format,
+        const cl_image_desc &image_info, void *host_ptr = NULL);
     void destroy_mem (cl_mem mem_id);
+
+    int32_t export_mem_fd (cl_mem mem_id);
 
     XCAM_DEAD_COPY (CLContext);
 

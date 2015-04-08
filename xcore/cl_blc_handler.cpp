@@ -35,22 +35,21 @@ CLBlcImageKernel::prepare_arguments (
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info = input->get_video_info ();
-    cl_libva_image image_info;
+    CLImageDesc image_info;
     uint32_t channel_bits = XCAM_ALIGN_UP (video_info.color_bits, 8);
 
     xcam_mem_clear (&image_info);
-    image_info.fmt.image_channel_order = CL_R;
+    image_info.format.image_channel_order = CL_R;
     if (channel_bits == 8)
-        image_info.fmt.image_channel_data_type = CL_UNSIGNED_INT8;
+        image_info.format.image_channel_data_type = CL_UNSIGNED_INT8;
     else if (channel_bits == 16)
-        image_info.fmt.image_channel_data_type = CL_UNSIGNED_INT16;
-    image_info.offset = 0;
+        image_info.format.image_channel_data_type = CL_UNSIGNED_INT16;
     image_info.width = video_info.width;
     image_info.height = (video_info.size / video_info.strides[0]) / 4 * 4;
     image_info.row_pitch = video_info.strides[0];
 
-    _image_in = new CLVaImage (context, input, &image_info);
-    _image_out = new CLVaImage (context, output, &image_info);
+    _image_in = new CLVaImage (context, input, image_info, 0);
+    _image_out = new CLVaImage (context, output, image_info, 0);
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (

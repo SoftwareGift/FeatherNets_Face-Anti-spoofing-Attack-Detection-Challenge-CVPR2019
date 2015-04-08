@@ -72,7 +72,7 @@ struct VideoBufferInfo {
     bool init (
         uint32_t format,
         uint32_t width, uint32_t height,
-        uint32_t alignment_w = 4, uint32_t alignment_h = 2);
+        uint32_t aligned_width = 0, uint32_t aligned_height = 0, uint32_t size = 0);
 };
 
 class VideoBuffer {

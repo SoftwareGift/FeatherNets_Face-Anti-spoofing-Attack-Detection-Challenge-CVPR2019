@@ -41,50 +41,55 @@ bool
 VideoBufferInfo::init (
     uint32_t format,
     uint32_t width, uint32_t height,
-    uint32_t alignment_w, uint32_t alignment_h)
+    uint32_t aligned_width, uint32_t aligned_height,
+    uint32_t size)
 {
-    XCAM_ASSERT ((alignment_w & (alignment_w - 1)) == 0 && alignment_w != 0);
-    XCAM_ASSERT ((alignment_h & (alignment_h - 1)) == 0 && alignment_h != 0);
+    uint32_t image_size = 0;
 
-    uint32_t final_width = XCAM_ALIGN_UP (width, alignment_w);
-    uint32_t final_height = XCAM_ALIGN_UP (height, alignment_h);
+    XCAM_ASSERT (!aligned_width  || aligned_width >= width);
+    XCAM_ASSERT (!aligned_height  || aligned_height >= height);
+
+    if (!aligned_width)
+        aligned_width = XCAM_ALIGN_UP (width, 4);
+    if (!aligned_height)
+        aligned_height = XCAM_ALIGN_UP (height, 2);
 
     this->format = format;
     this->width = width;
     this->height = height;
-    this->aligned_width = final_width;
-    this->aligned_height = final_height;
+    this->aligned_width = aligned_width;
+    this->aligned_height = aligned_height;
 
     switch (format) {
     case V4L2_PIX_FMT_NV12:
         this->color_bits = 8;
         this->components = 2;
-        this->strides [0] = final_width;
+        this->strides [0] = aligned_width;
         this->strides [1] = this->strides [0];
         this->offsets [0] = 0;
-        this->offsets [1] = this->offsets [0] + this->strides [0] * final_height;
-        this->size = this->strides [0] * final_height + this->strides [1] * final_height / 2;
+        this->offsets [1] = this->offsets [0] + this->strides [0] * aligned_height;
+        image_size = this->strides [0] * aligned_height + this->strides [1] * aligned_height / 2;
         break;
     case V4L2_PIX_FMT_YUYV:
         this->color_bits = 8;
         this->components = 1;
-        this->strides [0] = final_width * 2;
+        this->strides [0] = aligned_width * 2;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
     case V4L2_PIX_FMT_RGB565:
         this->color_bits = 16;
         this->components = 1;
-        this->strides [0] = final_width * 2;
+        this->strides [0] = aligned_width * 2;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
     case V4L2_PIX_FMT_RGB24:
         this->color_bits = 8;
         this->components = 1;
-        this->strides [0] = final_width * 3;
+        this->strides [0] = aligned_width * 3;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
         // memory order: BGRA
     case V4L2_PIX_FMT_XBGR32:
@@ -96,23 +101,23 @@ VideoBufferInfo::init (
     case V4L2_PIX_FMT_XRGB32:
         this->color_bits = 8;
         this->components = 1;
-        this->strides [0] = final_width * 4;
+        this->strides [0] = aligned_width * 4;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
     case XCAM_PIX_FMT_RGB48:
         this->color_bits = 16;
         this->components = 1;
-        this->strides [0] = final_width * 3 * 2;
+        this->strides [0] = aligned_width * 3 * 2;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
     case XCAM_PIX_FMT_RGBA64:
         this->color_bits = 16;
         this->components = 1;
-        this->strides [0] = final_width * 4 * 2;
+        this->strides [0] = aligned_width * 4 * 2;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
 
     case V4L2_PIX_FMT_SBGGR8:
@@ -121,9 +126,9 @@ VideoBufferInfo::init (
     case V4L2_PIX_FMT_SRGGB8:
         this->color_bits = 8;
         this->components = 1;
-        this->strides [0] = final_width;
+        this->strides [0] = aligned_width;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
 
     case V4L2_PIX_FMT_SBGGR10:
@@ -132,9 +137,9 @@ VideoBufferInfo::init (
     case V4L2_PIX_FMT_SRGGB10:
         this->color_bits = 10;
         this->components = 1;
-        this->strides [0] = final_width * 2;
+        this->strides [0] = aligned_width * 2;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
 
     case V4L2_PIX_FMT_SBGGR12:
@@ -143,30 +148,37 @@ VideoBufferInfo::init (
     case V4L2_PIX_FMT_SRGGB12:
         this->color_bits = 12;
         this->components = 1;
-        this->strides [0] = final_width * 2;
+        this->strides [0] = aligned_width * 2;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
 
     case V4L2_PIX_FMT_SBGGR16:
     case XCAM_PIX_FMT_SGRBG16:
         this->color_bits = 16;
         this->components = 1;
-        this->strides [0] = final_width * 2;
+        this->strides [0] = aligned_width * 2;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
 
     case XCAM_PIX_FMT_LAB:
         this->color_bits = 32;
         this->components = 1;
-        this->strides [0] = final_width * 3 * 4;
+        this->strides [0] = aligned_width * 3 * 4;
         this->offsets [0] = 0;
-        this->size = this->strides [0] * final_height;
+        image_size = this->strides [0] * aligned_height;
         break;
     default:
         XCAM_LOG_WARNING ("VideoBufferInfo init failed, unsupported format:%s", xcam_fourcc_to_string (format));
         return false;
+    }
+
+    if (!size)
+        this->size = image_size;
+    else {
+        XCAM_ASSERT (size >= image_size);
+        this->size = size;
     }
 
     return true;
