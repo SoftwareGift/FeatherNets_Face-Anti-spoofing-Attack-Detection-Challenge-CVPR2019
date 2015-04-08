@@ -23,6 +23,7 @@
 #include "cl_demosaic_handler.h"
 #include "cl_csc_handler.h"
 #include "cl_hdr_handler.h"
+#include "cl_denoise_handler.h"
 
 namespace XCam {
 
@@ -30,6 +31,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _enable_hdr (false)
+    , _enable_denoise (false)
     , _out_smaple_type (OutSampleYuv)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
@@ -105,6 +107,20 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create blc handler failed");
     add_handler (image_handler);
+
+    /* denoise */
+    if (_enable_denoise) {
+        image_handler = create_cl_denoise_image_handler (context);
+        _denoise = image_handler;
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _denoise.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create denoise handler failed");
+        add_handler (image_handler);
+    }
+
+
 
     /* hdr */
     if (_enable_hdr) {

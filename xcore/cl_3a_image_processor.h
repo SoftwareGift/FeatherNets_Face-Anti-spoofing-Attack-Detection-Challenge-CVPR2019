@@ -46,6 +46,9 @@ public:
     void set_hdr (bool enable) {
         _enable_hdr = enable;
     }
+    void set_denoise (bool enable) {
+        _enable_denoise = enable;
+    }
 
 protected:
 
@@ -61,12 +64,14 @@ private:
 private:
     uint32_t                           _output_fourcc;
     bool                               _enable_hdr;
+    bool                               _enable_denoise;
     OutSampleType                      _out_smaple_type;
 
     SmartPtr<CLImageHandler>           _black_level;
     SmartPtr<CLBayer2RGBImageHandler>  _demosaic;
     SmartPtr<CLImageHandler>           _hdr;
     SmartPtr<CLCscImageHandler>        _csc;
+    SmartPtr<CLImageHandler>    _denoise;
 };
 
 };

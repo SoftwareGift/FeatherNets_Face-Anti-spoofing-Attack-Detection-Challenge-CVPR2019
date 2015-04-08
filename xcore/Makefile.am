@@ -109,6 +109,7 @@ xcam_sources +=              \
 	cl_demosaic_handler.cpp  \
 	cl_csc_handler.cpp       \
 	cl_wb_handler.cpp	 \
+	cl_denoise_handler.cpp       \
 	$(NULL)
 endif
 
