@@ -27,9 +27,6 @@ namespace XCam {
 AtomispDevice::AtomispDevice (const char *name)
     : V4l2Device (name)
 {
-#if HAVE_LIBDRM
-    _drm_disp = DrmDisplay::instance ();
-#endif
 }
 
 AtomispDevice::~AtomispDevice ()
@@ -81,6 +78,10 @@ AtomispDevice::allocate_buffer (
     const uint32_t index)
 {
 #if HAVE_LIBDRM
+    if (!_drm_disp.ptr()) {
+        _drm_disp = DrmDisplay::instance ();
+    }
+
     if (get_mem_type () == V4L2_MEMORY_DMABUF && _drm_disp.ptr () != NULL) {
         buf = _drm_disp->create_drm_buf (format, index, get_capture_buf_type ());
         if (!buf.ptr()) {
