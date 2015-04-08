@@ -144,7 +144,7 @@ private:
 private:
 
     Obj      *_ptr;
-    RefCount *_ref;
+    mutable RefCount *_ref;
 };
 
 }; // end namespace

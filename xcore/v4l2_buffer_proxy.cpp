@@ -127,9 +127,9 @@ V4l2BufferProxy::v4l2_format_to_video_info (
 }
 
 const struct v4l2_buffer &
-V4l2BufferProxy::get_v4l2_buf () const
+V4l2BufferProxy::get_v4l2_buf ()
 {
-    SmartPtr<BufferData> data = get_buffer_data ();
+    SmartPtr<BufferData> &data = get_buffer_data ();
     SmartPtr<V4l2Buffer> v4l2_data = data.dynamic_cast_ptr<V4l2Buffer> ();
     XCAM_ASSERT (v4l2_data.ptr ());
     return v4l2_data->get_buf ();

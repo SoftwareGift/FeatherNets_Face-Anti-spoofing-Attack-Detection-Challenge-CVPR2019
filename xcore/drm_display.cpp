@@ -414,4 +414,16 @@ DrmDisplay::create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo &in
     return new_bo;
 }
 
+drm_intel_bo *
+DrmDisplay::create_drm_bo_from_fd (int32_t fd, uint32_t size)
+{
+    drm_intel_bo *bo = NULL;
+    XCAM_ASSERT (_buf_manager);
+    bo = drm_intel_bo_gem_create_from_prime (_buf_manager, fd, size);
+
+    XCAM_ASSERT (bo);
+    return bo;
+}
+
+
 };

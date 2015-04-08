@@ -46,8 +46,10 @@ public:
     virtual uint8_t *map ();
     virtual bool unmap ();
 
-private:
+protected:
     explicit DrmBoData (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo);
+
+private:
     XCAM_DEAD_COPY (DrmBoData);
 private:
     SmartPtr<DrmDisplay>       _display;
@@ -64,7 +66,7 @@ public:
     virtual ~DrmBoBuffer () {}
     drm_intel_bo *get_bo ();
 
-private:
+protected:
     DrmBoBuffer (const VideoBufferInfo &info, const SmartPtr<DrmBoData> &data);
     XCAM_DEAD_COPY (DrmBoBuffer);
 };
@@ -83,13 +85,16 @@ protected:
     virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info);
     virtual SmartPtr<BufferProxy> create_buffer_from_data (SmartPtr<BufferData> &data);
 
+    SmartPtr<DrmDisplay> &get_drm_display () {
+        return _display;
+    }
+
 private:
     XCAM_DEAD_COPY (DrmBoBufferPool);
 
 private:
     SmartPtr<DrmDisplay>     _display;
 };
-
 
 };
 

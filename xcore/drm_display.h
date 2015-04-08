@@ -52,6 +52,7 @@ class DrmBoBuffer;
 
 class DrmDisplay {
     friend class DrmBoBufferPool;
+    friend class CLBoBufferPool;
 
     struct FB {
         uint32_t fb_handle;
@@ -100,6 +101,7 @@ private:
     DrmDisplay (const char* module = NULL);
 
     SmartPtr<DrmBoData> create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo& info);
+    drm_intel_bo *create_drm_bo_from_fd (int32_t fd, uint32_t size);
 
     XCamReturn get_crtc(drmModeRes *res);
     XCamReturn get_connector(drmModeRes *res);

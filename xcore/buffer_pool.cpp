@@ -90,12 +90,11 @@ BufferPool::reserve (uint32_t max_count)
 {
     uint32_t i = 0;
 
-    XCAM_ASSERT (_buf_list.is_empty ());
     XCAM_ASSERT (max_count);
 
     SmartLock lock (_mutex);
 
-    for (; i < max_count; ++i) {
+    for (i = _allocated_num; i < max_count; ++i) {
         SmartPtr<BufferData> new_data = allocate_data (_buffer_info);
         if (!new_data.ptr ())
             break;
@@ -112,9 +111,22 @@ BufferPool::reserve (uint32_t max_count)
         XCAM_LOG_WARNING ("BufferPool expect to reserve %d data but only reserved %d", max_count, i);
     }
     _max_count = i;
-    _allocated_num = i;
+    _allocated_num = _max_count;
     _started = true;
 
+    return true;
+}
+
+bool
+BufferPool::add_data_unsafe (SmartPtr<BufferData> data)
+{
+    if (!data.ptr ())
+        return false;
+
+    _buf_list.push (data);
+    ++_allocated_num;
+
+    XCAM_ASSERT (_allocated_num <= _max_count || !_max_count);
     return true;
 }
 

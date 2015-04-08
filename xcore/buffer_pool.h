@@ -97,6 +97,8 @@ protected:
     virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info) = 0;
     virtual SmartPtr<BufferProxy> create_buffer_from_data (SmartPtr<BufferData> &data);
 
+    bool add_data_unsafe (SmartPtr<BufferData> data);
+
 private:
     void release (SmartPtr<BufferData> &data);
     XCAM_DEAD_COPY (BufferPool);

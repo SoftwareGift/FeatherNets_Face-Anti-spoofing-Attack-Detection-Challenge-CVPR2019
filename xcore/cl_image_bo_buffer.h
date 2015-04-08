@@ -1,5 +1,5 @@
 /*
- * cl_bo_buffer.h - cl bo buffer
+ * cl_image_bo_buffer.h - cl image bo buffer
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -18,18 +18,20 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#ifndef XCAM_CL_BO_BUFFER_H
-#define XCAM_CL_BO_BUFFER_H
+#ifndef XCAM_CL_IMAGE_BO_BUFFER_H
+#define XCAM_CL_IMAGE_BO_BUFFER_H
 
 #include "xcam_utils.h"
 #include "drm_bo_buffer.h"
+#include "cl_memory.h"
+#include "cl_context.h"
 
 namespace XCam {
 
 class CLImageBoData
     : public DrmBoData
 {
-    friend class DrmBoBufferPool;
+    friend class CLBoBufferPool;
 public:
 
 private:
@@ -77,4 +79,4 @@ private:
 
 
 };
-#endif // XCAM_CL_BO_BUFFER_H
+#endif // XCAM_CL_IMAGE_BO_BUFFER_H

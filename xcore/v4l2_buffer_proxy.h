@@ -109,7 +109,7 @@ public:
     }
 
 private:
-    const struct v4l2_buffer & get_v4l2_buf () const;
+    const struct v4l2_buffer & get_v4l2_buf ();
 
     void v4l2_format_to_video_info (
         const struct v4l2_format &format, VideoBufferInfo &info);

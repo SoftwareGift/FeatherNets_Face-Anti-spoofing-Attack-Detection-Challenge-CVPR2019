@@ -1,5 +1,5 @@
 /*
- * cl_bo_buffer.cpp - cl bo buffer
+ * cl_image_bo_buffer.cpp - cl image bo buffer
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -18,16 +18,14 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#ifndef XCAM_CL_BO_BUFFER_H
-#define XCAM_CL_BO_BUFFER_H
-
-#include "cl_bo_buffer.h"
+#include "cl_image_bo_buffer.h"
 #include "cl_memory.h"
 
 namespace XCam {
 
 CLImageBoData::CLImageBoData (SmartPtr<DrmDisplay> &display, SmartPtr<CLImage> &image, drm_intel_bo *bo)
     : DrmBoData (display, bo)
+    , _image (image)
 {
     XCAM_ASSERT (image->get_mem_id ());
 }
@@ -56,6 +54,8 @@ CLBoBufferPool::create_image_bo (const VideoBufferInfo &info)
     int32_t mem_fd = -1;
     SmartPtr<DrmDisplay> display = get_drm_display ();
     drm_intel_bo *bo = NULL;
+    CLImageDesc desc;
+    SmartPtr<CLImageBoData> data;
     SmartPtr<CLImage> image = new CLImage2D (_context, info, CL_MEM_READ_WRITE);
     XCAM_FAIL_RETURN (
         WARNING,
@@ -63,6 +63,7 @@ CLBoBufferPool::create_image_bo (const VideoBufferInfo &info)
         NULL,
         "CLBoBufferPool create image failed");
 
+    desc = image->get_image_desc ();
     mem_fd = image->export_fd ();
     XCAM_FAIL_RETURN (
         WARNING,
@@ -70,14 +71,14 @@ CLBoBufferPool::create_image_bo (const VideoBufferInfo &info)
         NULL,
         "CLBoBufferPool export image fd failed");
 
-    bo = display->create_drm_bo_from_fd ();
+    bo = display->create_drm_bo_from_fd (mem_fd, desc.size);
     XCAM_FAIL_RETURN (
         WARNING,
         bo,
         NULL,
         "CLBoBufferPool bind fd to bo failed");
 
-    SmartPtr<CLImageBoData> data = new CLImageBoData (display, image, bo);
+    data = new CLImageBoData (display, image, bo);
     XCAM_FAIL_RETURN (
         WARNING,
         data.ptr (),
