@@ -41,6 +41,10 @@ namespace XCam {
 #define V4L2_PIX_FMT_ARGB32 v4l2_fourcc('B', 'A', '2', '4')
 #endif
 
+#ifndef V4L2_PIX_FMT_RGBA32
+#define V4L2_PIX_FMT_RGBA32 v4l2_fourcc('A', 'B', '2', '4')
+#endif
+
 /*
  * Define special format for 16 bit color
  * every format start with 'X'

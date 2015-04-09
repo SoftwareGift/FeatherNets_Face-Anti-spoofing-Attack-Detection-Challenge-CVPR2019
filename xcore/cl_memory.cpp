@@ -214,10 +214,16 @@ CLImage::video_info_2_cl_image_desc (
         image_desc.format.image_channel_order = CL_BGRA;
         image_desc.format.image_channel_data_type = CL_UNORM_INT8;
         break;
+        // cl doesn'tn support ARGB32 up to now, how about consider V4L2_PIX_FMT_RGBA32
     case V4L2_PIX_FMT_RGB32:
     case V4L2_PIX_FMT_ARGB32:
     case V4L2_PIX_FMT_XRGB32:
         image_desc.format.image_channel_order = CL_ARGB;
+        image_desc.format.image_channel_data_type = CL_UNORM_INT8;
+        break;
+
+    case V4L2_PIX_FMT_RGBA32:
+        image_desc.format.image_channel_order = CL_RGBA;
         image_desc.format.image_channel_data_type = CL_UNORM_INT8;
         break;
 
