@@ -73,6 +73,27 @@ private:
     int32_t               _mem_fd;
 };
 
+class CLBuffer
+    : public CLMemory
+{
+public:
+    explicit CLBuffer (
+        SmartPtr<CLContext> &context, uint32_t size,
+        cl_mem_flags  flags =  CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+        void *host_ptr = NULL);
+
+private:
+    bool init_buffer (
+        SmartPtr<CLContext> &context, uint32_t size,
+        cl_mem_flags  flags, void *host_ptr);
+
+    XCAM_DEAD_COPY (CLBuffer);
+
+private:
+    cl_mem_flags    _flags;
+    uint32_t        _size;
+};
+
 class CLImage
     : public CLMemory
 {

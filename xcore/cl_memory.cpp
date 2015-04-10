@@ -87,6 +87,33 @@ bool CLMemory::get_cl_mem_info (
     return true;
 }
 
+CLBuffer::CLBuffer (
+    SmartPtr<CLContext> &context, uint32_t size,
+    cl_mem_flags  flags, void *host_ptr)
+    : CLMemory (context)
+    , _flags (flags)
+    , _size (size)
+{
+    init_buffer (context, size, flags, host_ptr);
+}
+
+bool
+CLBuffer::init_buffer (
+    SmartPtr<CLContext> &context, uint32_t size,
+    cl_mem_flags  flags, void *host_ptr)
+{
+    cl_mem mem_id = NULL;
+
+    mem_id = context->create_buffer (size, flags, host_ptr);
+    if (mem_id == NULL) {
+        XCAM_LOG_WARNING ("CLBuffer create buffer failed");
+        return false;
+    }
+
+    set_mem_id (mem_id);
+    return true;
+}
+
 CLImage::CLImage (SmartPtr<CLContext> &context)
     : CLMemory (context)
 {

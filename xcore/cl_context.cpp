@@ -350,6 +350,25 @@ CLContext::destroy_mem (cl_mem mem_id)
         clReleaseMemObject (mem_id);
 }
 
+cl_mem
+CLContext::create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr)
+{
+    cl_mem mem_id = NULL;
+    cl_int errcode = CL_SUCCESS;
+
+    mem_id = clCreateBuffer (
+                 _context_id, flags,
+                 size, host_ptr,
+                 &errcode);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        errcode == CL_SUCCESS,
+        NULL,
+        "create cl buffer failed");
+    return mem_id;
+}
+
 int32_t
 CLContext::export_mem_fd (cl_mem mem_id)
 {

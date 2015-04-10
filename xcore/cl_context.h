@@ -45,6 +45,7 @@ class CLContext {
     friend class CLDevice;
     friend class CLKernel;
     friend class CLMemory;
+    friend class CLBuffer;
     friend class CLVaImage;
     friend class CLImage2D;
 
@@ -98,6 +99,9 @@ private:
         cl_mem_flags flags, const cl_image_format& format,
         const cl_image_desc &image_info, void *host_ptr = NULL);
     void destroy_mem (cl_mem mem_id);
+
+    // Buffer
+    cl_mem create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr);
 
     int32_t export_mem_fd (cl_mem mem_id);
 
