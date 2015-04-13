@@ -43,7 +43,7 @@ CLDemoImageKernel::prepare_arguments (
         image_info.format.image_channel_data_type = CL_UNORM_INT8;
     else if (channel_bits == 16)
         image_info.format.image_channel_data_type = CL_UNORM_INT16;
-    image_info.width = video_info.width;
+    image_info.width = video_info.strides[0] / CLImage::calculate_pixel_bytes (image_info.format);
     image_info.height = (video_info.size / video_info.strides[0]) / 4 * 4;
     image_info.row_pitch = video_info.strides[0];
 

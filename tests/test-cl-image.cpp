@@ -155,7 +155,7 @@ int main (int argc, char *argv[])
             else if (!strcasecmp (optarg, "ba10"))
                 format = V4L2_PIX_FMT_SGRBG10;
             else if (! strcasecmp (optarg, "rgba"))
-                format = V4L2_PIX_FMT_RGB32;
+                format = V4L2_PIX_FMT_RGBA32;
 
             else
                 print_help (bin_name);
@@ -270,7 +270,7 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    input_buf_info.init (format, 1920, 1080, 8, 4);
+    input_buf_info.init (format, 1920, 1080);
     display = DrmDisplay::instance ();
     buf_pool = new DrmBoBufferPool (display);
     buf_pool->set_video_info (input_buf_info);
