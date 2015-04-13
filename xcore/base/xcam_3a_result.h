@@ -137,8 +137,8 @@ typedef struct _XCam3aResultDemosaic {
 
     /* data */
     double           noise;
-    double           thresthold_cr;
-    double           thresthold_cb;
+    double           threshold_cr;
+    double           threshold_cb;
 } XCam3aResultDemosaic;
 
 
@@ -148,7 +148,7 @@ typedef struct _XCam3aResultDefectPixel {
 
     /* data */
     double           gain;
-    double           thresthold;
+    double           threshold;
 } XCam3aResultDefectPixel;
 
 typedef struct _XCam3aResultNoiseReduction {
@@ -156,8 +156,8 @@ typedef struct _XCam3aResultNoiseReduction {
 
     /* data */
     double           gain;
-    double           thresthold1;
-    double           thresthold2;
+    double           threshold1;
+    double           threshold2;
 } XCam3aResultNoiseReduction;
 
 typedef struct _XCam3aResultEdgeEnhancement {
@@ -165,7 +165,7 @@ typedef struct _XCam3aResultEdgeEnhancement {
 
     /* data */
     double           gain;
-    double           thresthold;
+    double           threshold;
 } XCam3aResultEdgeEnhancement;
 
 typedef struct _XCam3aResultGammaTable {
