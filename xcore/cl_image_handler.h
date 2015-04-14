@@ -87,7 +87,9 @@ protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input,
         VideoBufferInfo &output);
-    XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+
+    // if derive prepare_output_buf, then prepare_buffer_pool_video_info is not involked
+    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     XCamReturn create_buffer_pool (const VideoBufferInfo &video_info);
     SmartPtr<BufferPool> &get_buffer_pool () {
         return _buf_pool;

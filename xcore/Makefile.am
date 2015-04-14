@@ -66,6 +66,7 @@ xcam_sources =               \
 	x3a_analyzer_manager.cpp \
 	x3a_analyzer_simple.cpp  \
 	x3a_image_process_center.cpp  \
+	x3a_stats_pool.cpp       \
 	x3a_isp_config.cpp       \
 	x3a_result.cpp           \
 	x3a_result_factory.cpp   \
@@ -102,15 +103,16 @@ xcam_sources +=              \
 	cl_image_bo_buffer.cpp         \
 	cl_image_handler.cpp     \
 	cl_image_processor.cpp   \
-	cl_3a_image_processor.cpp    \
+	cl_3a_image_processor.cpp      \
+	cl_3a_stats_calculator.cpp     \
 	cl_demo_handler.cpp      \
 	cl_blc_handler.cpp       \
 	drm_bo_buffer.cpp        \
 	cl_hdr_handler.cpp       \
 	cl_demosaic_handler.cpp  \
 	cl_csc_handler.cpp       \
-	cl_wb_handler.cpp	 \
-	cl_denoise_handler.cpp       \
+	cl_wb_handler.cpp        \
+	cl_denoise_handler.cpp   \
 	cl_gamma_handler.cpp	 \
 	$(NULL)
 endif
