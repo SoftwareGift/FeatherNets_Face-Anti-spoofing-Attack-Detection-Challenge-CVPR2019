@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "smartptr.h"
+#include "cl_event.h"
 #include <CL/cl.h>
 #include <string>
 
@@ -86,9 +87,8 @@ public:
     }
 
     XCamReturn execute (
-        const cl_event *events_wait = NULL,
-        uint32_t num_of_events_wait = 0,
-        cl_event *event_out = NULL);
+        CLEventList &events = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
 private:
     void set_default_work_size ();

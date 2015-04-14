@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "smartptr.h"
+#include "cl_event.h"
 #include <map>
 #include <list>
 #include <CL/cl.h>
@@ -59,6 +60,10 @@ public:
     cl_context get_context_id () {
         return _context_id;
     }
+
+    XCamReturn flush ();
+    XCamReturn finish ();
+
     void terminate ();
 
 private:
@@ -79,9 +84,8 @@ private:
     XCamReturn execute_kernel (
         CLKernel *kernel,
         CLCommandQueue *queue = NULL,
-        const cl_event *events_wait = NULL,
-        uint32_t num_of_events_wait = 0,
-        cl_event *event_out = NULL);
+        CLEventList &events_wait = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
     //bool insert_kernel (SmartPtr<CLKernel> &kernel);
 
     bool init_context ();
@@ -102,8 +106,26 @@ private:
 
     // Buffer
     cl_mem create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr);
+    XCamReturn enqueue_read_buffer (
+        cl_mem buf_id, void *ptr,
+        uint32_t offset, uint32_t size,
+        bool block = true,
+        CLEventList &events_wait = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+
+    XCamReturn enqueue_write_buffer (
+        cl_mem buf_id, void *ptr,
+        uint32_t offset, uint32_t size,
+        bool block = true,
+        CLEventList &events_wait = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
     int32_t export_mem_fd (cl_mem mem_id);
+
+    // return valid event count
+    static uint32_t event_list_2_id_array (
+        CLEventList &events_wait,
+        cl_event *cl_events, uint32_t max_count);
 
     XCAM_DEAD_COPY (CLContext);
 

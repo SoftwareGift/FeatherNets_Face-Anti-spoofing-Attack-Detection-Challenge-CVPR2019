@@ -114,6 +114,38 @@ CLBuffer::init_buffer (
     return true;
 }
 
+XCamReturn
+CLBuffer::enqueue_read (
+    void *ptr, uint32_t offset, uint32_t size,
+    CLEventList &event_waits,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLContext> context = get_context ();
+    cl_mem mem_id = get_mem_id ();
+
+    XCAM_ASSERT (is_valid ());
+    if (!is_valid ())
+        return XCAM_RETURN_ERROR_PARAM;
+
+    return context->enqueue_read_buffer (mem_id, ptr, offset, size, true, event_waits, event_out);
+}
+
+XCamReturn
+CLBuffer::enqueue_write (
+    void *ptr, uint32_t offset, uint32_t size,
+    CLEventList &event_waits,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLContext> context = get_context ();
+    cl_mem mem_id = get_mem_id ();
+
+    XCAM_ASSERT (is_valid ());
+    if (!is_valid ())
+        return XCAM_RETURN_ERROR_PARAM;
+
+    return context->enqueue_write_buffer (mem_id, ptr, offset, size, true, event_waits, event_out);
+}
+
 CLImage::CLImage (SmartPtr<CLContext> &context)
     : CLMemory (context)
 {

@@ -188,12 +188,11 @@ CLKernel::set_default_work_size ()
 
 XCamReturn
 CLKernel::execute (
-    const cl_event *events_wait,
-    uint32_t num_of_events_wait,
-    cl_event *event_out)
+    CLEventList &events,
+    SmartPtr<CLEvent> &event_out)
 {
     XCAM_ASSERT (_context.ptr ());
-    return _context->execute_kernel (this, NULL, events_wait, num_of_events_wait, event_out);
+    return _context->execute_kernel (this, NULL, events, event_out);
 }
 
 };

@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "cl_context.h"
+#include "cl_event.h"
 #include "drm_bo_buffer.h"
 
 namespace XCam {
@@ -81,6 +82,15 @@ public:
         SmartPtr<CLContext> &context, uint32_t size,
         cl_mem_flags  flags =  CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
         void *host_ptr = NULL);
+
+    XCamReturn enqueue_read (
+        void *ptr, uint32_t offset, uint32_t size,
+        CLEventList &event_waits = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+    XCamReturn enqueue_write (
+        void *ptr, uint32_t offset, uint32_t size,
+        CLEventList &event_waits = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
 private:
     bool init_buffer (

@@ -27,6 +27,9 @@
 #undef XCAM_CL_MAX_STR_SIZE
 #define XCAM_CL_MAX_STR_SIZE 1024
 
+#undef XCAM_CL_MAX_EVENT_SIZE
+#define XCAM_CL_MAX_EVENT_SIZE 256
+
 namespace XCam {
 
 class CLKernel;
@@ -60,6 +63,29 @@ void CLContext::program_pfn_notify (
     //XCAM_LOG_DEBUG ("cl program report error on kernels: %s", kernel_names);
 }
 
+uint32_t
+CLContext::event_list_2_id_array (
+    CLEventList &events_wait,
+    cl_event *cl_events, uint32_t max_count)
+{
+    uint32_t num_of_events_wait = 0;
+
+    for (CLEventList::iterator iter = events_wait.begin ();
+            iter != events_wait.end (); ++iter) {
+        SmartPtr<CLEvent> &event = *iter;
+
+        if (num_of_events_wait >= max_count) {
+            XCAM_LOG_WARNING ("CLEventList(%d) larger than id_array(max_count:%d)", events_wait.size(), max_count);
+            break;
+        }
+        XCAM_ASSERT (event->get_event_id ());
+        cl_events[num_of_events_wait++] = event->get_event_id ();
+    }
+
+    return num_of_events_wait;
+}
+
+
 CLContext::CLContext (SmartPtr<CLDevice> &device)
     : _context_id (NULL)
     , _device (device)
@@ -82,6 +108,45 @@ CLContext::terminate ()
 {
     //_kernel_map.clear ();
     _cmd_queue_list.clear ();
+}
+
+XCamReturn
+CLContext::flush ()
+{
+    cl_int error_code = CL_SUCCESS;
+    cl_command_queue cmd_queue_id = NULL;
+    SmartPtr<CLCommandQueue> cmd_queue = get_default_cmd_queue ();
+
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
+    error_code = clFlush (cmd_queue_id);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        error_code == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "CL flush cmdqueue failed with error_code:%d", error_code);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+
+XCamReturn
+CLContext::finish ()
+{
+    cl_int error_code = CL_SUCCESS;
+    cl_command_queue cmd_queue_id = NULL;
+    SmartPtr<CLCommandQueue> cmd_queue = get_default_cmd_queue ();
+
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
+    error_code = clFinish (cmd_queue_id);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        error_code == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "CL finish cmdqueue failed with error_code:%d", error_code);
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 bool
@@ -149,8 +214,8 @@ XCamReturn
 CLContext::execute_kernel (
     CLKernel *kernel,
     CLCommandQueue *queue,
-    const cl_event *events_wait, uint32_t num_of_events_wait,
-    cl_event *event_out)
+    CLEventList &events_wait,
+    SmartPtr<CLEvent> &event_out)
 {
     cl_int error_code = CL_SUCCESS;
     cl_command_queue cmd_queue_id = NULL;
@@ -158,6 +223,9 @@ CLContext::execute_kernel (
     uint32_t work_dims = kernel->get_work_dims ();
     const size_t *global_sizes = kernel->get_work_global_size ();
     const size_t *local_sizes = kernel->get_work_local_size ();
+    cl_event *event_out_id = NULL;
+    cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
+    uint32_t num_of_events_wait = 0;
 
     XCAM_ASSERT (kernel);
 
@@ -168,13 +236,16 @@ CLContext::execute_kernel (
     XCAM_ASSERT (queue);
 
     cmd_queue_id = queue->get_cmd_queue_id ();
+    num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
+    if (event_out.ptr ())
+        event_out_id = &event_out->get_event_id ();
 
     error_code =
         clEnqueueNDRangeKernel (
             cmd_queue_id, kernel_id,
             work_dims, NULL, global_sizes, local_sizes,
-            num_of_events_wait, events_wait,
-            event_out);
+            num_of_events_wait, (num_of_events_wait ? events_id_wait : NULL),
+            event_out_id);
 
     XCAM_FAIL_RETURN(
         WARNING,
@@ -356,6 +427,8 @@ CLContext::create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr)
     cl_mem mem_id = NULL;
     cl_int errcode = CL_SUCCESS;
 
+    XCAM_ASSERT (_context_id);
+
     mem_id = clCreateBuffer (
                  _context_id, flags,
                  size, host_ptr,
@@ -367,6 +440,84 @@ CLContext::create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr)
         NULL,
         "create cl buffer failed");
     return mem_id;
+}
+
+XCamReturn
+CLContext::enqueue_read_buffer (
+    cl_mem buf_id, void *ptr,
+    uint32_t offset, uint32_t size,
+    bool block,
+    CLEventList &events_wait,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLCommandQueue> cmd_queue;
+    cl_command_queue cmd_queue_id = NULL;
+    cl_event *event_out_id = NULL;
+    cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
+    uint32_t num_of_events_wait = 0;
+    cl_int errcode = CL_SUCCESS;
+
+    cmd_queue = get_default_cmd_queue ();
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
+    num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
+    if (event_out.ptr ())
+        event_out_id = &event_out->get_event_id ();
+
+    XCAM_ASSERT (_context_id);
+    XCAM_ASSERT (cmd_queue_id);
+    errcode = clEnqueueReadBuffer (
+                  cmd_queue_id, buf_id,
+                  (block ? CL_BLOCKING : CL_NON_BLOCKING),
+                  offset, size, ptr,
+                  num_of_events_wait, (num_of_events_wait ? events_id_wait : NULL),
+                  event_out_id);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        errcode == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "cl enqueue read buffer failed with error_code:%d", errcode);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLContext::enqueue_write_buffer (
+    cl_mem buf_id, void *ptr,
+    uint32_t offset, uint32_t size,
+    bool block,
+    CLEventList &events_wait,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLCommandQueue> cmd_queue;
+    cl_command_queue cmd_queue_id = NULL;
+    cl_event *event_out_id = NULL;
+    cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
+    uint32_t num_of_events_wait = 0;
+    cl_int errcode = CL_SUCCESS;
+
+    cmd_queue = get_default_cmd_queue ();
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
+    num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
+    if (event_out.ptr ())
+        event_out_id = &event_out->get_event_id ();
+
+    XCAM_ASSERT (_context_id);
+    XCAM_ASSERT (cmd_queue_id);
+    errcode = clEnqueueWriteBuffer (
+                  cmd_queue_id, buf_id,
+                  (block ? CL_BLOCKING : CL_NON_BLOCKING),
+                  offset, size, ptr,
+                  num_of_events_wait, (num_of_events_wait ? events_id_wait : NULL),
+                  event_out_id);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        errcode == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "cl enqueue write buffer failed with error_code:%d", errcode);
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 int32_t
