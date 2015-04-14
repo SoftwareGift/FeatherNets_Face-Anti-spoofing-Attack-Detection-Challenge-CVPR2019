@@ -25,14 +25,18 @@
 #include "cl_image_handler.h"
 #include "cl_memory.h"
 #include "x3a_stats_pool.h"
+#include "stats_callback_interface.h"
 
 namespace XCam {
+
+class CL3AStatsCalculator;
 
 class CL3AStatsCalculatorKernel
     : public CLImageKernel
 {
 public:
-    explicit CL3AStatsCalculatorKernel (SmartPtr<CLContext> &context);
+    explicit CL3AStatsCalculatorKernel (
+        SmartPtr<CLContext> &context, SmartPtr<CL3AStatsCalculator> &image);
 
 public:
     virtual XCamReturn prepare_arguments (
@@ -44,7 +48,6 @@ public:
 
 private:
     bool allocate_data (const VideoBufferInfo &buffer_info);
-    XCamReturn post_stats (const SmartPtr<X3aStats> &stats);
 
     XCAM_DEAD_COPY (CL3AStatsCalculatorKernel);
 
@@ -53,19 +56,29 @@ private:
     SmartPtr<CLBuffer>               _stats_cl_buffer;
     XCam3AStatsInfo                  _stats_info;
     bool                             _data_allocated;
+
+    SmartPtr<CL3AStatsCalculator>    _image;
 };
 
 class CL3AStatsCalculator
     : public CLImageHandler
 {
+    friend class CL3AStatsCalculatorKernel;
 public:
     explicit CL3AStatsCalculator ();
+    void set_stats_callback (SmartPtr<StatsCallback> &callback) {
+        _stats_callback = callback;
+    }
 
-public:
+protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
+    XCamReturn post_stats (const SmartPtr<X3aStats> &stats);
     XCAM_DEAD_COPY (CL3AStatsCalculator);
+
+private:
+    SmartPtr<StatsCallback>         _stats_callback;
 };
 
 SmartPtr<CLImageHandler>

@@ -390,6 +390,7 @@ int main (int argc, char *argv[])
 #if HAVE_LIBCL
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
+        cl_processor->set_stats_callback(device_manager);
         cl_processor->set_hdr (true);
         cl_processor->set_denoise (false);
         if (need_display) {

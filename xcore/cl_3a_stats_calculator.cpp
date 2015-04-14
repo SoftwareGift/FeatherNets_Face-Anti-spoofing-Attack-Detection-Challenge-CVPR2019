@@ -23,9 +23,13 @@
 
 namespace XCam {
 
-CL3AStatsCalculatorKernel::CL3AStatsCalculatorKernel (SmartPtr<CLContext> &context)
+CL3AStatsCalculatorKernel::CL3AStatsCalculatorKernel (
+    SmartPtr<CLContext> &context,
+    SmartPtr<CL3AStatsCalculator> &image
+)
     : CLImageKernel (context, "kernel_3a_stats")
     , _data_allocated (false)
+    , _image (image)
 {
     xcam_mem_clear (&_stats_info);
 }
@@ -95,13 +99,7 @@ CL3AStatsCalculatorKernel::post_execute ()
     event.release ();
 
     //post stats out
-    return post_stats (stats);
-}
-
-XCamReturn
-CL3AStatsCalculatorKernel::post_stats (const SmartPtr<X3aStats> &stats)
-{
-    return XCAM_RETURN_NO_ERROR;
+    return _image->post_stats (stats);
 }
 
 bool
@@ -145,14 +143,24 @@ CL3AStatsCalculator::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+CL3AStatsCalculator::post_stats (const SmartPtr<X3aStats> &stats)
+{
+    if (_stats_callback.ptr ())
+        return _stats_callback->x3a_stats_ready (stats);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 SmartPtr<CLImageHandler>
 create_cl_3a_stats_image_handler (SmartPtr<CLContext> &context)
 {
-    SmartPtr<CLImageHandler> x3a_stats_handler;
+    SmartPtr<CL3AStatsCalculator> x3a_stats_handler;
     SmartPtr<CLImageKernel> x3a_stats_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    x3a_stats_kernel = new CL3AStatsCalculatorKernel (context);
+    x3a_stats_handler = new CL3AStatsCalculator ();
+    x3a_stats_kernel = new CL3AStatsCalculatorKernel (context, x3a_stats_handler);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_3a_stats)
 #include "kernel_3a_stats.cl"
@@ -165,7 +173,6 @@ create_cl_3a_stats_image_handler (SmartPtr<CLContext> &context)
             "CL image handler(%s) load source failed", x3a_stats_kernel->get_kernel_name());
     }
     XCAM_ASSERT (x3a_stats_kernel->is_valid ());
-    x3a_stats_handler = new CL3AStatsCalculator ();
     x3a_stats_handler->add_kernel (x3a_stats_kernel);
 
     return x3a_stats_handler;

@@ -25,6 +25,7 @@
 #include "cl_hdr_handler.h"
 #include "cl_denoise_handler.h"
 #include "cl_gamma_handler.h"
+#include "cl_3a_stats_calculator.h"
 
 namespace XCam {
 
@@ -42,6 +43,13 @@ CL3aImageProcessor::CL3aImageProcessor ()
 CL3aImageProcessor::~CL3aImageProcessor ()
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor destructed");
+}
+
+void
+CL3aImageProcessor::set_stats_callback (const SmartPtr<StatsCallback> &callback)
+{
+    XCAM_ASSERT (callback.ptr ());
+    _stats_callback = callback;
 }
 
 bool
@@ -122,6 +130,16 @@ CL3aImageProcessor::create_handlers ()
         add_handler (image_handler);
     }
 
+    image_handler = create_cl_3a_stats_image_handler (context);
+    _x3a_stats_calculator = image_handler.dynamic_cast_ptr<CL3AStatsCalculator> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _x3a_stats_calculator.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create 3a stats calculator failed");
+    _x3a_stats_calculator->set_stats_callback (_stats_callback);
+    add_handler (image_handler);
+
     /* gamma */
     if(_enable_gamma) {
         image_handler = create_cl_gamma_image_handler (context);
@@ -133,6 +151,7 @@ CL3aImageProcessor::create_handlers ()
             "CL3aImageProcessor create gamma handler failed");
         add_handler (image_handler);
     }
+
     /* hdr */
     if (_enable_hdr) {
         image_handler = create_cl_hdr_image_handler (context, CL_HDR_TYPE_RGB);
