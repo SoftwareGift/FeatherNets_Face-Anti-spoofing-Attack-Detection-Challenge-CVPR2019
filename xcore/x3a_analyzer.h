@@ -98,6 +98,7 @@ public:
     bool set_manual_saturation (double level);
     bool set_manual_sharpness (double level);
     bool set_gamma_table (double *r_table, double *g_table, double *b_table);
+    bool set_color_effect(XCamColorEffect effect);
 
     uint32_t get_width () const {
         return _width;

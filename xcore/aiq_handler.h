@@ -210,6 +210,9 @@ public:
     ia_aiq_gbce_results *get_gbce_result () {
         return _gbce_result;
     }
+    XCamColorEffect get_color_effect() {
+        return _params.color_effect;
+    }
 
 private:
     XCAM_DEAD_COPY (AiqCommonHandler);
@@ -253,6 +256,7 @@ public:
 
     SmartPtr<X3aResult> generate_3a_configs (struct atomisp_parameters *parameters);
     void convert_window_to_ia (const XCam3AWindow &window, ia_rectangle &ia_window);
+    XCamReturn convert_color_effect (IspInputParameters &isp_input);
 
 private:
 

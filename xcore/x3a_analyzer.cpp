@@ -490,6 +490,14 @@ X3aAnalyzer::set_night_mode (bool enable)
     return _common_handler->set_night_mode (enable);
 }
 
+bool
+X3aAnalyzer::set_color_effect (XCamColorEffect type)
+{
+
+    XCAM_ASSERT (_common_handler.ptr());
+    return _common_handler->set_color_effect (type);
+}
+
 /* Picture quality */
 bool
 X3aAnalyzer::set_noise_reduction_level (double level)

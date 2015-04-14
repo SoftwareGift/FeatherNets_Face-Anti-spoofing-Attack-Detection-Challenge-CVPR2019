@@ -91,6 +91,7 @@ typedef struct _XCamCommonParam {
     bool                       enable_dvs;
     bool                       enable_gbce;
     bool                       enable_night_mode;
+    XCamColorEffect            color_effect;
 } XCamCommonParam;
 
 XCAM_END_DECLARE

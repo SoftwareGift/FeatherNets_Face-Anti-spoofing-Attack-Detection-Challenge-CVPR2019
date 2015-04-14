@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
@@ -111,16 +111,16 @@ typedef enum {
 } XCamAfMode;
 #endif
 
-/*! \brief XCam3AWindow.  
- * Represents a rectangle area. Could be converted to 
+/*! \brief XCam3AWindow.
+ * Represents a rectangle area. Could be converted to
  * AIQ ia_rectangle, see convert_xcam_to_ia_window().
  */
 typedef struct _XCam3AWindow {
-	int32_t x_start; /*!< X of start point (left-upper corner) */
-	int32_t y_start; /*!< Y of start point (left-upper corner) */
-	int32_t x_end;   /*!< X of end point (right-bottom corner) */
-	int32_t y_end;   /*!< Y of start point (left-upper corner) */
-	int weight;
+    int32_t x_start; /*!< X of start point (left-upper corner) */
+    int32_t y_start; /*!< Y of start point (left-upper corner) */
+    int32_t x_end;   /*!< X of end point (right-bottom corner) */
+    int32_t y_end;   /*!< Y of start point (left-upper corner) */
+    int weight;
 } XCam3AWindow;
 
 typedef struct _XCamExposureResult {
@@ -130,6 +130,17 @@ typedef struct _XCamExposureResult {
     double aperture_fn;
     int32_t iso;
 } XCamExposureResult;
+
+typedef enum {
+    XCAM_COLOR_EFFECT_NONE,
+    XCAM_COLOR_EFFECT_SKY_BLUE,
+    XCAM_COLOR_EFFECT_SKIN_WHITEN_LOW,
+    XCAM_COLOR_EFFECT_SKIN_WHITEN,
+    XCAM_COLOR_EFFECT_SKIN_WHITEN_HIGH,
+    XCAM_COLOR_EFFECT_SEPIA,
+    XCAM_COLOR_EFFECT_NEGATIVE,
+    XCAM_COLOR_EFFECT_GRAYSCALE,
+} XCamColorEffect;
 
 XCAM_END_DECLARE
 

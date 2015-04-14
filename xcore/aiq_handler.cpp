@@ -1003,6 +1003,43 @@ AiqCompositor::set_3a_stats (SmartPtr<X3aIspStatistics> &stats)
     return true;
 }
 
+XCamReturn AiqCompositor::convert_color_effect (IspInputParameters &isp_input)
+{
+    AiqCommonHandler *aiq_common = _common_handler.ptr();
+
+    switch (aiq_common->get_color_effect()) {
+    case XCAM_COLOR_EFFECT_NONE:
+        isp_input.effects = ia_isp_effect_none;
+        break;
+    case XCAM_COLOR_EFFECT_SKY_BLUE:
+        isp_input.effects = ia_isp_effect_sky_blue;
+        break;
+    case XCAM_COLOR_EFFECT_SKIN_WHITEN_LOW:
+        isp_input.effects = ia_isp_effect_skin_whiten_low;
+        break;
+    case XCAM_COLOR_EFFECT_SKIN_WHITEN:
+        isp_input.effects = ia_isp_effect_skin_whiten;
+        break;
+    case XCAM_COLOR_EFFECT_SKIN_WHITEN_HIGH:
+        isp_input.effects = ia_isp_effect_skin_whiten_high;
+        break;
+    case XCAM_COLOR_EFFECT_SEPIA:
+        isp_input.effects = ia_isp_effect_sepia;
+        break;
+    case XCAM_COLOR_EFFECT_NEGATIVE:
+        isp_input.effects = ia_isp_effect_negative;
+        break;
+    case XCAM_COLOR_EFFECT_GRAYSCALE:
+        isp_input.effects = ia_isp_effect_grayscale;
+        break;
+    default:
+        isp_input.effects = ia_isp_effect_none;
+        break;
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 XCamReturn AiqCompositor::integrate (X3aResultList &results)
 {
     IspInputParameters isp_params;
@@ -1051,6 +1088,8 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
     isp_params.manual_hue = (int8_t)(aiq_common->get_hue_unlock() * 128.0);
     isp_params.manual_sharpness = (int8_t)(aiq_common->get_sharpness_unlock() * 128.0);
     isp_params.manual_nr_level = (int8_t)(aiq_common->get_nr_level_unlock() * 128.0);
+
+    convert_color_effect(isp_params);
 
     xcam_mem_clear (&output);
     if (!_adaptor->run (&isp_params, &output)) {

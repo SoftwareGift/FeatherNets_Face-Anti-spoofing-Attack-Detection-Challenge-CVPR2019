@@ -484,4 +484,16 @@ CommonHandler::set_gamma_table (double *r_table, double *g_table, double *b_tabl
     return true;
 }
 
+bool
+CommonHandler::set_color_effect (XCamColorEffect effect)
+{
+    // TODO validate the input
+
+    AnalyzerHandler::HanlderLock lock(this);
+
+    _params.color_effect = effect;
+
+    XCAM_LOG_DEBUG ("common 3A set color effect");
+}
+
 };
