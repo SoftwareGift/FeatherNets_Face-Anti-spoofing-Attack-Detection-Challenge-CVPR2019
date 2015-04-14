@@ -25,6 +25,10 @@ namespace XCam {
 CLBlcImageKernel::CLBlcImageKernel (SmartPtr<CLContext> &context)
     : CLImageKernel (context, "kernel_blc")
 {
+    _blc_config.level_gr = XCAM_CL_BLC_DEFAULT_LEVEL;
+    _blc_config.level_r = XCAM_CL_BLC_DEFAULT_LEVEL;
+    _blc_config.level_b = XCAM_CL_BLC_DEFAULT_LEVEL;
+    _blc_config.level_gb = XCAM_CL_BLC_DEFAULT_LEVEL;
 }
 
 XCamReturn
@@ -58,18 +62,13 @@ CLBlcImageKernel::prepare_arguments (
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
-    _blc_config.level_b = (cl_float)XCAM_CL_BLACK_LEVEL / XCAM_CL_10BIT_NOR;
-    _blc_config.level_gr = (cl_float)XCAM_CL_BLACK_LEVEL / XCAM_CL_10BIT_NOR;
-    _blc_config.level_gb = (cl_float)XCAM_CL_BLACK_LEVEL / XCAM_CL_10BIT_NOR;
-    _blc_config.level_r = (cl_float)XCAM_CL_BLACK_LEVEL / XCAM_CL_10BIT_NOR;
-
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
     args[2].arg_adress = &_blc_config;
-    args[2].arg_size = sizeof (BLCConfig);
+    args[2].arg_size = sizeof (CLBLCConfig);
     arg_count = 3;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
@@ -81,11 +80,43 @@ CLBlcImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
+bool
+CLBlcImageKernel::set_blc (CLBLCConfig blc)
+{
+    _blc_config = blc;
+    return true;
+}
+CLBlcImageHandler::CLBlcImageHandler (const char *name)
+    : CLImageHandler (name)
+{
+}
+
+bool
+CLBlcImageHandler::set_blc_config (XCam3aResultBlackLevel blc)
+{
+    CLBLCConfig _blc_config;
+    _blc_config.level_r = (float)blc.r_level;
+    _blc_config.level_gr = (float)blc.gr_level;
+    _blc_config.level_gb = (float)blc.gb_level;
+    _blc_config.level_b = (float)blc.b_level;;
+    _blc_kernel->set_blc(_blc_config);
+    return true;
+}
+
+bool
+CLBlcImageHandler::set_blc_kernel(SmartPtr<CLBlcImageKernel> &kernel)
+{
+    SmartPtr<CLImageKernel> image_kernel = kernel;
+    add_kernel (image_kernel);
+    _blc_kernel = kernel;
+    return true;
+}
+
 SmartPtr<CLImageHandler>
 create_cl_blc_image_handler (SmartPtr<CLContext> &context)
 {
-    SmartPtr<CLImageHandler> blc_handler;
-    SmartPtr<CLImageKernel> blc_kernel;
+    SmartPtr<CLBlcImageHandler> blc_handler;
+    SmartPtr<CLBlcImageKernel> blc_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     blc_kernel = new CLBlcImageKernel (context);
@@ -101,8 +132,8 @@ create_cl_blc_image_handler (SmartPtr<CLContext> &context)
             "CL image handler(%s) load source failed", blc_kernel->get_kernel_name());
     }
     XCAM_ASSERT (blc_kernel->is_valid ());
-    blc_handler = new CLImageHandler ("cl_handler_blc");
-    blc_handler->add_kernel   (blc_kernel);
+    blc_handler = new CLBlcImageHandler ("cl_handler_blc");
+    blc_handler->set_blc_kernel (blc_kernel);
 
     return blc_handler;
 }

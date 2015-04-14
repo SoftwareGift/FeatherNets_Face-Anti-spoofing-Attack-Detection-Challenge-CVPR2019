@@ -256,9 +256,19 @@ int main (int argc, char *argv[])
     case TestHandlerDemo:
         image_handler = create_cl_demo_image_handler (context);
         break;
-    case TestHandlerBlackLevel:
+    case TestHandlerBlackLevel: {
+        XCam3aResultBlackLevel blc;
+        blc.r_level = 0.05;
+        blc.gr_level = 0.05;
+        blc.gb_level = 0.05;
+        blc.b_level = 0.05;
         image_handler = create_cl_blc_image_handler (context);
+        SmartPtr<CLBlcImageHandler> blc_handler;
+        blc_handler = image_handler.dynamic_cast_ptr<CLBlcImageHandler> ();
+        XCAM_ASSERT (blc_handler.ptr ());
+        blc_handler->set_blc_config (blc);
         break;
+    }
     case TestHandlerDefect:
         break;
     case TestHandlerDemosaic: {

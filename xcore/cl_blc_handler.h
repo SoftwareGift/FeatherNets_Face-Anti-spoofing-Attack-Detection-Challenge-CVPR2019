@@ -23,40 +23,49 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
-
-#define XCAM_CL_BLACK_LEVEL    0x3c
-#define XCAM_CL_10BIT_NOR      0x400   /* Normalization for 10bit data */
+#include "base/xcam_3a_result.h"
 
 namespace XCam {
+
+#define XCAM_CL_BLC_DEFAULT_LEVEL 0.06
+
+/*  Black level correction configuration  */
+typedef struct  {
+    cl_float  level_gr;  /* Black level for GR pixels */
+    cl_float  level_r;   /* Black level for R pixels */
+    cl_float  level_b;   /* Black level for B pixels */
+    cl_float  level_gb;  /* Black level for GB pixels */
+} CLBLCConfig;
 
 class CLBlcImageKernel
     : public CLImageKernel
 {
-
-public:
-    /*  Black level correction configuration
-     *
-    */
-    typedef struct
-    {
-        cl_float  level_gr;  /* Black level for GR pixels */
-        cl_float  level_r;   /* Black level for R pixels */
-        cl_float  level_b;   /* Black level for B pixels */
-        cl_float  level_gb;  /* Black level for GB pixels */
-    } BLCConfig;
-
 public:
     explicit CLBlcImageKernel (SmartPtr<CLContext> &context);
+    bool set_blc (CLBLCConfig blc);
 
 protected:
     virtual XCamReturn prepare_arguments (
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
         CLArgument args[], uint32_t &arg_count,
         CLWorkSize &work_size);
-    BLCConfig _blc_config;
 
 private:
     XCAM_DEAD_COPY (CLBlcImageKernel);
+    CLBLCConfig _blc_config;
+};
+
+class CLBlcImageHandler
+    : public CLImageHandler
+{
+public:
+    explicit CLBlcImageHandler (const char *name);
+    bool set_blc_config (XCam3aResultBlackLevel blc);
+    bool set_blc_kernel(SmartPtr<CLBlcImageKernel> &kernel);
+
+private:
+    XCAM_DEAD_COPY (CLBlcImageHandler);
+    SmartPtr<CLBlcImageKernel> _blc_kernel;
 };
 
 SmartPtr<CLImageHandler>
