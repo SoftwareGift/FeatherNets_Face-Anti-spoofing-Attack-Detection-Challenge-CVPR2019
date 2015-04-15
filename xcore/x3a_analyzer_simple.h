@@ -55,7 +55,7 @@ protected:
         return XCAM_RETURN_NO_ERROR;
     }
     virtual XCamReturn configure_3a ();
-    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats);
+    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aStats> &stats);
     virtual XCamReturn post_3a_analyze (X3aResultList &results);
 
 public:
@@ -64,7 +64,7 @@ public:
     XCamReturn analyze_af (X3aResultList &output);
 
 private:
-    SmartPtr<X3aIspStatistics>        _current_stats;
+    SmartPtr<X3aStats>                _current_stats;
     double                            _last_target_exposure;
     bool                              _is_ae_started;
 };

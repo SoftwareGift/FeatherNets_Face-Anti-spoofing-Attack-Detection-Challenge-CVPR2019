@@ -27,7 +27,7 @@
 namespace XCam {
 
 class X3aAnalyzer;
-class X3aIspStatistics;
+class X3aStats;
 
 class AnalyzerCallback {
 public:
@@ -56,7 +56,7 @@ public:
     XCamReturn stop ();
 
     /* analyze 3A statistics */
-    XCamReturn push_3a_stats (SmartPtr<X3aIspStatistics> &stats);
+    XCamReturn push_3a_stats (SmartPtr<X3aStats> &stats);
 
     /* AWB */
     bool set_awb_mode (XCamAwbMode mode);
@@ -138,7 +138,7 @@ protected:
     // in 3a stats thread
     virtual XCamReturn configure_3a () = 0;
     // @param[in]   stats,  3a statistics prepared
-    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats) = 0;
+    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aStats> &stats) = 0;
     // @param[out]  results,   new 3a results merged into \c results
     virtual XCamReturn post_3a_analyze (X3aResultList &results) = 0;
 
@@ -147,7 +147,7 @@ protected:
     void notify_calculation_failed (AnalyzerHandler *handler, int64_t timestamp, const char *msg);
 
 private:
-    XCamReturn analyze_3a_statistics (SmartPtr<X3aIspStatistics> &stats);
+    XCamReturn analyze_3a_statistics (SmartPtr<X3aStats> &stats);
 
     XCAM_DEAD_COPY (X3aAnalyzer);
 

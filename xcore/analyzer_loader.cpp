@@ -52,7 +52,7 @@ protected:
     virtual XCamReturn internal_deinit ();
 
     virtual XCamReturn configure_3a ();
-    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats);
+    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aStats> &stats);
     virtual XCamReturn post_3a_analyze (X3aResultList &results);
 
     XCamReturn create_context ();
@@ -65,7 +65,7 @@ private:
 private:
     XCam3ADescription           *_desc;
     XCam3AContext               *_context;
-    SmartPtr<X3aIspStatistics>   _cur_stats;
+    SmartPtr<X3aStats>           _cur_stats;
     SmartPtr<DynamicCommonHandler> _common_handler;
 };
 
@@ -259,14 +259,14 @@ DynamicAnalyzer::configure_3a ()
     return XCAM_RETURN_NO_ERROR;
 }
 XCamReturn
-DynamicAnalyzer::pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats)
+DynamicAnalyzer::pre_3a_analyze (SmartPtr<X3aStats> &stats)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     XCamCommonParam common_params = _common_handler->get_params_unlock ();
 
     XCAM_ASSERT (_context);
     _cur_stats = stats;
-    ret = _desc->set_3a_stats (_context, stats->get_3a_stats());
+    ret = _desc->set_3a_stats (_context, stats->get_stats());
     XCAM_FAIL_RETURN (WARNING,
                       ret == XCAM_RETURN_NO_ERROR,
                       ret,

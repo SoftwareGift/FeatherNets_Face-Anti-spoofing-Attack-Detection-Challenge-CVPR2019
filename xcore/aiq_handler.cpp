@@ -983,7 +983,7 @@ AiqCompositor::set_3a_stats (SmartPtr<X3aIspStatistics> &stats)
     //if (_awb_handler->is_started())
     //    aiq_stats_input.frame_awb_parameters = _awb_handler->get_result();
 
-    if (!_adaptor->convert_statistics (stats->get_3a_stats(), &rgbs_grids, &af_grids)) {
+    if (!_adaptor->convert_statistics (stats->get_isp_stats(), &rgbs_grids, &af_grids)) {
         XCAM_LOG_WARNING ("ia isp adaptor convert 3a stats failed");
         return false;
     }

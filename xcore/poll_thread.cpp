@@ -145,7 +145,7 @@ XCamReturn PollThread::start ()
 XCamReturn PollThread::stop ()
 {
     if (_3a_stats_pool.ptr ())
-        _3a_stats_pool->wakeup();
+        _3a_stats_pool->stop ();
 
     _event_loop->stop ();
     _capture_loop->stop ();
@@ -171,15 +171,20 @@ PollThread::init_3a_stats_pool ()
         XCAM_LOG_WARNING ("get isp parameters width or height wrong");
         return XCAM_RETURN_ERROR_ISP;
     }
-    _3a_stats_pool->set_grid_info (parameters.info);
+    _3a_stats_pool.dynamic_cast_ptr<X3aStatisticsQueue>()->set_grid_info (parameters.info);
+    if (!_3a_stats_pool->reserve (6)) {
+        XCAM_LOG_WARNING ("init_3a_stats_pool failed to reserve stats buffer.");
+        return XCAM_RETURN_ERROR_MEM;
+    }
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
-PollThread::capture_3a_stats (SmartPtr<X3aIspStatistics> &stats)
+PollThread::capture_3a_stats (SmartPtr<X3aStats> &stats)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<X3aIspStatistics> new_stats = _3a_stats_pool->acquire_stats();
+    SmartPtr<X3aIspStatistics> new_stats =
+        _3a_stats_pool->get_buffer (_3a_stats_pool).dynamic_cast_ptr<X3aIspStatistics> ();
 
     if (!new_stats.ptr()) {
         XCAM_LOG_WARNING ("request stats buffer failed.");
@@ -218,10 +223,10 @@ XCamReturn
 PollThread::handle_3a_stats_event (struct v4l2_event &event)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<X3aIspStatistics> stats;
+    SmartPtr<X3aStats> stats;
 
     ret = capture_3a_stats (stats);
-    if (ret != XCAM_RETURN_NO_ERROR || !stats.ptr() || !stats->get_3a_stats()) {
+    if (ret != XCAM_RETURN_NO_ERROR || !stats.ptr()) {
         XCAM_LOG_WARNING ("capture 3a stats failed");
         return ret;
     }

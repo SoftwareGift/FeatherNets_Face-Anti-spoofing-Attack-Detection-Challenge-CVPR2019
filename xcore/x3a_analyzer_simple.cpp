@@ -143,7 +143,7 @@ X3aAnalyzerSimple::configure_3a ()
 }
 
 XCamReturn
-X3aAnalyzerSimple::pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats)
+X3aAnalyzerSimple::pre_3a_analyze (SmartPtr<X3aStats> &stats)
 {
     _current_stats = stats;
     return XCAM_RETURN_NO_ERROR;
@@ -171,33 +171,29 @@ X3aAnalyzerSimple::post_3a_analyze (X3aResultList &results)
 XCamReturn
 X3aAnalyzerSimple::analyze_awb (X3aResultList &output)
 {
-    const struct atomisp_3a_statistics *stats = _current_stats->get_3a_stats ();
-    uint32_t cell_count = stats->grid_info.bqs_per_grid_cell * stats->grid_info.bqs_per_grid_cell;
-    uint32_t bits_depth = stats->grid_info.elem_bit_depth;
+    const XCam3AStats *stats = _current_stats->get_stats ();
     double sum_r = 0.0, sum_gr = 0.0, sum_gb = 0.0, sum_b = 0.0;
     double avg_r = 0.0, avg_gr = 0.0, avg_gb = 0.0, avg_b = 0.0;
     double target_avg = 0.0;
     XCam3aResultWhiteBalance wb;
 
     xcam_mem_clear (&wb);
+    XCAM_ASSERT (stats);
 
     // calculate avg r, gr, gb, b
-    for (uint32_t i = 0; i < stats->grid_info.height; ++i)
-        for (uint32_t j = 0; j < stats->grid_info.width; ++j) {
-            sum_r += ((double)(stats->data[i * stats->grid_info.width + j].awb_r)) / cell_count;
-            sum_gr += ((double)(stats->data[i * stats->grid_info.width + j].awb_gr)) / cell_count;
-            sum_gb += ((double)(stats->data[i * stats->grid_info.width + j].awb_gb)) / cell_count;
-            sum_b += ((double)(stats->data[i * stats->grid_info.width + j].awb_b)) / cell_count;
+    for (uint32_t i = 0; i < stats->info.height; ++i)
+        for (uint32_t j = 0; j < stats->info.width; ++j) {
+            sum_r += (double)(stats->stats[i * stats->info.aligned_width + j].avg_r);
+            sum_gr += (double)(stats->stats[i * stats->info.aligned_width + j].avg_gr);
+            sum_gb += (double)(stats->stats[i * stats->info.aligned_width + j].avg_gb);
+            sum_b += (double)(stats->stats[i * stats->info.aligned_width + j].avg_b);
         }
 
-    avg_r = sum_r / (stats->grid_info.width * stats->grid_info.height);
-    avg_gr = sum_gr / (stats->grid_info.width * stats->grid_info.height);
-    avg_gb = sum_gb / (stats->grid_info.width * stats->grid_info.height);
-    avg_b = sum_b / (stats->grid_info.width * stats->grid_info.height);
-    avg_r = avg_r / (1 << (bits_depth - 8));
-    avg_gr = avg_gr / (1 << (bits_depth - 8));
-    avg_gb = avg_gb / (1 << (bits_depth - 8));
-    avg_b = avg_b / (1 << (bits_depth - 8));
+    avg_r = sum_r / (stats->info.width * stats->info.height);
+    avg_gr = sum_gr / (stats->info.width * stats->info.height);
+    avg_gb = sum_gb / (stats->info.width * stats->info.height);
+    avg_b = sum_b / (stats->info.width * stats->info.height);
+
     target_avg =  (avg_gr + avg_gb) / 2;
     wb.r_gain = target_avg / avg_r;
     wb.b_gain = target_avg / avg_b;
@@ -219,9 +215,7 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
 {
     static const uint32_t expect_y_mean = 150;
 
-    const struct atomisp_3a_statistics *stats = _current_stats->get_3a_stats ();
-    uint32_t cell_count = stats->grid_info.bqs_per_grid_cell * stats->grid_info.bqs_per_grid_cell;
-    uint32_t bits_depth = stats->grid_info.elem_bit_depth;
+    const XCam3AStats *stats = _current_stats->get_stats ();
     double sum_y = 0.0;
     double target_exposure = 1.0;
     SmartPtr<X3aExposureResult> result = new X3aExposureResult (XCAM_3A_RESULT_EXPOSURE);;
@@ -241,12 +235,11 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
         return XCAM_RETURN_NO_ERROR;
     }
 
-    for (uint32_t i = 0; i < stats->grid_info.height; ++i)
-        for (uint32_t j = 0; j < stats->grid_info.width; ++j) {
-            sum_y += ((double)(stats->data[i * stats->grid_info.width + j].ae_y)) / cell_count;
+    for (uint32_t i = 0; i < stats->info.height; ++i)
+        for (uint32_t j = 0; j < stats->info.width; ++j) {
+            sum_y += (double)(stats->stats[i * stats->info.aligned_width + j].avg_y);
         }
-    sum_y /= (stats->grid_info.width * stats->grid_info.height);
-    sum_y /= (1 << (bits_depth - 8)); // make it in 8 bits
+    sum_y /= (stats->info.width * stats->info.height);
     target_exposure = (expect_y_mean / sum_y) * _last_target_exposure;
     target_exposure = XCAM_MAX (target_exposure, SIMPLE_MIN_TARGET_EXPOSURE_TIME);
 

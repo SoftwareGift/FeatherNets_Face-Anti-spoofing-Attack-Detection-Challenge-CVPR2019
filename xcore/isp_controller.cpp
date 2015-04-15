@@ -64,7 +64,7 @@ IspController::get_3a_statistics (SmartPtr<X3aIspStatistics> &stats)
     XCAM_FAIL_RETURN (WARNING, stats.ptr(),
                       XCAM_RETURN_ERROR_PARAM, "stats empty");
 
-    isp_stats =  stats->get_3a_stats ();
+    isp_stats =  stats->get_isp_stats ();
 
     if ( _device->io_control (ATOMISP_IOC_G_3A_STAT, isp_stats) < 0) {
         XCAM_LOG_WARNING (" get 3a stats failed from ISP");

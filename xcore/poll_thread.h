@@ -25,20 +25,20 @@
 #include "xcam_mutex.h"
 #include "x3a_event.h"
 #include "v4l2_buffer_proxy.h"
-#include "x3a_statistics_queue.h"
+#include "x3a_stats_pool.h"
 #include "v4l2_device.h"
 #include "isp_controller.h"
 
 namespace XCam {
 
-class X3aIspStatistics;
+class X3aStats;
 
 class PollCallback {
 public:
     virtual ~PollCallback() {}
     virtual XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf) = 0;
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg) = 0;
-    virtual XCamReturn poll_3a_stats_ready (SmartPtr<X3aIspStatistics> &stats) = 0;
+    virtual XCamReturn poll_3a_stats_ready (SmartPtr<X3aStats> &stats) = 0;
     virtual XCamReturn poll_dvs_stats_ready() = 0;
 };
 
@@ -73,7 +73,7 @@ protected:
 
 private:
     XCamReturn init_3a_stats_pool ();
-    XCamReturn capture_3a_stats (SmartPtr<X3aIspStatistics> &stats);
+    XCamReturn capture_3a_stats (SmartPtr<X3aStats> &stats);
 
 
 private:
@@ -87,7 +87,7 @@ private:
     SmartPtr<CapturePollThread>      _capture_loop;
 
     SmartPtr<V4l2SubDevice>          _event_dev;
-    SmartPtr<X3aStatisticsQueue>     _3a_stats_pool;
+    SmartPtr<X3aStatsPool>           _3a_stats_pool;
 
     SmartPtr<V4l2Device>             _capture_dev;
     SmartPtr<IspController>          _isp_controller;

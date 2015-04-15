@@ -90,7 +90,7 @@ public:
         XCAM_LOG_DEBUG("%s", __FUNCTION__);
         return XCAM_RETURN_NO_ERROR;
     }
-    XCamReturn poll_3a_stats_ready (SmartPtr<X3aIspStatistics> &stats) {
+    XCamReturn poll_3a_stats_ready (SmartPtr<X3aStats> &stats) {
         XCAM_UNUSED(stats);
         XCAM_LOG_DEBUG("%s", __FUNCTION__);
         return XCAM_RETURN_NO_ERROR;

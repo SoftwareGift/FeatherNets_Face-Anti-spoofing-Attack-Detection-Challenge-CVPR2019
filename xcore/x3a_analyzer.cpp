@@ -21,7 +21,7 @@
 #include "x3a_analyzer.h"
 #include "xcam_thread.h"
 #include "safe_list.h"
-#include "x3a_statistics_queue.h"
+#include "x3a_stats_pool.h"
 
 namespace XCam {
 
@@ -35,7 +35,7 @@ public:
     void triger_stop() {
         _3a_stats_queue.wakeup ();
     }
-    bool push_stats (SmartPtr<X3aIspStatistics> &stats);
+    bool push_stats (SmartPtr<X3aStats> &stats);
 
 protected:
     virtual bool started ();
@@ -46,7 +46,7 @@ protected:
 
 private:
     X3aAnalyzer               *_analyzer;
-    SafeList<X3aIspStatistics> _3a_stats_queue;
+    SafeList<X3aStats> _3a_stats_queue;
 };
 
 AnalyzerThread::AnalyzerThread (X3aAnalyzer *analyzer)
@@ -60,7 +60,7 @@ AnalyzerThread::~AnalyzerThread ()
 }
 
 bool
-AnalyzerThread::push_stats (SmartPtr<X3aIspStatistics> &stats)
+AnalyzerThread::push_stats (SmartPtr<X3aStats> &stats)
 {
     _3a_stats_queue.push (stats);
     return true;
@@ -86,7 +86,7 @@ bool
 AnalyzerThread::loop ()
 {
     const static int32_t timeout = -1;
-    SmartPtr<X3aIspStatistics> stats = _3a_stats_queue.pop (timeout);
+    SmartPtr<X3aStats> stats = _3a_stats_queue.pop (timeout);
     if (!stats.ptr()) {
         XCAM_LOG_DEBUG ("analyzer thread got empty stats, stop thread");
         return false;
@@ -240,7 +240,7 @@ X3aAnalyzer::stop ()
 }
 
 XCamReturn
-X3aAnalyzer::push_3a_stats (SmartPtr<X3aIspStatistics> &stats)
+X3aAnalyzer::push_3a_stats (SmartPtr<X3aStats> &stats)
 {
     if (!_3a_analyzer_thread->is_running())
         return XCAM_RETURN_ERROR_THREAD;
@@ -252,7 +252,7 @@ X3aAnalyzer::push_3a_stats (SmartPtr<X3aIspStatistics> &stats)
 }
 
 XCamReturn
-X3aAnalyzer::analyze_3a_statistics (SmartPtr<X3aIspStatistics> &stats)
+X3aAnalyzer::analyze_3a_statistics (SmartPtr<X3aStats> &stats)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     X3aResultList results;

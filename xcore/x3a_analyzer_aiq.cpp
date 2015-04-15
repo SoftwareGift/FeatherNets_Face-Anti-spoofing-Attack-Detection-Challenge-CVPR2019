@@ -216,9 +216,12 @@ X3aAnalyzerAiq::configure_3a ()
 }
 
 XCamReturn
-X3aAnalyzerAiq::pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats)
+X3aAnalyzerAiq::pre_3a_analyze (SmartPtr<X3aStats> &stats)
 {
-    if (!_aiq_compositor->set_3a_stats (stats)) {
+    SmartPtr<X3aIspStatistics> isp_stats = stats.dynamic_cast_ptr<X3aIspStatistics> ();
+
+    XCAM_ASSERT (isp_stats.ptr ());
+    if (!_aiq_compositor->set_3a_stats (isp_stats)) {
         XCAM_LOG_WARNING ("Aiq compositor set 3a stats failed");
         return XCAM_RETURN_ERROR_UNKNOWN;
     }

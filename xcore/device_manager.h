@@ -91,7 +91,7 @@ protected:
     //virtual functions derived from PollCallback
     virtual XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf);
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg);
-    virtual XCamReturn poll_3a_stats_ready (SmartPtr<X3aIspStatistics> &stats);
+    virtual XCamReturn poll_3a_stats_ready (SmartPtr<X3aStats> &stats);
     virtual XCamReturn poll_dvs_stats_ready ();
 
     //virtual functions derived from AnalyzerCallback

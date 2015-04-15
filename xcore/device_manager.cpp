@@ -246,7 +246,7 @@ DeviceManager::stop ()
 }
 
 XCamReturn
-DeviceManager::poll_3a_stats_ready (SmartPtr<X3aIspStatistics> &stats)
+DeviceManager::poll_3a_stats_ready (SmartPtr<X3aStats> &stats)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     X3aResultList results;

@@ -29,6 +29,7 @@
 #include <base/xcam_defs.h>
 #include <base/xcam_params.h>
 #include <base/xcam_3a_result.h>
+#include <base/xcam_3a_stats.h>
 
 XCAM_BEGIN_DECLARE
 
@@ -43,7 +44,7 @@ typedef struct _XCam3ADescription {
     XCamReturn (*create_context)           (XCam3AContext **context);
     XCamReturn (*destroy_context)          (XCam3AContext *context);
     XCamReturn (*configure_3a)             (XCam3AContext *context, uint32_t width, uint32_t height, double framerate);
-    XCamReturn (*set_3a_stats)             (XCam3AContext *context, const struct atomisp_3a_statistics *stats);
+    XCamReturn (*set_3a_stats)             (XCam3AContext *context, XCam3AStats *stats);
     XCamReturn (*update_common_params)     (XCam3AContext *context, XCamCommonParam *params);
     XCamReturn (*analyze_awb)              (XCam3AContext *context, XCamAwbParam *params);
     XCamReturn (*analyze_ae)               (XCam3AContext *context, XCamAeParam *params);

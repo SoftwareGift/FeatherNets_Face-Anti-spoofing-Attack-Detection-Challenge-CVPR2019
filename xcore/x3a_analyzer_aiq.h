@@ -51,7 +51,7 @@ protected:
     virtual XCamReturn internal_deinit ();
 
     virtual XCamReturn configure_3a ();
-    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aIspStatistics> &stats);
+    virtual XCamReturn pre_3a_analyze (SmartPtr<X3aStats> &stats);
     virtual XCamReturn post_3a_analyze (X3aResultList &results);
 
 private:
