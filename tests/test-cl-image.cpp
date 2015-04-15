@@ -29,6 +29,7 @@
 #include "cl_csc_handler.h"
 #include "cl_wb_handler.h"
 #include "cl_denoise_handler.h"
+#include "cl_gamma_handler.h"
 
 using namespace XCam;
 
@@ -42,6 +43,7 @@ enum TestHandlerType {
     TestHandlerHDR,
     TestHandlerWhiteBalance,
     TestHandlerDenoise,
+    TestHandlerGamma,
 };
 
 struct TestFileHandle {
@@ -109,7 +111,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma]\n"
             "\t -f format    specify a format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
             "\t -i input     specify input file path\n"
@@ -180,6 +182,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerWhiteBalance;
             else if (!strcasecmp (optarg, "denoise"))
                 handler_type = TestHandlerDenoise;
+            else if (!strcasecmp (optarg, "gamma"))
+                handler_type = TestHandlerGamma;
             else
                 print_help (bin_name);
             break;
@@ -268,6 +272,18 @@ int main (int argc, char *argv[])
         wb_handler->set_wb_config (wb);
         break;
     }
+    case TestHandlerGamma: {
+        XCam3aResultGammaTable gamma_table;
+        for(int i = 0; i < XCAM_GAMMA_TABLE_SIZE; ++i)
+            gamma_table.table[i] = (double)(pow(i / 255.0, 1 / 2.2) * 255.0);
+        SmartPtr<CLGammaImageHandler> gamma_handler;
+        image_handler = create_cl_gamma_image_handler (context);
+        gamma_handler = image_handler.dynamic_cast_ptr<CLGammaImageHandler> ();
+        XCAM_ASSERT (gamma_handler.ptr ());
+        gamma_handler->set_gamma_table (gamma_table);
+        break;
+    }
+
     default:
         XCAM_LOG_ERROR ("unsupported image handler type:%d", handler_type);
         return -1;

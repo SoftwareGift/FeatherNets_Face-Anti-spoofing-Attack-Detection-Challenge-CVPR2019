@@ -110,6 +110,7 @@ xcam_sources +=              \
 	cl_csc_handler.cpp       \
 	cl_wb_handler.cpp	 \
 	cl_denoise_handler.cpp       \
+	cl_gamma_handler.cpp	 \
 	$(NULL)
 endif
 
