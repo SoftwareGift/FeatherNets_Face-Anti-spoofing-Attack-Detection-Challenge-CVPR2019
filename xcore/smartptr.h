@@ -116,7 +116,7 @@ public:
     }
 
     template <typename ObjDerive>
-    SmartPtr<ObjDerive> dynamic_cast_ptr () {
+    SmartPtr<ObjDerive> dynamic_cast_ptr () const {
         SmartPtr<ObjDerive> ret(NULL);
         ObjDerive *obj_derive(NULL);
         if (!_ref)
