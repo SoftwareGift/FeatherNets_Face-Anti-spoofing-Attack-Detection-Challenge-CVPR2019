@@ -29,6 +29,7 @@
 #include "image_processor.h"
 #include "x3a_statistics_queue.h"
 #include "poll_thread.h"
+#include "stats_callback_interface.h"
 
 namespace XCam {
 
@@ -58,6 +59,7 @@ class X3aImageProcessCenter;
 
 class DeviceManager
     : public PollCallback
+    , public StatsCallback
     , public AnalyzerCallback
     , public ImageProcessCallback
 {
@@ -91,8 +93,8 @@ protected:
     //virtual functions derived from PollCallback
     virtual XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf);
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg);
-    virtual XCamReturn poll_3a_stats_ready (SmartPtr<X3aStats> &stats);
-    virtual XCamReturn poll_dvs_stats_ready ();
+    virtual XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats);
+    virtual XCamReturn dvs_stats_ready ();
 
     //virtual functions derived from AnalyzerCallback
     virtual void x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results);

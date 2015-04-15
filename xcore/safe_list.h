@@ -44,7 +44,7 @@ public:
      *         >=0,  wait for @timeout microsseconds
     */
     inline ObjPtr pop (int32_t timeout = -1);
-    inline bool push (ObjPtr &obj);
+    inline bool push (const ObjPtr &obj);
     uint32_t size () {
         SmartLock lock(_mutex);
         return _obj_list.size();
@@ -95,7 +95,7 @@ SafeList<OBj>::pop (int32_t timeout)
 
 template<class OBj>
 bool
-SafeList<OBj>::push (SafeList<OBj>::ObjPtr &obj)
+SafeList<OBj>::push (const SafeList<OBj>::ObjPtr &obj)
 {
     SmartLock lock (_mutex);
     _obj_list.push_back (obj);

@@ -81,7 +81,8 @@ const int PollThread::default_subdev_event_timeout = 50; // ms
 const int PollThread::default_capture_event_timeout = 50; // ms
 
 PollThread::PollThread ()
-    : _callback (NULL)
+    : _poll_callback (NULL)
+    , _stats_callback (NULL)
 {
     _event_loop = new EventPollThread(this);
     _capture_loop = new CapturePollThread (this);
@@ -122,12 +123,21 @@ PollThread::set_isp_controller (SmartPtr<IspController>  &isp)
 }
 
 bool
-PollThread::set_callback (PollCallback *callback)
+PollThread::set_poll_callback (PollCallback *callback)
 {
-    XCAM_ASSERT (!_callback);
-    _callback = callback;
+    XCAM_ASSERT (!_poll_callback);
+    _poll_callback = callback;
     return true;
 }
+
+bool
+PollThread::set_stats_callback (StatsCallback *callback)
+{
+    XCAM_ASSERT (!_stats_callback);
+    _stats_callback = callback;
+    return true;
+}
+
 
 XCamReturn PollThread::start ()
 {
@@ -232,8 +242,10 @@ PollThread::handle_3a_stats_event (struct v4l2_event &event)
     }
     stats->set_timestamp (XCAM_TIMESPEC_2_USEC (event.timestamp));
 
-    XCAM_ASSERT (_callback);
-    return _callback->poll_3a_stats_ready (stats);
+    if (_stats_callback)
+        return _stats_callback->x3a_stats_ready (stats);
+
+    return ret;
 }
 
 XCamReturn
@@ -295,11 +307,14 @@ PollThread::poll_buffer_loop ()
         return ret;
     }
     XCAM_ASSERT (buf.ptr());
-    XCAM_ASSERT (_callback);
+    XCAM_ASSERT (_poll_callback);
 
     SmartPtr<V4l2BufferProxy> buf_proxy = new V4l2BufferProxy (buf, _capture_dev);
 
-    return _callback->poll_buffer_ready (buf_proxy);
+    if (_poll_callback)
+        return _poll_callback->poll_buffer_ready (buf_proxy);
+
+    return ret;
 }
 
 };

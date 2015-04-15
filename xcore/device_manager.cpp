@@ -209,7 +209,8 @@ DeviceManager::start ()
     _poll_thread->set_capture_device (_device);
     _poll_thread->set_event_device (_subdevice);
     _poll_thread->set_isp_controller (_isp_controller);
-    _poll_thread->set_callback (this);
+    _poll_thread->set_poll_callback (this);
+    _poll_thread->set_stats_callback (this);
 
     XCAM_FAILED_STOP (ret = _poll_thread->start(), "start poll failed");
 
@@ -246,7 +247,7 @@ DeviceManager::stop ()
 }
 
 XCamReturn
-DeviceManager::poll_3a_stats_ready (SmartPtr<X3aStats> &stats)
+DeviceManager::x3a_stats_ready (const SmartPtr<X3aStats> &stats)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     X3aResultList results;
@@ -262,7 +263,7 @@ DeviceManager::poll_3a_stats_ready (SmartPtr<X3aStats> &stats)
 }
 
 XCamReturn
-DeviceManager::poll_dvs_stats_ready ()
+DeviceManager::dvs_stats_ready ()
 {
     XCAM_ASSERT (false);
     // TODO

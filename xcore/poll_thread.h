@@ -28,18 +28,23 @@
 #include "x3a_stats_pool.h"
 #include "v4l2_device.h"
 #include "isp_controller.h"
+#include "stats_callback_interface.h"
 
 namespace XCam {
 
 class X3aStats;
 
-class PollCallback {
+class PollCallback
+{
 public:
+    PollCallback () {}
     virtual ~PollCallback() {}
     virtual XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf) = 0;
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg) = 0;
-    virtual XCamReturn poll_3a_stats_ready (SmartPtr<X3aStats> &stats) = 0;
-    virtual XCamReturn poll_dvs_stats_ready() = 0;
+
+private:
+    XCAM_DEAD_COPY (PollCallback);
+
 };
 
 class V4l2Device;
@@ -59,7 +64,8 @@ public:
     bool set_capture_device (SmartPtr<V4l2Device> &dev);
     bool set_event_device (SmartPtr<V4l2SubDevice> &sub_dev);
     bool set_isp_controller (SmartPtr<IspController>  &isp);
-    bool set_callback (PollCallback *callback);
+    bool set_poll_callback (PollCallback *callback);
+    bool set_stats_callback (StatsCallback *callback);
 
     XCamReturn start();
     XCamReturn stop ();
@@ -92,7 +98,8 @@ private:
     SmartPtr<V4l2Device>             _capture_dev;
     SmartPtr<IspController>          _isp_controller;
 
-    PollCallback                    *_callback;
+    PollCallback                    *_poll_callback;
+    StatsCallback                   *_stats_callback;
 };
 
 };

@@ -90,12 +90,12 @@ public:
         XCAM_LOG_DEBUG("%s", __FUNCTION__);
         return XCAM_RETURN_NO_ERROR;
     }
-    XCamReturn poll_3a_stats_ready (SmartPtr<X3aStats> &stats) {
+    XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats) {
         XCAM_UNUSED(stats);
         XCAM_LOG_DEBUG("%s", __FUNCTION__);
         return XCAM_RETURN_NO_ERROR;
     }
-    XCamReturn poll_dvs_stats_ready() {
+    XCamReturn dvs_stats_ready() {
         XCAM_LOG_DEBUG("%s", __FUNCTION__);
         return XCAM_RETURN_NO_ERROR;
     }
@@ -249,7 +249,7 @@ int main (int argc, const char *argv[])
     poll_thread->set_capture_device(device);
     poll_thread->set_event_device(event_device);
     poll_thread->set_isp_controller(isp_controller);
-    poll_thread->set_callback(poll_cb);
+    poll_thread->set_poll_callback(poll_cb);
 
     signal(SIGINT, dev_stop_handler);
 

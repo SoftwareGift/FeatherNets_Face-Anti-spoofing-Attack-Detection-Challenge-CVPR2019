@@ -56,7 +56,7 @@ public:
     XCamReturn stop ();
 
     /* analyze 3A statistics */
-    XCamReturn push_3a_stats (SmartPtr<X3aStats> &stats);
+    XCamReturn push_3a_stats (const SmartPtr<X3aStats> &stats);
 
     /* AWB */
     bool set_awb_mode (XCamAwbMode mode);

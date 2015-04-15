@@ -35,7 +35,7 @@ public:
     void triger_stop() {
         _3a_stats_queue.wakeup ();
     }
-    bool push_stats (SmartPtr<X3aStats> &stats);
+    bool push_stats (const SmartPtr<X3aStats> &stats);
 
 protected:
     virtual bool started ();
@@ -60,7 +60,7 @@ AnalyzerThread::~AnalyzerThread ()
 }
 
 bool
-AnalyzerThread::push_stats (SmartPtr<X3aStats> &stats)
+AnalyzerThread::push_stats (const SmartPtr<X3aStats> &stats)
 {
     _3a_stats_queue.push (stats);
     return true;
@@ -240,7 +240,7 @@ X3aAnalyzer::stop ()
 }
 
 XCamReturn
-X3aAnalyzer::push_3a_stats (SmartPtr<X3aStats> &stats)
+X3aAnalyzer::push_3a_stats (const SmartPtr<X3aStats> &stats)
 {
     if (!_3a_analyzer_thread->is_running())
         return XCAM_RETURN_ERROR_THREAD;
