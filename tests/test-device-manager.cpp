@@ -209,6 +209,11 @@ MainDeviceManager::close_file ()
 #define V4L2_CAPTURE_MODE_VIDEO   0x4000
 #define V4L2_CAPTURE_MODE_PREVIEW 0x8000
 
+typedef enum {
+    AnalyzerTypeSimple = 0,
+    AnalyzerTypeAiq,
+} AnalyzerType;
+
 void dev_stop_handler(int sig)
 {
     XCAM_UNUSED (sig);
@@ -250,6 +255,7 @@ int main (int argc, char *argv[])
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
     SmartPtr<ImageProcessor> isp_processor;
+    AnalyzerType  analyzer_type = AnalyzerTypeSimple;
 #if HAVE_LIBDRM
     SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance();
 #endif
@@ -269,10 +275,10 @@ int main (int argc, char *argv[])
         switch (opt) {
         case 'a': {
             if (!strcmp (optarg, "simple"))
-                analyzer = new X3aAnalyzerSimple ();
+                analyzer_type = AnalyzerTypeSimple;
 #if HAVE_IA_AIQ
             else if (!strcmp (optarg, "aiq"))
-                analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
+                analyzer_type = AnalyzerTypeAiq;
 #endif
             else {
                 print_help (bin_name);
@@ -350,8 +356,20 @@ int main (int argc, char *argv[])
         isp_controller = new IspController (device);
     if (!isp_processor.ptr ())
         isp_processor = new IspImageProcessor (isp_controller);
-    //if (!analyzer.ptr())
-    //    analyzer = new X3aAnalyzerSimple ();
+
+    switch (analyzer_type) {
+        case AnalyzerTypeSimple:
+            analyzer = new X3aAnalyzerSimple ();
+            break;
+#if HAVE_IA_AIQ
+        case AnalyzerTypeAiq:
+            analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
+            break;
+#endif
+        default:
+            print_help (bin_name);
+            return -1;
+    }
 
     signal(SIGINT, dev_stop_handler);
 

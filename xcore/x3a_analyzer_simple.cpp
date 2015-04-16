@@ -252,6 +252,7 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
     }
     result->set_standard_result (exposure);
     output.push_back (result);
+    _last_target_exposure = target_exposure;
 
     return XCAM_RETURN_NO_ERROR;
 }

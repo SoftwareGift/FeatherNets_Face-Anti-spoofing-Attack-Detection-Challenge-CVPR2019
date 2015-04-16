@@ -207,6 +207,10 @@ PollThread::capture_3a_stats (SmartPtr<X3aStats> &stats)
         return ret;
     }
 
+    if (!new_stats->fill_standard_stats ()) {
+        XCAM_LOG_WARNING ("isp 3a stats failed to fill standard stats but continued");
+    }
+
     stats = new_stats;
     return ret;
 }
