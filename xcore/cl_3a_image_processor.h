@@ -31,6 +31,7 @@ class CLBayer2RGBImageHandler;
 class CLCscImageHandler;
 class CLGammaImageHandler;
 class CL3AStatsCalculator;
+class CLWbImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -85,6 +86,7 @@ private:
     SmartPtr<CLImageHandler>           _denoise;
     SmartPtr<CLGammaImageHandler>      _gamma;
     SmartPtr<CL3AStatsCalculator>      _x3a_stats_calculator;
+    SmartPtr<CLWbImageHandler>         _wb;
 };
 
 };

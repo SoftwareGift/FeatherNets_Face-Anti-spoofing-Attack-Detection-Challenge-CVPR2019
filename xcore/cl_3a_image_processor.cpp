@@ -26,6 +26,7 @@
 #include "cl_denoise_handler.h"
 #include "cl_gamma_handler.h"
 #include "cl_3a_stats_calculator.h"
+#include "cl_wb_handler.h"
 
 namespace XCam {
 
@@ -82,21 +83,68 @@ CL3aImageProcessor::set_output_format (uint32_t fourcc)
 bool
 CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
 {
-    XCAM_UNUSED (result);
+    XCAM_ASSERT (result.ptr());
+    switch (result->get_type ()) {
+    case XCAM_3A_RESULT_WHITE_BALANCE:
+    case XCAM_3A_RESULT_BLACK_LEVEL:
+    case XCAM_3A_RESULT_R_GAMMA:
+    case XCAM_3A_RESULT_G_GAMMA:
+    case XCAM_3A_RESULT_B_GAMMA:
+        return true;
+
+    default:
+        return false;
+    }
+
     return false;
 }
 
 XCamReturn
 CL3aImageProcessor::apply_3a_results (X3aResultList &results)
 {
-    XCAM_UNUSED (results);
-    return XCAM_RETURN_NO_ERROR;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    for (X3aResultList::iterator iter = results.begin (); iter != results.end (); ++iter)
+    {
+        SmartPtr<X3aResult> &result = *iter;
+        ret = apply_3a_result (result);
+        if (ret != XCAM_RETURN_NO_ERROR)
+            break;
+    }
+    return ret;
 }
 
 XCamReturn
 CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
 {
-    XCAM_UNUSED (result);
+    STREAM_LOCK;
+
+    uint32_t res_type = result->get_type ();
+
+    switch (res_type) {
+    case XCAM_3A_RESULT_WHITE_BALANCE: {
+        SmartPtr<X3aWhiteBalanceResult> wb_res = result.dynamic_cast_ptr<X3aWhiteBalanceResult> ();
+        XCAM_ASSERT (wb_res.ptr ());
+        if (!_wb.ptr())
+            break;
+        _wb->set_wb_config (wb_res->get_standard_result ());
+        break;
+    }
+
+    case XCAM_3A_RESULT_BLACK_LEVEL: {
+        SmartPtr<X3aBlackLevelResult> bl_res = result.dynamic_cast_ptr<X3aBlackLevelResult> ();
+        XCAM_ASSERT (bl_res.ptr ());
+        if (!_black_level.ptr())
+            break;
+        //_black_level->set_bl_config (bl_res->get_standard_result ());
+        break;
+    }
+
+    default:
+        XCAM_LOG_WARNING ("CL3aImageProcessor unknow 3a result:%d", res_type);
+        break;
+    }
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -138,6 +186,15 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create 3a stats calculator failed");
     _x3a_stats_calculator->set_stats_callback (_stats_callback);
+    add_handler (image_handler);
+
+    image_handler = create_cl_wb_image_handler (context);
+    _wb = image_handler.dynamic_cast_ptr<CLWbImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _wb.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create whitebalance handler failed");
     add_handler (image_handler);
 
     /* gamma */

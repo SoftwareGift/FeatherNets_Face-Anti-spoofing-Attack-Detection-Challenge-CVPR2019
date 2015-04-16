@@ -58,6 +58,19 @@ private:
     SmartPtr<X3aIspConfig>           _3a_config;
 };
 
+class IspExposureImageProcessor
+    : public IspImageProcessor
+{
+public:
+    explicit IspExposureImageProcessor (SmartPtr<IspController> &controller);
+
+protected:
+    virtual bool can_process_result (SmartPtr<X3aResult> &result);
+
+private:
+    XCAM_DEAD_COPY (IspExposureImageProcessor);
+};
+
 };
 
 #endif //XCAM_ISP_IMAGE_PROCESSOR_H

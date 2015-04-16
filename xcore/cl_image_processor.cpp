@@ -90,6 +90,8 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
         XCAM_RETURN_ERROR_MEM,
         "CL image processor can't handle this buffer, maybe type error");
 
+    STREAM_LOCK;
+
     if (_handlers.empty()) {
         ret = create_handlers ();
     }

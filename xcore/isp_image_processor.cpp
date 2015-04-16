@@ -172,4 +172,24 @@ IspImageProcessor::apply_exposure_result (X3aResultList &results)
     return XCAM_RETURN_NO_ERROR;
 }
 
+IspExposureImageProcessor::IspExposureImageProcessor (SmartPtr<IspController> &controller)
+    : IspImageProcessor (controller)
+{
+}
+
+bool
+IspExposureImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
+{
+    XCAM_ASSERT (result.ptr());
+    switch (result->get_type()) {
+    case XCAM_3A_RESULT_EXPOSURE:
+        return true;
+
+    default:
+        return false;
+    }
+
+    return false;
+}
+
 };

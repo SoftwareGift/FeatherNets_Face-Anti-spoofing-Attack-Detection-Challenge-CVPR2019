@@ -55,6 +55,13 @@ private:
     virtual XCamReturn create_handlers ();
     XCAM_DEAD_COPY (CLImageProcessor);
 
+protected:
+
+// STREAM_LOCK only used in class derived from CLImageProcessor
+#define STREAM_LOCK SmartLock stream_lock (this->_stream_mutex)
+    // stream lock
+    Mutex                          _stream_mutex;
+
 private:
     SmartPtr<CLContext>            _context;
     ImageHandlerList               _handlers;

@@ -354,21 +354,19 @@ int main (int argc, char *argv[])
         event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
     if (!isp_controller.ptr ())
         isp_controller = new IspController (device);
-    if (!isp_processor.ptr ())
-        isp_processor = new IspImageProcessor (isp_controller);
 
     switch (analyzer_type) {
-        case AnalyzerTypeSimple:
-            analyzer = new X3aAnalyzerSimple ();
-            break;
+    case AnalyzerTypeSimple:
+        analyzer = new X3aAnalyzerSimple ();
+        break;
 #if HAVE_IA_AIQ
-        case AnalyzerTypeAiq:
-            analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
-            break;
+    case AnalyzerTypeAiq:
+        analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
+        break;
 #endif
-        default:
-            print_help (bin_name);
-            return -1;
+    default:
+        print_help (bin_name);
+        return -1;
     }
 
     signal(SIGINT, dev_stop_handler);
@@ -404,12 +402,20 @@ int main (int argc, char *argv[])
     device_manager->set_isp_controller (isp_controller);
     if (analyzer.ptr())
         device_manager->set_analyzer (analyzer);
+
+    if (have_cl_processor)
+        isp_processor = new IspExposureImageProcessor (isp_controller);
+    else
+        isp_processor = new IspImageProcessor (isp_controller);
+
+    XCAM_ASSERT (isp_processor.ptr ());
     device_manager->add_image_processor (isp_processor);
+
 #if HAVE_LIBCL
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
-        cl_processor->set_hdr (true);
+        //cl_processor->set_hdr (true);
         cl_processor->set_denoise (false);
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
