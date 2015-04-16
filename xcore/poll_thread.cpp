@@ -77,8 +77,8 @@ private:
     PollThread   *_poll;
 };
 
-const int PollThread::default_subdev_event_timeout = 50; // ms
-const int PollThread::default_capture_event_timeout = 50; // ms
+const int PollThread::default_subdev_event_timeout = 100; // ms
+const int PollThread::default_capture_event_timeout = 100; // ms
 
 PollThread::PollThread ()
     : _poll_callback (NULL)
@@ -263,7 +263,7 @@ PollThread::poll_subdev_event_loop ()
 
     if (poll_ret < 0) {
         XCAM_LOG_WARNING ("poll event failed but continue");
-        ::usleep (50000); // 50ms
+        ::usleep (100000); // 100ms
         return XCAM_RETURN_ERROR_TIMEOUT;
     }
 
@@ -295,7 +295,7 @@ PollThread::poll_buffer_loop ()
 
     if (poll_ret < 0) {
         XCAM_LOG_WARNING ("poll buffer event got error but continue");
-        ::usleep (50000); // 50ms
+        ::usleep (100000); // 100ms
         return XCAM_RETURN_ERROR_TIMEOUT;
     }
 
