@@ -25,6 +25,10 @@ namespace XCam {
 CLWbImageKernel::CLWbImageKernel (SmartPtr<CLContext> &context)
     : CLImageKernel (context, "kernel_wb")
 {
+    _wb_config.r_gain = 1.0;
+    _wb_config.gr_gain = 1.0;
+    _wb_config.gb_gain = 1.0;
+    _wb_config.b_gain = 1.0;
 }
 
 XCamReturn
@@ -77,7 +81,7 @@ CLWbImageHandler::CLWbImageHandler (const char *name)
 }
 
 bool
-CLWbImageHandler::set_wb_config (XCam3aResultWhiteBalance wb)
+CLWbImageHandler::set_wb_config (const XCam3aResultWhiteBalance &wb)
 {
     CLWBConfig _wb_config;
     _wb_config.r_gain = (float)wb.r_gain;

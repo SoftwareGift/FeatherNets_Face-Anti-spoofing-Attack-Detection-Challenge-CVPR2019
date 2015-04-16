@@ -57,7 +57,7 @@ class CLWbImageHandler
 {
 public:
     explicit CLWbImageHandler (const char *name);
-    bool set_wb_config (XCam3aResultWhiteBalance wb);
+    bool set_wb_config (const XCam3aResultWhiteBalance &wb);
     bool set_wb_kernel(SmartPtr<CLWbImageKernel> &kernel);
 
 private:
