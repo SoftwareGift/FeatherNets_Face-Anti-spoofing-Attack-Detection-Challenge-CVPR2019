@@ -30,6 +30,7 @@ enum CLCscType {
     CL_CSC_TYPE_NONE = 0,
     CL_CSC_TYPE_RGBATONV12,
     CL_CSC_TYPE_RGBATOLAB,
+    CL_CSC_TYPE_RGBA64TORGBA,
 };
 
 class CLCscImageKernel

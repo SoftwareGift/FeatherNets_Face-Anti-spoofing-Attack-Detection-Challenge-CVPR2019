@@ -112,13 +112,14 @@ print_help (const char *bin_name)
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
             "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma]\n"
-            "\t -f format    specify a format\n"
+            "\t -f input_format    specify a input format\n"
+            "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
             "\t -i input     specify input file path\n"
             "\t -o output    specify output file path\n"
             "\t -p count     specify cl kernel loop count\n"
             "\t -c csc_type  specify csc type, default:rgba2nv12\n"
-            "\t              select from [rgba2nv12, rgba2lab]\n"
+            "\t              select from [rgbatonv12, rgbatolab, rgba64torgba]\n"
             "\t -d hdr_type  specify hdr type, default:rgb\n"
             "\t              select from [rgb, lab]\n"
             "\t -h           help\n"
@@ -127,7 +128,8 @@ print_help (const char *bin_name)
 
 int main (int argc, char *argv[])
 {
-    uint32_t format = 0;
+    uint32_t input_format = 0;
+    uint32_t output_format = V4L2_PIX_FMT_RGBA32;
     uint32_t buf_count = 0;
     uint32_t kernel_loop_count = 0;
     const char *input_file = NULL, *output_file = NULL;
@@ -144,7 +146,7 @@ int main (int argc, char *argv[])
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
     CLHdrType hdr_type = CL_HDR_TYPE_RGB;
 
-    while ((opt =  getopt(argc, argv, "f:i:o:t:p:c:d:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:i:o:t:p:c:d:g:h")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
@@ -155,11 +157,27 @@ int main (int argc, char *argv[])
 
         case 'f': {
             if (!strcasecmp (optarg, "nv12"))
-                format = V4L2_PIX_FMT_NV12;
+                input_format = V4L2_PIX_FMT_NV12;
             else if (!strcasecmp (optarg, "ba10"))
-                format = V4L2_PIX_FMT_SGRBG10;
+                input_format = V4L2_PIX_FMT_SGRBG10;
             else if (! strcasecmp (optarg, "rgba"))
-                format = V4L2_PIX_FMT_RGBA32;
+                input_format = V4L2_PIX_FMT_RGBA32;
+            else if (! strcasecmp (optarg, "rgba64"))
+                input_format = XCAM_PIX_FMT_RGBA64;
+
+            else
+                print_help (bin_name);
+            break;
+        }
+        case 'g': {
+            if (!strcasecmp (optarg, "nv12"))
+                output_format = V4L2_PIX_FMT_NV12;
+            else if (!strcasecmp (optarg, "ba10"))
+                output_format = V4L2_PIX_FMT_SGRBG10;
+            else if (! strcasecmp (optarg, "rgba"))
+                output_format = V4L2_PIX_FMT_RGBA32;
+            else if (! strcasecmp (optarg, "rgba64"))
+                output_format = XCAM_PIX_FMT_RGBA64;
 
             else
                 print_help (bin_name);
@@ -192,10 +210,12 @@ int main (int argc, char *argv[])
             kernel_loop_count = atoi (optarg);
             break;
         case 'c':
-            if (!strcasecmp (optarg, "rgba2nv12"))
+            if (!strcasecmp (optarg, "rgbatonv12"))
                 csc_type = CL_CSC_TYPE_RGBATONV12;
-            else if (!strcasecmp (optarg, "rgba2lab"))
+            else if (!strcasecmp (optarg, "rgbatolab"))
                 csc_type = CL_CSC_TYPE_RGBATOLAB;
+            else if (!strcasecmp (optarg, "rgba64torgba"))
+                csc_type = CL_CSC_TYPE_RGBA64TORGBA;
             else
                 print_help (bin_name);
             break;
@@ -218,7 +238,7 @@ int main (int argc, char *argv[])
         }
     }
 
-    if (!format || !input_file || !output_file || handler_type == TestHandlerUnknown) {
+    if (!input_format || !input_file || !output_file || handler_type == TestHandlerUnknown) {
         print_help (bin_name);
         return -1;
     }
@@ -246,7 +266,7 @@ int main (int argc, char *argv[])
         image_handler = create_cl_demosaic_image_handler (context);
         ba2rgb_handler = image_handler.dynamic_cast_ptr<CLBayer2RGBImageHandler> ();
         XCAM_ASSERT (ba2rgb_handler.ptr ());
-        ba2rgb_handler->set_output_format (V4L2_PIX_FMT_BGR32);
+        ba2rgb_handler->set_output_format (output_format);
         break;
     }
     case TestHandlerColorConversion: {
@@ -293,7 +313,7 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    input_buf_info.init (format, 1920, 1080);
+    input_buf_info.init (input_format, 1920, 1080);
     display = DrmDisplay::instance ();
     buf_pool = new DrmBoBufferPool (display);
     buf_pool->set_video_info (input_buf_info);
