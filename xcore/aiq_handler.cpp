@@ -802,7 +802,7 @@ AiqCommonHandler::analyze (X3aResultList &output)
         xcam_mem_clear (&gbce_input);
         gbce_input.gbce_level = ia_aiq_gbce_level_use_tuning;
         gbce_input.frame_use = _aiq_compositor->get_frame_use ();
-        gbce_input.ev_shift = 0;  // Todo
+        gbce_input.ev_shift = _aiq_compositor->get_ae_ev_shift_unlock ();
         ia_handle = _aiq_compositor->get_handle ();
         XCAM_ASSERT (ia_handle);
         ia_error = ia_aiq_gbce_run (ia_handle, &gbce_input, &gbce_result);
