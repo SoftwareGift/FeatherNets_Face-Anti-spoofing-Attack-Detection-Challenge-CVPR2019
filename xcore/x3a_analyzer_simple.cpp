@@ -100,6 +100,7 @@ X3aAnalyzerSimple::X3aAnalyzerSimple ()
     : X3aAnalyzer ("X3aAnalyzerSimple")
     , _last_target_exposure ((double)SIMPLE_MIN_TARGET_EXPOSURE_TIME)
     , _is_ae_started (false)
+    , _ae_calculation_interval (0)
 {
 }
 
@@ -139,6 +140,7 @@ XCamReturn
 X3aAnalyzerSimple::configure_3a ()
 {
     _is_ae_started = false;
+    _ae_calculation_interval = 0;
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -235,24 +237,28 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
         return XCAM_RETURN_NO_ERROR;
     }
 
-    for (uint32_t i = 0; i < stats->info.height; ++i)
-        for (uint32_t j = 0; j < stats->info.width; ++j) {
-            sum_y += (double)(stats->stats[i * stats->info.aligned_width + j].avg_y);
-        }
-    sum_y /= (stats->info.width * stats->info.height);
-    target_exposure = (expect_y_mean / sum_y) * _last_target_exposure;
-    target_exposure = XCAM_MAX (target_exposure, SIMPLE_MIN_TARGET_EXPOSURE_TIME);
+    if (_ae_calculation_interval % 10 == 0) {
+        for (uint32_t i = 0; i < stats->info.height; ++i)
+            for (uint32_t j = 0; j < stats->info.width; ++j) {
+                sum_y += (double)(stats->stats[i * stats->info.aligned_width + j].avg_y);
+            }
+        sum_y /= (stats->info.width * stats->info.height);
+        target_exposure = (expect_y_mean / sum_y) * _last_target_exposure;
+        target_exposure = XCAM_MAX (target_exposure, SIMPLE_MIN_TARGET_EXPOSURE_TIME);
 
-    if (target_exposure > SIMPLE_MAX_TARGET_EXPOSURE_TIME) {
-        exposure.exposure_time = SIMPLE_MAX_TARGET_EXPOSURE_TIME;
-        exposure.analog_gain = target_exposure / exposure.exposure_time;
-    } else {
-        exposure.exposure_time = target_exposure;
-        exposure.analog_gain = 1.0;
+        if (target_exposure > SIMPLE_MAX_TARGET_EXPOSURE_TIME) {
+            exposure.exposure_time = SIMPLE_MAX_TARGET_EXPOSURE_TIME;
+            exposure.analog_gain = target_exposure / exposure.exposure_time;
+        } else {
+            exposure.exposure_time = target_exposure;
+            exposure.analog_gain = 1.0;
+        }
+        result->set_standard_result (exposure);
+        output.push_back (result);
+        _last_target_exposure = target_exposure;
     }
-    result->set_standard_result (exposure);
-    output.push_back (result);
-    _last_target_exposure = target_exposure;
+
+    _ae_calculation_interval++;
 
     return XCAM_RETURN_NO_ERROR;
 }

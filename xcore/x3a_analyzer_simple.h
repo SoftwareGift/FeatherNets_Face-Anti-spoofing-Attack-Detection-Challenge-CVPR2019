@@ -52,6 +52,7 @@ protected:
     }
     virtual XCamReturn internal_deinit () {
         _is_ae_started = false;
+        _ae_calculation_interval = 0;
         return XCAM_RETURN_NO_ERROR;
     }
     virtual XCamReturn configure_3a ();
@@ -67,6 +68,7 @@ private:
     SmartPtr<X3aStats>                _current_stats;
     double                            _last_target_exposure;
     bool                              _is_ae_started;
+    uint32_t                          _ae_calculation_interval;
 };
 
 };
