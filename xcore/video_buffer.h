@@ -92,6 +92,7 @@ public:
 
     virtual uint8_t *map () = 0;
     virtual bool unmap () = 0;
+    virtual int get_fd () = 0;
 
     const VideoBufferInfo & get_video_info () const {
         return _videoinfo;
@@ -108,6 +109,9 @@ public:
         _timestamp = timestamp;
     }
 
+    uint32_t get_size () const {
+        return _videoinfo.size;
+    }
 private:
     VideoBufferInfo _videoinfo;
     int64_t         _timestamp; // in microseconds

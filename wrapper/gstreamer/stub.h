@@ -29,6 +29,11 @@
 #include <gst/video/gstvideopool.h>
 #include "gstxcaminterface.h"
 #include "gstxcambufferpool.h"
+extern "C" {
+#include <drm.h>
+#include <drm_mode.h>
+#include <intel_bufmgr.h>
+}
 
 XCAM_BEGIN_DECLARE
 

@@ -59,6 +59,13 @@ BufferProxy::unmap ()
     return _data->unmap ();
 }
 
+int
+BufferProxy::get_fd ()
+{
+    XCAM_ASSERT (_data.ptr ());
+    return _data->get_fd ();
+}
+
 BufferPool::BufferPool ()
     : _allocated_num (0)
     , _max_count (0)

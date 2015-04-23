@@ -61,6 +61,45 @@ XCAM_BEGIN_DECLARE
 GST_DEBUG_CATEGORY_STATIC (gst_xcamsrc_debug);
 #define GST_CAT_DEFAULT gst_xcamsrc_debug
 
+#define GST_TYPE_XCAM_SRC_IMAGE_PROCESSOR (gst_xcam_src_image_processor_get_type ())
+static GType
+gst_xcam_src_image_processor_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue image_processor_types[] = {
+        {ISP_IMAGE_PROCESSOR, "ISP image processor", "isp"},
+        {CL_IMAGE_PROCESSOR, "CL image processor", "cl"},
+        {0, NULL, NULL},
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXcamSrcImageProcessor", image_processor_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
+#define GST_TYPE_XCAM_SRC_ANALYZER (gst_xcam_src_analyzer_get_type ())
+static GType
+gst_xcam_src_analyzer_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue analyzer_types[] = {
+        {SIMPLE_ANALYZER, "simple 3A analyzer", "simple"},
+        {AIQ_ANALYZER, "aiq 3A analyzer", "aiq"},
+        {0, NULL, NULL},
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXcamSrcAnalyzer", analyzer_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
 
 enum
 {
@@ -78,7 +117,9 @@ enum
     PROP_HEIGHT,
     PROP_PIXELFORMAT,
     PROP_FIELD,
-    PROP_BYTESPERLINE
+    PROP_BYTESPERLINE,
+    PROP_IMAGE_PROCESSOR,
+    PROP_3A_ANALYZER
 };
 
 static void gst_xcamsrc_xcam_3a_interface_init (GstXCam3AInterface *iface);
@@ -167,6 +208,14 @@ gst_xcamsrc_class_init (GstxcamsrcClass * klass)
     g_object_class_install_property (gobject_class, PROP_BYTESPERLINE,
                                      g_param_spec_int ("bytesperline", "bytes perline", "bytes perline",
                                              0, G_MAXINT, DEFAULT_PROP_BYTESPERLINE, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
+    g_object_class_install_property (gobject_class, PROP_IMAGE_PROCESSOR,
+                                     g_param_spec_enum ("imageprocessor", "image processor", "image processor",
+                                             GST_TYPE_XCAM_SRC_IMAGE_PROCESSOR, ISP_IMAGE_PROCESSOR,
+                                             (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property (gobject_class, PROP_3A_ANALYZER,
+                                     g_param_spec_enum ("analyzer", "3a analyzer", "3a analyzer",
+                                             GST_TYPE_XCAM_SRC_ANALYZER, SIMPLE_ANALYZER,
+                                             (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     gst_element_class_set_details_simple(element_class,
                                          "Libxcam Source",
@@ -190,10 +239,6 @@ gst_xcamsrc_class_init (GstxcamsrcClass * klass)
 static void
 gst_xcamsrc_init (Gstxcamsrc *xcamsrc)
 {
-    MainDeviceManager::set_capture_device_name (DEFAULT_CAPTURE_DEVICE);
-    MainDeviceManager::set_event_device_name (DEFAULT_EVENT_DEVICE);
-    MainDeviceManager::set_cpf_file_name (DEFAULT_CPF_FILE_NAME);
-
     gst_base_src_set_format (GST_BASE_SRC (xcamsrc), GST_FORMAT_TIME);
     gst_base_src_set_live (GST_BASE_SRC (xcamsrc), TRUE);
 
@@ -202,9 +247,11 @@ gst_xcamsrc_init (Gstxcamsrc *xcamsrc)
     xcamsrc->_fps_d = DEFAULT_PROP_FPSD; //1
     xcamsrc->width = DEFAULT_PROP_WIDTH; //1920
     xcamsrc->height = DEFAULT_PROP_HEIGHT; //1080
-    xcamsrc->pixelformat = V4L2_PIX_FMT_NV12; //420
+    xcamsrc->pixelformat = V4L2_PIX_FMT_NV12;
     xcamsrc->field = V4L2_FIELD_NONE; //0
     xcamsrc->bytes_perline = DEFAULT_PROP_BYTESPERLINE; // 3840
+    xcamsrc->image_processor_type = ISP_IMAGE_PROCESSOR;
+    xcamsrc->analyzer_type = SIMPLE_ANALYZER;
 
     gst_base_src_set_blocksize (GST_BASE_SRC (xcamsrc), DEFAULT_BLOCKSIZE);
 }
@@ -226,27 +273,62 @@ gst_xcamsrc_start (GstBaseSrc *src)
     gst_object_sync_values (GST_OBJECT (src), xcamsrc->ctrl_time);
 
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
-    SmartPtr<V4l2Device> device = device_manager->get_device();
-    SmartPtr<V4l2SubDevice> sub_device = device_manager->get_sub_device();
 
-    /**
-     * set_sensor_id
-     * set_capture_mode
-     * set_mem_type
-     * set_buffer_count
-     * set_framerate
-     * open
-     * set_format
-     *
-     **/
-    device->set_buffer_count (xcamsrc->buf_count);
-    device->set_framerate (xcamsrc->_fps_n, xcamsrc->_fps_d);
-    device->open ();
-    device->set_format  (xcamsrc->width, xcamsrc->height, xcamsrc->pixelformat, xcamsrc->field, xcamsrc->bytes_perline);
+    SmartPtr<V4l2Device> capture_device;
+    if (xcamsrc->capture_mode == V4L2_CAPTURE_MODE_STILL)
+        capture_device = new AtomispDevice (CAPTURE_DEVICE_STILL);
+    else
+        capture_device = new AtomispDevice (CAPTURE_DEVICE_VIDEO);
+    device_manager->set_capture_device (capture_device);
+    capture_device->set_sensor_id (xcamsrc->sensor_id);
+    capture_device->set_capture_mode (xcamsrc->capture_mode);
+    capture_device->set_mem_type (xcamsrc->mem_type);
+    capture_device->set_buffer_count (xcamsrc->buf_count);
+    capture_device->set_framerate (xcamsrc->_fps_n, xcamsrc->_fps_d);
+    capture_device->open ();
+    capture_device->set_format (xcamsrc->width, xcamsrc->height, xcamsrc->pixelformat, xcamsrc->field, xcamsrc->bytes_perline);
 
-    sub_device->open();
-    sub_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
-    sub_device->subscribe_event (V4L2_EVENT_FRAME_SYNC);
+    SmartPtr<V4l2SubDevice> event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
+    device_manager->set_event_device (event_device);
+    event_device->open ();
+    event_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
+    event_device->subscribe_event (V4L2_EVENT_FRAME_SYNC);
+
+    SmartPtr<IspController> isp_controller = new IspController (capture_device);
+    device_manager->set_isp_controller (isp_controller);
+
+    SmartPtr<ImageProcessor> isp_processor;
+#if HAVE_LIBCL
+    SmartPtr<CL3aImageProcessor> cl_processor = new CL3aImageProcessor ();
+#endif
+    switch (xcamsrc->image_processor_type) {
+#if HAVE_LIBCL
+    case CL_IMAGE_PROCESSOR:
+        isp_processor = new IspExposureImageProcessor (isp_controller);
+        XCAM_ASSERT (isp_processor.ptr ());
+        device_manager->add_image_processor (isp_processor);
+        cl_processor = new CL3aImageProcessor ();
+        cl_processor->set_stats_callback (device_manager);
+        device_manager->add_image_processor (cl_processor);
+        break;
+#endif
+    default:
+        isp_processor = new IspImageProcessor (isp_controller);
+        device_manager->add_image_processor (isp_processor);
+    }
+
+    SmartPtr<X3aAnalyzer> analyzer;
+    switch (xcamsrc->analyzer_type) {
+#if HAVE_IA_AIQ
+    case AIQ_ANALYZER:
+        analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE_NAME);
+        break;
+#endif
+    default:
+        analyzer = new X3aAnalyzerSimple ();
+    }
+    device_manager->set_analyzer (analyzer);
+
     device_manager->start ();
 
     return TRUE;
@@ -259,8 +341,8 @@ gst_xcamsrc_stop (GstBaseSrc * basesrc)
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
 
     device_manager->stop();
-    device_manager->get_device()->close ();
-    device_manager->get_sub_device()->close ();
+    device_manager->get_capture_device()->close ();
+    device_manager->get_event_device()->close ();
     return TRUE;
 }
 
@@ -281,7 +363,7 @@ gst_xcamsrc_set_caps (GstBaseSrc *src, GstCaps *caps)
 
     guint32 block_size = DEFAULT_BLOCKSIZE;
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
-    SmartPtr<V4l2Device> device = device_manager->get_device();
+    SmartPtr<V4l2Device> device = device_manager->get_capture_device();
 
 
     struct v4l2_format format;
@@ -296,8 +378,6 @@ gst_xcamsrc_set_caps (GstBaseSrc *src, GstCaps *caps)
     gst_buffer_pool_set_active (GST_BUFFER_POOL_CAST (xcamsrc->pool), TRUE);
     return TRUE;
 }
-
-
 
 static GstFlowReturn gst_xcamsrc_alloc (GstBaseSrc *src, guint64 offset, guint size, GstBuffer **buffer)
 {
@@ -402,7 +482,6 @@ static void gst_xcamsrc_set_property (GObject *object,
     Gstxcamsrc *src = GST_XCAMSRC (object);
     int val;
     enum v4l2_memory set_val;
-    SmartPtr<V4l2Device> device = DeviceManagerInstance::device_manager_instance()->get_device();
 
     switch (prop_id) {
     case PROP_DEVICE:
@@ -410,23 +489,42 @@ static void gst_xcamsrc_set_property (GObject *object,
     case PROP_COLOREFFECT:
         break;
     case PROP_SENSOR:
-        device->set_sensor_id (g_value_get_int (value));
+        src->sensor_id = g_value_get_int (value);
         break;
     case PROP_CAPTURE_MODE:
-        val = g_value_get_int (value);
-        device->set_capture_mode (1 << (13 + val));
+        switch (g_value_get_int (value)) {
+        case 0:
+            src->capture_mode = V4L2_CAPTURE_MODE_STILL;
+            break;
+        case 1:
+            src->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
+            break;
+        case 2:
+            src->capture_mode = V4L2_CAPTURE_MODE_PREVIEW;
+            break;
+        default:
+            XCAM_LOG_ERROR ("Invalid capure mode");
+            break;
+        }
         break;
     case PROP_IO_MODE:
-        val = g_value_get_int (value);
-        if (val == 1)
-            set_val = V4L2_MEMORY_MMAP;
-        else if (val == 2)
-            set_val = V4L2_MEMORY_USERPTR;
-        else if (val == 3)
-            set_val = V4L2_MEMORY_OVERLAY;
-        else
-            set_val = V4L2_MEMORY_DMABUF;
-        device->set_mem_type (set_val);
+        switch (g_value_get_int (value)) {
+        case 1:
+            src->mem_type = V4L2_MEMORY_MMAP;
+            break;
+        case 2:
+            src->mem_type = V4L2_MEMORY_USERPTR;
+            break;
+        case 3:
+            src->mem_type = V4L2_MEMORY_OVERLAY;
+            break;
+        case 4:
+            src->mem_type = V4L2_MEMORY_DMABUF;
+            break;
+        default:
+            XCAM_LOG_ERROR ("Invalid io mode");
+            break;
+        }
         break;
     case PROP_BUFFERCOUNT:
         src->buf_count = g_value_get_int (value);
@@ -453,6 +551,20 @@ static void gst_xcamsrc_set_property (GObject *object,
         break;
     case PROP_BYTESPERLINE:
         src->bytes_perline = g_value_get_int (value);
+        break;
+    case PROP_IMAGE_PROCESSOR:
+        src->image_processor_type = (ImageProcessorType)g_value_get_enum (value);
+        if (src->image_processor_type == ISP_IMAGE_PROCESSOR) {
+            src->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
+            src->pixelformat = V4L2_PIX_FMT_NV12;
+        }
+        else if (src->image_processor_type == CL_IMAGE_PROCESSOR) {
+            src->capture_mode = V4L2_CAPTURE_MODE_STILL;
+            src->pixelformat = V4L2_PIX_FMT_SGRBG10;
+        }
+        break;
+    case PROP_3A_ANALYZER:
+        src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

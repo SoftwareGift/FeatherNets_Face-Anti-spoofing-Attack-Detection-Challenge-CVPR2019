@@ -45,6 +45,7 @@ public:
     //derived from BufferData
     virtual uint8_t *map ();
     virtual bool unmap ();
+    virtual int get_fd ();
 
 protected:
     explicit DrmBoData (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo);
@@ -55,6 +56,7 @@ private:
     SmartPtr<DrmDisplay>       _display;
     drm_intel_bo              *_bo;
     uint8_t                   *_buf;
+    int                       _prime_fd;
 };
 
 class DrmBoBuffer

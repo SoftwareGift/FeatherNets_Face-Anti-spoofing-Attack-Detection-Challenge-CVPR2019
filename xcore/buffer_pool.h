@@ -37,6 +37,9 @@ public:
 
     virtual uint8_t *map () = 0;
     virtual bool unmap () = 0;
+    virtual int get_fd () {
+        return -1;
+    }
 
 private:
     XCAM_DEAD_COPY (BufferData);
@@ -60,6 +63,7 @@ public:
     // derived from VideoBuffer
     virtual uint8_t *map ();
     virtual bool unmap ();
+    virtual int get_fd();
 
 protected:
     SmartPtr<BufferData> &get_buffer_data () {

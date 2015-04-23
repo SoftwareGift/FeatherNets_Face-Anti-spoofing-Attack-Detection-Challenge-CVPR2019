@@ -238,7 +238,7 @@ V4l2Device::set_format (struct v4l2_format &format)
             XCAM_LOG_ERROR("Video device is busy, fail to set format.");
         } else {
             // TODO log format details and errno
-            XCAM_LOG_ERROR("Fail to set format.");
+            XCAM_LOG_ERROR("Fail to set format: %s", strerror(errno));
         }
 
         return XCAM_RETURN_ERROR_IOCTL;
@@ -310,7 +310,6 @@ V4l2Device::set_format (
 
     if (bytes_perline != 0)
         format.fmt.pix.bytesperline = bytes_perline;
-
     return set_format (format);
 }
 

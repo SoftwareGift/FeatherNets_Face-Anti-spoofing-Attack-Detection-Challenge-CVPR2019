@@ -71,6 +71,7 @@ public:
     // derived from BufferData
     virtual uint8_t *map ();
     virtual bool unmap ();
+    virtual int get_fd ();
 
 private:
     XCAM_DEAD_COPY (V4l2Buffer);

@@ -35,51 +35,12 @@ DeviceManagerInstance::device_manager_instance ()
     return _device_manager;
 }
 
-
-const char*         MainDeviceManager::_capture_device_name (NULL);
-const char*         MainDeviceManager::_event_device_name (NULL);
-const char*         MainDeviceManager::_cpf_file_name (NULL);
-
 MainDeviceManager::MainDeviceManager()
 {
-    _device = new AtomispDevice (_capture_device_name);
-    _sub_device = new V4l2SubDevice (_event_device_name);
-    _isp_controller = new IspController (_device);
-
-#if HAVE_IA_AIQ
-    _x3a_analyzer = new X3aAnalyzerAiq (_isp_controller, _cpf_file_name);
-#else
-    _x3a_analyzer = new X3aAnalyzerSimple ();
-#endif
-
-    _image_processor = new IspImageProcessor (_isp_controller);
-
-    this->set_capture_device (_device);
-    this->set_event_device (_sub_device);
-    this->set_isp_controller (_isp_controller);
-    this->set_analyzer (_x3a_analyzer);
-    this->add_image_processor (_image_processor);
 }
 
 MainDeviceManager::~MainDeviceManager()
-{}
-
-void
-MainDeviceManager::set_capture_device_name (const char* name)
 {
-    _capture_device_name = name;
-}
-
-void
-MainDeviceManager::set_event_device_name (const char* name)
-{
-    _event_device_name = name;
-}
-
-void
-MainDeviceManager::set_cpf_file_name (const char* name)
-{
-    _cpf_file_name = name;
 }
 
 void
@@ -96,11 +57,6 @@ MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
     if (bufs.size() == 1)
         pthread_cond_signal (&bufs_cond);
     pthread_mutex_unlock (&bufs_mutex);
-}
-
-SmartPtr<X3aAnalyzer> &
-MainDeviceManager::get_x3a_analyzer () {
-    return _x3a_analyzer;
 }
 
 };

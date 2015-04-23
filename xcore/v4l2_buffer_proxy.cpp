@@ -46,6 +46,12 @@ V4l2Buffer::unmap ()
     return true;
 }
 
+int
+V4l2Buffer::get_fd ()
+{
+    return _buf.m.fd;
+}
+
 V4l2BufferProxy::V4l2BufferProxy (SmartPtr<V4l2Buffer> &buf, SmartPtr<V4l2Device> &device)
     : BufferProxy (buf)
     , _device (device)

@@ -32,6 +32,9 @@
 #include "device_manager.h"
 #include "isp_controller.h"
 #include "isp_image_processor.h"
+#if HAVE_LIBCL
+#include "cl_3a_image_processor.h"
+#endif
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
 #endif
@@ -64,18 +67,21 @@ public:
     MainDeviceManager ();
     ~MainDeviceManager ();
 
-    SmartPtr<V4l2Device> get_device() {
+    SmartPtr<V4l2Device>& get_capture_device () {
         return _device;
     }
-    SmartPtr<V4l2SubDevice> get_sub_device() {
-        return _sub_device;
+
+    SmartPtr<V4l2SubDevice>& get_event_device () {
+        return _subdevice;
     }
 
-    static void set_capture_device_name (const char*);
-    static void set_event_device_name (const char*);
-    static void set_cpf_file_name (const char*);
+    SmartPtr<IspController>& get_isp_controller () {
+        return _isp_controller;
+    }
 
-    SmartPtr<X3aAnalyzer>& get_x3a_analyzer ();
+    SmartPtr<X3aAnalyzer>& get_analyzer () {
+        return _3a_analyzer;
+    }
 
 protected:
     virtual void handle_message (SmartPtr<XCamMessage> &msg);
@@ -87,17 +93,6 @@ public:
     pthread_cond_t          bufs_cond;
     std::queue< SmartPtr<VideoBuffer> > release_bufs;
     pthread_mutex_t         release_mutex;
-
-private:
-    SmartPtr<V4l2Device>        _device;
-    SmartPtr<V4l2SubDevice>     _sub_device;
-    SmartPtr<IspController>     _isp_controller;
-    SmartPtr<X3aAnalyzer>       _x3a_analyzer;
-    SmartPtr<ImageProcessor>        _image_processor;
-
-    static const char*          _capture_device_name;
-    static const char*          _event_device_name;
-    static const char*          _cpf_file_name;
 };
 
 };

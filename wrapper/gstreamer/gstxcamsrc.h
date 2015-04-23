@@ -27,7 +27,8 @@
 #include <xcam_defs.h>
 
 #define DEFAULT_BLOCKSIZE   1843200
-#define DEFAULT_CAPTURE_DEVICE  "/dev/video3"
+#define CAPTURE_DEVICE_STILL  "/dev/video0"
+#define CAPTURE_DEVICE_VIDEO  "/dev/video3"
 #define DEFAULT_EVENT_DEVICE    "/dev/v4l-subdev6"
 #define DEFAULT_CPF_FILE_NAME   "/etc/atomisp/imx185.cpf"
 
@@ -44,6 +45,10 @@
 #define DEFAULT_PROP_FIELD      V4L2_FIELD_NONE // 0
 #define DEFAULT_PROP_BYTESPERLINE   3840
 
+#define V4L2_CAPTURE_MODE_STILL 0x2000
+#define V4L2_CAPTURE_MODE_VIDEO 0x4000
+#define V4L2_CAPTURE_MODE_PREVIEW 0x8000
+
 G_BEGIN_DECLS
 
 /* #defines don't like whitespacey bits */
@@ -58,6 +63,16 @@ G_BEGIN_DECLS
 #define GST_IS_XCAMSRC_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_XCAMSRC))
 #define GST_XCAMSRC_CAST(obj)   ((Gstxcamsrc *) obj)
+
+typedef enum {
+    ISP_IMAGE_PROCESSOR = 0,
+    CL_IMAGE_PROCESSOR,
+} ImageProcessorType;
+
+typedef enum {
+    SIMPLE_ANALYZER = 0,
+    AIQ_ANALYZER,
+} AnalyzerType;
 
 typedef struct _Gstxcamsrc      Gstxcamsrc;
 typedef struct _GstxcamsrcClass GstxcamsrcClass;
@@ -78,6 +93,11 @@ struct _Gstxcamsrc
     guint pixelformat;
     enum v4l2_field field;
     guint bytes_perline;
+    gint sensor_id;
+    guint capture_mode;
+    enum v4l2_memory mem_type;
+    ImageProcessorType image_processor_type;
+    AnalyzerType analyzer_type;
 
     GstClockTime duration;
     GstClockTime ctrl_time;

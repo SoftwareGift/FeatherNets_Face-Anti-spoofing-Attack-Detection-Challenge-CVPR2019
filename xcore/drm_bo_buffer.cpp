@@ -26,6 +26,7 @@ DrmBoData::DrmBoData (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo)
     : _display (display)
     , _bo (bo)
     , _buf (NULL)
+    , _prime_fd (-1)
 {
     XCAM_ASSERT (display.ptr ());
     XCAM_ASSERT (bo);
@@ -58,6 +59,19 @@ DrmBoData::unmap ()
     drm_intel_bo_unmap (_bo);
     _buf = NULL;
     return true;
+}
+
+int
+DrmBoData::get_fd ()
+{
+    if (_prime_fd == -1) {
+        if (drm_intel_bo_gem_export_to_prime (_bo, &_prime_fd) < 0) {
+            _prime_fd = -1;
+            XCAM_LOG_ERROR ("DrmBoData: failed to obtain prime fd");
+        }
+    }
+
+    return _prime_fd;
 }
 
 DrmBoBuffer::DrmBoBuffer (const VideoBufferInfo &info, const SmartPtr<DrmBoData> &data)
