@@ -27,7 +27,7 @@
 
 #include <gst/gst.h>
 #include <linux/videodev2.h>
-#include <xcam_3a_types.h>
+#include <base/xcam_3a_types.h>
 
 
 G_BEGIN_DECLS
