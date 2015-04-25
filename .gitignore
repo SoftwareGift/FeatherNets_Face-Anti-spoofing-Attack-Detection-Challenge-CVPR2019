@@ -1,9 +1,11 @@
 # http://www.gnu.org/software/automake
 
 Makefile.in
+Makefile
 
 # http://www.gnu.org/software/autoconf
 
+config.*
 /autom4te.cache
 /aclocal.m4
 /compile
@@ -12,3 +14,14 @@ Makefile.in
 /install-sh
 /missing
 /stamp-h1
+/pkgconfig/*.pc
+/m4
+.deps
+.libs
+
+# Object files
+*.o
+*.lo
+
+# Static libraries
+*.la
