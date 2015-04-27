@@ -494,6 +494,7 @@ CommonHandler::set_color_effect (XCamColorEffect effect)
     _params.color_effect = effect;
 
     XCAM_LOG_DEBUG ("common 3A set color effect");
+    return true;
 }
 
 };
