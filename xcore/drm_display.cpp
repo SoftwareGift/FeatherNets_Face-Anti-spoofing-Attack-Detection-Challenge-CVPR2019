@@ -51,6 +51,7 @@ DrmDisplay::DrmDisplay(const char* module)
     , _crtc_index (-1)
     , _crtc_id (0)
     , _con_id (0)
+    , _encoder_id (0)
     , _plane_id (0)
     , _connector (NULL)
     , _is_render_inited (false)
@@ -101,6 +102,13 @@ DrmDisplay::get_crtc(drmModeRes *res)
 {
     _crtc_index = -1;
 
+    drmModeEncoderPtr encoder = drmModeGetEncoder(_fd, _encoder_id);
+    XCAM_FAIL_RETURN(ERROR, encoder, XCAM_RETURN_ERROR_PARAM,
+                     "drmModeGetEncoder failed: %s", strerror(errno));
+
+    _crtc_id = encoder->crtc_id;
+    drmModeFreeEncoder(encoder);
+
     for (int i = 0; i < res->count_crtcs; i++) {
         if (_crtc_id == res->crtcs[i]) {
             _crtc_index = i;
@@ -118,11 +126,16 @@ DrmDisplay::get_connector(drmModeRes *res)
 {
     XCAM_FAIL_RETURN(ERROR, res->count_connectors > 0, XCAM_RETURN_ERROR_PARAM,
                      "No connector found");
-    _connector = drmModeGetConnector(_fd, _con_id);
+    for(int i = 0; i < res->count_connectors; ++i) {
+        _connector = drmModeGetConnector(_fd, res->connectors[i]);
+        if(_connector->connection == DRM_MODE_CONNECTED) {
+            _con_id = res->connectors[i];
+            _encoder_id = res->encoders[i];
+        }
+        drmModeFreeConnector(_connector);
+    }
     XCAM_FAIL_RETURN(ERROR, _connector, XCAM_RETURN_ERROR_PARAM,
                      "drmModeGetConnector failed: %s", strerror(errno));
-    XCAM_FAIL_RETURN(ERROR, _connector->connection == DRM_MODE_CONNECTED,
-                     XCAM_RETURN_ERROR_PARAM, "get_connector failed since it is not connected");
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -196,15 +209,15 @@ DrmDisplay::render_init (
     XCAM_FAIL_RETURN(ERROR, resource, XCAM_RETURN_ERROR_PARAM,
                      "failed to query Drm Mode resources: %s", strerror(errno));
 
-    ret = get_crtc(resource);
-    XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR,
-                     XCAM_RETURN_ERROR_PARAM,
-                     "failed to get CRTC %s", strerror(errno));
-
     ret = get_connector(resource);
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR,
                      XCAM_RETURN_ERROR_PARAM,
                      "failed to get connector %s", strerror(errno));
+
+    ret = get_crtc(resource);
+    XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR,
+                     XCAM_RETURN_ERROR_PARAM,
+                     "failed to get CRTC %s", strerror(errno));
 
     ret = get_plane();
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR,
@@ -267,9 +280,6 @@ DrmDisplay::render_setup_frame_buffer (SmartPtr<VideoBuffer> &buf)
     FB fb;
     SmartPtr<V4l2BufferProxy> v4l2_proxy;
     SmartPtr<DrmBoBuffer> bo_buf;
-
-    if (has_frame_buffer (buf))
-        return XCAM_RETURN_NO_ERROR;
 
     v4l2_proxy = buf.dynamic_cast_ptr<V4l2BufferProxy> ();
     bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();

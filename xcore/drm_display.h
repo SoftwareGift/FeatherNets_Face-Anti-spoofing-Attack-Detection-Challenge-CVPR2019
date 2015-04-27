@@ -119,6 +119,7 @@ private:
     int _crtc_index;
     unsigned int _crtc_id;
     unsigned int _con_id;
+    unsigned int _encoder_id;
     unsigned int _plane_id;
     drmModeConnector *_connector;
     bool _is_render_inited;

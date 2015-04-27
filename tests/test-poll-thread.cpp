@@ -227,8 +227,8 @@ int main (int argc, const char *argv[])
     SmartPtr<DrmDisplay> drmdisp = DrmDisplay::instance();
     struct v4l2_rect rect = { 0, 0, (int)format.fmt.pix.width, (int)format.fmt.pix.height };
     drmdisp->render_init(
-        12,
-        3,
+        0,
+        0,
         1920,
         1080,
         format.fmt.pix.pixelformat,

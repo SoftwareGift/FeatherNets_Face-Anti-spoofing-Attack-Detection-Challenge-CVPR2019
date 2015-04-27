@@ -169,7 +169,7 @@ MainDeviceManager::display_buf (SmartPtr<VideoBuffer> &buf)
     struct v4l2_rect rect = { 0, 0, (int)frame_info.width, (int)frame_info.height };
 
     if (!_display->is_render_inited ()) {
-        ret = _display->render_init (12, 3, 1920, 1080, frame_info.format, &rect);
+        ret = _display->render_init (0, 0, 1920, 1080, frame_info.format, &rect);
         CHECK (ret, "display failed on render_init");
     }
     ret = _display->render_setup_frame_buffer (buf);
