@@ -1,4 +1,7 @@
 #!/bin/sh
+
+ln -s ../../tools/pre-commit-code-style.sh .git/hooks/pre-commit
+
 echo "git submodule update"
 git submodule sync
 git submodule init
