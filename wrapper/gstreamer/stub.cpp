@@ -125,11 +125,12 @@ gboolean gst_xcamsrc_set_ae_metering_mode (GstXCam3A *xcam3a, XCamAeMeteringMode
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
     return analyzer->set_ae_metering_mode (mode);
 }
-gboolean gst_xcamsrc_set_exposure_window (GstXCam3A *xcam3a, XCam3AWindow *window)
+gboolean gst_xcamsrc_set_exposure_window (GstXCam3A *xcam3a, XCam3AWindow *window, guint8 count)
 {
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_ae_window (window);
+
+    return analyzer->set_ae_window (window, count);
 }
 gboolean gst_xcamsrc_set_exposure_value_offset (GstXCam3A *xcam3a, double ev_offset)
 {

@@ -64,6 +64,7 @@ public:
     bool set_mode (XCamAeMode mode);
     bool set_metering_mode (XCamAeMeteringMode mode);
     bool set_window (XCam3AWindow *window);
+    bool set_window (XCam3AWindow *window, uint8_t count);
     bool set_ev_shift (double ev_shift);
     bool set_speed (double speed);
     bool set_flicker_mode (XCamFlickerMode flicker);
@@ -73,6 +74,10 @@ public:
     bool set_max_analog_gain (double max_gain);
     bool set_exposure_time_range (int64_t min_time_in_us, int64_t max_time_in_us);
     bool get_exposure_time_range (int64_t *min_time_in_us, int64_t *max_time_in_us);
+
+    XCamAeMeteringMode get_metering_mode() const {
+        return _params.metering_mode;
+    }
 
     //virtual functions
     virtual XCamFlickerMode get_flicker_mode ();

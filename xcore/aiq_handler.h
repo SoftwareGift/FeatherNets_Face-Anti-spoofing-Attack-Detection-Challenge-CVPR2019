@@ -108,6 +108,11 @@ public:
     virtual double get_current_analog_gain ();
     virtual double get_max_analog_gain ();
 
+    XCamReturn set_RGBS_weight_grid (ia_aiq_rgbs_grid **out_rgbs_grid);
+    XCamReturn set_hist_weight_grid (ia_aiq_hist_weight_grid **out_weight_grid);
+    XCamReturn dump_hist_weight_grid (const ia_aiq_hist_weight_grid *weight_grid);
+    XCamReturn dump_RGBS_grid (const ia_aiq_rgbs_grid *rgbs_grid);
+
 private:
     bool ensure_ia_parameters ();
     bool ensure_ae_mode ();
@@ -239,6 +244,10 @@ public:
     void set_size (uint32_t width, uint32_t height) {
         _width = width;
         _height = height;
+    }
+    void get_size (uint32_t &out_width, uint32_t &out_height) const {
+        out_width = _width;
+        out_height = _height;
     }
     bool open (ia_binary_data &cpf);
     void close ();

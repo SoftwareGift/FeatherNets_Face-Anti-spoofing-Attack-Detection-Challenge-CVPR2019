@@ -48,10 +48,13 @@ typedef enum {
     XCAM_AE_MODE_APERTURE_PRIORITY
 } XCamAeMode;
 
+#define XCAM_AE_MAX_METERING_WINDOW_COUNT 6
+
 typedef enum {
     XCAM_AE_METERING_MODE_AUTO,   /*mode_evaluative*/
     XCAM_AE_METERING_MODE_SPOT,   /*window*/
     XCAM_AE_METERING_MODE_CENTER,  /*mode_center*/
+    XCAM_AE_METERING_MODE_WEIGHTED_WINDOW, /* weighted_window */
 } XCamAeMeteringMode;
 
 typedef enum {

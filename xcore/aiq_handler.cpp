@@ -30,6 +30,9 @@
 #define MAX_STATISTICS_WIDTH 150
 #define MAX_STATISTICS_HEIGHT 150
 
+//#define USE_RGBS_GRID_WEIGHTING
+#define USE_HIST_GRID_WEIGHTING
+
 namespace XCam {
 
 struct IspInputParameters {
@@ -407,6 +410,21 @@ bool AiqAeHandler::ensure_ae_metering_mode ()
     case XCAM_AE_METERING_MODE_CENTER:
         _input.metering_mode = ia_aiq_ae_metering_mode_center;
         break;
+    case XCAM_AE_METERING_MODE_WEIGHTED_WINDOW:
+    {
+        _input.metering_mode = ia_aiq_ae_metering_mode_evaluative;
+        const XCam3AWindow & weighted_window = this->get_window_unlock();
+
+        XCAM_LOG_DEBUG ("ensure_ae_metering_mode weighted_window x_start = %d, y_start = %d, x_end = %d, y_end = %d ",
+                        weighted_window.x_start, weighted_window.y_start, weighted_window.x_end, weighted_window.y_end);
+
+        if (weighted_window.x_end > weighted_window.x_start &&
+                weighted_window.y_end > weighted_window.y_start) {
+            _aiq_compositor->convert_window_to_ia(weighted_window, _ia_ae_window);
+            _input.exposure_window = &_ia_ae_window;
+        }
+    }
+    break;
     default:
         XCAM_LOG_ERROR("unsupported ae mode:%d", mode);
         return false;
@@ -642,6 +660,240 @@ AiqAeHandler::get_max_analog_gain ()
         AnalyzerHandler::HanlderLock lock(this);
     }
     return AeHandler::get_max_analog_gain ();
+}
+
+XCamReturn
+AiqAeHandler::set_RGBS_weight_grid (ia_aiq_rgbs_grid **out_rgbs_grid)
+{
+    AnalyzerHandler::HanlderLock lock(this);
+
+    rgbs_grid_block *rgbs_grid_ptr = (*out_rgbs_grid)->blocks_ptr;
+    uint32_t rgbs_grid_index = 0;
+    uint16_t rgbs_grid_width = (*out_rgbs_grid)->grid_width;
+    uint16_t rgbs_grid_height = (*out_rgbs_grid)->grid_height;
+
+    XCAM_LOG_DEBUG ("rgbs_grid_width = %d, rgbs_grid_height = %d", rgbs_grid_width, rgbs_grid_height);
+
+    uint64_t weight_sum = 0;
+
+    uint32_t image_width = 0;
+    uint32_t image_height = 0;
+    _aiq_compositor->get_size (image_width, image_height);
+    XCAM_LOG_DEBUG ("image_width = %d, image_height = %d", image_width, image_height);
+
+    uint32_t hor_pixels_per_grid = (image_width + (rgbs_grid_width >> 1)) / rgbs_grid_width;
+    uint32_t vert_pixels_per_gird = (image_height + (rgbs_grid_height >> 1)) / rgbs_grid_height;
+    XCAM_LOG_DEBUG ("rgbs grid: %d x %d pixels per grid cell", hor_pixels_per_grid, vert_pixels_per_gird);
+
+    XCam3AWindow weighted_window = this->get_window_unlock ();
+    uint32_t weighted_grid_width = ((weighted_window.x_end - weighted_window.x_start + 1) +
+                                    (hor_pixels_per_grid >> 1)) / hor_pixels_per_grid;
+    uint32_t weighted_grid_height = ((weighted_window.y_end - weighted_window.y_start + 1) +
+                                     (vert_pixels_per_gird >> 1)) / vert_pixels_per_gird;
+    XCAM_LOG_DEBUG ("weighted_grid_width = %d, weighted_grid_height = %d", weighted_grid_width, weighted_grid_height);
+
+    uint32_t *weighted_avg_gr = (uint32_t*)xcam_malloc0 (5 * weighted_grid_width * weighted_grid_height * sizeof(uint32_t));
+    if (NULL == weighted_avg_gr) {
+        return XCAM_RETURN_ERROR_MEM;
+    }
+    uint32_t *weighted_avg_r = weighted_avg_gr + (weighted_grid_width * weighted_grid_height);
+    uint32_t *weighted_avg_b = weighted_avg_r + (weighted_grid_width * weighted_grid_height);
+    uint32_t *weighted_avg_gb = weighted_avg_b + (weighted_grid_width * weighted_grid_height);
+    uint32_t *weighted_sat = weighted_avg_gb + (weighted_grid_width * weighted_grid_height);
+
+    for (uint32_t win_index = 0; win_index < XCAM_AE_MAX_METERING_WINDOW_COUNT; win_index++) {
+        XCAM_LOG_DEBUG ("window start point(%d, %d), end point(%d, %d), weight = %d",
+                        _params.window_list[win_index].x_start, _params.window_list[win_index].y_start,
+                        _params.window_list[win_index].x_end, _params.window_list[win_index].y_end,
+                        _params.window_list[win_index].weight);
+
+        if ((_params.window_list[win_index].weight <= 0) ||
+                (_params.window_list[win_index].x_start < 0) ||
+                (_params.window_list[win_index].x_end > image_width) ||
+                (_params.window_list[win_index].y_start < 0) ||
+                (_params.window_list[win_index].y_end > image_height) ||
+                (_params.window_list[win_index].x_start >= _params.window_list[win_index].x_end) ||
+                (_params.window_list[win_index].y_start >= _params.window_list[win_index].y_end) ||
+                (_params.window_list[win_index].x_end - _params.window_list[win_index].x_start > image_width) ||
+                (_params.window_list[win_index].y_end - _params.window_list[win_index].y_start > image_height)) {
+            XCAM_LOG_DEBUG ("skip window index = %d ", win_index);
+            continue;
+        }
+
+        rgbs_grid_index = (_params.window_list[win_index].x_start +
+                           (hor_pixels_per_grid >> 1)) / hor_pixels_per_grid +
+                          ((_params.window_list[win_index].y_start + (vert_pixels_per_gird >> 1))
+                           / vert_pixels_per_gird) * rgbs_grid_width;
+
+        weight_sum += _params.window_list[win_index].weight;
+
+        XCAM_LOG_DEBUG ("cumulate rgbs grid statistic, window index = %d ", win_index);
+        for (uint32_t i = 0; i < weighted_grid_height; i++) {
+            for (uint32_t j = 0; j < weighted_grid_width; j++) {
+                weighted_avg_gr[j + i * weighted_grid_width] += rgbs_grid_ptr[rgbs_grid_index + j +
+                        i * rgbs_grid_width].avg_gr * _params.window_list[win_index].weight;
+                weighted_avg_r[j + i * weighted_grid_width] += rgbs_grid_ptr[rgbs_grid_index + j +
+                        i * rgbs_grid_width].avg_r * _params.window_list[win_index].weight;
+                weighted_avg_b[j + i * weighted_grid_width] += rgbs_grid_ptr[rgbs_grid_index + j +
+                        i * rgbs_grid_width].avg_b * _params.window_list[win_index].weight;
+                weighted_avg_gb[j + i * weighted_grid_width] += rgbs_grid_ptr[rgbs_grid_index + j +
+                        i * rgbs_grid_width].avg_gb * _params.window_list[win_index].weight;
+                weighted_sat[j + i * weighted_grid_width] += rgbs_grid_ptr[rgbs_grid_index + j +
+                        i * rgbs_grid_width].sat * _params.window_list[win_index].weight;
+            }
+        }
+    }
+    XCAM_LOG_DEBUG ("sum of weighing factor = %d ", weight_sum);
+
+    rgbs_grid_index = (weighted_window.x_start + (hor_pixels_per_grid >> 1)) / hor_pixels_per_grid +
+                      (weighted_window.y_start + (vert_pixels_per_gird >> 1)) / vert_pixels_per_gird * rgbs_grid_width;
+    for (uint32_t i = 0; i < weighted_grid_height; i++) {
+        for (uint32_t j = 0; j < weighted_grid_width; j++) {
+            rgbs_grid_ptr[rgbs_grid_index + j + i * rgbs_grid_width].avg_gr =
+                weighted_avg_gr[j + i * weighted_grid_width] / weight_sum;
+            rgbs_grid_ptr[rgbs_grid_index + j + i * rgbs_grid_width].avg_r =
+                weighted_avg_r[j + i * weighted_grid_width] / weight_sum;
+            rgbs_grid_ptr[rgbs_grid_index + j + i * rgbs_grid_width].avg_b =
+                weighted_avg_b[j + i * weighted_grid_width] / weight_sum;
+            rgbs_grid_ptr[rgbs_grid_index + j + i * rgbs_grid_width].avg_gb =
+                weighted_avg_gb[j + i * weighted_grid_width] / weight_sum;
+            rgbs_grid_ptr[rgbs_grid_index + j + i * rgbs_grid_width].sat =
+                weighted_sat[j + i * weighted_grid_width] / weight_sum;
+        }
+    }
+
+    xcam_free (weighted_avg_gr);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+
+XCamReturn
+AiqAeHandler::set_hist_weight_grid (ia_aiq_hist_weight_grid **out_weight_grid)
+{
+    AnalyzerHandler::HanlderLock lock(this);
+
+    uint16_t hist_grid_width = (*out_weight_grid)->width;
+    uint16_t hist_grid_height = (*out_weight_grid)->height;
+    uint32_t hist_grid_index = 0;
+
+    unsigned char* weights_map_ptr = (*out_weight_grid)->weights;
+
+    uint32_t image_width = 0;
+    uint32_t image_height = 0;
+    _aiq_compositor->get_size (image_width, image_height);
+
+    uint32_t hor_pixels_per_grid = (image_width + (hist_grid_width >> 1)) / hist_grid_width;
+    uint32_t vert_pixels_per_gird = (image_height + (hist_grid_height >> 1)) / hist_grid_height;
+    XCAM_LOG_DEBUG ("hist weight grid: %d x %d pixels per grid cell", hor_pixels_per_grid, vert_pixels_per_gird);
+
+    memset (weights_map_ptr, 0, hist_grid_width * hist_grid_height);
+
+    for (uint32_t win_index = 0; win_index < XCAM_AE_MAX_METERING_WINDOW_COUNT; win_index++) {
+        XCAM_LOG_DEBUG ("window start point(%d, %d), end point(%d, %d), weight = %d",
+                        _params.window_list[win_index].x_start, _params.window_list[win_index].y_start,
+                        _params.window_list[win_index].x_end, _params.window_list[win_index].y_end,
+                        _params.window_list[win_index].weight);
+
+        if ((_params.window_list[win_index].weight <= 0) ||
+                (_params.window_list[win_index].weight > 15) ||
+                (_params.window_list[win_index].x_start < 0) ||
+                (_params.window_list[win_index].x_end > image_width) ||
+                (_params.window_list[win_index].y_start < 0) ||
+                (_params.window_list[win_index].y_end > image_height) ||
+                (_params.window_list[win_index].x_start >= _params.window_list[win_index].x_end) ||
+                (_params.window_list[win_index].y_start >= _params.window_list[win_index].y_end) ||
+                (_params.window_list[win_index].x_end - _params.window_list[win_index].x_start > image_width) ||
+                (_params.window_list[win_index].y_end - _params.window_list[win_index].y_start > image_height)) {
+            XCAM_LOG_DEBUG ("skip window index = %d ", win_index);
+            continue;
+        }
+
+        uint32_t weighted_grid_width =
+            ((_params.window_list[win_index].x_end - _params.window_list[win_index].x_start + 1) +
+             (hor_pixels_per_grid >> 1)) / hor_pixels_per_grid;
+        uint32_t weighted_grid_height =
+            ((_params.window_list[win_index].y_end - _params.window_list[win_index].y_start + 1) +
+             (vert_pixels_per_gird >> 1)) / vert_pixels_per_gird;
+
+        hist_grid_index = (_params.window_list[win_index].x_start + (hor_pixels_per_grid >> 1)) / hor_pixels_per_grid +
+                          ((_params.window_list[win_index].y_start + (vert_pixels_per_gird >> 1)) /
+                           vert_pixels_per_gird) * hist_grid_width;
+
+        for (uint32_t i = 0; i < weighted_grid_height; i++) {
+            for (uint32_t j = 0; j < weighted_grid_width; j++) {
+                weights_map_ptr[hist_grid_index + j + i * hist_grid_width] = _params.window_list[win_index].weight;
+            }
+        }
+    }
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+AiqAeHandler::dump_hist_weight_grid (const ia_aiq_hist_weight_grid *weight_grid)
+{
+    XCAM_LOG_DEBUG ("E dump_hist_weight_grid");
+    if (NULL == weight_grid) {
+        return XCAM_RETURN_ERROR_PARAM;
+    }
+
+    uint16_t grid_width = weight_grid->width;
+    uint16_t grid_height = weight_grid->height;
+
+    for (uint32_t i = 0; i < grid_height; i++) {
+        for (uint32_t j = 0; j < grid_width; j++) {
+            printf ("%d  ", weight_grid->weights[j + i * grid_width]);
+        }
+        printf("\n");
+    }
+
+    XCAM_LOG_DEBUG ("X dump_hist_weight_grid");
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+AiqAeHandler::dump_RGBS_grid (const ia_aiq_rgbs_grid *rgbs_grid)
+{
+    XCAM_LOG_DEBUG ("E dump_RGBS_grid");
+    if (NULL == rgbs_grid) {
+        return XCAM_RETURN_ERROR_PARAM;
+    }
+
+    uint16_t grid_width = rgbs_grid->grid_width;
+    uint16_t grid_height = rgbs_grid->grid_height;
+
+    printf("AVG B\n");
+    for (uint32_t i = 0; i < grid_height; i++) {
+        for (uint32_t j = 0; j < grid_width; j++) {
+            printf ("%d  ", rgbs_grid->blocks_ptr[j + i * grid_width].avg_b);
+        }
+        printf("\n");
+    }
+    printf("AVG Gb\n");
+    for (uint32_t i = 0; i < grid_height; i++) {
+        for (uint32_t j = 0; j < grid_width; j++) {
+            printf ("%d  ", rgbs_grid->blocks_ptr[j + i * grid_width].avg_gb);
+        }
+        printf("\n");
+    }
+    printf("AVG Gr\n");
+    for (uint32_t i = 0; i < grid_height; i++) {
+        for (uint32_t j = 0; j < grid_width; j++) {
+            printf ("%d  ", rgbs_grid->blocks_ptr[j + i * grid_width].avg_gr);
+        }
+        printf("\n");
+    }
+    printf("AVG R\n");
+    for (uint32_t i = 0; i < grid_height; i++) {
+        for (uint32_t j = 0; j < grid_width; j++) {
+            printf ("%d  ", rgbs_grid->blocks_ptr[j + i * grid_width].avg_r);
+            //printf ("%d  ", rgbs_grid->blocks_ptr[j + i * grid_width].sat);
+        }
+        printf("\n");
+    }
+
+    XCAM_LOG_DEBUG ("X dump_RGBS_grid");
+    return XCAM_RETURN_NO_ERROR;
 }
 
 AiqAwbHandler::AiqAwbHandler (SmartPtr<AiqCompositor> &aiq_compositor)
@@ -978,8 +1230,20 @@ AiqCompositor::set_3a_stats (SmartPtr<X3aIspStatistics> &stats)
 
     if (_pa_result)
         aiq_stats_input.frame_pa_parameters = _pa_result;
-    if (_ae_handler->is_started())
+
+    if (_ae_handler->is_started()) {
+#ifdef USE_HIST_GRID_WEIGHTING
+        if (XCAM_AE_METERING_MODE_WEIGHTED_WINDOW == _ae_handler->get_metering_mode ()) {
+            ia_aiq_ae_results* ae_result = _ae_handler->get_result ();
+
+            if (XCAM_RETURN_NO_ERROR != _ae_handler->set_hist_weight_grid (&(ae_result->weight_grid))) {
+                XCAM_LOG_ERROR ("ae handler set hist weight grid failed");
+            }
+        }
+#endif
         aiq_stats_input.frame_ae_parameters = _ae_handler->get_result ();
+        //_ae_handler->dump_hist_weight_grid (aiq_stats_input.frame_ae_parameters->weight_grid);
+    }
     //if (_awb_handler->is_started())
     //    aiq_stats_input.frame_awb_parameters = _awb_handler->get_result();
 
@@ -988,6 +1252,14 @@ AiqCompositor::set_3a_stats (SmartPtr<X3aIspStatistics> &stats)
         return false;
     }
 
+    if (XCAM_AE_METERING_MODE_WEIGHTED_WINDOW == _ae_handler->get_metering_mode ()) {
+#ifdef USE_RGBS_GRID_WEIGHTING
+        if (XCAM_RETURN_NO_ERROR != _ae_handler->set_RGBS_weight_grid(&rgbs_grids)) {
+            XCAM_LOG_ERROR ("ae handler update RGBS weighted statistic failed");
+        }
+        //_ae_handler->dump_RGBS_grid (*(aiq_stats_input.rgbs_grids));
+#endif
+    }
     XCAM_LOG_DEBUG ("statistics grid info, width:%u, height:%u, blk_r:%u, blk_b:%u, blk_gr:%u, blk_gb:%u",
                     aiq_stats_input.rgbs_grids[0]->grid_width,
                     aiq_stats_input.rgbs_grids[0]->grid_height,

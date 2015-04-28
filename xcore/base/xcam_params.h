@@ -31,6 +31,7 @@ typedef struct _XCamAeParam {
     XCamAeMode              mode;
     XCamAeMeteringMode      metering_mode;
     XCam3AWindow            window;
+    XCam3AWindow            window_list[XCAM_AE_MAX_METERING_WINDOW_COUNT];
     XCamFlickerMode         flicker_mode;
     /* speed, default 1.0 */
     double                  speed;

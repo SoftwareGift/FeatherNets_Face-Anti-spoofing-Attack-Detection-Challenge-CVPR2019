@@ -67,7 +67,7 @@ public:
     /* AE */
     bool set_ae_mode (XCamAeMode mode);
     bool set_ae_metering_mode (XCamAeMeteringMode mode);
-    bool set_ae_window (XCam3AWindow *window);
+    bool set_ae_window (XCam3AWindow *window, uint8_t count = 1);
     bool set_ae_ev_shift (double ev_shift);
     bool set_ae_speed (double speed);
     bool set_ae_flicker_mode (XCamFlickerMode flicker);

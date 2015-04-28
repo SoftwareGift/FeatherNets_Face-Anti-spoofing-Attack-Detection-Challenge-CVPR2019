@@ -50,6 +50,8 @@ AeHandler::reset_parameters ()
     _params.window.x_end = 0;
     _params.window.y_end = 0;
     _params.window.weight = 0;
+
+    xcam_mem_clear (_params.window_list);
 }
 
 bool
@@ -84,6 +86,42 @@ AeHandler::set_window (XCam3AWindow *window)
                     window->x_end,
                     window->y_end,
                     window->weight);
+    return true;
+}
+
+bool
+AeHandler::set_window (XCam3AWindow *window, uint8_t count)
+{
+    if (XCAM_AE_MAX_METERING_WINDOW_COUNT < count) {
+        XCAM_LOG_ERROR ("invalid input parameter, window count = %d", count);
+        return false;
+    }
+
+    AnalyzerHandler::HanlderLock lock(this);
+
+    _params.window = *window;
+
+    for (int i = 0; i < count; i++) {
+        XCAM_LOG_DEBUG ("window start point(%d, %d), end point(%d, %d), weight = %d",
+                        window[i].x_start, window[i].y_start, window[i].x_end, window[i].y_end, window[i].weight);
+
+        _params.window_list[i] = window[i];
+        if (_params.window.weight < window[i].weight) {
+            _params.window.weight = window[i].weight;
+            _params.window.x_start = window[i].x_start;
+            _params.window.y_start = window[i].y_start;
+            _params.window.x_end = window[i].x_end;
+            _params.window.y_end = window[i].y_end;
+        }
+    }
+
+    XCAM_LOG_DEBUG ("ae set metering mode window [x:%d, y:%d, x_end:%d, y_end:%d, weight:%d]",
+                    _params.window.x_start,
+                    _params.window.y_start,
+                    _params.window.x_end,
+                    _params.window.y_end,
+                    _params.window.weight);
+
     return true;
 }
 

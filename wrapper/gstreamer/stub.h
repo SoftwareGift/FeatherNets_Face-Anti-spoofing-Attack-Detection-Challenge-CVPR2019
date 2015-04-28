@@ -51,7 +51,7 @@ gboolean gst_xcamsrc_set_wb_color_temperature_range (GstXCam3A *xcam3a, guint cc
 gboolean gst_xcamsrc_set_manual_wb_gain (GstXCam3A *xcam3a, double gr, double r, double b, double gb);
 gboolean gst_xcamsrc_set_exposure_mode (GstXCam3A *xcam3a, XCamAeMode mode);
 gboolean gst_xcamsrc_set_ae_metering_mode (GstXCam3A *xcam3a, XCamAeMeteringMode mode);
-gboolean gst_xcamsrc_set_exposure_window (GstXCam3A *xcam3a, XCam3AWindow *window);
+gboolean gst_xcamsrc_set_exposure_window (GstXCam3A *xcam3a, XCam3AWindow *window, guint8 count = 1);
 gboolean gst_xcamsrc_set_exposure_value_offset (GstXCam3A *xcam3a, double ev_offset);
 gboolean gst_xcamsrc_set_ae_speed (GstXCam3A *xcam3a, double speed);
 gboolean gst_xcamsrc_set_exposure_flicker_mode (GstXCam3A *xcam3a, XCamFlickerMode flicker);

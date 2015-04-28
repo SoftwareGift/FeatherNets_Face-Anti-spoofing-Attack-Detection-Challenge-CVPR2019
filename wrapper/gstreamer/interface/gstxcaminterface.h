@@ -141,6 +141,7 @@ struct _GstXCam3AInterface {
      * \param[in]        mode    XCAM_AE_METERING_MODE_AUTO, default
      *                           XCAM_AE_METERING_MODE_SPOT, need set spot window by set_exposure_window
      *                           XCAM_AE_METERING_MODE_CENTER,  more weight in center
+     *                           XCAM_AE_METERING_MODE_WEIGHTED_WINDOW,  weighted multi metering window
      */
     gboolean (* set_ae_metering_mode)           (GstXCam3A *xcam, XCamAeMeteringMode mode);
 
@@ -149,6 +150,7 @@ struct _GstXCam3AInterface {
      *
      * \param[in,out]    xcam      XCam handle
      * \param[in]        window    the area to set exposure with. x_end > x_start AND y_end > y_start; only ONE window can be set
+     * \param[in]        count     the number of metering window
      *
      * Usage
      * - Enable:
@@ -156,7 +158,7 @@ struct _GstXCam3AInterface {
      * - Disable:
      *     set_ae_metering_mode(@xcam, @mode); #mode != %XCAM_AE_METERING_MODE_SPOT
      */
-    gboolean (* set_exposure_window)            (GstXCam3A *xcam, XCam3AWindow *window);
+    gboolean (* set_exposure_window)            (GstXCam3A *xcam, XCam3AWindow *window, guint8 count);
 
     /*! \brief set exposure value offset.
      * see xcam_3a_set_ae_value_shift().

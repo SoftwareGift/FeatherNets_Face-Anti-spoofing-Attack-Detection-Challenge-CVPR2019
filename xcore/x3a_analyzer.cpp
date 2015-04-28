@@ -371,10 +371,10 @@ X3aAnalyzer::set_ae_metering_mode (XCamAeMeteringMode mode)
 }
 
 bool
-X3aAnalyzer::set_ae_window (XCam3AWindow *window)
+X3aAnalyzer::set_ae_window (XCam3AWindow *window, uint8_t count)
 {
     XCAM_ASSERT (_ae_handler.ptr());
-    return _ae_handler->set_window (window);
+    return _ae_handler->set_window (window, count);
 }
 
 bool
