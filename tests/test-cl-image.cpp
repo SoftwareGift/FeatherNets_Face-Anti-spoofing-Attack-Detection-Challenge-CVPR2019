@@ -30,6 +30,7 @@
 #include "cl_wb_handler.h"
 #include "cl_denoise_handler.h"
 #include "cl_gamma_handler.h"
+#include "cl_snr_handler.h"
 
 using namespace XCam;
 
@@ -44,6 +45,7 @@ enum TestHandlerType {
     TestHandlerWhiteBalance,
     TestHandlerDenoise,
     TestHandlerGamma,
+    TestHandlerSimpleNoiseReduction,
 };
 
 struct TestFileHandle {
@@ -111,7 +113,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
@@ -202,6 +204,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerDenoise;
             else if (!strcasecmp (optarg, "gamma"))
                 handler_type = TestHandlerGamma;
+            else if (!strcasecmp (optarg, "snr"))
+                handler_type = TestHandlerSimpleNoiseReduction;
             else
                 print_help (bin_name);
             break;
@@ -288,6 +292,9 @@ int main (int argc, char *argv[])
         break;
     case TestHandlerDenoise:
         image_handler = create_cl_denoise_image_handler (context);
+        break;
+    case TestHandlerSimpleNoiseReduction:
+        image_handler = create_cl_snr_image_handler (context);
         break;
     case TestHandlerWhiteBalance: {
         XCam3aResultWhiteBalance wb;

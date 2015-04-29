@@ -27,6 +27,7 @@
 #include "cl_gamma_handler.h"
 #include "cl_3a_stats_calculator.h"
 #include "cl_wb_handler.h"
+#include "cl_snr_handler.h"
 
 namespace XCam {
 
@@ -37,6 +38,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_denoise (false)
     , _enable_gamma(false)
     , _out_smaple_type (OutSampleYuv)
+    , _enable_snr (false)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
@@ -230,6 +232,18 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create demosaic handler failed");
     add_handler (image_handler);
+
+    /* simple noise reduction */
+    if (_enable_snr) {
+        image_handler = create_cl_snr_image_handler (context);
+        _snr = image_handler;
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _snr.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create snr handler failed");
+        add_handler (image_handler);
+    }
 
     /* color space conversion */
     if (_out_smaple_type == OutSampleYuv) {

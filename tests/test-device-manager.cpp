@@ -420,6 +420,7 @@ int main (int argc, char *argv[])
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
+        cl_processor->set_snr (false);
         device_manager->add_image_processor (cl_processor);
     }
 #endif

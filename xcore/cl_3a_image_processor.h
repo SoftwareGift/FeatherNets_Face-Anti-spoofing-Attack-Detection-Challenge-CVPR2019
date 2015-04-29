@@ -58,6 +58,9 @@ public:
     void set_gamma (bool enable) {
         _enable_gamma = enable;
     }
+    void set_snr (bool enable) {
+        _enable_snr = enable;
+    }
 
 protected:
 
@@ -76,6 +79,7 @@ private:
     bool                               _enable_denoise;
     bool                               _enable_gamma;
     OutSampleType                      _out_smaple_type;
+    bool                               _enable_snr;
 
     SmartPtr<StatsCallback>            _stats_callback;
 
@@ -87,6 +91,7 @@ private:
     SmartPtr<CLGammaImageHandler>      _gamma;
     SmartPtr<CL3AStatsCalculator>      _x3a_stats_calculator;
     SmartPtr<CLWbImageHandler>         _wb;
+    SmartPtr<CLImageHandler>           _snr;
 };
 
 };
