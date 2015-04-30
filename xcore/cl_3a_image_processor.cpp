@@ -28,6 +28,7 @@
 #include "cl_3a_stats_calculator.h"
 #include "cl_wb_handler.h"
 #include "cl_snr_handler.h"
+#include "cl_macc_handler.h"
 
 namespace XCam {
 
@@ -36,7 +37,8 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _enable_hdr (false)
     , _enable_denoise (false)
-    , _enable_gamma(false)
+    , _enable_gamma (false)
+    , _enable_macc (false)
     , _out_smaple_type (OutSampleYuv)
     , _enable_snr (false)
 {
@@ -242,6 +244,18 @@ CL3aImageProcessor::create_handlers ()
             _snr.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create snr handler failed");
+        add_handler (image_handler);
+    }
+
+    /* macc */
+    if (_enable_macc) {
+        image_handler = create_cl_macc_image_handler (context);
+        _macc = image_handler.dynamic_cast_ptr<CLMaccImageHandler> ();
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _macc.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create macc handler failed");
         add_handler (image_handler);
     }
 

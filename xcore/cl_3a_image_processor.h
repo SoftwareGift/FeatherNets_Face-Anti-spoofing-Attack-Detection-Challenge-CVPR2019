@@ -32,6 +32,7 @@ class CLCscImageHandler;
 class CLGammaImageHandler;
 class CL3AStatsCalculator;
 class CLWbImageHandler;
+class CLMaccImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -61,6 +62,9 @@ public:
     void set_snr (bool enable) {
         _enable_snr = enable;
     }
+    void set_macc (bool enable) {
+        _enable_macc = enable;
+    }
 
 protected:
 
@@ -78,6 +82,7 @@ private:
     bool                               _enable_hdr;
     bool                               _enable_denoise;
     bool                               _enable_gamma;
+    bool                               _enable_macc;
     OutSampleType                      _out_smaple_type;
     bool                               _enable_snr;
 
@@ -92,6 +97,7 @@ private:
     SmartPtr<CL3AStatsCalculator>      _x3a_stats_calculator;
     SmartPtr<CLWbImageHandler>         _wb;
     SmartPtr<CLImageHandler>           _snr;
+    SmartPtr<CLMaccImageHandler>     _macc;
 };
 
 };

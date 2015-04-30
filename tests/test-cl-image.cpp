@@ -31,6 +31,7 @@
 #include "cl_denoise_handler.h"
 #include "cl_gamma_handler.h"
 #include "cl_snr_handler.h"
+#include "cl_macc_handler.h"
 
 using namespace XCam;
 
@@ -46,6 +47,7 @@ enum TestHandlerType {
     TestHandlerDenoise,
     TestHandlerGamma,
     TestHandlerSimpleNoiseReduction,
+    TestHandlerMacc,
 };
 
 struct TestFileHandle {
@@ -113,7 +115,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, macc]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
@@ -206,6 +208,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerGamma;
             else if (!strcasecmp (optarg, "snr"))
                 handler_type = TestHandlerSimpleNoiseReduction;
+            else if (!strcasecmp (optarg, "macc"))
+                handler_type = TestHandlerMacc;
             else
                 print_help (bin_name);
             break;
@@ -320,6 +324,9 @@ int main (int argc, char *argv[])
         gamma_handler->set_gamma_table (gamma_table);
         break;
     }
+    case TestHandlerMacc:
+        image_handler = create_cl_macc_image_handler (context);
+        break;
 
     default:
         XCAM_LOG_ERROR ("unsupported image handler type:%d", handler_type);
