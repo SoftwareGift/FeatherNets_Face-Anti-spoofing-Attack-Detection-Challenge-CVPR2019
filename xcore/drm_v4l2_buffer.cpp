@@ -29,7 +29,7 @@ DrmV4l2Buffer::~DrmV4l2Buffer ()
     int handle = _display->get_drm_handle ();
     if (handle > 0) {
         struct drm_mode_destroy_dumb gem;
-        xcam_mem_clear (&gem);
+        xcam_mem_clear (gem);
         gem.handle = _gem_handle;
         xcam_device_ioctl (handle, DRM_IOCTL_MODE_DESTROY_DUMB, &gem);
     }

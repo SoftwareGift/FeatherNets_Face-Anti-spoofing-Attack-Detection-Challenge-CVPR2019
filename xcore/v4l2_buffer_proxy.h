@@ -58,8 +58,8 @@ public:
     }
 
     void reset () {
-        xcam_mem_clear (&_buf.timestamp);
-        xcam_mem_clear (&_buf.timecode);
+        xcam_mem_clear (_buf.timestamp);
+        xcam_mem_clear (_buf.timecode);
         _buf.sequence = 0;
         //_buf.length = 0;
     }

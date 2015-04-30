@@ -25,13 +25,13 @@ namespace XCam {
 
 void AtomIspConfigContent::clear ()
 {
-    xcam_mem_clear (this);
+    memset (this, 0, sizeof (AtomIspConfigContent));
 }
 
 void
 AtomIspConfigContent::copy (const struct atomisp_parameters &config)
 {
-    xcam_mem_clear (&isp_config);
+    xcam_mem_clear (isp_config);
     if (config.wb_config) {
         wb = *config.wb_config;
         isp_config.wb_config = &wb;
@@ -224,7 +224,7 @@ X3aIspConfig::attach (SmartPtr<X3aResult> &result, IspConfigTranslator *translat
         SmartPtr<X3aWhiteBalanceResult> wb_res =
             result.dynamic_cast_ptr<X3aWhiteBalanceResult> ();
         XCAM_ASSERT (wb_res.ptr ());
-        xcam_mem_clear (&wb);
+        xcam_mem_clear (wb);
         if (translator->translate_white_balance (wb_res->get_standard_result(), wb)
                 != XCAM_RETURN_NO_ERROR) {
             XCAM_LOG_WARNING ("translate white balance failed");
@@ -239,7 +239,7 @@ X3aIspConfig::attach (SmartPtr<X3aResult> &result, IspConfigTranslator *translat
         SmartPtr<X3aBlackLevelResult> bl_res =
             result.dynamic_cast_ptr<X3aBlackLevelResult> ();
         XCAM_ASSERT (bl_res.ptr ());
-        xcam_mem_clear (&ob);
+        xcam_mem_clear (ob);
         if (translator->translate_black_level (bl_res->get_standard_result(), ob)
                 != XCAM_RETURN_NO_ERROR) {
             XCAM_LOG_WARNING ("translate black level failed");
@@ -256,7 +256,7 @@ X3aIspConfig::attach (SmartPtr<X3aResult> &result, IspConfigTranslator *translat
         SmartPtr<X3aColorMatrixResult> cc_res =
             result.dynamic_cast_ptr<X3aColorMatrixResult> ();
         XCAM_ASSERT (cc_res.ptr ());
-        xcam_mem_clear (&cc);
+        xcam_mem_clear (cc);
         if (translator->translate_color_matrix (cc_res->get_standard_result(), cc)
                 != XCAM_RETURN_NO_ERROR) {
             XCAM_LOG_WARNING ("translate color matrix failed");

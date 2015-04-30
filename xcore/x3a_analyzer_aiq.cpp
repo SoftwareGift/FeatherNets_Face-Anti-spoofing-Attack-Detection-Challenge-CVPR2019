@@ -72,7 +72,7 @@ X3aAnalyzerAiq::X3aAnalyzerAiq (SmartPtr<IspController> &isp, const char *cpf_pa
 
     _aiq_compositor = new AiqCompositor ();
     XCAM_ASSERT (_aiq_compositor.ptr());
-    xcam_mem_clear (&_sensor_mode_data);
+    xcam_mem_clear (_sensor_mode_data);
 
     XCAM_LOG_DEBUG ("X3aAnalyzerAiq constructed");
 }
@@ -129,7 +129,7 @@ X3aAnalyzerAiq::internal_init (uint32_t width, uint32_t height, double framerate
 
     XCAM_ASSERT (_aiq_compositor.ptr());
 
-    xcam_mem_clear (&binary);
+    xcam_mem_clear (binary);
     XCAM_FAIL_RETURN (
         ERROR,
         reader.read(binary),
@@ -161,10 +161,9 @@ X3aAnalyzerAiq::configure_3a ()
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     X3aResultList first_results;
     struct atomisp_sensor_mode_data sensor_mode_data;
-    xcam_mem_clear (&sensor_mode_data);
 
     XCAM_ASSERT (_isp.ptr());
-    xcam_mem_clear (&sensor_mode_data);
+    xcam_mem_clear (sensor_mode_data);
 
     ret = _isp->get_sensor_mode_data (sensor_mode_data);
     XCAM_FAIL_RETURN (WARNING, ret == XCAM_RETURN_NO_ERROR, ret, "get sensor mode data failed");

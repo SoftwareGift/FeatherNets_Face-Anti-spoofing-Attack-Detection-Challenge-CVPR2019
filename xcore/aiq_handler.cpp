@@ -72,7 +72,7 @@ class IaIspAdaptor22
 {
 public:
     IaIspAdaptor22 () {
-        xcam_mem_clear (&_input_params);
+        xcam_mem_clear (_input_params);
     }
     ~IaIspAdaptor22 () {
         if (_handle)
@@ -108,7 +108,7 @@ IaIspAdaptor22::init (
     ia_cmc_t *cmc,
     ia_mkn *mkn)
 {
-    xcam_mem_clear (&_input_params);
+    xcam_mem_clear (_input_params);
     _input_params.isp_vamem_type = 1;
     _handle = ia_isp_2_2_init (cpf, max_width, max_height, cmc, mkn);
     XCAM_FAIL_RETURN (ERROR, _handle, false, "ia_isp 2.2 init failed");
@@ -284,12 +284,12 @@ _time_to_coarse_line (ia_aiq_exposure_sensor_descriptor *desc, uint32_t time_us)
 
 AiqAeHandler::AiqAeResult::AiqAeResult()
 {
-    xcam_mem_clear (&ae_result);
-    xcam_mem_clear (&ae_exp_ret);
-    xcam_mem_clear (&aiq_exp_param);
-    xcam_mem_clear (&sensor_exp_param);
-    xcam_mem_clear (&weight_grid);
-    xcam_mem_clear (&flash_param);
+    xcam_mem_clear (ae_result);
+    xcam_mem_clear (ae_exp_ret);
+    xcam_mem_clear (aiq_exp_param);
+    xcam_mem_clear (sensor_exp_param);
+    xcam_mem_clear (weight_grid);
+    xcam_mem_clear (flash_param);
 }
 
 void
@@ -315,10 +315,10 @@ AiqAeHandler::AiqAeHandler (SmartPtr<AiqCompositor> &aiq_compositor)
     : _aiq_compositor (aiq_compositor)
     , _started (false)
 {
-    xcam_mem_clear (&_ia_ae_window);
-    xcam_mem_clear (&_sensor_descriptor);
-    xcam_mem_clear (&_manual_limits);
-    xcam_mem_clear (&_input);
+    xcam_mem_clear (_ia_ae_window);
+    xcam_mem_clear (_sensor_descriptor);
+    xcam_mem_clear (_manual_limits);
+    xcam_mem_clear (_input);
     _input.num_exposures = 1;
     _input.frame_use = _aiq_compositor->get_frame_use();
     _input.flash_mode = ia_aiq_flash_mode_off;
@@ -483,14 +483,14 @@ AiqAeHandler::pop_result ()
     struct atomisp_exposure sensor;
     XCam3aResultExposure exposure;
 
-    xcam_mem_clear (&sensor);
+    xcam_mem_clear (sensor);
     sensor.integration_time[0] = _result.sensor_exp_param.coarse_integration_time;
     sensor.integration_time[1] = _result.sensor_exp_param.fine_integration_time;
     sensor.gain[0] = _result.sensor_exp_param.analog_gain_code_global;
     sensor.gain[1] = _result.sensor_exp_param.digital_gain_global;
     result->set_isp_config (sensor);
 
-    xcam_mem_clear (&exposure);
+    xcam_mem_clear (exposure);
     exposure.exposure_time = _result.aiq_exp_param.exposure_time_us;
     exposure.analog_gain = _result.aiq_exp_param.analog_gain;
     exposure.digital_gain = _result.aiq_exp_param.digital_gain;
@@ -576,7 +576,7 @@ AiqAeHandler::adjust_ae_speed (
 
     if (XCAM_DOUBLE_EQUAL_AROUND(ae_speed, 1.0 ))
         return;
-    xcam_mem_clear (&tmp_res);
+    xcam_mem_clear (tmp_res);
     tmp_res.coarse_integration_time = _calculate_new_value_by_speed (
                                           last_res.coarse_integration_time,
                                           cur_res.coarse_integration_time,
@@ -900,11 +900,11 @@ AiqAwbHandler::AiqAwbHandler (SmartPtr<AiqCompositor> &aiq_compositor)
     : _aiq_compositor (aiq_compositor)
     , _started (false)
 {
-    xcam_mem_clear (&_cct_range);
-    xcam_mem_clear (&_result);
-    xcam_mem_clear (&_history_result);
-    xcam_mem_clear (&_cct_range);
-    xcam_mem_clear (&_input);
+    xcam_mem_clear (_cct_range);
+    xcam_mem_clear (_result);
+    xcam_mem_clear (_history_result);
+    xcam_mem_clear (_cct_range);
+    xcam_mem_clear (_input);
 
     _input.frame_use = aiq_compositor->get_frame_use ();
     _input.scene_mode = ia_aiq_awb_operation_mode_auto;
@@ -1051,7 +1051,7 @@ AiqCommonHandler::analyze (X3aResultList &output)
 
     if (has_gbce_unlock()) {
         ia_aiq_gbce_input_params gbce_input;
-        xcam_mem_clear (&gbce_input);
+        xcam_mem_clear (gbce_input);
         gbce_input.gbce_level = ia_aiq_gbce_level_use_tuning;
         gbce_input.frame_use = _aiq_compositor->get_frame_use ();
         gbce_input.ev_shift = _aiq_compositor->get_ae_ev_shift_unlock ();
@@ -1116,7 +1116,7 @@ AiqCompositor::AiqCompositor ()
     , _width (0)
     , _height (0)
 {
-    xcam_mem_clear (&_frame_params);
+    xcam_mem_clear (_frame_params);
 }
 
 AiqCompositor::~AiqCompositor ()
@@ -1215,7 +1215,7 @@ AiqCompositor::set_3a_stats (SmartPtr<X3aIspStatistics> &stats)
     ia_aiq_rgbs_grid *rgbs_grids = NULL;
     ia_aiq_af_grid *af_grids = NULL;
 
-    xcam_mem_clear (&aiq_stats_input);
+    xcam_mem_clear (aiq_stats_input);
     aiq_stats_input.frame_timestamp = stats->get_timestamp();
     aiq_stats_input.frame_id = stats->get_timestamp() + 1;
     aiq_stats_input.rgbs_grids = (const ia_aiq_rgbs_grid **)&rgbs_grids;
@@ -1332,7 +1332,7 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
         XCAM_RETURN_ERROR_PARAM,
         "handlers are not AIQ inherited");
 
-    xcam_mem_clear (&pa_input);
+    xcam_mem_clear (pa_input);
     pa_input.frame_use = _frame_use;
     pa_input.awb_results = aiq_awb->get_result ();
     if (aiq_ae->is_started())
@@ -1363,7 +1363,7 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
 
     convert_color_effect(isp_params);
 
-    xcam_mem_clear (&output);
+    xcam_mem_clear (output);
     if (!_adaptor->run (&isp_params, &output)) {
         XCAM_LOG_ERROR("Aiq to isp adaptor running failed");
         return XCAM_RETURN_ERROR_ISP;

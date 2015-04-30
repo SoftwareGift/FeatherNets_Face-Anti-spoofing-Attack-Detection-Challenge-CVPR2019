@@ -113,7 +113,7 @@ IspController::set_3a_focus (const XCam3aResultFocus &focus)
     int position = focus.position;
     struct v4l2_control control;
 
-    xcam_mem_clear (&control);
+    xcam_mem_clear (control);
     control.id = V4L2_CID_FOCUS_ABSOLUTE;
     control.value = position;
 

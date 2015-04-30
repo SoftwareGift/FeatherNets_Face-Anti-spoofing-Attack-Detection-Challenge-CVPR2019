@@ -42,7 +42,7 @@ CLBlcImageKernel::prepare_arguments (
     CLImageDesc image_info;
     uint32_t channel_bits = XCAM_ALIGN_UP (video_info.color_bits, 8);
 
-    xcam_mem_clear (&image_info);
+    xcam_mem_clear (image_info);
     image_info.format.image_channel_order = CL_R;
     if (channel_bits == 8)
         image_info.format.image_channel_data_type = CL_UNSIGNED_INT8;

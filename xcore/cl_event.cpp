@@ -94,7 +94,7 @@ cl_events_wait (CLEventList &event_list)
     if (event_list.empty ())
         return XCAM_RETURN_NO_ERROR;
 
-    xcam_mem_clear (&event_ids);
+    xcam_mem_clear (event_ids);
     for (CLEventList::iterator iter = event_list.begin ();
             iter != event_list.end (); ++iter) {
         SmartPtr<CLEvent> &event = *iter;

@@ -393,7 +393,7 @@ CLVaImage::init_va_image (
     cl_mem mem_id = 0;
     cl_libva_image va_image_info;
 
-    xcam_mem_clear (&va_image_info);
+    xcam_mem_clear (va_image_info);
     va_image_info.offset = offset;
     va_image_info.width = cl_desc.width;
     va_image_info.height = cl_desc.height;
@@ -443,7 +443,7 @@ bool CLImage2D::init_image_2d (
     cl_mem mem_id = 0;
     cl_image_desc cl_desc;
 
-    xcam_mem_clear (&cl_desc);
+    xcam_mem_clear (cl_desc);
     cl_desc.image_type = CL_MEM_OBJECT_IMAGE2D;
     cl_desc.image_width = desc.width;
     cl_desc.image_height = desc.height;

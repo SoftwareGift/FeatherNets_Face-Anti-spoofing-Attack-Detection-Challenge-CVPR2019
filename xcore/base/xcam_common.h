@@ -55,7 +55,7 @@ typedef enum {
 
 #define xcam_malloc_type(TYPE) (TYPE*)(xcam_malloc(sizeof(TYPE)))
 #define xcam_malloc0_type(TYPE) (TYPE*)(xcam_malloc0(sizeof(TYPE)))
-#define xcam_mem_clear(ptr) memset((ptr), 0, sizeof(*(ptr)))
+#define xcam_mem_clear(v_stack) memset(&(v_stack), 0, sizeof(v_stack))
 
 void * xcam_malloc (size_t size);
 void * xcam_malloc0 (size_t size);

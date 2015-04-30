@@ -36,8 +36,12 @@ struct CLDevieInfo {
     size_t    max_work_item_sizes [3];
     size_t    max_work_group_size;
 
-    CLDevieInfo () {
-        xcam_mem_clear (this);
+    CLDevieInfo ()
+        : max_compute_unit (0)
+        , max_work_item_dims (0)
+        , max_work_group_size (0)
+    {
+        xcam_mem_clear (max_work_item_sizes);
     }
 };
 

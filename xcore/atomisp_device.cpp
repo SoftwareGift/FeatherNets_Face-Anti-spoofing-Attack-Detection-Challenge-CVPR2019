@@ -44,7 +44,7 @@ AtomispDevice::pre_set_format (struct v4l2_format &format)
     if (fps_n != 0 && fps_d != 0) {
         struct v4l2_subdev_frame_interval frame_intvl;
 
-        xcam_mem_clear (&frame_intvl);
+        xcam_mem_clear (frame_intvl);
         if (io_control (VIDIOC_SUBDEV_G_FRAME_INTERVAL, &frame_intvl) < 0) {
             XCAM_LOG_WARNING ("atomisp device(%s) get framerate failed ", XCAM_STR (get_device_name()));
         } else {
@@ -56,7 +56,7 @@ AtomispDevice::pre_set_format (struct v4l2_format &format)
         }
     }
 
-    xcam_mem_clear (&subdev_fmt);
+    xcam_mem_clear (subdev_fmt);
     subdev_fmt.pad = 0;
     subdev_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
     subdev_fmt.format.width = format.fmt.pix.width + 32;

@@ -125,7 +125,7 @@ X3aIspStatistics::fill_standard_stats ()
 
 X3aStatisticsQueue::X3aStatisticsQueue()
 {
-    xcam_mem_clear (&_grid_info);
+    xcam_mem_clear (_grid_info);
 }
 
 X3aStatisticsQueue::~X3aStatisticsQueue()
@@ -137,7 +137,7 @@ X3aStatisticsQueue::set_grid_info (const struct atomisp_grid_info &info)
 {
     XCam3AStatsInfo stats_info;
 
-    xcam_mem_clear (&stats_info);
+    xcam_mem_clear (stats_info);
     _grid_info = info;
 
     stats_info.width = info.width;

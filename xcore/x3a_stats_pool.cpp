@@ -94,6 +94,8 @@ X3aStatsPool::fixate_video_info (VideoBufferInfo &info)
 SmartPtr<BufferData>
 X3aStatsPool::allocate_data (const VideoBufferInfo &buffer_info)
 {
+    XCAM_UNUSED (buffer_info);
+
     XCam3AStats *stats = NULL;
     stats =
         (XCam3AStats *) xcam_malloc0 (

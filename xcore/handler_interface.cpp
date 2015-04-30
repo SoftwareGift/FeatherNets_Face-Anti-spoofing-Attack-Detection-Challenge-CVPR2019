@@ -31,7 +31,7 @@ void
 AeHandler::reset_parameters ()
 {
     // in case missing any parameters
-    xcam_mem_clear (&_params);
+    xcam_mem_clear (_params);
 
     _params.mode = XCAM_AE_MODE_AUTO;
     _params.metering_mode = XCAM_AE_METERING_MODE_AUTO;
@@ -256,7 +256,7 @@ AwbHandler::AwbHandler()
 void
 AwbHandler::reset_parameters ()
 {
-    xcam_mem_clear (&_params);
+    xcam_mem_clear (_params);
     _params.mode = XCAM_AWB_MODE_AUTO;
     _params.speed = 1.0;
     _params.cct_min = 0;
@@ -342,7 +342,7 @@ CommonHandler::CommonHandler()
 void
 CommonHandler::reset_parameters ()
 {
-    xcam_mem_clear (&_params);
+    xcam_mem_clear (_params);
 
     _params.is_manual_gamma = false;
     _params.nr_level = 0.0;

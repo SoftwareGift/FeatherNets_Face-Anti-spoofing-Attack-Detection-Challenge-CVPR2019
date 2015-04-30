@@ -25,7 +25,7 @@ namespace XCam {
 
 SensorDescriptor::SensorDescriptor ()
 {
-    xcam_mem_clear (&_sensor_data);
+    xcam_mem_clear (_sensor_data);
 }
 
 SensorDescriptor::~SensorDescriptor ()

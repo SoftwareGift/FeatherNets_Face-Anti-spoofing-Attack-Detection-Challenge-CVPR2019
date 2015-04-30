@@ -78,7 +78,7 @@ IspImageProcessor::apply_3a_results (X3aResultList &results)
     // activate sensor to make translator work
     if (!_sensor->is_ready()) {
         struct atomisp_sensor_mode_data sensor_data;
-        xcam_mem_clear (&sensor_data);
+        xcam_mem_clear (sensor_data);
         if (_controller->get_sensor_mode_data(sensor_data) != XCAM_RETURN_NO_ERROR) {
             XCAM_LOG_WARNING ("ispimageprocessor initiliaze sensor failed");
         } else
@@ -155,7 +155,7 @@ IspImageProcessor::apply_exposure_result (X3aResultList &results)
         } else if ((*iter)->get_type() == XCAM_3A_RESULT_EXPOSURE) {
             SmartPtr<X3aExposureResult> res = (*iter).dynamic_cast_ptr<X3aExposureResult> ();
             struct atomisp_exposure isp_exposure;
-            xcam_mem_clear (&isp_exposure);
+            xcam_mem_clear (isp_exposure);
             XCAM_ASSERT (res.ptr ());
             ret = _translator->translate_exposure (res->get_standard_result (), isp_exposure);
             if (ret != XCAM_RETURN_NO_ERROR) {

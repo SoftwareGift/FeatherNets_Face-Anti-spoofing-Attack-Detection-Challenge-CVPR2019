@@ -59,7 +59,7 @@ DrmDisplay::DrmDisplay(const char* module)
     , _width (0)
     , _height (0)
 {
-    xcam_mem_clear(&_compose);
+    xcam_mem_clear(_compose);
 
     if (module)
         _module = strdup (module);
@@ -242,9 +242,9 @@ DrmDisplay::create_drm_buf (
     struct v4l2_buffer v4l2_buf;
     int ret = 0;
 
-    xcam_mem_clear (&gem);
-    xcam_mem_clear (&prime);
-    xcam_mem_clear (&v4l2_buf);
+    xcam_mem_clear (gem);
+    xcam_mem_clear (prime);
+    xcam_mem_clear (v4l2_buf);
 
     gem.width = format.fmt.pix.bytesperline;
     gem.height = format.fmt.pix.height;

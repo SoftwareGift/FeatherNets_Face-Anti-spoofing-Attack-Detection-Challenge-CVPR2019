@@ -171,7 +171,7 @@ PollThread::init_3a_stats_pool ()
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     struct atomisp_parm parameters;
 
-    xcam_mem_clear (&parameters);
+    xcam_mem_clear (parameters);
     ret = _isp_controller->get_isp_parameter (parameters);
     if (ret != XCAM_RETURN_NO_ERROR ) {
         XCAM_LOG_WARNING ("get isp parameters failed");
@@ -273,7 +273,7 @@ PollThread::poll_subdev_event_loop ()
         return XCAM_RETURN_ERROR_TIMEOUT;
     }
 
-    xcam_mem_clear (&event);
+    xcam_mem_clear (event);
     ret = _event_dev->dequeue_event (event);
     if (ret != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_WARNING ("dequeue event failed on dev:%s", XCAM_STR(_event_dev->get_device_name()));

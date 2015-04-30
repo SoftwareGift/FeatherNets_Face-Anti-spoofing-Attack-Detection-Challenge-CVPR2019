@@ -31,7 +31,7 @@ CL3AStatsCalculatorKernel::CL3AStatsCalculatorKernel (
     , _data_allocated (false)
     , _image (image)
 {
-    xcam_mem_clear (&_stats_info);
+    xcam_mem_clear (_stats_info);
 }
 
 XCamReturn

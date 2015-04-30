@@ -159,7 +159,7 @@ X3aAnalyzerSimple::post_3a_analyze (X3aResultList &results)
     XCam3aResultBlackLevel black_level;
     SmartPtr<X3aBlackLevelResult> bl_result = new X3aBlackLevelResult (XCAM_3A_RESULT_BLACK_LEVEL);
 
-    xcam_mem_clear (&black_level);
+    xcam_mem_clear (black_level);
     black_level.r_level = SIMPLE_DEFAULT_BLACK_LEVEL;
     black_level.gr_level = SIMPLE_DEFAULT_BLACK_LEVEL;
     black_level.gb_level = SIMPLE_DEFAULT_BLACK_LEVEL;
@@ -179,7 +179,7 @@ X3aAnalyzerSimple::analyze_awb (X3aResultList &output)
     double target_avg = 0.0;
     XCam3aResultWhiteBalance wb;
 
-    xcam_mem_clear (&wb);
+    xcam_mem_clear (wb);
     XCAM_ASSERT (stats);
 
     // calculate avg r, gr, gb, b
@@ -223,7 +223,7 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
     SmartPtr<X3aExposureResult> result = new X3aExposureResult (XCAM_3A_RESULT_EXPOSURE);;
     XCam3aResultExposure exposure;
 
-    xcam_mem_clear (&exposure);
+    xcam_mem_clear (exposure);
     exposure.digital_gain = 1.0;
 
     if (!_is_ae_started) {

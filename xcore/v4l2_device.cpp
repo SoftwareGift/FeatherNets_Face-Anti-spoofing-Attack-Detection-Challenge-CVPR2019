@@ -48,7 +48,7 @@ V4l2Device::V4l2Device (const char *name)
 {
     if (name)
         _name = strdup (name);
-    xcam_mem_clear (&_format);
+    xcam_mem_clear (_format);
 }
 
 V4l2Device::~V4l2Device ()
@@ -164,7 +164,7 @@ V4l2Device::open ()
     }
 
     // set capture mode
-    xcam_mem_clear (&param);
+    xcam_mem_clear (param);
     param.type = _capture_buf_type;
     param.parm.capture.capturemode = _capture_mode;
     if (io_control (VIDIOC_S_PARM, &param) < 0) {
@@ -202,7 +202,7 @@ V4l2Device::poll_event (int timeout_msec)
 
     XCAM_ASSERT (_fd > 0);
 
-    xcam_mem_clear (&poll_fd);
+    xcam_mem_clear (poll_fd);
     poll_fd.fd = _fd;
     poll_fd.events = (POLLPRI | POLLIN | POLLERR | POLLNVAL | POLLHUP);
 
@@ -246,7 +246,7 @@ V4l2Device::set_format (struct v4l2_format &format)
 
     while (_fps_n && _fps_d) {
         struct v4l2_streamparm param;
-        xcam_mem_clear (&param);
+        xcam_mem_clear (param);
         param.type = _capture_buf_type;
         if (io_control (VIDIOC_G_PARM, &param) < 0) {
             XCAM_LOG_WARNING ("device(%s) set framerate failed on VIDIOC_G_PARM but continue", XCAM_STR (_name));
@@ -300,7 +300,7 @@ V4l2Device::set_format (
 {
 
     struct v4l2_format format;
-    xcam_mem_clear (&format);
+    xcam_mem_clear (format);
 
     format.type = _capture_buf_type;
     format.fmt.pix.width = width;
@@ -335,7 +335,7 @@ V4l2Device::enum_formats ()
     uint32_t i = 0;
 
     while (1) {
-        xcam_mem_clear (&format);
+        xcam_mem_clear (format);
         format.index = i++;
         format.type = _capture_buf_type;
         if (this->io_control (VIDIOC_ENUM_FMT, &format) < 0) {
@@ -363,7 +363,7 @@ V4l2Device::get_format (struct v4l2_format &format)
     if (!is_opened ())
         return XCAM_RETURN_ERROR_IOCTL;
 
-    xcam_mem_clear (&format);
+    xcam_mem_clear (format);
     format.type = _capture_buf_type;
 
     if (this->io_control (VIDIOC_G_FMT, &format) < 0) {
@@ -443,7 +443,7 @@ V4l2Device::request_buffer ()
 
     XCAM_ASSERT (!is_activated());
 
-    xcam_mem_clear (&request_buf);
+    xcam_mem_clear (request_buf);
     request_buf.type = _capture_buf_type;
     request_buf.count = _buf_count;
     request_buf.memory = _memory_type;
@@ -470,7 +470,7 @@ V4l2Device::allocate_buffer (
 {
     struct v4l2_buffer v4l2_buf;
 
-    xcam_mem_clear (&v4l2_buf);
+    xcam_mem_clear (v4l2_buf);
     v4l2_buf.index = index;
     v4l2_buf.type = _capture_buf_type;
     v4l2_buf.memory = _memory_type;
@@ -479,7 +479,7 @@ V4l2Device::allocate_buffer (
     case V4L2_MEMORY_DMABUF:
     {
         struct v4l2_exportbuffer expbuf;
-        xcam_mem_clear (&expbuf);
+        xcam_mem_clear (expbuf);
         expbuf.type = _capture_buf_type;
         expbuf.index = index;
         expbuf.flags = O_CLOEXEC;
@@ -571,7 +571,7 @@ V4l2Device::dequeue_buffer(SmartPtr<V4l2Buffer> &buf)
         return XCAM_RETURN_ERROR_PARAM;
     }
 
-    xcam_mem_clear (&v4l2_buf);
+    xcam_mem_clear (v4l2_buf);
     v4l2_buf.type = _capture_buf_type;
     v4l2_buf.memory = _memory_type;
 
@@ -626,7 +626,7 @@ V4l2SubDevice::subscribe_event (int event)
 
     XCAM_ASSERT (is_opened());
 
-    xcam_mem_clear (&sub);
+    xcam_mem_clear (sub);
     sub.type = event;
 
     ret = this->io_control (VIDIOC_SUBSCRIBE_EVENT, &sub);
@@ -645,7 +645,7 @@ V4l2SubDevice::unsubscribe_event (int event)
 
     XCAM_ASSERT (is_opened());
 
-    xcam_mem_clear (&sub);
+    xcam_mem_clear (sub);
     sub.type = event;
 
     ret = this->io_control (VIDIOC_UNSUBSCRIBE_EVENT, &sub);
