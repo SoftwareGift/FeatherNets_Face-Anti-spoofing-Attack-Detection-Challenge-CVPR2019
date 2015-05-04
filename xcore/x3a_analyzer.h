@@ -100,6 +100,12 @@ public:
     bool set_gamma_table (double *r_table, double *g_table, double *b_table);
     bool set_color_effect(XCamColorEffect effect);
 
+    // whole update of parameters
+    bool update_awb_parameters (const XCamAwbParam &params);
+    bool update_ae_parameters (const XCamAeParam &params);
+    bool update_af_parameters (const XCamAfParam &params);
+    bool update_common_parameters (const XCamCommonParam &params);
+
     uint32_t get_width () const {
         return _width;
     }

@@ -59,7 +59,7 @@ protected:
     void destroy_context ();
 
 private:
-    XCamReturn convert_results (XCam3aResultHead *from, uint32_t from_count, X3aResultList &to);
+    XCamReturn convert_results (XCam3aResultHead *from[], uint32_t from_count, X3aResultList &to);
     XCAM_DEAD_COPY (DynamicAnalyzer);
 
 private:
@@ -285,11 +285,12 @@ XCamReturn
 DynamicAnalyzer::post_3a_analyze (X3aResultList &results)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    XCam3aResultHead *res_array = NULL;
+    XCam3aResultHead *res_array[XCAM_3A_LIB_MAX_RESULT_COUNT];
     uint32_t res_count = 0;
 
+    xcam_mem_clear (res_array);
     XCAM_ASSERT (_context);
-    ret = _desc->combine_analyze_results (_context, &res_array, &res_count);
+    ret = _desc->combine_analyze_results (_context, res_array, &res_count);
     XCAM_FAIL_RETURN (WARNING,
                       ret == XCAM_RETURN_NO_ERROR,
                       ret,
@@ -310,11 +311,11 @@ DynamicAnalyzer::post_3a_analyze (X3aResultList &results)
 }
 
 XCamReturn
-DynamicAnalyzer::convert_results (XCam3aResultHead *from, uint32_t from_count, X3aResultList &to)
+DynamicAnalyzer::convert_results (XCam3aResultHead *from[], uint32_t from_count, X3aResultList &to)
 {
     for (uint32_t i = 0; i < from_count; ++i) {
         SmartPtr<X3aResult> standard_res =
-            X3aResultFactory::instance ()->create_3a_result (&from[i]);
+            X3aResultFactory::instance ()->create_3a_result (from[i]);
         to.push_back (standard_res);
     }
 

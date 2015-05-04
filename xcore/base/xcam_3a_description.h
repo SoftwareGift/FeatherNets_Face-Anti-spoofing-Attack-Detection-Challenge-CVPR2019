@@ -25,15 +25,17 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <linux/atomisp.h>
 #include <base/xcam_defs.h>
 #include <base/xcam_params.h>
 #include <base/xcam_3a_result.h>
 #include <base/xcam_3a_stats.h>
 
+#include <linux/atomisp.h>
+
 XCAM_BEGIN_DECLARE
 
 #define XCAM_3A_LIB_DESCRIPTION "xcam_3a_desciption"
+#define XCAM_3A_LIB_MAX_RESULT_COUNT 256
 
 typedef struct _XCam3AContext XCam3AContext;
 
@@ -49,8 +51,10 @@ typedef struct _XCam3ADescription {
     XCamReturn (*analyze_awb)              (XCam3AContext *context, XCamAwbParam *params);
     XCamReturn (*analyze_ae)               (XCam3AContext *context, XCamAeParam *params);
     XCamReturn (*analyze_af)               (XCam3AContext *context, XCamAfParam *params);
-    XCamReturn (*combine_analyze_results)  (XCam3AContext *context, XCam3aResultHead **results, uint32_t *res_count);
-    void       (*free_results)             (XCam3aResultHead *results, uint32_t res_count);
+
+    /* res_count should equal to or less than XCAM_3A_LIB_MAX_RESULT_COUNT*/
+    XCamReturn (*combine_analyze_results)  (XCam3AContext *context, XCam3aResultHead *results[], uint32_t *res_count);
+    void       (*free_results)             (XCam3aResultHead *results[], uint32_t res_count);
 } XCam3ADescription;
 
 XCAM_END_DECLARE

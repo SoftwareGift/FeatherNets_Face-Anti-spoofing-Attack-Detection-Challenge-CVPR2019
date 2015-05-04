@@ -73,6 +73,9 @@ public:
     bool set_aperture (double fn);
     bool set_max_analog_gain (double max_gain);
     bool set_exposure_time_range (int64_t min_time_in_us, int64_t max_time_in_us);
+
+    bool update_parameters (const XCamAeParam &params);
+
     bool get_exposure_time_range (int64_t *min_time_in_us, int64_t *max_time_in_us);
 
     XCamAeMeteringMode get_metering_mode() const {
@@ -149,6 +152,8 @@ public:
     bool set_color_temperature_range (uint32_t cct_min, uint32_t cct_max);
     bool set_manual_gain (double gr, double r, double b, double gb);
 
+    bool update_parameters (const XCamAwbParam &params);
+
 protected:
     const XCamAwbParam &get_params_unlock () const {
         return _params;
@@ -184,6 +189,9 @@ class AfHandler
 public:
     explicit AfHandler() {}
     virtual ~AfHandler() {}
+
+    bool update_parameters (const XCamAfParam &params);
+
 private:
     XCAM_DEAD_COPY (AfHandler);
 
@@ -217,6 +225,8 @@ public:
     bool set_manual_sharpness (double level);
     bool set_gamma_table (double *r_table, double *g_table, double *b_table);
     bool set_color_effect(XCamColorEffect effect);
+
+    bool update_parameters (const XCamCommonParam &params);
 
 protected:
     const XCamCommonParam &get_params_unlock () const {

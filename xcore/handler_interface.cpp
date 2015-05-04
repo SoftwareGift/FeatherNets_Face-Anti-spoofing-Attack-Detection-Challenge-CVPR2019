@@ -237,6 +237,17 @@ bool AeHandler::set_exposure_time_range (int64_t min_time_in_us, int64_t max_tim
 }
 
 bool
+AeHandler::update_parameters (const XCamAeParam &params)
+{
+    {
+        AnalyzerHandler::HanlderLock lock (this);
+        _params = params;
+    }
+    XCAM_LOG_DEBUG ("ae parameters updated");
+    return true;
+}
+
+bool
 AeHandler::get_exposure_time_range (int64_t *min_time_in_us, int64_t *max_time_in_us)
 {
     XCAM_ASSERT (min_time_in_us && max_time_in_us);
@@ -331,6 +342,28 @@ AwbHandler::set_manual_gain (double gr, double r, double b, double gb)
     _params.b_gain = b;
     _params.gb_gain = gb;
     XCAM_LOG_DEBUG ("awb set manual gain value(gr:%.03f, r:%.03f, b:%.03f, gb:%.03f)", gr, r, b, gb);
+    return true;
+}
+
+bool
+AwbHandler::update_parameters (const XCamAwbParam &params)
+{
+    {
+        AnalyzerHandler::HanlderLock lock (this);
+        _params = params;
+    }
+    XCAM_LOG_DEBUG ("awb parameters updated");
+    return true;
+}
+
+bool
+AfHandler::update_parameters (const XCamAfParam &params)
+{
+    {
+        AnalyzerHandler::HanlderLock lock (this);
+        _params = params;
+    }
+    XCAM_LOG_DEBUG ("af parameters updated");
     return true;
 }
 
@@ -532,6 +565,17 @@ CommonHandler::set_color_effect (XCamColorEffect effect)
     _params.color_effect = effect;
 
     XCAM_LOG_DEBUG ("common 3A set color effect");
+    return true;
+}
+
+bool
+CommonHandler::update_parameters (const XCamCommonParam &params)
+{
+    {
+        AnalyzerHandler::HanlderLock lock (this);
+        _params = params;
+    }
+    XCAM_LOG_DEBUG ("common parameters updated");
     return true;
 }
 

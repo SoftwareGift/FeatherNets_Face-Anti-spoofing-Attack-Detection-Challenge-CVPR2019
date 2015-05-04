@@ -555,4 +555,32 @@ X3aAnalyzer::set_gamma_table (double *r_table, double *g_table, double *b_table)
     return _common_handler->set_gamma_table (r_table, g_table, b_table);
 }
 
+bool
+X3aAnalyzer::update_awb_parameters (const XCamAwbParam &params)
+{
+    XCAM_ASSERT (_awb_handler.ptr());
+    return _awb_handler->update_parameters (params);
+}
+
+bool
+X3aAnalyzer::update_common_parameters (const XCamCommonParam &params)
+{
+    XCAM_ASSERT (_awb_handler.ptr());
+    return _common_handler->update_parameters (params);
+}
+
+bool
+X3aAnalyzer::update_ae_parameters (const XCamAeParam &params)
+{
+    XCAM_ASSERT (_awb_handler.ptr());
+    return _ae_handler->update_parameters (params);
+}
+
+bool
+X3aAnalyzer::update_af_parameters (const XCamAfParam &params)
+{
+    XCAM_ASSERT (_awb_handler.ptr());
+    return _af_handler->update_parameters (params);
+}
+
 };
