@@ -34,7 +34,7 @@ public:
     AnalyzerLoader (const char *lib_path);
     ~AnalyzerLoader ();
 
-    SmartPtr<X3aAnalyzer> load_analyzer ();
+    SmartPtr<X3aAnalyzer> load_analyzer (SmartPtr<AnalyzerLoader> &self);
 
 private:
     bool open_handle ();

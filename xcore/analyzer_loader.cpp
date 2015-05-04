@@ -35,7 +35,7 @@ class DynamicAnalyzer
     : public X3aAnalyzer
 {
 public:
-    DynamicAnalyzer (XCam3ADescription *desc);
+    DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<AnalyzerLoader> &loader);
     ~DynamicAnalyzer ();
 
 public:
@@ -67,6 +67,7 @@ private:
     XCam3AContext               *_context;
     SmartPtr<X3aStats>           _cur_stats;
     SmartPtr<DynamicCommonHandler> _common_handler;
+    SmartPtr<AnalyzerLoader>       _loader;
 };
 
 class DynamicAeHandler
@@ -141,10 +142,11 @@ private:
     DynamicAnalyzer *_analyzer;
 };
 
-DynamicAnalyzer::DynamicAnalyzer (XCam3ADescription *desc)
+DynamicAnalyzer::DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<AnalyzerLoader> &loader)
     : X3aAnalyzer ("DynamicAnalyzer")
     , _desc (desc)
     , _context (NULL)
+    , _loader (loader)
 {
 }
 
@@ -338,11 +340,14 @@ AnalyzerLoader::~AnalyzerLoader ()
 }
 
 SmartPtr<X3aAnalyzer>
-AnalyzerLoader::load_analyzer ()
+AnalyzerLoader::load_analyzer (SmartPtr<AnalyzerLoader> &self)
 {
     SmartPtr<X3aAnalyzer> analyzer;
     XCam3ADescription *desc = NULL;
     const char *symbol = XCAM_3A_LIB_DESCRIPTION;
+
+    XCAM_ASSERT (self.ptr () == this);
+
     if (!open_handle ()) {
         XCAM_LOG_WARNING ("open dynamic lib:%s failed", XCAM_STR (_path));
         return NULL;
@@ -357,7 +362,7 @@ AnalyzerLoader::load_analyzer ()
 
     XCAM_LOG_DEBUG ("got symbols(%s) from lib(%s)", symbol, XCAM_STR (_path));
 
-    analyzer = new DynamicAnalyzer (desc);
+    analyzer = new DynamicAnalyzer (desc, self);
     if (!analyzer.ptr ()) {
         XCAM_LOG_WARNING ("get symbol(%s) from lib:%s failed", symbol, XCAM_STR (_path));
         close_handle ();

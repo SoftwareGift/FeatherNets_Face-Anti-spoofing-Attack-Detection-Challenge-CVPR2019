@@ -32,6 +32,7 @@
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #endif
+#include "analyzer_loader.h"
 
 #include <unistd.h>
 #include <signal.h>
@@ -212,6 +213,7 @@ MainDeviceManager::close_file ()
 typedef enum {
     AnalyzerTypeSimple = 0,
     AnalyzerTypeAiq,
+    AnalyzerTypeDynamic,
 } AnalyzerType;
 
 void dev_stop_handler(int sig)
@@ -229,7 +231,7 @@ void print_help (const char *bin_name)
 {
     printf ("Usage: %s [-a analyzer]\n"
             "\t -a analyzer   specify a analyzer\n"
-            "\t               select from [simple, aiq], default is [simple]\n"
+            "\t               select from [simple, aiq, dynamic], default is [simple]\n"
             "\t -m mem_type   specify video memory type\n"
             "\t               mem_type select from [dma, mmap], default is [mmap]\n"
             "\t -s            save file to %s\n"
@@ -274,7 +276,9 @@ int main (int argc, char *argv[])
     while ((opt =  getopt(argc, argv, "sca:n:m:f:d:pi:h")) != -1) {
         switch (opt) {
         case 'a': {
-            if (!strcmp (optarg, "simple"))
+            if (!strcmp (optarg, "dynamic"))
+                analyzer_type = AnalyzerTypeDynamic;
+            else if (!strcmp (optarg, "simple"))
                 analyzer_type = AnalyzerTypeSimple;
 #if HAVE_IA_AIQ
             else if (!strcmp (optarg, "aiq"))
@@ -364,6 +368,13 @@ int main (int argc, char *argv[])
         analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
         break;
 #endif
+    case AnalyzerTypeDynamic: {
+        const char *path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
+        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (path_of_3a);
+        analyzer = loader->load_analyzer (loader);
+        CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
+        break;
+    }
     default:
         print_help (bin_name);
         return -1;
