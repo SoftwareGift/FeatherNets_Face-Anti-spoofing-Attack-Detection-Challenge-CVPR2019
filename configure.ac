@@ -60,6 +60,11 @@ AC_ARG_ENABLE(docs,
                     [build Doxygen documentation @<:@default=no@:>@])],
     [], [enable_docs="no"])
 
+AC_ARG_ENABLE([3alib],
+    AS_HELP_STRING([--enable-3alib],
+                   [enable 3A lib build, @<:@default=no@:>@]),
+    [], [enable_3alib="no"])
+
 # Check for Doxygen
 if test "$enable_docs" = "yes"; then
     AC_CHECK_TOOL([DOXYGEN], [doxygen], [no])
@@ -90,6 +95,13 @@ if test "$enable_aiq" = "yes"; then
 	# installed in default PATH
     # AC_CHECK_HEADERS([ia_aiq.h], [HAVE_IA_AIQ=1], [:])
 fi
+
+# check 3a lib build
+ENABLE_3ALIB=0
+if test "$enable_3alib" = "yes"; then
+    ENABLE_3ALIB=1
+fi
+AM_CONDITIONAL([ENABLE_3ALIB], [test "$ENABLE_3ALIB" -eq 1])
 
 # check atomisp headers
 USE_LOCAL_ATOMISP=0
@@ -162,6 +174,7 @@ AC_CONFIG_FILES([Makefile
                  wrapper/Makefile
                  wrapper/gstreamer/Makefile
                  wrapper/gstreamer/interface/Makefile
+                 3alib/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc
@@ -182,4 +195,5 @@ echo "
      use local aiq              : $use_local_aiq
      use local atomisp          : $use_local_atomisp
      have opencl lib            : $have_libcl
+     enable 3a lib              : $enable_3alib
 "
