@@ -215,12 +215,12 @@ X3aAnalyzerSimple::analyze_awb (X3aResultList &output)
 XCamReturn
 X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
 {
-    static const uint32_t expect_y_mean = 150;
+    static const uint32_t expect_y_mean = 110;
 
     const XCam3AStats *stats = _current_stats->get_stats ();
     double sum_y = 0.0;
     double target_exposure = 1.0;
-    SmartPtr<X3aExposureResult> result = new X3aExposureResult (XCAM_3A_RESULT_EXPOSURE);;
+    SmartPtr<X3aExposureResult> result = new X3aExposureResult (XCAM_3A_RESULT_EXPOSURE);
     XCam3aResultExposure exposure;
 
     xcam_mem_clear (exposure);
@@ -246,6 +246,9 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
         target_exposure = (expect_y_mean / sum_y) * _last_target_exposure;
         target_exposure = XCAM_MAX (target_exposure, SIMPLE_MIN_TARGET_EXPOSURE_TIME);
 
+        if (target_exposure > SIMPLE_MAX_TARGET_EXPOSURE_TIME * 255)
+            target_exposure = SIMPLE_MAX_TARGET_EXPOSURE_TIME * 255;
+
         if (target_exposure > SIMPLE_MAX_TARGET_EXPOSURE_TIME) {
             exposure.exposure_time = SIMPLE_MAX_TARGET_EXPOSURE_TIME;
             exposure.analog_gain = target_exposure / exposure.exposure_time;
@@ -253,6 +256,7 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
             exposure.exposure_time = target_exposure;
             exposure.analog_gain = 1.0;
         }
+
         result->set_standard_result (exposure);
         output.push_back (result);
         _last_target_exposure = target_exposure;
