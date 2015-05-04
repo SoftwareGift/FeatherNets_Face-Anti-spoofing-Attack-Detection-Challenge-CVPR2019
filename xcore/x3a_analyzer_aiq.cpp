@@ -65,6 +65,7 @@ bool CpfReader::read (ia_binary_data &binary)
 X3aAnalyzerAiq::X3aAnalyzerAiq (SmartPtr<IspController> &isp, const char *cpf_path)
     : X3aAnalyzer ("X3aAnalyzerAiq")
     , _isp (isp)
+    , _sensor_data_ready (false)
     , _cpf_path (NULL)
 {
     if (cpf_path)
@@ -73,6 +74,21 @@ X3aAnalyzerAiq::X3aAnalyzerAiq (SmartPtr<IspController> &isp, const char *cpf_pa
     _aiq_compositor = new AiqCompositor ();
     XCAM_ASSERT (_aiq_compositor.ptr());
     xcam_mem_clear (_sensor_mode_data);
+
+    XCAM_LOG_DEBUG ("X3aAnalyzerAiq constructed");
+}
+
+X3aAnalyzerAiq::X3aAnalyzerAiq (struct atomisp_sensor_mode_data &sensor_data, const char *cpf_path)
+    : X3aAnalyzer ("X3aAnalyzerAiq")
+    , _sensor_mode_data (sensor_data)
+    , _sensor_data_ready (true)
+    , _cpf_path (NULL)
+{
+    if (cpf_path)
+        _cpf_path = strdup (cpf_path);
+
+    _aiq_compositor = new AiqCompositor ();
+    XCAM_ASSERT (_aiq_compositor.ptr());
 
     XCAM_LOG_DEBUG ("X3aAnalyzerAiq constructed");
 }
@@ -160,15 +176,19 @@ X3aAnalyzerAiq::configure_3a ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     X3aResultList first_results;
-    struct atomisp_sensor_mode_data sensor_mode_data;
 
-    XCAM_ASSERT (_isp.ptr());
-    xcam_mem_clear (sensor_mode_data);
+    if (!_sensor_data_ready) {
+        struct atomisp_sensor_mode_data sensor_mode_data;
+        xcam_mem_clear (sensor_mode_data);
+        XCAM_ASSERT (_isp.ptr());
 
-    ret = _isp->get_sensor_mode_data (sensor_mode_data);
-    XCAM_FAIL_RETURN (WARNING, ret == XCAM_RETURN_NO_ERROR, ret, "get sensor mode data failed");
+        ret = _isp->get_sensor_mode_data (sensor_mode_data);
+        XCAM_FAIL_RETURN (WARNING, ret == XCAM_RETURN_NO_ERROR, ret, "get sensor mode data failed");
+        _sensor_mode_data = sensor_mode_data;
+        _sensor_data_ready = true;
+    }
 
-    if (!_aiq_compositor->set_sensor_mode_data (&sensor_mode_data)) {
+    if (!_aiq_compositor->set_sensor_mode_data (&_sensor_mode_data)) {
         XCAM_LOG_WARNING ("AIQ configure 3a failed");
         return XCAM_RETURN_ERROR_AIQ;
     }
@@ -183,22 +203,22 @@ X3aAnalyzerAiq::configure_3a ()
                     "crop_horizontal_end:%u, crop_vertical_end:%u, "
                     "output_width:%u, output_height:%u, "
                     "binning_factor_x:%u, binning_factor_y:%u",
-                    sensor_mode_data.coarse_integration_time_min,
-                    sensor_mode_data.coarse_integration_time_max_margin,
-                    sensor_mode_data.fine_integration_time_min,
-                    sensor_mode_data.fine_integration_time_max_margin,
-                    sensor_mode_data.fine_integration_time_def,
-                    sensor_mode_data.frame_length_lines,
-                    sensor_mode_data.line_length_pck,
-                    sensor_mode_data.vt_pix_clk_freq_mhz,
-                    sensor_mode_data.crop_horizontal_start,
-                    sensor_mode_data.crop_vertical_start,
-                    sensor_mode_data.crop_horizontal_end,
-                    sensor_mode_data.crop_vertical_end,
-                    sensor_mode_data.output_width,
-                    sensor_mode_data.output_height,
-                    (uint32_t)sensor_mode_data.binning_factor_x,
-                    (uint32_t)sensor_mode_data.binning_factor_y);
+                    _sensor_mode_data.coarse_integration_time_min,
+                    _sensor_mode_data.coarse_integration_time_max_margin,
+                    _sensor_mode_data.fine_integration_time_min,
+                    _sensor_mode_data.fine_integration_time_max_margin,
+                    _sensor_mode_data.fine_integration_time_def,
+                    _sensor_mode_data.frame_length_lines,
+                    _sensor_mode_data.line_length_pck,
+                    _sensor_mode_data.vt_pix_clk_freq_mhz,
+                    _sensor_mode_data.crop_horizontal_start,
+                    _sensor_mode_data.crop_vertical_start,
+                    _sensor_mode_data.crop_horizontal_end,
+                    _sensor_mode_data.crop_vertical_end,
+                    _sensor_mode_data.output_width,
+                    _sensor_mode_data.output_height,
+                    (uint32_t)_sensor_mode_data.binning_factor_x,
+                    (uint32_t)_sensor_mode_data.binning_factor_y);
 
     // initialize ae and awb
     get_ae_handler ()->analyze (first_results);

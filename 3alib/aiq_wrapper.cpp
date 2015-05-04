@@ -36,7 +36,7 @@ class XCam3AAiqContext
 {
 public:
     XCam3AAiqContext ();
-    bool setup_analyzer (SmartPtr<IspController> &isp, const char *cpf);
+    bool setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_data, const char *cpf);
     bool setup_stats_pool (uint32_t width, uint32_t height);
     SmartPtr<X3aAnalyzerAiq> &get_analyzer () {
         return _analyzer;
@@ -65,10 +65,10 @@ XCam3AAiqContext::XCam3AAiqContext ()
 }
 
 bool
-XCam3AAiqContext::setup_analyzer (SmartPtr<IspController> &isp, const char *cpf)
+XCam3AAiqContext::setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_data, const char *cpf)
 {
     XCAM_ASSERT (!_analyzer.ptr ());
-    _analyzer = new X3aAnalyzerAiq (isp, cpf);
+    _analyzer = new X3aAnalyzerAiq (sensor_mode_data, cpf);
     XCAM_ASSERT (_analyzer.ptr ());
     _analyzer->set_results_callback (this);
     return true;
@@ -79,6 +79,9 @@ XCam3AAiqContext::setup_stats_pool (uint32_t width, uint32_t height)
 {
     VideoBufferInfo info;
     info.init (XCAM_PIX_FMT_SGRBG16, width, height);
+
+    _stats_pool = new X3aStatisticsQueue;
+    XCAM_ASSERT (_stats_pool.ptr ());
 
     XCAM_FAIL_RETURN (
         WARNING,
@@ -166,12 +169,30 @@ xcam_configure_3a (XCam3AContext *context, uint32_t width, uint32_t height, doub
 {
     XCam3AAiqContext *aiq_context = AIQ_CONTEXT_CAST (context);
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<IspController> isp;
+    struct atomisp_sensor_mode_data sensor_mode_data;
+
+    sensor_mode_data.coarse_integration_time_min = 1;
+    sensor_mode_data.coarse_integration_time_max_margin = 1;
+    sensor_mode_data.fine_integration_time_min = 0;
+    sensor_mode_data.fine_integration_time_max_margin = 0;
+    sensor_mode_data.fine_integration_time_def = 0;
+    sensor_mode_data.frame_length_lines = 1125;
+    sensor_mode_data.line_length_pck = 1320;
+    sensor_mode_data.read_mode = 0;
+    sensor_mode_data.vt_pix_clk_freq_mhz = 37125000;
+    sensor_mode_data.crop_horizontal_start = 0;
+    sensor_mode_data.crop_vertical_start = 0;
+    sensor_mode_data.crop_horizontal_end = 1920;
+    sensor_mode_data.crop_vertical_end = 1080;
+    sensor_mode_data.output_width = 1920;
+    sensor_mode_data.output_height = 1080;
+    sensor_mode_data.binning_factor_x = 1;
+    sensor_mode_data.binning_factor_y = 1;
 
     XCAM_ASSERT (aiq_context);
     XCAM_FAIL_RETURN (
         WARNING,
-        aiq_context->setup_analyzer (isp, DEFAULT_AIQ_CPF_FILE),
+        aiq_context->setup_analyzer (sensor_mode_data, DEFAULT_AIQ_CPF_FILE),
         XCAM_RETURN_ERROR_UNKNOWN,
         "setup aiq 3a analyzer failed");
 

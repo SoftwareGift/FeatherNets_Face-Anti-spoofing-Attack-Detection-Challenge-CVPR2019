@@ -35,6 +35,7 @@ class X3aAnalyzerAiq
 {
 public:
     explicit X3aAnalyzerAiq (SmartPtr<IspController> &isp, const char *cpf_path);
+    explicit X3aAnalyzerAiq (struct atomisp_sensor_mode_data &sensor_data, const char *cpf_path);
     ~X3aAnalyzerAiq ();
 
 private:
@@ -59,6 +60,7 @@ private:
 
     SmartPtr <IspController>          _isp;
     struct atomisp_sensor_mode_data   _sensor_mode_data;
+    bool                              _sensor_data_ready;
     char                             *_cpf_path;
 };
 
