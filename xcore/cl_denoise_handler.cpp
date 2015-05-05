@@ -71,9 +71,7 @@ CLDenoiseImageKernel::prepare_arguments (
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = _imh;
-    work_size.global[1] = _imw/4;
-    work_size.local[0] = _imh/270;
-    work_size.local[1] = _imw/64;
+    work_size.global[1] = _imw;
 
     return XCAM_RETURN_NO_ERROR;
 }
