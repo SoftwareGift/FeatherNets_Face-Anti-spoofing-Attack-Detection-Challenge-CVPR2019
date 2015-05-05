@@ -145,7 +145,7 @@
 "   output[y * w + x].avg_r = convert_uint(avg_r * 256.0);                                     "
 "   output[y * w + x].avg_b = convert_uint(avg_b * 256.0);                                     "
 "   output[y * w + x].avg_gb = convert_uint(avg_gb * 256.0);                                   "
-"   output[y * w + x].valid_wb_count = 255;                                                    "
+"   output[y * w + x].valid_wb_count = convert_uint(count);                                    "
 "   output[y * w + x].avg_y = convert_uint(((avg_gr + avg_gb)/2.0f)*256.0);                    "
 "   output[y * w + x].f_value1 = 0;                                                            "
 "   output[y * w + x].f_value2 = 0;                                                            "
