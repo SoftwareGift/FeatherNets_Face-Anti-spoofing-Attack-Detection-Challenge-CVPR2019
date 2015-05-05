@@ -35,12 +35,7 @@ namespace XCam {
 CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
-    , _enable_hdr (false)
-    , _enable_denoise (false)
-    , _enable_gamma (false)
-    , _enable_macc (false)
     , _out_smaple_type (OutSampleYuv)
-    , _enable_snr (false)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
@@ -171,16 +166,14 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     /* denoise */
-    if (_enable_denoise) {
-        image_handler = create_cl_denoise_image_handler (context);
-        _denoise = image_handler;
-        XCAM_FAIL_RETURN (
-            WARNING,
-            _denoise.ptr (),
-            XCAM_RETURN_ERROR_CL,
-            "CL3aImageProcessor create denoise handler failed");
-        add_handler (image_handler);
-    }
+    image_handler = create_cl_denoise_image_handler (context);
+    _denoise = image_handler.dynamic_cast_ptr<CLDenoiseImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _denoise.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create denoise handler failed");
+    add_handler (image_handler);
 
     image_handler = create_cl_3a_stats_image_handler (context);
     _x3a_stats_calculator = image_handler.dynamic_cast_ptr<CL3AStatsCalculator> ();
@@ -202,28 +195,24 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     /* gamma */
-    if(_enable_gamma) {
-        image_handler = create_cl_gamma_image_handler (context);
-        _gamma = image_handler.dynamic_cast_ptr<CLGammaImageHandler> ();
-        XCAM_FAIL_RETURN (
-            WARNING,
-            _gamma.ptr (),
-            XCAM_RETURN_ERROR_CL,
-            "CL3aImageProcessor create gamma handler failed");
-        add_handler (image_handler);
-    }
+    image_handler = create_cl_gamma_image_handler (context);
+    _gamma = image_handler.dynamic_cast_ptr<CLGammaImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _gamma.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create gamma handler failed");
+    add_handler (image_handler);
 
     /* hdr */
-    if (_enable_hdr) {
-        image_handler = create_cl_hdr_image_handler (context, CL_HDR_TYPE_RGB);
-        _hdr = image_handler;
-        XCAM_FAIL_RETURN (
-            WARNING,
-            _hdr.ptr (),
-            XCAM_RETURN_ERROR_CL,
-            "CL3aImageProcessor create hdr handler failed");
-        add_handler (image_handler);
-    }
+    image_handler = create_cl_hdr_image_handler (context, CL_HDR_DISABLE);
+    _hdr = image_handler.dynamic_cast_ptr<CLHdrImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _hdr.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create hdr handler failed");
+    add_handler (image_handler);
 
     /* demosaic */
     image_handler = create_cl_demosaic_image_handler (context);
@@ -236,28 +225,24 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     /* simple noise reduction */
-    if (_enable_snr) {
-        image_handler = create_cl_snr_image_handler (context);
-        _snr = image_handler;
-        XCAM_FAIL_RETURN (
-            WARNING,
-            _snr.ptr (),
-            XCAM_RETURN_ERROR_CL,
-            "CL3aImageProcessor create snr handler failed");
-        add_handler (image_handler);
-    }
+    image_handler = create_cl_snr_image_handler (context);
+    _snr = image_handler.dynamic_cast_ptr<CLSnrImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _snr.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create snr handler failed");
+    add_handler (image_handler);
 
     /* macc */
-    if (_enable_macc) {
-        image_handler = create_cl_macc_image_handler (context);
-        _macc = image_handler.dynamic_cast_ptr<CLMaccImageHandler> ();
-        XCAM_FAIL_RETURN (
-            WARNING,
-            _macc.ptr (),
-            XCAM_RETURN_ERROR_CL,
-            "CL3aImageProcessor create macc handler failed");
-        add_handler (image_handler);
-    }
+    image_handler = create_cl_macc_image_handler (context);
+    _macc = image_handler.dynamic_cast_ptr<CLMaccImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _macc.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create macc handler failed");
+    add_handler (image_handler);
 
     /* color space conversion */
     if (_out_smaple_type == OutSampleYuv) {
@@ -274,6 +259,61 @@ CL3aImageProcessor::create_handlers ()
     }
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+bool
+CL3aImageProcessor::set_hdr (uint32_t mode)
+{
+    STREAM_LOCK;
+
+    if (!_hdr.ptr ())
+        return false;
+    else
+        return _hdr->set_mode (mode);
+}
+
+bool
+CL3aImageProcessor::set_denoise (uint32_t mode)
+{
+    STREAM_LOCK;
+
+    if (!_denoise.ptr ())
+        return false;
+    else
+        return _denoise->set_mode (mode);
+}
+
+bool
+CL3aImageProcessor::set_gamma (bool enable)
+{
+    STREAM_LOCK;
+
+    if (!_gamma.ptr ())
+        return false;
+    else
+        return _gamma->set_kernels_enable (enable);
+}
+
+bool
+CL3aImageProcessor::set_snr (uint32_t mode)
+{
+    STREAM_LOCK;
+
+    if (!_snr.ptr ())
+        return false;
+    else
+        return _snr->set_mode (mode);
+}
+
+bool
+CL3aImageProcessor::set_macc (bool enable)
+{
+    STREAM_LOCK;
+
+    if (!_macc.ptr ())
+        return false;
+    else
+        return _macc->set_kernels_enable (enable);
 }
 
 };

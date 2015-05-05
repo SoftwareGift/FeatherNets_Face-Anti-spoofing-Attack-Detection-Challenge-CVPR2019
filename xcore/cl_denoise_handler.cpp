@@ -24,8 +24,9 @@
 
 namespace XCam {
 
-CLDenoiseImageKernel::CLDenoiseImageKernel (SmartPtr<CLContext> &context)
-    : CLImageKernel (context, "kernel_denoise")
+CLDenoiseImageKernel::CLDenoiseImageKernel (SmartPtr<CLContext> &context,
+        const char *name)
+    : CLImageKernel (context, name, false)
     , _sigma_r (10.0)
     , _imw (1920)
     , _imh (1080)
@@ -76,15 +77,37 @@ CLDenoiseImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
+CLDenoiseImageHandler::CLDenoiseImageHandler (const char *name)
+    : CLImageHandler (name)
+{
+}
+
+bool
+CLDenoiseImageHandler::set_mode (uint32_t mode)
+{
+    if (mode == CL_DENOISE_TYPE_BILATERIAL)
+        _bilateral_kernel->set_enable (true);
+
+    return true;
+}
+
+bool
+CLDenoiseImageHandler::set_bi_kernel (SmartPtr<CLDenoiseImageKernel> &kernel)
+{
+    SmartPtr<CLImageKernel> image_kernel = kernel;
+    add_kernel (image_kernel);
+    _bilateral_kernel = kernel;
+    return true;
+}
 
 SmartPtr<CLImageHandler>
 create_cl_denoise_image_handler (SmartPtr<CLContext> &context)
 {
-    SmartPtr<CLImageHandler> denoise_handler;
-    SmartPtr<CLImageKernel> denoise_kernel;
+    SmartPtr<CLDenoiseImageHandler> denoise_handler;
+    SmartPtr<CLDenoiseImageKernel> denoise_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    denoise_kernel = new CLDenoiseImageKernel (context);
+    denoise_kernel = new CLDenoiseImageKernel (context, "kernel_denoise");
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_denoise)
 #include "kernel_denoise.cl"
@@ -97,8 +120,8 @@ create_cl_denoise_image_handler (SmartPtr<CLContext> &context)
             "CL image handler(%s) load source failed", denoise_kernel->get_kernel_name());
     }
     XCAM_ASSERT (denoise_kernel->is_valid ());
-    denoise_handler = new CLImageHandler ("cl_handler_denoise");
-    denoise_handler->add_kernel  (denoise_kernel);
+    denoise_handler = new CLDenoiseImageHandler ("cl_handler_denoise");
+    denoise_handler->set_bi_kernel (denoise_kernel);
 
     return denoise_handler;
 }

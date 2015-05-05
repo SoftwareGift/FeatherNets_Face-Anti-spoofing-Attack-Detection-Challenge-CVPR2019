@@ -26,6 +26,7 @@
 #include "v4l2_device.h"
 #include "v4l2_buffer_proxy.h"
 #include "x3a_analyzer.h"
+#include "x3a_image_process_center.h"
 #include "image_processor.h"
 #include "x3a_statistics_queue.h"
 #include "poll_thread.h"
@@ -55,7 +56,6 @@ struct XCamMessage {
 };
 
 class MessageThread;
-class X3aImageProcessCenter;
 
 class DeviceManager
     : public PollCallback

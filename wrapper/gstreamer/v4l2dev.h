@@ -93,6 +93,20 @@ public:
     pthread_cond_t          bufs_cond;
     std::queue< SmartPtr<VideoBuffer> > release_bufs;
     pthread_mutex_t         release_mutex;
+
+#if HAVE_LIBCL
+public:
+    void set_cl_image_processor (SmartPtr<CL3aImageProcessor> &processor) {
+        _cl_image_processor = processor;
+    }
+
+    SmartPtr<CL3aImageProcessor> &get_cl_image_processor () {
+        return _cl_image_processor;
+    }
+
+private:
+    SmartPtr<CL3aImageProcessor> _cl_image_processor;
+#endif
 };
 
 };

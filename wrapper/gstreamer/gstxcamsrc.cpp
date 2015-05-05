@@ -310,6 +310,7 @@ gst_xcamsrc_start (GstBaseSrc *src)
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback (device_manager);
         device_manager->add_image_processor (cl_processor);
+        device_manager->set_cl_image_processor (cl_processor);
         break;
 #endif
     default:
@@ -620,6 +621,9 @@ gst_xcamsrc_xcam_3a_interface_init (GstXCam3AInterface *iface)
     iface->set_manual_saturation = gst_xcamsrc_set_manual_saturation;
     iface->set_manual_sharpness = gst_xcamsrc_set_manual_sharpness;
     iface->set_night_mode = gst_xcamsrc_set_night_mode;
+    iface->set_hdr_mode = gst_xcamsrc_set_hdr_mode;
+    iface->set_denoise_mode = gst_xcamsrc_set_denoise_mode;
+    iface->set_gamma_mode = gst_xcamsrc_set_gamma_mode;
 }
 
 static gboolean

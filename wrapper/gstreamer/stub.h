@@ -76,6 +76,9 @@ gboolean gst_xcamsrc_set_manual_saturation (GstXCam3A *xcam3a, guint8 value);
 gboolean gst_xcamsrc_set_manual_sharpness (GstXCam3A *xcam3a, guint8 value);
 gboolean gst_xcamsrc_set_dvs (GstXCam3A *xcam3a, gboolean enable);
 gboolean gst_xcamsrc_set_night_mode (GstXCam3A *xcam3a, gboolean enable);
+gboolean gst_xcamsrc_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode);
+gboolean gst_xcamsrc_set_denoise_mode (GstXCam3A *xcam3a, guint8 mode);
+gboolean gst_xcamsrc_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable);
 
 XCAM_END_DECLARE
 

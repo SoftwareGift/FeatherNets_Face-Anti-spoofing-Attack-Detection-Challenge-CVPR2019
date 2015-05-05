@@ -49,8 +49,16 @@ class CLImageKernel
     : public CLKernel
 {
 public:
-    explicit CLImageKernel (SmartPtr<CLContext> &context, const char *name);
+    explicit CLImageKernel (SmartPtr<CLContext> &context, const char *name, bool enable = true);
     virtual ~CLImageKernel ();
+
+    void set_enable (bool enable) {
+        _enable = enable;
+    }
+
+    bool is_enabled () const {
+        return _enable;
+    }
 
     XCamReturn pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn post_execute ();
@@ -67,6 +75,9 @@ private:
 protected:
     SmartPtr<CLImage>   _image_in;
     SmartPtr<CLImage>   _image_out;
+
+private:
+    bool                _enable;
 };
 
 class CLImageHandler
@@ -80,6 +91,9 @@ public:
     }
 
     bool add_kernel (SmartPtr<CLImageKernel> &kernel);
+    bool set_kernels_enable (bool enable);
+    bool is_kernels_enabled () const;
+
     XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     void emit_stop ();
 

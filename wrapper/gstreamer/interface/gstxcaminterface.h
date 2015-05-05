@@ -404,7 +404,34 @@ struct _GstXCam3AInterface {
     /*!
      * \brief enable/disable 3A mode.
      */
-    gboolean (* set_3a_mode)                 (GstXCam3A *xcam, gboolean enable);
+    gboolean (* set_3a_mode)                    (GstXCam3A *xcam, gboolean enable);
+
+    /*!
+     * \brief set HDR mode.
+     *
+     * \param[in,out]    xcam          XCam3A handle
+     * \param[in]        mode          0: disable, 1: HDR in RGB color space, 2: HDR in LAB color space
+     * \return           bool          0 on success
+     */
+    gboolean (* set_hdr_mode)                   (GstXCam3A *xcam, guint8 mode);
+
+    /*!
+     * \brief set denoise mode.
+     *
+     * \param[in,out]    xcam          XCam3A handle
+     * \param[in]        mode          0: disable, 1: simple, 2: bilinear
+     * \return           bool          0 on success
+     */
+    gboolean (* set_denoise_mode)               (GstXCam3A *xcam, guint8 mode);
+
+    /*!
+     * \brief set gamma mode.
+     *
+     * \param[in,out]    xcam          XCam3A handle
+     * \param[in]        enable        true: enable, false: disable
+     * \return           bool          0 on success
+     */
+    gboolean (* set_gamma_mode)                 (GstXCam3A *xcam, gboolean enable);
 };
 
 /*! \brief Get GST interface type of XCam 3A interface.

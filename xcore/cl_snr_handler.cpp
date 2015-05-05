@@ -22,8 +22,9 @@
 
 namespace XCam {
 
-CLSnrImageKernel::CLSnrImageKernel (SmartPtr<CLContext> &context)
-    : CLImageKernel (context, "kernel_snr")
+CLSnrImageKernel::CLSnrImageKernel (SmartPtr<CLContext> &context,
+                                    const char *name)
+    : CLImageKernel (context, name, false)
 {
 }
 
@@ -64,14 +65,36 @@ CLSnrImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
+CLSnrImageHandler::CLSnrImageHandler (const char *name)
+    : CLImageHandler (name)
+{
+}
+
+bool
+CLSnrImageHandler::set_simple_kernel(SmartPtr<CLSnrImageKernel> &kernel)
+{
+    SmartPtr<CLImageKernel> image_kernel = kernel;
+    add_kernel (image_kernel);
+    _simple_kernel = kernel;
+    return true;
+}
+
+bool
+CLSnrImageHandler::set_mode (uint32_t mode)
+{
+    _simple_kernel->set_enable (mode == CL_DENOISE_TYPE_SIMPLE);
+
+    return true;
+}
+
 SmartPtr<CLImageHandler>
 create_cl_snr_image_handler (SmartPtr<CLContext> &context)
 {
-    SmartPtr<CLImageHandler> snr_handler;
-    SmartPtr<CLImageKernel> snr_kernel;
+    SmartPtr<CLSnrImageHandler> snr_handler;
+    SmartPtr<CLSnrImageKernel> snr_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    snr_kernel = new CLSnrImageKernel (context);
+    snr_kernel = new CLSnrImageKernel (context, "kernel_snr");
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_snr)
 #include "kernel_snr.cl"
@@ -84,8 +107,8 @@ create_cl_snr_image_handler (SmartPtr<CLContext> &context)
             "CL image handler(%s) load source failed", snr_kernel->get_kernel_name());
     }
     XCAM_ASSERT (snr_kernel->is_valid ());
-    snr_handler = new CLImageHandler ("cl_handler_snr");
-    snr_handler->add_kernel  (snr_kernel);
+    snr_handler = new CLSnrImageHandler ("cl_handler_snr");
+    snr_handler->set_simple_kernel  (snr_kernel);
 
     return snr_handler;
 }

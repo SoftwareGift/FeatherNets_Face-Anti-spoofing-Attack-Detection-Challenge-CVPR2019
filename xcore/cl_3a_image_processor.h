@@ -33,6 +33,9 @@ class CLGammaImageHandler;
 class CL3AStatsCalculator;
 class CLWbImageHandler;
 class CLMaccImageHandler;
+class CLHdrImageHandler;
+class CLDenoiseImageHandler;
+class CLSnrImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -50,21 +53,12 @@ public:
     void set_stats_callback (const SmartPtr<StatsCallback> &callback);
 
     bool set_output_format (uint32_t fourcc);
-    void set_hdr (bool enable) {
-        _enable_hdr = enable;
-    }
-    void set_denoise (bool enable) {
-        _enable_denoise = enable;
-    }
-    void set_gamma (bool enable) {
-        _enable_gamma = enable;
-    }
-    void set_snr (bool enable) {
-        _enable_snr = enable;
-    }
-    void set_macc (bool enable) {
-        _enable_macc = enable;
-    }
+
+    virtual bool set_hdr (uint32_t mode);
+    virtual bool set_denoise (uint32_t mode);
+    virtual bool set_gamma (bool enable);
+    virtual bool set_snr (uint32_t mode);
+    virtual bool set_macc (bool enable);
 
 protected:
 
@@ -79,25 +73,20 @@ private:
 
 private:
     uint32_t                           _output_fourcc;
-    bool                               _enable_hdr;
-    bool                               _enable_denoise;
-    bool                               _enable_gamma;
-    bool                               _enable_macc;
     OutSampleType                      _out_smaple_type;
-    bool                               _enable_snr;
 
     SmartPtr<StatsCallback>            _stats_callback;
 
     SmartPtr<CLImageHandler>           _black_level;
     SmartPtr<CLBayer2RGBImageHandler>  _demosaic;
-    SmartPtr<CLImageHandler>           _hdr;
+    SmartPtr<CLHdrImageHandler>        _hdr;
     SmartPtr<CLCscImageHandler>        _csc;
-    SmartPtr<CLImageHandler>           _denoise;
+    SmartPtr<CLDenoiseImageHandler>    _denoise;
     SmartPtr<CLGammaImageHandler>      _gamma;
     SmartPtr<CL3AStatsCalculator>      _x3a_stats_calculator;
     SmartPtr<CLWbImageHandler>         _wb;
-    SmartPtr<CLImageHandler>           _snr;
-    SmartPtr<CLMaccImageHandler>     _macc;
+    SmartPtr<CLSnrImageHandler>        _snr;
+    SmartPtr<CLMaccImageHandler>       _macc;
 };
 
 };

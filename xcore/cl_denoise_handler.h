@@ -25,11 +25,18 @@
 
 namespace XCam {
 
+enum CLDenoiseType {
+    CL_DENOISE_DISABLE = 0,
+    CL_DENOISE_TYPE_SIMPLE,
+    CL_DENOISE_TYPE_BILATERIAL,
+};
+
 class CLDenoiseImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLDenoiseImageKernel (SmartPtr<CLContext> &context);
+    explicit CLDenoiseImageKernel (SmartPtr<CLContext> &context,
+                                   const char *name);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -42,6 +49,22 @@ private:
     float    _sigma_r;
     uint32_t _imw;
     uint32_t _imh;
+};
+
+class CLDenoiseImageHandler
+    : public CLImageHandler
+{
+public:
+    explicit CLDenoiseImageHandler (const char *name);
+    bool set_mode (uint32_t mode);
+
+    bool set_bi_kernel (SmartPtr<CLDenoiseImageKernel> &kernel);
+
+private:
+    XCAM_DEAD_COPY (CLDenoiseImageHandler);
+
+private:
+    SmartPtr<CLDenoiseImageKernel>   _bilateral_kernel;
 };
 
 SmartPtr<CLImageHandler>

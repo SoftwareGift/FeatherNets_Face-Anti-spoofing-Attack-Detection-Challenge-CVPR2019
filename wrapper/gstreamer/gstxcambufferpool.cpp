@@ -113,7 +113,7 @@ gst_xcambufferpool_start (GstBufferPool *bpool)
     pool->allocator = gst_dmabuf_allocator_new();
     if (pool->allocator == NULL) {
         printf ("gst_xcambufferpool_new::gst_dmabuf_allocator_new failed\n");
-        return NULL;
+        return FALSE;
     }
 
     return TRUE;

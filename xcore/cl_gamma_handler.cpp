@@ -58,7 +58,7 @@ float default_gamma_table[XCAM_GAMMA_TABLE_SIZE] = {
 namespace XCam {
 
 CLGammaImageKernel::CLGammaImageKernel (SmartPtr<CLContext> &context)
-    : CLImageKernel (context, "kernel_gamma")
+    : CLImageKernel (context, "kernel_gamma", false)
 {
     set_gamma(default_gamma_table);
 }

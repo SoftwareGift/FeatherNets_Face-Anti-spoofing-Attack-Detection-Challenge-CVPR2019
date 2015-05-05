@@ -22,12 +22,54 @@
 
 namespace XCam {
 
+CLHdrImageKernel::CLHdrImageKernel (SmartPtr<CLContext> &context,
+                                    const char *name,
+                                    CLHdrType type)
+    : CLImageKernel (context, name, false)
+    , _type (type)
+{
+}
+
+CLHdrImageHandler::CLHdrImageHandler (const char *name)
+    : CLImageHandler (name)
+{
+}
+
+bool
+CLHdrImageHandler::set_rgb_kernel(SmartPtr<CLHdrImageKernel> &kernel)
+{
+    SmartPtr<CLImageKernel> image_kernel = kernel;
+    add_kernel (image_kernel);
+    _rgb_kernel = kernel;
+    return true;
+}
+
+bool
+CLHdrImageHandler::set_lab_kernel(SmartPtr<CLHdrImageKernel> &kernel)
+{
+    SmartPtr<CLImageKernel> image_kernel = kernel;
+    add_kernel (image_kernel);
+    _lab_kernel = kernel;
+    return true;
+}
+
+bool
+CLHdrImageHandler::set_mode (uint32_t mode)
+{
+    _rgb_kernel->set_enable (mode == CL_HDR_TYPE_RGB);
+    _lab_kernel->set_enable (mode == CL_HDR_TYPE_LAB);
+
+    return true;
+}
+
 SmartPtr<CLImageHandler>
 create_cl_hdr_image_handler (SmartPtr<CLContext> &context, CLHdrType type)
 {
-    SmartPtr<CLImageHandler> hdr_handler;
-    SmartPtr<CLImageKernel> hdr_kernel;
+    SmartPtr<CLHdrImageHandler> hdr_handler;
+    SmartPtr<CLHdrImageKernel> hdr_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    hdr_handler = new CLHdrImageHandler ("cl_handler_hdr");
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_hdr_rgb)
 #include "kernel_hdr_rgb.cl"
@@ -36,14 +78,8 @@ create_cl_hdr_image_handler (SmartPtr<CLContext> &context, CLHdrType type)
 #include "kernel_hdr_lab.cl"
     XCAM_CL_KERNEL_FUNC_END;
 
-    if (type == CL_HDR_TYPE_RGB) {
-        hdr_kernel = new CLImageKernel (context, "kernel_hdr_rgb");
-        ret = hdr_kernel->load_from_source (kernel_hdr_rgb_body, strlen (kernel_hdr_rgb_body));
-    }
-    else if (type == CL_HDR_TYPE_LAB) {
-        hdr_kernel = new CLImageKernel (context, "kernel_hdr_lab");
-        ret = hdr_kernel->load_from_source (kernel_hdr_lab_body, strlen (kernel_hdr_lab_body));
-    }
+    hdr_kernel = new CLHdrImageKernel (context, "kernel_hdr_rgb", CL_HDR_TYPE_RGB);
+    ret = hdr_kernel->load_from_source (kernel_hdr_rgb_body, strlen (kernel_hdr_rgb_body));
     XCAM_FAIL_RETURN (
         WARNING,
         ret == XCAM_RETURN_NO_ERROR,
@@ -51,9 +87,20 @@ create_cl_hdr_image_handler (SmartPtr<CLContext> &context, CLHdrType type)
         "CL image handler(%s) load source failed", hdr_kernel->get_kernel_name());
 
     XCAM_ASSERT (hdr_kernel->is_valid ());
-    hdr_handler = new CLImageHandler ("cl_handler_hdr");
-    hdr_handler->add_kernel  (hdr_kernel);
+    hdr_handler->set_rgb_kernel (hdr_kernel);
 
+    hdr_kernel = new CLHdrImageKernel (context, "kernel_hdr_lab", CL_HDR_TYPE_LAB);
+    ret = hdr_kernel->load_from_source (kernel_hdr_lab_body, strlen (kernel_hdr_lab_body));
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        NULL,
+        "CL image handler(%s) load source failed", hdr_kernel->get_kernel_name());
+
+    XCAM_ASSERT (hdr_kernel->is_valid ());
+    hdr_handler->set_lab_kernel (hdr_kernel);
+
+    hdr_handler->set_mode (type);
     return hdr_handler;
 }
 

@@ -34,7 +34,7 @@ float default_macc_table[XCAM_CHROMA_AXIS_SIZE*XCAM_CHROMA_MATRIX_SIZE] = {
 namespace XCam {
 
 CLMaccImageKernel::CLMaccImageKernel (SmartPtr<CLContext> &context)
-    : CLImageKernel (context, "kernel_macc")
+    : CLImageKernel (context, "kernel_macc", false)
 {
     set_macc (default_macc_table);
 }

@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
+#include "cl_denoise_handler.h"
 
 namespace XCam {
 
@@ -30,7 +31,8 @@ class CLSnrImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLSnrImageKernel (SmartPtr<CLContext> &context);
+    explicit CLSnrImageKernel (SmartPtr<CLContext> &context,
+                               const char *name);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -40,6 +42,19 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLSnrImageKernel);
+};
+
+class CLSnrImageHandler
+    : public CLImageHandler
+{
+public:
+    explicit CLSnrImageHandler (const char *name);
+    bool set_simple_kernel(SmartPtr<CLSnrImageKernel> &kernel);
+    bool set_mode (uint32_t mode);
+
+private:
+    XCAM_DEAD_COPY (CLSnrImageHandler);
+    SmartPtr<CLSnrImageKernel>  _simple_kernel;
 };
 
 SmartPtr<CLImageHandler>

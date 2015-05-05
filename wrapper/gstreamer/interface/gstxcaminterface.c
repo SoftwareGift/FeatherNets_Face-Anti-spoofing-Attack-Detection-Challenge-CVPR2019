@@ -87,4 +87,7 @@ gst_xcam_3a_iface_init (GstXCam3AInterface * iface)
     iface->set_manual_sharpness = NULL;
     iface->set_night_mode = NULL;
     iface->set_3a_mode = NULL;
+    iface->set_hdr_mode = NULL;
+    iface->set_denoise_mode = NULL;
+    iface->set_gamma_mode = NULL;
 }
