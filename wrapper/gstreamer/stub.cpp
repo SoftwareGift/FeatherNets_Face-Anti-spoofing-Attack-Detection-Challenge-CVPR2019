@@ -235,14 +235,14 @@ gboolean gst_xcamsrc_set_noise_reduction_level (GstXCam3A *xcam3a, guint8 level)
     XCAM_UNUSED (xcam3a);
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_noise_reduction_level (level);
+    return analyzer->set_noise_reduction_level ((level - 128) / 128.0);
 }
 gboolean gst_xcamsrc_set_temporal_noise_reduction_level (GstXCam3A *xcam3a, guint8 level)
 {
     XCAM_UNUSED (xcam3a);
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_temporal_noise_reduction_level (level);
+    return analyzer->set_temporal_noise_reduction_level ((level - 128) / 128.0);
 }
 gboolean gst_xcamsrc_set_gamma_table (GstXCam3A *xcam3a, double *r_table, double *g_table, double *b_table)
 {
@@ -263,35 +263,35 @@ gboolean gst_xcamsrc_set_manual_brightness (GstXCam3A *xcam3a, guint8 value)
     XCAM_UNUSED (xcam3a);
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_manual_brightness (value);
+    return analyzer->set_manual_brightness ((value - 128) / 128.0);
 }
 gboolean gst_xcamsrc_set_manual_contrast (GstXCam3A *xcam3a, guint8 value)
 {
     XCAM_UNUSED (xcam3a);
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_manual_contrast (value);
+    return analyzer->set_manual_contrast ((value - 128) / 128.0);
 }
 gboolean gst_xcamsrc_set_manual_hue (GstXCam3A *xcam3a, guint8 value)
 {
     XCAM_UNUSED (xcam3a);
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_manual_hue (value);
+    return analyzer->set_manual_hue ((value - 128) / 128.0);
 }
 gboolean gst_xcamsrc_set_manual_saturation (GstXCam3A *xcam3a, guint8 value)
 {
     XCAM_UNUSED (xcam3a);
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_manual_saturation (value);
+    return analyzer->set_manual_saturation ((value - 128) / 128.0);
 }
 gboolean gst_xcamsrc_set_manual_sharpness (GstXCam3A *xcam3a, guint8 value)
 {
     XCAM_UNUSED (xcam3a);
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_manual_sharpness (value);
+    return analyzer->set_manual_sharpness ((value - 128) / 128.0);
 }
 gboolean gst_xcamsrc_set_dvs (GstXCam3A *xcam3a, gboolean enable)
 {
