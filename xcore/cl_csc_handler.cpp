@@ -21,12 +21,22 @@
 #include "xcam_utils.h"
 #include "cl_csc_handler.h"
 
+float default_rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE] = {0.299, 0.587, 0.114, -0.14713, -0.28886, 0.436, 0.615, -0.51499, -0.10001};
+
 namespace XCam {
 
 CLCscImageKernel::CLCscImageKernel (SmartPtr<CLContext> &context, const char *name)
     : CLImageKernel (context, name)
     , _vertical_offset (0)
 {
+    set_matrix (default_rgbtoyuv_matrix);
+}
+
+bool
+CLCscImageKernel::set_matrix (float * matrix)
+{
+    memcpy(_rgbtoyuv_matrix, matrix, sizeof(float)*XCAM_COLOR_MATRIX_SIZE);
+    return true;
 }
 
 XCamReturn
@@ -40,12 +50,15 @@ CLCscImageKernel::prepare_arguments (
 
     _image_in = new CLVaImage (context, input);
     _image_out = new CLVaImage (context, output);
+    _matrix_buffer = new CLBuffer (
+        context, sizeof(float)*XCAM_COLOR_MATRIX_SIZE,
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_rgbtoyuv_matrix);
     _vertical_offset = video_info.aligned_height;
 
-    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
+    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid () && _matrix_buffer->is_valid());
     XCAM_FAIL_RETURN (
         WARNING,
-        _image_in->is_valid () && _image_out->is_valid (),
+        _image_in->is_valid () && _image_out->is_valid () && _matrix_buffer->is_valid(),
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
@@ -56,13 +69,14 @@ CLCscImageKernel::prepare_arguments (
     args[1].arg_size = sizeof (cl_mem);
     args[2].arg_adress = &_vertical_offset;
     args[2].arg_size = sizeof (_vertical_offset);
-
+    args[3].arg_adress = &_matrix_buffer->get_mem_id();
+    args[3].arg_size = sizeof (cl_mem);
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     if (video_info.format == V4L2_PIX_FMT_NV12) {
         work_size.global[0] = video_info.width / 2;
         work_size.global[1] = video_info.height / 2;
-        arg_count = 3;
+        arg_count = 4;
     }
     else if ((video_info.format == XCAM_PIX_FMT_LAB) || (video_info.format == V4L2_PIX_FMT_RGBA32)) {
         work_size.global[0] = video_info.width;
@@ -95,6 +109,25 @@ CLCscImageHandler::CLCscImageHandler (const char *name, CLCscType type)
     }
 }
 
+bool
+CLCscImageHandler::set_csc_kernel (SmartPtr<CLCscImageKernel> &kernel)
+{
+    SmartPtr<CLImageKernel> image_kernel = kernel;
+    add_kernel (image_kernel);
+    _csc_kernel = kernel;
+    return true;
+}
+
+bool
+CLCscImageHandler::set_rgbtoyuv_matrix (XCam3aResultColorMatrix matrix)
+{
+    float matrix_table[XCAM_COLOR_MATRIX_SIZE];
+    for (int i = 0; i < XCAM_COLOR_MATRIX_SIZE; i++)
+        matrix_table[i] = (float)matrix.matrix[i];
+    _csc_kernel->set_matrix(matrix_table);
+    return true;
+}
+
 XCamReturn
 CLCscImageHandler::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input,
@@ -115,8 +148,8 @@ CLCscImageHandler::prepare_buffer_pool_video_info (
 SmartPtr<CLImageHandler>
 create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
 {
-    SmartPtr<CLImageHandler> csc_handler;
-    SmartPtr<CLImageKernel> csc_kernel;
+    SmartPtr<CLCscImageHandler> csc_handler;
+    SmartPtr<CLCscImageKernel> csc_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
 
@@ -155,7 +188,7 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
     XCAM_ASSERT (csc_kernel->is_valid ());
 
     csc_handler = new CLCscImageHandler ("cl_handler_csc", type);
-    csc_handler->add_kernel (csc_kernel);
+    csc_handler->set_csc_kernel (csc_kernel);
 
     return csc_handler;
 }

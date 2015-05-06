@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
+#include "base/xcam_3a_result.h"
 
 namespace XCam {
 
@@ -38,6 +39,7 @@ class CLCscImageKernel
 {
 public:
     explicit CLCscImageKernel (SmartPtr<CLContext> &context, const char *name);
+    bool set_matrix (float *matrix);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -49,6 +51,8 @@ private:
     XCAM_DEAD_COPY (CLCscImageKernel);
 
     uint32_t _vertical_offset;
+    float _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
+    SmartPtr<CLBuffer>  _matrix_buffer;
 };
 
 class CLCscImageHandler
@@ -56,6 +60,8 @@ class CLCscImageHandler
 {
 public:
     explicit CLCscImageHandler (const char *name, CLCscType type);
+    bool set_csc_kernel(SmartPtr<CLCscImageKernel> &kernel);
+    bool set_rgbtoyuv_matrix (XCam3aResultColorMatrix matrix);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
@@ -68,6 +74,7 @@ private:
 private:
     uint32_t  _output_format;
     CLCscType _csc_type;
+    SmartPtr<CLCscImageKernel> _csc_kernel;
 };
 
 SmartPtr<CLImageHandler>

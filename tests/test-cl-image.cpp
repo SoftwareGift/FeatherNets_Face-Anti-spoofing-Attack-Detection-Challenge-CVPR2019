@@ -288,7 +288,14 @@ int main (int argc, char *argv[])
         break;
     }
     case TestHandlerColorConversion: {
+        SmartPtr<CLCscImageHandler> csc_handler;
+        XCam3aResultColorMatrix color_matrix;
+        double matrix_table[XCAM_COLOR_MATRIX_SIZE] = {0.299, 0.587, 0.114, -0.14713, -0.28886, 0.436, 0.615, -0.51499, -0.10001};
+        memcpy (color_matrix.matrix, matrix_table, sizeof(double)*XCAM_COLOR_MATRIX_SIZE);
         image_handler = create_cl_csc_image_handler (context, csc_type);
+        csc_handler = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
+        XCAM_ASSERT (csc_handler.ptr ());
+        csc_handler->set_rgbtoyuv_matrix(color_matrix);
         break;
     }
     case TestHandlerHDR:
