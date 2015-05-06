@@ -36,6 +36,7 @@ class CLMaccImageHandler;
 class CLHdrImageHandler;
 class CLDenoiseImageHandler;
 class CLSnrImageHandler;
+class CLBlcImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -77,7 +78,7 @@ private:
 
     SmartPtr<StatsCallback>            _stats_callback;
 
-    SmartPtr<CLImageHandler>           _black_level;
+    SmartPtr<CLBlcImageHandler>        _black_level;
     SmartPtr<CLBayer2RGBImageHandler>  _demosaic;
     SmartPtr<CLHdrImageHandler>        _hdr;
     SmartPtr<CLCscImageHandler>        _csc;

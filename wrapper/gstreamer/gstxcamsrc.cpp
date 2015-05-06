@@ -37,6 +37,7 @@
 #include "v4l2dev.h"
 #include "stub.h"
 #include "fmt.h"
+#include "analyzer_loader.h"
 
 using namespace XCam;
 
@@ -89,6 +90,7 @@ gst_xcam_src_analyzer_get_type (void)
     static const GEnumValue analyzer_types[] = {
         {SIMPLE_ANALYZER, "simple 3A analyzer", "simple"},
         {AIQ_ANALYZER, "aiq 3A analyzer", "aiq"},
+        {DYNAMIC_ANALYZER, "dynamic load 3A analyzer", "dynamic"},
         {0, NULL, NULL},
     };
 
@@ -325,8 +327,19 @@ gst_xcamsrc_start (GstBaseSrc *src)
         analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE_NAME);
         break;
 #endif
+    case DYNAMIC_ANALYZER: {
+        const char *path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
+        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (path_of_3a);
+        analyzer = loader->load_analyzer (loader);
+        if (!analyzer.ptr ()) {
+            XCAM_LOG_ERROR ("load analyzer(%s) failed, please check.", path_of_3a);
+            return FALSE;
+        }
+        break;
+    }
     default:
         analyzer = new X3aAnalyzerSimple ();
+        break;
     }
     device_manager->set_analyzer (analyzer);
 

@@ -89,6 +89,9 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_R_GAMMA:
     case XCAM_3A_RESULT_G_GAMMA:
     case XCAM_3A_RESULT_B_GAMMA:
+    case XCAM_3A_RESULT_RGB2YUV_MATRIX:
+    case XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION:
+    case XCAM_3A_RESULT_MACC:
         return true;
 
     default:
@@ -135,7 +138,44 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         XCAM_ASSERT (bl_res.ptr ());
         if (!_black_level.ptr())
             break;
-        //_black_level->set_bl_config (bl_res->get_standard_result ());
+        _black_level->set_blc_config (bl_res->get_standard_result ());
+        break;
+    }
+
+    case XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION: {
+        SmartPtr<X3aDefectPixelResult> def_res = result.dynamic_cast_ptr<X3aDefectPixelResult> ();
+        //XCAM_ASSERT (def_res.ptr ());
+        break;
+    }
+
+    case XCAM_3A_RESULT_RGB2YUV_MATRIX: {
+        SmartPtr<X3aColorMatrixResult> csc_res = result.dynamic_cast_ptr<X3aColorMatrixResult> ();
+        XCAM_ASSERT (csc_res.ptr ());
+        if (!_csc.ptr())
+            break;
+        _csc->set_rgbtoyuv_matrix (csc_res->get_standard_result ());
+        break;
+    }
+
+    case XCAM_3A_RESULT_MACC: {
+        SmartPtr<X3aMaccMatrixResult> macc_res = result.dynamic_cast_ptr<X3aMaccMatrixResult> ();
+        XCAM_ASSERT (macc_res.ptr ());
+        if (!_macc.ptr())
+            break;
+        _macc->set_macc_table (macc_res->get_standard_result ());
+        break;
+    }
+    case XCAM_3A_RESULT_R_GAMMA:
+    case XCAM_3A_RESULT_B_GAMMA:
+        break;
+
+    case XCAM_3A_RESULT_G_GAMMA:
+    case XCAM_3A_RESULT_Y_GAMMA: {
+        SmartPtr<X3aGammaTableResult> gamma_res = result.dynamic_cast_ptr<X3aGammaTableResult> ();
+        XCAM_ASSERT (gamma_res.ptr ());
+        if (!_gamma.ptr())
+            break;
+        _gamma->set_gamma_table (gamma_res->get_standard_result ());
         break;
     }
 
@@ -157,7 +197,7 @@ CL3aImageProcessor::create_handlers ()
 
     /* black leve as first */
     image_handler = create_cl_blc_image_handler (context);
-    _black_level = image_handler;
+    _black_level = image_handler.dynamic_cast_ptr<CLBlcImageHandler> ();;
     XCAM_FAIL_RETURN (
         WARNING,
         image_handler.ptr (),

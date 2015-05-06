@@ -31,6 +31,7 @@
 #define CAPTURE_DEVICE_VIDEO  "/dev/video3"
 #define DEFAULT_EVENT_DEVICE    "/dev/v4l-subdev6"
 #define DEFAULT_CPF_FILE_NAME   "/etc/atomisp/imx185.cpf"
+#define DEFAULT_DYNAMIC_3A_LIB  "/usr/lib/xcam/libxcam_3a_aiq.so"
 
 #define DEFAULT_PROP_DEVICE_NAME    "/dev/video3"
 #define DEFAULT_PROP_SENSOR     0
@@ -72,6 +73,7 @@ typedef enum {
 typedef enum {
     SIMPLE_ANALYZER = 0,
     AIQ_ANALYZER,
+    DYNAMIC_ANALYZER,
 } AnalyzerType;
 
 typedef struct _Gstxcamsrc      Gstxcamsrc;
