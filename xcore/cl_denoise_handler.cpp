@@ -85,8 +85,7 @@ CLDenoiseImageHandler::CLDenoiseImageHandler (const char *name)
 bool
 CLDenoiseImageHandler::set_mode (uint32_t mode)
 {
-    if (mode == CL_DENOISE_TYPE_BILATERIAL)
-        _bilateral_kernel->set_enable (true);
+    _bilateral_kernel->set_enable (mode == CL_DENOISE_TYPE_BILATERIAL);
 
     return true;
 }
