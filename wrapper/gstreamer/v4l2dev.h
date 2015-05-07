@@ -89,10 +89,10 @@ protected:
 
 public:
     std::queue< SmartPtr<VideoBuffer> > bufs;
-    pthread_mutex_t         bufs_mutex;
-    pthread_cond_t          bufs_cond;
+    Mutex                   bufs_mutex;
+    Cond                    bufs_cond;
     std::queue< SmartPtr<VideoBuffer> > release_bufs;
-    pthread_mutex_t         release_mutex;
+    Mutex                   release_mutex;
 
 #if HAVE_LIBCL
 public:

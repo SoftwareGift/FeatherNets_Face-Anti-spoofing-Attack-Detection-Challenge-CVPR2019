@@ -29,19 +29,18 @@ using namespace XCam;
 int libxcam_dequeue_buffer (SmartPtr<VideoBuffer> &buf)
 {
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
-    int ret;
 
-    pthread_mutex_lock (&device_manager->bufs_mutex);
+    device_manager->bufs_mutex.lock ();
     if (device_manager->bufs.size() == 0) {
-        pthread_cond_wait (&device_manager->bufs_cond, &device_manager->bufs_mutex);
+        device_manager->bufs_cond.wait (device_manager->bufs_mutex);
     }
     buf = device_manager->bufs.front();
     device_manager->bufs.pop();
-    pthread_mutex_unlock (&device_manager->bufs_mutex);
+    device_manager->bufs_mutex.unlock ();
 
-    pthread_mutex_lock (&device_manager->release_mutex);
+    device_manager->release_mutex.lock ();
     device_manager->release_bufs.push (buf);
-    pthread_mutex_unlock (&device_manager->release_mutex);
+    device_manager->release_mutex.unlock ();
     return (int) XCAM_RETURN_NO_ERROR;
 }
 
@@ -80,16 +79,16 @@ xcam_bufferpool_acquire_buffer (GstBufferPool *bpool, GstBuffer **buffer, GstBuf
 void
 xcambufferpool_release_buffer (GstBufferPool *bpool, GstBuffer *gbuf)
 {
-    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
-    pthread_mutex_lock (&device_manager->release_mutex);
-    device_manager->release_bufs.pop();
-    pthread_mutex_unlock (&device_manager->release_mutex);
+    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance ();
+    device_manager->release_mutex.lock ();
+    device_manager->release_bufs.pop ();
+    device_manager->release_mutex.unlock ();
 }
 
 gboolean gst_xcamsrc_set_white_balance_mode (GstXCam3A *xcam3a, XCamAwbMode mode)
 {
     XCAM_UNUSED (xcam3a);
-    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
+    SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance ();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
     return analyzer->set_awb_mode (mode);
 }

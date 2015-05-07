@@ -52,11 +52,11 @@ MainDeviceManager::handle_message (SmartPtr<XCamMessage> &msg)
 void
 MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
 {
-    pthread_mutex_lock (&bufs_mutex);
+    bufs_mutex.lock ();
     bufs.push (buf);
     if (bufs.size() == 1)
-        pthread_cond_signal (&bufs_cond);
-    pthread_mutex_unlock (&bufs_mutex);
+        bufs_cond.signal ();
+    bufs_mutex.unlock ();
 }
 
 };
