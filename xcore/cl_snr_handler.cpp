@@ -58,7 +58,7 @@ CLSnrImageKernel::prepare_arguments (
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = out_info.width;
     work_size.global[1] = out_info.height;
-    printf("out_info.width = %u, out_info.height = %u\n", out_info.width, out_info.height);
+    //printf("out_info.width = %u, out_info.height = %u\n", out_info.width, out_info.height);
     work_size.local[0] = 8;
     work_size.local[1] = 4;
 
