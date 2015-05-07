@@ -36,6 +36,11 @@ CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _out_smaple_type (OutSampleYuv)
+    , _enable_hdr (false)
+    , _enable_denoise (false)
+    , _enable_snr (true)
+    , _enable_gamma (false)
+    , _enable_macc (false)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
@@ -232,6 +237,7 @@ CL3aImageProcessor::create_handlers ()
         _gamma.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create gamma handler failed");
+    _gamma->set_kernels_enable (_enable_gamma);
     add_handler (image_handler);
 
     /* hdr */
@@ -242,6 +248,7 @@ CL3aImageProcessor::create_handlers ()
         _hdr.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create hdr handler failed");
+    _hdr->set_mode (_enable_hdr);
     add_handler (image_handler);
 
     /* demosaic */
@@ -262,6 +269,7 @@ CL3aImageProcessor::create_handlers ()
         _denoise.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create denoise handler failed");
+    _denoise->set_mode (_enable_denoise);
     add_handler (image_handler);
 
 
@@ -273,6 +281,7 @@ CL3aImageProcessor::create_handlers ()
         _snr.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create snr handler failed");
+    _snr->set_mode (_enable_snr);
     add_handler (image_handler);
 
     /* macc */
@@ -283,6 +292,7 @@ CL3aImageProcessor::create_handlers ()
         _macc.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create macc handler failed");
+    _macc->set_kernels_enable (_enable_macc);
     add_handler (image_handler);
 
     /* color space conversion */
@@ -305,56 +315,64 @@ CL3aImageProcessor::create_handlers ()
 bool
 CL3aImageProcessor::set_hdr (uint32_t mode)
 {
+    _enable_hdr = mode;
+
     STREAM_LOCK;
 
-    if (!_hdr.ptr ())
-        return false;
-    else
+    if (_hdr.ptr ())
         return _hdr->set_mode (mode);
+
+    return true;
 }
 
 bool
 CL3aImageProcessor::set_denoise (uint32_t mode)
 {
+    _enable_denoise = mode;
+
     STREAM_LOCK;
 
-    if (!_denoise.ptr ())
-        return false;
-    else
+    if (_denoise.ptr ())
         return _denoise->set_mode (mode);
+    return true;
+
 }
 
 bool
 CL3aImageProcessor::set_gamma (bool enable)
 {
+    _enable_gamma = enable;
+
     STREAM_LOCK;
 
-    if (!_gamma.ptr ())
-        return false;
-    else
+    if (_gamma.ptr ())
         return _gamma->set_kernels_enable (enable);
+
+    return true;
 }
 
 bool
 CL3aImageProcessor::set_snr (uint32_t mode)
 {
+    _enable_snr = mode;
+
     STREAM_LOCK;
 
-    if (!_snr.ptr ())
-        return false;
-    else
+    if (_snr.ptr ())
         return _snr->set_mode (mode);
+    return true;
 }
 
 bool
 CL3aImageProcessor::set_macc (bool enable)
 {
+    _enable_macc = enable;
+
     STREAM_LOCK;
 
-    if (!_macc.ptr ())
-        return false;
-    else
+    if (_macc.ptr ())
         return _macc->set_kernels_enable (enable);
+    return true;
 }
 
 };

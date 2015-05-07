@@ -88,6 +88,15 @@ private:
     SmartPtr<CLWbImageHandler>         _wb;
     SmartPtr<CLSnrImageHandler>        _snr;
     SmartPtr<CLMaccImageHandler>       _macc;
+
+    uint32_t                           _enable_hdr;
+    uint32_t                           _enable_denoise;
+    uint32_t                           _enable_snr;
+    bool                               _enable_gamma;
+    bool                               _enable_macc;
+
+
+
 };
 
 };
