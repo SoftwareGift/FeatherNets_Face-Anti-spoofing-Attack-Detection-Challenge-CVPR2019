@@ -294,7 +294,7 @@ PollThread::poll_buffer_loop ()
     poll_ret = _capture_dev->poll_event (PollThread::default_capture_event_timeout);
 
     if (poll_ret < 0) {
-        XCAM_LOG_WARNING ("poll buffer event got error but continue");
+        XCAM_LOG_DEBUG ("poll buffer event got error but continue");
         ::usleep (100000); // 100ms
         return XCAM_RETURN_ERROR_TIMEOUT;
     }
