@@ -205,16 +205,6 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create blc handler failed");
     add_handler (image_handler);
 
-    /* denoise */
-    image_handler = create_cl_denoise_image_handler (context);
-    _denoise = image_handler.dynamic_cast_ptr<CLDenoiseImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _denoise.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create denoise handler failed");
-    add_handler (image_handler);
-
     image_handler = create_cl_3a_stats_image_handler (context);
     _x3a_stats_calculator = image_handler.dynamic_cast_ptr<CL3AStatsCalculator> ();
     XCAM_FAIL_RETURN (
@@ -263,6 +253,17 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create demosaic handler failed");
     add_handler (image_handler);
+
+    /* denoise */
+    image_handler = create_cl_denoise_image_handler (context);
+    _denoise = image_handler.dynamic_cast_ptr<CLDenoiseImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _denoise.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create denoise handler failed");
+    add_handler (image_handler);
+
 
     /* simple noise reduction */
     image_handler = create_cl_snr_image_handler (context);
