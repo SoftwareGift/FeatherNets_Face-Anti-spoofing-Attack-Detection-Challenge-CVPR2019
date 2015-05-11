@@ -36,20 +36,22 @@ public:
     static SmartPtr<BufMap> instance();
 
     GstBuffer* gbuf(SmartPtr<VideoBuffer> &buf) {
-        if (_v2g.find (buf.ptr ()) == _v2g.end ()) { //non-existing
+        XCAM_ASSERT (buf.ptr ());
+        if (_v2g.find (buf->get_fd ()) == _v2g.end ()) { //non-existing
             return NULL;
         }
-        return _v2g[buf.ptr ()];
+        return _v2g[buf->get_fd ()];
     }
-    SmartPtr<VideoBuffer> vbuf(GstBuffer* gbuf) {
+    int vbuf(GstBuffer* gbuf) {
         if (_g2v.find (gbuf) == _g2v.end ()) { //non-existing
             return NULL;
         }
         return _g2v[gbuf];
     }
     void setmap(GstBuffer* gbuf, SmartPtr<VideoBuffer>& buf) {
-        _g2v[gbuf] = buf.ptr ();
-        _v2g[buf.ptr ()] = gbuf;
+        XCAM_ASSERT (buf.ptr ());
+        _g2v[gbuf] = buf->get_fd ();
+        _v2g[buf->get_fd ()] = gbuf;
     }
 
 private:
@@ -61,8 +63,8 @@ private:
     static SmartPtr<BufMap> _instance;
     static Mutex        _mutex;
 
-    std::map <GstBuffer*, VideoBuffer*> _g2v;
-    std::map <VideoBuffer*, GstBuffer*> _v2g;
+    std::map <GstBuffer*, int> _g2v;
+    std::map <int, GstBuffer*> _v2g;
 };
 
 } //namespace
