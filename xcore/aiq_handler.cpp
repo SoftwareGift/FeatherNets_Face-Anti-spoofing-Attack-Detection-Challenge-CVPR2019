@@ -1345,6 +1345,19 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
         XCAM_LOG_WARNING ("AIQ pa run failed"); // but not return error
     }
     _pa_result = pa_result;
+    
+    if (XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.gr_gain, 0.0) ||
+        XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.r_gain, 0.0)  ||
+        XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.b_gain, 0.0)  ||
+        XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.gb_gain, 0.0)) {
+        XCAM_LOG_DEBUG ("Zero gain would cause ISP division fatal error");
+    }
+    else {
+        _pa_result->color_gains[0] = aiq_awb->_params.gr_gain;
+        _pa_result->color_gains[1] = aiq_awb->_params.r_gain;
+        _pa_result->color_gains[2] = aiq_awb->_params.b_gain;
+        _pa_result->color_gains[3] = aiq_awb->_params.gb_gain;
+    }
 
     isp_params.frame_use = _frame_use;
     isp_params.awb_results = aiq_awb->get_result ();

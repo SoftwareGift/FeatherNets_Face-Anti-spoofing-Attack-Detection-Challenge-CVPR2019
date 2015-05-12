@@ -155,6 +155,7 @@ protected:
 class AiqAwbHandler
     : public AwbHandler
 {
+    friend class AiqCompositor;
 public:
     explicit AiqAwbHandler (SmartPtr<AiqCompositor> &aiq_compositor);
     ~AiqAwbHandler () {}
