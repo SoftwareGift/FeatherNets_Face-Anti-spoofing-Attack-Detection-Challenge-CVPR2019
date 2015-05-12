@@ -276,6 +276,8 @@ public:
 private:
     XCamReturn apply_gamma_table (struct atomisp_parameters *isp_param);
     XCamReturn apply_night_mode (struct atomisp_parameters *isp_param);
+    XCamReturn limit_nr_levels (struct atomisp_parameters *isp_param);
+    double calculate_value_by_factor (double factor, double min, double mid, double max);
 
     XCAM_DEAD_COPY (AiqCompositor);
 
