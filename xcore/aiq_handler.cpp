@@ -1352,6 +1352,30 @@ AiqCompositor::apply_gamma_table (struct atomisp_parameters *isp_param)
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+AiqCompositor::apply_night_mode (struct atomisp_parameters *isp_param)
+{
+    static const struct atomisp_cc_config night_yuv2rgb_cc_config = {
+        10,
+        {   1 << 10, 0, 0,  /* 1.0, 0, 0 */
+            1 << 10, 0, 0,  /* 1.0, 0, 0 */
+            1 << 10, 0, 0
+        }
+    }; /* 1.0, 0, 0 */
+    static const struct atomisp_wb_config night_wb_config = {
+        1,
+        1 << 15, 1 << 15, 1 << 15, 1 << 15
+    }; /* 1.0, 1.0, 1.0, 1.0*/
+
+    if (isp_param->ctc_config)
+        isp_param->ctc_config = NULL;
+
+    *isp_param->wb_config = night_wb_config;
+    *isp_param->yuv2rgb_cc_config = night_yuv2rgb_cc_config;
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 XCamReturn AiqCompositor::integrate (X3aResultList &results)
 {
     IspInputParameters isp_params;
@@ -1374,22 +1398,29 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
 
     xcam_mem_clear (pa_input);
     pa_input.frame_use = _frame_use;
-    pa_input.awb_results = aiq_awb->get_result ();
     if (aiq_ae->is_started())
         pa_input.exposure_params = (aiq_ae->get_result ())->exposures[0].exposure;
     pa_input.sensor_frame_params = &_frame_params;
     pa_input.color_gains = NULL;
+
+    if (aiq_common->_params.enable_night_mode) {
+        pa_input.awb_results = NULL;
+        isp_params.effects = ia_isp_effect_grayscale;
+    }
+    else {
+        pa_input.awb_results = aiq_awb->get_result ();
+    }
 
     ia_error = ia_aiq_pa_run (_ia_handle, &pa_input, &pa_result);
     if (ia_error != ia_err_none) {
         XCAM_LOG_WARNING ("AIQ pa run failed"); // but not return error
     }
     _pa_result = pa_result;
-    
+
     if (XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.gr_gain, 0.0) ||
-        XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.r_gain, 0.0)  ||
-        XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.b_gain, 0.0)  ||
-        XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.gb_gain, 0.0)) {
+            XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.r_gain, 0.0)  ||
+            XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.b_gain, 0.0)  ||
+            XCAM_DOUBLE_EQUAL_AROUND (aiq_awb->_params.gb_gain, 0.0)) {
         XCAM_LOG_DEBUG ("Zero gain would cause ISP division fatal error");
     }
     else {
@@ -1423,6 +1454,10 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
     }
     isp_3a_result = ((struct atomisp_parameters *)output.data);
     apply_gamma_table (isp_3a_result);
+    if (aiq_common->_params.enable_night_mode)
+    {
+        apply_night_mode (isp_3a_result);
+    }
 
     isp_results = generate_3a_configs (isp_3a_result);
     results.push_back (isp_results);
