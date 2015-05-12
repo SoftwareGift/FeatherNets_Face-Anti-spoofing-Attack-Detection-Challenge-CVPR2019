@@ -274,6 +274,7 @@ public:
     }
 
 private:
+    XCamReturn apply_gamma_table (struct atomisp_parameters *isp_param);
 
     XCAM_DEAD_COPY (AiqCompositor);
 

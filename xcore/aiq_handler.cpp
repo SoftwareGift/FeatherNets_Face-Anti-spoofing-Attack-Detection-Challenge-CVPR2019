@@ -1312,6 +1312,46 @@ XCamReturn AiqCompositor::convert_color_effect (IspInputParameters &isp_input)
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+AiqCompositor::apply_gamma_table (struct atomisp_parameters *isp_param)
+{
+    if (_common_handler->_params.is_manual_gamma) {
+        int i;
+
+        if (isp_param->r_gamma_table) {
+            isp_param->r_gamma_table->vamem_type = 1; //IA_CSS_VAMEM_TYPE_2 = 1;
+            for (i = 0; i < XCAM_GAMMA_TABLE_SIZE; ++i) {
+                // change from double to u0.12
+                isp_param->r_gamma_table->data.vamem_2[i] =
+                    (uint32_t) (_common_handler->_params.r_gamma[i] * 4096.0);
+            }
+            isp_param->r_gamma_table->data.vamem_2[256] = 4091;
+        }
+
+        if (isp_param->g_gamma_table) {
+            isp_param->g_gamma_table->vamem_type = 1; //IA_CSS_VAMEM_TYPE_2 = 1;
+            for (i = 0; i < XCAM_GAMMA_TABLE_SIZE; ++i) {
+                // change from double to u0.12
+                isp_param->g_gamma_table->data.vamem_2[i] =
+                    (uint32_t) (_common_handler->_params.g_gamma[i] * 4096.0);
+            }
+            isp_param->g_gamma_table->data.vamem_2[256] = 4091;
+        }
+
+        if (isp_param->b_gamma_table) {
+            isp_param->b_gamma_table->vamem_type = 1; //IA_CSS_VAMEM_TYPE_2 = 1;
+            for (i = 0; i < XCAM_GAMMA_TABLE_SIZE; ++i) {
+                // change from double to u0.12
+                isp_param->b_gamma_table->data.vamem_2[i] =
+                    (uint32_t) (_common_handler->_params.b_gamma[i] * 4096.0);
+            }
+            isp_param->b_gamma_table->data.vamem_2[256] = 4091;
+        }
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 XCamReturn AiqCompositor::integrate (X3aResultList &results)
 {
     IspInputParameters isp_params;
@@ -1382,6 +1422,8 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
         return XCAM_RETURN_ERROR_ISP;
     }
     isp_3a_result = ((struct atomisp_parameters *)output.data);
+    apply_gamma_table (isp_3a_result);
+
     isp_results = generate_3a_configs (isp_3a_result);
     results.push_back (isp_results);
     return XCAM_RETURN_NO_ERROR;
