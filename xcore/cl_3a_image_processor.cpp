@@ -87,7 +87,9 @@ CL3aImageProcessor::set_output_format (uint32_t fourcc)
 bool
 CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
 {
-    XCAM_ASSERT (result.ptr());
+    if (result.ptr() == NULL)
+        return false;
+
     switch (result->get_type ()) {
     case XCAM_3A_RESULT_WHITE_BALANCE:
     case XCAM_3A_RESULT_BLACK_LEVEL:
@@ -125,6 +127,9 @@ XCamReturn
 CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
 {
     STREAM_LOCK;
+
+    if (result.ptr() == NULL)
+        return XCAM_RETURN_BYPASS;
 
     uint32_t res_type = result->get_type ();
 

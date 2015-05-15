@@ -50,7 +50,9 @@ IspImageProcessor::process_buffer(SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
 bool
 IspImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
 {
-    XCAM_ASSERT (result.ptr());
+    if (result.ptr() == NULL)
+        return false;
+
     switch (result->get_type()) {
     case X3aIspConfig::IspExposureParameters:
     case X3aIspConfig::IspAllParameters:
@@ -59,6 +61,10 @@ IspImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_BLACK_LEVEL:
     case XCAM_3A_RESULT_YUV2RGB_MATRIX:
     case XCAM_3A_RESULT_RGB2YUV_MATRIX:
+    case XCAM_3A_RESULT_R_GAMMA:
+    case XCAM_3A_RESULT_G_GAMMA:
+    case XCAM_3A_RESULT_B_GAMMA:
+    case XCAM_3A_RESULT_MACC:
         return true;
     default:
         return false;
@@ -180,7 +186,9 @@ IspExposureImageProcessor::IspExposureImageProcessor (SmartPtr<IspController> &c
 bool
 IspExposureImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
 {
-    XCAM_ASSERT (result.ptr());
+    if (result.ptr() == NULL)
+        return false;
+
     switch (result->get_type()) {
     case XCAM_3A_RESULT_EXPOSURE:
         return true;

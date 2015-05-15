@@ -66,6 +66,64 @@ translate_atomisp_parameters (
     XCam3aResultHead *results[], uint32_t max_count)
 {
     uint32_t result_count = 0;
+    double coefficient = 0.0;
+
+    /* Translation for white balance */
+    XCam3aResultWhiteBalance *wb = xcam_malloc0_type (XCam3aResultWhiteBalance);
+    wb->head.type = XCAM_3A_RESULT_WHITE_BALANCE;
+    wb->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    wb->head.version = XCAM_VERSION;
+    coefficient = pow (2, (16 - atomisp_params.wb_config->integer_bits));
+    wb->r_gain = atomisp_params.wb_config->r / coefficient;
+    wb->gr_gain = atomisp_params.wb_config->gr / coefficient;
+    wb->gb_gain = atomisp_params.wb_config->gb / coefficient;
+    wb->b_gain = atomisp_params.wb_config->b / coefficient;
+    results[result_count++] = (XCam3aResultHead*)wb;
+
+    /* Translation for black level correction */
+    XCam3aResultBlackLevel *blc = xcam_malloc0_type (XCam3aResultBlackLevel);
+    blc->head.type =    XCAM_3A_RESULT_BLACK_LEVEL;
+    blc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    blc->head.version = XCAM_VERSION;
+    if (atomisp_params.ob_config->mode == atomisp_ob_mode_fixed) {
+        blc->r_level = atomisp_params.ob_config->level_r / (double)65536;
+        blc->gr_level = atomisp_params.ob_config->level_gr / (double)65536;
+        blc->gb_level = atomisp_params.ob_config->level_gb / (double)65536;
+        blc->b_level = atomisp_params.ob_config->level_b / (double)65536;
+    }
+    results[result_count++] = (XCam3aResultHead*)blc;
+
+    /* Translation for color correction */
+    XCam3aResultColorMatrix *cm = xcam_malloc0_type (XCam3aResultColorMatrix);
+    cm->head.type = XCAM_3A_RESULT_RGB2YUV_MATRIX;
+    cm->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    cm->head.version = XCAM_VERSION;
+    coefficient = pow (2, atomisp_params.cc_config->fraction_bits);
+    for (int i = 0; i < XCAM_COLOR_MATRIX_SIZE; i++) {
+        cm->matrix[i] = atomisp_params.cc_config->matrix[i] / coefficient;
+    }
+    results[result_count++] = (XCam3aResultHead*)cm;
+
+    /* Translation for gamma table */
+    XCam3aResultGammaTable *gt = xcam_malloc0_type (XCam3aResultGammaTable);
+    gt->head.type = XCAM_3A_RESULT_G_GAMMA;
+    gt->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    gt->head.version = XCAM_VERSION;
+    for (int i = 0; i < XCAM_GAMMA_TABLE_SIZE; i++) {
+        gt->table[i] = (double)atomisp_params.g_gamma_table->data.vamem_2[i] / 16;
+    }
+    results[result_count++] = (XCam3aResultHead*)gt;
+
+    /* Translation for macc matrix table */
+    XCam3aResultMaccMatrix *macc = xcam_malloc0_type (XCam3aResultMaccMatrix);
+    macc->head.type = XCAM_3A_RESULT_MACC;
+    macc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    macc->head.version = XCAM_VERSION;
+    coefficient = pow (2, (15 - atomisp_params.macc_config->color_effect));
+    for (int i = 0; i < XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE; i++) {
+        macc->table[i] = (double)atomisp_params.macc_config->table.data[i] / coefficient;
+    }
+    results[result_count++] = (XCam3aResultHead*)macc;
 
     return result_count;
 }
@@ -86,6 +144,9 @@ translate_3a_results_to_xcam (X3aResultList &list,
             const XCam3aResultExposure &exposure = isp_exposure->get_standard_result ();
             XCam3aResultExposure *new_exposure = xcam_malloc0_type (XCam3aResultExposure);
             *new_exposure = exposure;
+            new_exposure->head.type = XCAM_3A_RESULT_EXPOSURE;
+            new_exposure->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+            new_exposure->head.version = XCAM_VERSION;
             results[result_count++] = (XCam3aResultHead*)new_exposure;
             break;
         }
@@ -94,7 +155,7 @@ translate_3a_results_to_xcam (X3aResultList &list,
                 isp_result.dynamic_cast_ptr<X3aAtomIspParametersResult> ();
             XCAM_ASSERT (isp_3a_all.ptr ());
             const struct atomisp_parameters &atomisp_params = isp_3a_all->get_isp_config ();
-            translate_atomisp_parameters (atomisp_params, &results[result_count], max_count - result_count);
+            result_count += translate_atomisp_parameters (atomisp_params, &results[result_count], max_count - result_count);
             break;
         }
         default:

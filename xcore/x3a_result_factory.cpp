@@ -62,11 +62,12 @@ SmartPtr<X3aResult>
 X3aResultFactory::create_3a_result (XCam3aResultHead *from)
 {
     SmartPtr<X3aResult> result (NULL);
-    uint32_t type = xcam_3a_result_type (from);
-    
+
     XCAM_ASSERT (from);
     if (!from)
         return result;
+
+    uint32_t type = xcam_3a_result_type (from);
 
     switch (type) {
     case XCAM_3A_RESULT_WHITE_BALANCE:

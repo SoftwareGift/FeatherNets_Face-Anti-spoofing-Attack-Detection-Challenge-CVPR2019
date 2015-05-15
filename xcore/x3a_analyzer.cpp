@@ -107,6 +107,7 @@ AnalyzerCallback::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &re
     for (X3aResultList::iterator i_res = results.begin();
             i_res != results.end(); ++i_res) {
         SmartPtr<X3aResult> res = *i_res;
+        if (res.ptr() == NULL) continue;
         XCAM_LOG_DEBUG (
             "calculated 3a result(type:%d, timestamp:" XCAM_TIMESTAMP_FORMAT ")",
             res->get_type (), XCAM_TIMESTAMP_ARGS (res->get_timestamp ()));

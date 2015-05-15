@@ -202,6 +202,9 @@ bool X3aIspConfig::clear()
 bool
 X3aIspConfig::attach (SmartPtr<X3aResult> &result, IspConfigTranslator *translator)
 {
+    if (result.ptr() == NULL)
+        return false;
+
     uint32_t type = result->get_type ();
 
     XCAM_ASSERT (translator);

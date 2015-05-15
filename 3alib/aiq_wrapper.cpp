@@ -239,6 +239,10 @@ xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats)
 
     XCamAiq3A::translate_3a_stats (stats, raw_stats);
 
+    struct timeval now;
+    gettimeofday (&now, NULL);
+    isp_stats->set_timestamp (XCAM_TIMEVAL_2_USEC (now));
+
     ret = analyzer->push_3a_stats (isp_stats);
     if (ret != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_WARNING ("set 3a stats failed");
