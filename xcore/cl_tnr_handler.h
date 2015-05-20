@@ -45,12 +45,7 @@ public:
                                CLTnrType type);
 
     virtual ~CLTnrImageKernel () {
-        while (_image_in_list.size ()) {
-            XCAM_LOG_DEBUG("~CLTnrImageKernel while loop\n");
-            (_image_in_list.begin ())->release ();
-        }
-
-        _image_out_prev.release ();
+        _image_in_list.clear ();
     }
 
     CLTnrType get_type () {
