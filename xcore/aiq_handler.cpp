@@ -463,8 +463,15 @@ bool AiqAeHandler::ensure_ae_flicker_mode ()
 
 bool AiqAeHandler::ensure_ae_manual ()
 {
-    _input.manual_exposure_time_us = get_manual_exposure_time_unlock ();
-    _input.manual_analog_gain = get_manual_analog_gain_unlock ();
+    if (this->get_mode_unlock () == XCAM_AE_MODE_MANUAL) {
+        _input.manual_exposure_time_us = get_manual_exposure_time_unlock ();
+        _input.manual_analog_gain = get_manual_analog_gain_unlock ();
+    }
+    else {
+        _input.manual_exposure_time_us = -1;
+        _input.manual_analog_gain = -1;
+    }
+
     return true;
 }
 
@@ -602,23 +609,26 @@ AiqAeHandler::adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res)
     ia_aiq_exposure_sensor_descriptor * desc = &_sensor_descriptor;
     uint64_t exposure_min = 0, exposure_max = 0;
     double analog_max = get_max_analog_gain_unlock ();
-    uint32_t min_coarse_value = 0, max_coarse_value = 0;
+    uint32_t min_coarse_value = desc->coarse_integration_time_min;
+    uint32_t max_coarse_value = desc->line_periods_per_field - desc->coarse_integration_time_max_margin;
+    uint32_t value;
 
     get_exposure_time_range_unlock (exposure_min, exposure_max);
 
     if (exposure_min) {
-        min_coarse_value =  _time_to_coarse_line (desc, exposure_min);
-        if (min_coarse_value < desc->coarse_integration_time_min)
-            min_coarse_value = desc->coarse_integration_time_min;
-        if (cur_res.coarse_integration_time < min_coarse_value)
-            cur_res.coarse_integration_time = min_coarse_value;
+        value = _time_to_coarse_line (desc, (uint32_t)exposure_min);
+        min_coarse_value = (value > min_coarse_value) ? value : min_coarse_value;
     }
+    if (cur_res.coarse_integration_time < min_coarse_value) {
+        cur_res.coarse_integration_time = min_coarse_value;
+    }
+
     if (exposure_max) {
-        max_coarse_value =  _time_to_coarse_line (desc, (uint32_t)exposure_max);
-        if (max_coarse_value > (uint32_t)(desc->line_periods_per_field - desc->coarse_integration_time_max_margin))
-            max_coarse_value = desc->line_periods_per_field - desc->coarse_integration_time_max_margin;
-        if (cur_res.coarse_integration_time > max_coarse_value)
-            cur_res.coarse_integration_time = max_coarse_value;
+        value = _time_to_coarse_line (desc, (uint32_t)exposure_max);
+        max_coarse_value = (value < max_coarse_value) ? value : max_coarse_value;
+    }
+    if (cur_res.coarse_integration_time > max_coarse_value) {
+        cur_res.coarse_integration_time = max_coarse_value;
     }
 
     if (analog_max >= 1.0) {
