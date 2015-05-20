@@ -37,6 +37,7 @@ class CLHdrImageHandler;
 class CLDenoiseImageHandler;
 class CLSnrImageHandler;
 class CLBlcImageHandler;
+class CLTnrImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -60,6 +61,7 @@ public:
     virtual bool set_gamma (bool enable);
     virtual bool set_snr (uint32_t mode);
     virtual bool set_macc (bool enable);
+    virtual bool set_tnr (uint32_t mode, uint8_t level);
 
 protected:
 
@@ -88,15 +90,13 @@ private:
     SmartPtr<CLWbImageHandler>         _wb;
     SmartPtr<CLSnrImageHandler>        _snr;
     SmartPtr<CLMaccImageHandler>       _macc;
+    SmartPtr<CLTnrImageHandler>        _tnr;
 
     uint32_t                           _enable_hdr;
     uint32_t                           _enable_denoise;
     uint32_t                           _enable_snr;
     bool                               _enable_gamma;
     bool                               _enable_macc;
-
-
-
 };
 
 };

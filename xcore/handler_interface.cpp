@@ -92,9 +92,17 @@ AeHandler::set_window (XCam3AWindow *window)
 bool
 AeHandler::set_window (XCam3AWindow *window, uint8_t count)
 {
+    if (0 == count) {
+        XCAM_LOG_WARNING ("invalid input parameter, window count = %d, reset to default value", count);
+        XCam3AWindow defaultWindow = {0, 0, 1000, 1000, 15};
+        set_window(&defaultWindow);
+        _params.window_list[0] = defaultWindow;
+        return true;
+    }
+
     if (XCAM_AE_MAX_METERING_WINDOW_COUNT < count) {
-        XCAM_LOG_ERROR ("invalid input parameter, window count = %d", count);
-        return false;
+        XCAM_LOG_WARNING ("invalid input parameter, window count = %d, reset count to maximum", count);
+        count = XCAM_AE_MAX_METERING_WINDOW_COUNT;
     }
 
     AnalyzerHandler::HanlderLock lock(this);
