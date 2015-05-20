@@ -66,7 +66,7 @@ double gst_xcamsrc_get_max_analog_gain (GstXCam3A *xcam3a);
 gboolean gst_xcamsrc_set_exposure_time_range (GstXCam3A *xcam3a, gint64 min_time_in_us, gint64 max_time_in_us);
 gboolean gst_xcamsrc_get_exposure_time_range (GstXCam3A *xcam3a, gint64 *min_time_in_us, gint64 *max_time_in_us);
 gboolean gst_xcamsrc_set_noise_reduction_level (GstXCam3A *xcam3a, guint8 level);
-gboolean gst_xcamsrc_set_temporal_noise_reduction_level (GstXCam3A *xcam3a, guint8 level);
+gboolean gst_xcamsrc_set_temporal_noise_reduction_level (GstXCam3A *xcam3a, guint8 level, gint8 mode);
 gboolean gst_xcamsrc_set_gamma_table (GstXCam3A *xcam3a, double *r_table, double *g_table, double *b_table);
 gboolean gst_xcamsrc_set_gbce (GstXCam3A *xcam3a, gboolean enable);
 gboolean gst_xcamsrc_set_manual_brightness (GstXCam3A *xcam3a, guint8 value);

@@ -193,13 +193,13 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION: {
         SmartPtr<X3aNoiseReductionResult> tnr_res = result.dynamic_cast_ptr<X3aNoiseReductionResult> ();
         XCAM_ASSERT (tnr_res.ptr ());
-        if (!_tnr.ptr())
+        if (!_tnr_yuv.ptr())
             break;
         float gain = ((XCam3aResultNoiseReduction)tnr_res->get_standard_result()).gain;
         float thr_y = ((XCam3aResultNoiseReduction)tnr_res->get_standard_result()).threshold1;
         float thr_uv = ((XCam3aResultNoiseReduction)tnr_res->get_standard_result()).threshold2;
-        _tnr->set_gain (gain);
-        _tnr->set_threshold (thr_y, thr_uv);
+        _tnr_yuv->set_gain (gain);
+        _tnr_yuv->set_threshold (thr_y, thr_uv);
         break;
     }
 
@@ -294,13 +294,13 @@ CL3aImageProcessor::create_handlers ()
     /* Temporal Noise Reduction (RGB domain) */
     {
         image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_RGB);
-        _tnr = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
+        _tnr_rgb = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
         XCAM_FAIL_RETURN (
             WARNING,
-            _tnr.ptr (),
+            _tnr_rgb.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create tnr handler failed");
-        _tnr->set_mode(CL_TNR_TYPE_RGB);
+        _tnr_rgb->set_mode(CL_TNR_TYPE_RGB);
         add_handler (image_handler);
     }
 
@@ -343,13 +343,13 @@ CL3aImageProcessor::create_handlers ()
     /* Temporal Noise Reduction (YUV domain) */
     if (_out_smaple_type == OutSampleYuv) {
         image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_YUV);
-        _tnr = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
+        _tnr_yuv = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
         XCAM_FAIL_RETURN (
             WARNING,
-            _tnr.ptr (),
+            _tnr_yuv.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create tnr handler failed");
-        _tnr->set_mode(CL_TNR_TYPE_YUV);
+        _tnr_yuv->set_mode(CL_TNR_TYPE_YUV);
         add_handler (image_handler);
     }
 
@@ -426,9 +426,13 @@ CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
     STREAM_LOCK;
     //TODO: map denoise level to threshold & gain
     XCAM_UNUSED(level);
-    if (_tnr.ptr ())
-        return _tnr->set_mode (mode);
-    return true;
+    bool ret = false;
+    if (_tnr_rgb.ptr ())
+        ret = _tnr_rgb->set_kernels_enable (mode & CL_TNR_TYPE_RGB);
+    if (_tnr_yuv.ptr ())
+        ret = _tnr_yuv->set_kernels_enable (mode & CL_TNR_TYPE_YUV);
+
+    return ret;
 }
 
 };

@@ -311,9 +311,10 @@ struct _GstXCam3AInterface {
      *
      * \param[in,out]    xcam            XCam3A handle
      * \param[in]        level           control TNR gain. 0 <= level <= 255; default level: 128
+     * \param[in]        mode            TNR filter mode  0: disable, 1: YUV mode, 2: RGB mode
      * \return           bool            0 on success
      */
-    gboolean (*set_temporal_noise_reduction_level) (GstXCam3A *xcam, guint8 level);
+    gboolean (*set_temporal_noise_reduction_level) (GstXCam3A *xcam, guint8 level, gint8 mode);
 
     /*!
      * \brief set gamma table.

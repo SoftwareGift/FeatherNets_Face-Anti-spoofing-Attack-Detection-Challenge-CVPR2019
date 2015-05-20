@@ -236,12 +236,23 @@ gboolean gst_xcamsrc_set_noise_reduction_level (GstXCam3A *xcam3a, guint8 level)
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
     return analyzer->set_noise_reduction_level ((level - 128) / 128.0);
 }
-gboolean gst_xcamsrc_set_temporal_noise_reduction_level (GstXCam3A *xcam3a, guint8 level)
+gboolean gst_xcamsrc_set_temporal_noise_reduction_level (GstXCam3A *xcam3a, guint8 level, gint8 mode)
 {
     XCAM_UNUSED (xcam3a);
+    gboolean ret;
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
     SmartPtr<X3aAnalyzer> analyzer = device_manager->get_analyzer ();
-    return analyzer->set_temporal_noise_reduction_level ((level - 128) / 128.0);
+    ret = analyzer->set_temporal_noise_reduction_level ((level - 128) / 128.0);
+#if HAVE_LIBCL
+    SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
+    if (cl_image_processor.ptr ()) {
+        ret = cl_image_processor->set_tnr(mode, level);
+    }
+    else {
+        ret = false;
+    }
+#endif
+    return ret;
 }
 gboolean gst_xcamsrc_set_gamma_table (GstXCam3A *xcam3a, double *r_table, double *g_table, double *b_table)
 {
