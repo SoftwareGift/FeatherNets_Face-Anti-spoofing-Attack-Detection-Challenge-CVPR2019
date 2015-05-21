@@ -300,7 +300,7 @@ CL3aImageProcessor::create_handlers ()
             _tnr_rgb.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create tnr handler failed");
-        _tnr_rgb->set_mode(CL_TNR_TYPE_RGB);
+        //_tnr_rgb->set_mode(CL_TNR_TYPE_RGB);
         add_handler (image_handler);
     }
 
