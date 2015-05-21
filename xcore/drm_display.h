@@ -131,6 +131,7 @@ private:
     struct v4l2_rect _compose;
 
     FBMap _buf_fb_handles;
+    SmartPtr<VideoBuffer>  _display_buf;
 
 private:
     XCAM_DEAD_COPY (DrmDisplay);

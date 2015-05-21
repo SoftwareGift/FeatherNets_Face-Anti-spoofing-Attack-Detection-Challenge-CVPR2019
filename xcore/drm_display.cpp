@@ -77,6 +77,8 @@ DrmDisplay::DrmDisplay(const char* module)
 
 DrmDisplay::~DrmDisplay()
 {
+    _display_buf.release ();
+
     if (_buf_manager)
         drm_intel_bufmgr_destroy (_buf_manager);
     if (_fd > 0)
@@ -372,9 +374,11 @@ DrmDisplay::render_buffer(SmartPtr<VideoBuffer> &buf)
         XCAM_RETURN_ERROR_PARAM,
         "buffer not register on framebuf");
 
-    return _plane_id ? set_plane(iter->second) : page_flip(iter->second);
-}
+    XCamReturn ret = _plane_id ? set_plane(iter->second) : page_flip(iter->second);
+    _display_buf = buf;
 
+    return ret;
+}
 
 SmartPtr<DrmBoBuffer>
 DrmDisplay::convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuffer> &buf_in)
