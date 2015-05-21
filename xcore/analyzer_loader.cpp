@@ -253,8 +253,9 @@ DynamicAnalyzer::configure_3a ()
 
     XCAM_ASSERT (_context);
 
+    ret = _desc->configure_3a (_context, width, height, framerate);
     XCAM_FAIL_RETURN (WARNING,
-                      ret = _desc->configure_3a (_context, width, height, framerate),
+                      ret == XCAM_RETURN_NO_ERROR,
                       ret,
                       "dynamic analyzer configure 3a failed");
 
