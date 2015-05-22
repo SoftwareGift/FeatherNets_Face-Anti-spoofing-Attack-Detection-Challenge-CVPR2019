@@ -60,6 +60,22 @@ translate_3a_stats (XCam3AStats *from, struct atomisp_3a_statistics *to)
     return true;
 }
 
+void
+matrix_3x3_mutiply (double *dest, const double *src1, const double *src2)
+{
+    dest[0] = src1[0] * src2[0] + src1[1] * src2[3] + src1[2] * src2[6];
+    dest[1] = src1[0] * src2[1] + src1[1] * src2[4] + src1[2] * src2[7];
+    dest[2] = src1[0] * src2[2] + src1[1] * src2[5] + src1[2] * src2[8];
+
+    dest[3] = src1[3] * src2[0] + src1[4] * src2[3] + src1[5] * src2[6];
+    dest[4] = src1[3] * src2[1] + src1[4] * src2[4] + src1[5] * src2[7];
+    dest[5] = src1[3] * src2[2] + src1[4] * src2[5] + src1[5] * src2[8];
+
+    dest[6] = src1[6] * src2[0] + src1[7] * src2[3] + src1[8] * src2[6];
+    dest[7] = src1[6] * src2[1] + src1[7] * src2[4] + src1[8] * src2[7];
+    dest[8] = src1[6] * src2[2] + src1[7] * src2[5] + src1[8] * src2[8];
+}
+
 uint32_t
 translate_atomisp_parameters (
     const struct atomisp_parameters &atomisp_params,
@@ -69,61 +85,92 @@ translate_atomisp_parameters (
     double coefficient = 0.0;
 
     /* Translation for white balance */
-    XCam3aResultWhiteBalance *wb = xcam_malloc0_type (XCam3aResultWhiteBalance);
-    wb->head.type = XCAM_3A_RESULT_WHITE_BALANCE;
-    wb->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
-    wb->head.version = XCAM_VERSION;
-    coefficient = pow (2, (16 - atomisp_params.wb_config->integer_bits));
-    wb->r_gain = atomisp_params.wb_config->r / coefficient;
-    wb->gr_gain = atomisp_params.wb_config->gr / coefficient;
-    wb->gb_gain = atomisp_params.wb_config->gb / coefficient;
-    wb->b_gain = atomisp_params.wb_config->b / coefficient;
-    results[result_count++] = (XCam3aResultHead*)wb;
+    XCAM_ASSERT (result_count < max_count);
+    if (atomisp_params.wb_config) {
+        XCam3aResultWhiteBalance *wb = xcam_malloc0_type (XCam3aResultWhiteBalance);
+        wb->head.type = XCAM_3A_RESULT_WHITE_BALANCE;
+        wb->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+        wb->head.version = XCAM_VERSION;
+        coefficient = pow (2, (16 - atomisp_params.wb_config->integer_bits));
+        wb->r_gain = atomisp_params.wb_config->r / coefficient;
+        wb->gr_gain = atomisp_params.wb_config->gr / coefficient;
+        wb->gb_gain = atomisp_params.wb_config->gb / coefficient;
+        wb->b_gain = atomisp_params.wb_config->b / coefficient;
+        results[result_count++] = (XCam3aResultHead*)wb;
+    }
 
     /* Translation for black level correction */
-    XCam3aResultBlackLevel *blc = xcam_malloc0_type (XCam3aResultBlackLevel);
-    blc->head.type =    XCAM_3A_RESULT_BLACK_LEVEL;
-    blc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
-    blc->head.version = XCAM_VERSION;
-    if (atomisp_params.ob_config->mode == atomisp_ob_mode_fixed) {
-        blc->r_level = atomisp_params.ob_config->level_r / (double)65536;
-        blc->gr_level = atomisp_params.ob_config->level_gr / (double)65536;
-        blc->gb_level = atomisp_params.ob_config->level_gb / (double)65536;
-        blc->b_level = atomisp_params.ob_config->level_b / (double)65536;
+    XCAM_ASSERT (result_count < max_count);
+    if (atomisp_params.ob_config) {
+        XCam3aResultBlackLevel *blc = xcam_malloc0_type (XCam3aResultBlackLevel);
+        blc->head.type =    XCAM_3A_RESULT_BLACK_LEVEL;
+        blc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+        blc->head.version = XCAM_VERSION;
+        if (atomisp_params.ob_config->mode == atomisp_ob_mode_fixed) {
+            blc->r_level = atomisp_params.ob_config->level_r / (double)65536;
+            blc->gr_level = atomisp_params.ob_config->level_gr / (double)65536;
+            blc->gb_level = atomisp_params.ob_config->level_gb / (double)65536;
+            blc->b_level = atomisp_params.ob_config->level_b / (double)65536;
+        }
+        results[result_count++] = (XCam3aResultHead*)blc;
     }
-    results[result_count++] = (XCam3aResultHead*)blc;
 
     /* Translation for color correction */
-    XCam3aResultColorMatrix *cm = xcam_malloc0_type (XCam3aResultColorMatrix);
-    cm->head.type = XCAM_3A_RESULT_RGB2YUV_MATRIX;
-    cm->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
-    cm->head.version = XCAM_VERSION;
-    coefficient = pow (2, atomisp_params.cc_config->fraction_bits);
-    for (int i = 0; i < XCAM_COLOR_MATRIX_SIZE; i++) {
-        cm->matrix[i] = atomisp_params.cc_config->matrix[i] / coefficient;
+    XCAM_ASSERT (result_count < max_count);
+    if (atomisp_params.yuv2rgb_cc_config) {
+        static const double rgb2yuv_matrix [XCAM_COLOR_MATRIX_SIZE] = {
+            0.299, 0.587, 0.114,
+            -0.14713, -0.28886, 0.436,
+            0.615, -0.51499, -0.10001
+        };
+        static const double r_ycgco_matrix [XCAM_COLOR_MATRIX_SIZE] = {
+            0.25, 0.5, 0.25,
+            -0.25, 0.5, -0.25,
+            0.5, 0, -0.5
+        };
+
+        double tmp_matrix [XCAM_COLOR_MATRIX_SIZE] = {0.0};
+        double cc_matrix [XCAM_COLOR_MATRIX_SIZE] = {0.0};
+        XCam3aResultColorMatrix *cm = xcam_malloc0_type (XCam3aResultColorMatrix);
+        cm->head.type = XCAM_3A_RESULT_RGB2YUV_MATRIX;
+        cm->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+        cm->head.version = XCAM_VERSION;
+        coefficient = pow (2, atomisp_params.yuv2rgb_cc_config->fraction_bits);
+        for (int i = 0; i < XCAM_COLOR_MATRIX_SIZE; i++) {
+            tmp_matrix [i] = atomisp_params.yuv2rgb_cc_config->matrix [i] / coefficient;
+        }
+        matrix_3x3_mutiply (cc_matrix, tmp_matrix, r_ycgco_matrix);
+        matrix_3x3_mutiply (cm->matrix, rgb2yuv_matrix, cc_matrix);
+        //results = yuv2rgb_matrix * tmp_matrix * r_ycgco_matrix
+        results[result_count++] = (XCam3aResultHead*)cm;
     }
-    results[result_count++] = (XCam3aResultHead*)cm;
 
     /* Translation for gamma table */
-    XCam3aResultGammaTable *gt = xcam_malloc0_type (XCam3aResultGammaTable);
-    gt->head.type = XCAM_3A_RESULT_G_GAMMA;
-    gt->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
-    gt->head.version = XCAM_VERSION;
-    for (int i = 0; i < XCAM_GAMMA_TABLE_SIZE; i++) {
-        gt->table[i] = (double)atomisp_params.g_gamma_table->data.vamem_2[i] / 16;
+    XCAM_ASSERT (result_count < max_count);
+    if (atomisp_params.g_gamma_table) {
+        XCam3aResultGammaTable *gt = xcam_malloc0_type (XCam3aResultGammaTable);
+        gt->head.type = XCAM_3A_RESULT_G_GAMMA;
+        gt->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+        gt->head.version = XCAM_VERSION;
+        for (int i = 0; i < XCAM_GAMMA_TABLE_SIZE; i++) {
+            gt->table[i] = (double)atomisp_params.g_gamma_table->data.vamem_2[i] / 16;
+        }
+        results[result_count++] = (XCam3aResultHead*)gt;
     }
-    results[result_count++] = (XCam3aResultHead*)gt;
 
     /* Translation for macc matrix table */
-    XCam3aResultMaccMatrix *macc = xcam_malloc0_type (XCam3aResultMaccMatrix);
-    macc->head.type = XCAM_3A_RESULT_MACC;
-    macc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
-    macc->head.version = XCAM_VERSION;
-    coefficient = pow (2, (15 - atomisp_params.macc_config->color_effect));
-    for (int i = 0; i < XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE; i++) {
-        macc->table[i] = (double)atomisp_params.macc_config->table.data[i] / coefficient;
+    XCAM_ASSERT (result_count < max_count);
+    if (atomisp_params.macc_config) {
+        XCam3aResultMaccMatrix *macc = xcam_malloc0_type (XCam3aResultMaccMatrix);
+        macc->head.type = XCAM_3A_RESULT_MACC;
+        macc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+        macc->head.version = XCAM_VERSION;
+        coefficient = pow (2, (15 - atomisp_params.macc_config->color_effect));
+        for (int i = 0; i < XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE; i++) {
+            macc->table[i] = (double)atomisp_params.macc_config->table.data[i] / coefficient;
+        }
+        results[result_count++] = (XCam3aResultHead*)macc;
     }
-    results[result_count++] = (XCam3aResultHead*)macc;
 
     return result_count;
 }
