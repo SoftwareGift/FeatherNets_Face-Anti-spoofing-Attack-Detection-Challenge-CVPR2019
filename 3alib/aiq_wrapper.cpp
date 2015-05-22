@@ -36,6 +36,7 @@ class XCam3AAiqContext
 {
 public:
     XCam3AAiqContext ();
+    ~XCam3AAiqContext ();
     bool setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_data, const char *cpf);
     bool setup_stats_pool (uint32_t width, uint32_t height);
     SmartPtr<X3aAnalyzerAiq> &get_analyzer () {
@@ -62,6 +63,12 @@ private:
 
 XCam3AAiqContext::XCam3AAiqContext ()
 {
+}
+
+XCam3AAiqContext::~XCam3AAiqContext ()
+{
+    _analyzer->stop ();
+    _analyzer->deinit ();
 }
 
 bool
