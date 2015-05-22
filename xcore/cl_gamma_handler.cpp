@@ -146,7 +146,7 @@ create_cl_gamma_image_handler (SmartPtr<CLContext> &context)
     gamma_kernel = new CLGammaImageKernel (context);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_gamma)
-#include "kernel_gamma.cl"
+#include "kernel_gamma.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = gamma_kernel->load_from_source (kernel_gamma_body, strlen (kernel_gamma_body));
         XCAM_FAIL_RETURN (

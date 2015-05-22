@@ -5,4 +5,4 @@ else
 X3ALIB_DIR =
 endif
 
-SUBDIRS = xcore wrapper tests $(X3ALIB_DIR) pkgconfig
+SUBDIRS = clx_kernel xcore wrapper tests $(X3ALIB_DIR) pkgconfig

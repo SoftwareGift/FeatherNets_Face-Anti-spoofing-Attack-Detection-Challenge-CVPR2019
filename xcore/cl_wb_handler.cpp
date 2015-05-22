@@ -112,7 +112,7 @@ create_cl_wb_image_handler (SmartPtr<CLContext> &context)
     wb_kernel = new CLWbImageKernel (context);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_wb)
-#include "kernel_wb.cl"
+#include "kernel_wb.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = wb_kernel->load_from_source (kernel_wb_body, strlen (kernel_wb_body));
         XCAM_FAIL_RETURN (

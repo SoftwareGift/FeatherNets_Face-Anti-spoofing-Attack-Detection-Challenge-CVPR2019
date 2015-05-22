@@ -163,7 +163,7 @@ create_cl_3a_stats_image_handler (SmartPtr<CLContext> &context)
     x3a_stats_kernel = new CL3AStatsCalculatorKernel (context, x3a_stats_handler);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_3a_stats)
-#include "kernel_3a_stats.cl"
+#include "kernel_3a_stats.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = x3a_stats_kernel->load_from_source (kernel_3a_stats_body, strlen (kernel_3a_stats_body));
         XCAM_FAIL_RETURN (

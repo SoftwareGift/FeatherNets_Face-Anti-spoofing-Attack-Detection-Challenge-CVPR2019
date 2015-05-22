@@ -112,7 +112,7 @@ create_cl_demosaic_image_handler (SmartPtr<CLContext> &context)
     demosaic_kernel = new CLDemosaicImageKernel (context);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_demosaic)
-#include "kernel_demosaic.cl"
+#include "kernel_demosaic.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = demosaic_kernel->load_from_source (kernel_demosaic_body, strlen (kernel_demosaic_body));
         XCAM_FAIL_RETURN (

@@ -1,4 +1,6 @@
 #! /bin/sh
+# add double quotation marks on cl file, this script will 
+# be called in /libxcam/clx_kernel/Makefile
 
 OLD_CL_FILE=$1
 NEW_CL_FILE=$2
@@ -10,20 +12,14 @@ awk '
             printf("%s\n", $0);
         else
         {
-            gsub(/^\"[\\]?n?/, "");
-            gsub(/[\\]?n?\"[ ]*$/, "");
-
             if ($0~/^[ ]*$/)
                 printf("\n");
             else
             {
-                gsub(/\\\"/, "\"");
-                gsub(/\\%/, "%");
-                gsub(/\\\\n/, "\\n");
-
                 gsub(/\"/, "\\\"");
                 gsub(/%/, "\\%");
                 gsub(/\\n/, "\\\\n");
+                gsub(/\\t/, "\\\\t");
 
                 gsub(/^#/, "\\n#");
 
@@ -31,14 +27,14 @@ awk '
             }
         }
     }
-    ' $OLD_CL_FILE > $OLD_CL_FILE.tmp
+    ' $OLD_CL_FILE > $NEW_CL_FILE.tmp
 
 ret=$?
 if [ $ret != 0 ] ; then
-    rm -rf $OLD_CL_FILE.tmp
-    echo "add double quotation on $OLD_CL_FILE failed"
+    rm -rf $NEW_CL_FILE.tmp
+    echo "add double quotation marks on $OLD_CL_FILE failed"
 else
-    mv $OLD_CL_FILE.tmp $NEW_CL_FILE
-    echo "add double quotation on $OLD_CL_FILE done"
+    mv $NEW_CL_FILE.tmp $NEW_CL_FILE
+    echo "add double quotation marks on $OLD_CL_FILE done"
 fi
 

@@ -121,7 +121,7 @@ create_cl_macc_image_handler (SmartPtr<CLContext> &context)
     macc_kernel = new CLMaccImageKernel (context);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_macc)
-#include "kernel_macc.cl"
+#include "kernel_macc.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = macc_kernel->load_from_source (kernel_macc_body, strlen (kernel_macc_body));
         XCAM_FAIL_RETURN (

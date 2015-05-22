@@ -90,7 +90,7 @@ create_cl_demo_image_handler (SmartPtr<CLContext> &context)
     demo_kernel = new CLDemoImageKernel (context);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_demo)
-#include "kernel_demo.cl"
+#include "kernel_demo.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = demo_kernel->load_from_source (kernel_demo_body, strlen (kernel_demo_body));
         XCAM_FAIL_RETURN (

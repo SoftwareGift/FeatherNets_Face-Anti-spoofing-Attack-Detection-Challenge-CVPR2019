@@ -217,11 +217,11 @@ create_cl_tnr_image_handler (SmartPtr<CLContext> &context, CLTnrType type)
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_tnr_yuv)
-#include "kernel_tnr_yuv.cl"
+#include "kernel_tnr_yuv.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_tnr_rgb)
-#include "kernel_tnr_rgb.cl"
+#include "kernel_tnr_rgb.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
     if (CL_TNR_TYPE_YUV == type) {

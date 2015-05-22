@@ -122,7 +122,7 @@ create_cl_blc_image_handler (SmartPtr<CLContext> &context)
     blc_kernel = new CLBlcImageKernel (context);
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_blc)
-#include "kernel_blc.cl"
+#include "kernel_blc.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = blc_kernel->load_from_source (kernel_blc_body, strlen (kernel_blc_body));
         XCAM_FAIL_RETURN (

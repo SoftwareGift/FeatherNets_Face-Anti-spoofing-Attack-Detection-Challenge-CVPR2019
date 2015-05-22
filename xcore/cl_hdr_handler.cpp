@@ -72,10 +72,10 @@ create_cl_hdr_image_handler (SmartPtr<CLContext> &context, CLHdrType type)
     hdr_handler = new CLHdrImageHandler ("cl_handler_hdr");
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_hdr_rgb)
-#include "kernel_hdr_rgb.cl"
+#include "kernel_hdr_rgb.clx"
     XCAM_CL_KERNEL_FUNC_END;
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_hdr_lab)
-#include "kernel_hdr_lab.cl"
+#include "kernel_hdr_lab.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
     hdr_kernel = new CLHdrImageKernel (context, "kernel_hdr_rgb", CL_HDR_TYPE_RGB);

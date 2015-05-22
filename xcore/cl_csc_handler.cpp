@@ -157,19 +157,19 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
 
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_rgbatonv12)
-#include "kernel_csc_rgbatonv12.cl"
+#include "kernel_csc_rgbatonv12.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_rgbatolab)
-#include "kernel_csc_rgbatolab.cl"
+#include "kernel_csc_rgbatolab.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_rgba64torgba)
-#include "kernel_csc_rgba64torgba.cl"
+#include "kernel_csc_rgba64torgba.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_yuyvtorgba)
-#include "kernel_csc_yuyvtorgba.cl"
+#include "kernel_csc_yuyvtorgba.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
 

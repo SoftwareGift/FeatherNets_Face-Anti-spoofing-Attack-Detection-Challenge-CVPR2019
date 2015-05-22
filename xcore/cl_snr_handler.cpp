@@ -97,7 +97,7 @@ create_cl_snr_image_handler (SmartPtr<CLContext> &context)
     snr_kernel = new CLSnrImageKernel (context, "kernel_snr");
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_snr)
-#include "kernel_snr.cl"
+#include "kernel_snr.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = snr_kernel->load_from_source (kernel_snr_body, strlen (kernel_snr_body));
         XCAM_FAIL_RETURN (

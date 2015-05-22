@@ -72,7 +72,7 @@ CLDenoiseImageKernel::prepare_arguments (
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = _imh;
-    work_size.global[1] = _imw/4;
+    work_size.global[1] = _imw / 4;
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -109,7 +109,7 @@ create_cl_denoise_image_handler (SmartPtr<CLContext> &context)
     denoise_kernel = new CLDenoiseImageKernel (context, "kernel_denoise");
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_denoise)
-#include "kernel_denoise.cl"
+#include "kernel_denoise.clx"
         XCAM_CL_KERNEL_FUNC_END;
         ret = denoise_kernel->load_from_source (kernel_denoise_body, strlen (kernel_denoise_body));
         XCAM_FAIL_RETURN (

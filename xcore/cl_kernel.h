@@ -46,7 +46,7 @@ class CLContext;
 /*
  * Example to create a kernel
  * XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_demo)
- * #include "kernel_demo.cl"
+ * #include "kernel_demo.clx"
  * XCAM_CL_KERNEL_FUNC_END
  * SmartPtr<CLKernel> kernel = new CLKernel (context, kernel_demo);
  * kernel->load_from_source (kernel_demo_body, strlen(kernel_demo_body));
