@@ -33,7 +33,7 @@ public:
     ~AnalyzerThread ();
 
     void triger_stop() {
-        _3a_stats_queue.wakeup ();
+        _3a_stats_queue.pause_pop ();
     }
     bool push_stats (const SmartPtr<X3aStats> &stats);
 
@@ -46,7 +46,7 @@ protected:
 
 private:
     X3aAnalyzer               *_analyzer;
-    SafeList<X3aStats> _3a_stats_queue;
+    SafeList<X3aStats>         _3a_stats_queue;
 };
 
 AnalyzerThread::AnalyzerThread (X3aAnalyzer *analyzer)
@@ -86,11 +86,17 @@ bool
 AnalyzerThread::loop ()
 {
     const static int32_t timeout = -1;
+    SmartPtr<X3aStats> latest_stats;
     SmartPtr<X3aStats> stats = _3a_stats_queue.pop (timeout);
     if (!stats.ptr()) {
         XCAM_LOG_DEBUG ("analyzer thread got empty stats, stop thread");
         return false;
     }
+    //while ((latest_stats = _3a_stats_queue.pop (0)).ptr ()) {
+    //    stats = latest_stats;
+    //    XCAM_LOG_WARNING ("lost 3a stats since 3a analyzer too slow");
+    //}
+
     XCamReturn ret = _analyzer->analyze_3a_statistics (stats);
     if (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS)
         return true;

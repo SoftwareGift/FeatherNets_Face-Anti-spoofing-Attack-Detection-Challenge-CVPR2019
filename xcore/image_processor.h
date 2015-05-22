@@ -45,11 +45,13 @@ private:
 };
 
 class ImageProcessorThread;
+class X3aResultsProcessThread;
 
 /* base class, ImageProcessor */
 class ImageProcessor
 {
     friend class ImageProcessorThread;
+    friend class X3aResultsProcessThread;
 
     typedef SafeList<VideoBuffer> VideoBufQueue;
 
@@ -81,14 +83,18 @@ private:
     void filter_valid_results (X3aResultList &input, X3aResultList &valid_results);
     XCamReturn buffer_process_loop ();
 
+    XCamReturn process_3a_results (X3aResultList &results);
+    XCamReturn process_3a_result (SmartPtr<X3aResult> &result);
+
 private:
     XCAM_DEAD_COPY (ImageProcessor);
 
 protected:
-    char                          *_name;
-    ImageProcessCallback          *_callback;
-    SmartPtr<ImageProcessorThread> _processor_thread;
-    VideoBufQueue                  _video_buf_queue;
+    char                               *_name;
+    ImageProcessCallback               *_callback;
+    SmartPtr<ImageProcessorThread>      _processor_thread;
+    VideoBufQueue                       _video_buf_queue;
+    SmartPtr<X3aResultsProcessThread>   _results_thread;
 };
 
 };

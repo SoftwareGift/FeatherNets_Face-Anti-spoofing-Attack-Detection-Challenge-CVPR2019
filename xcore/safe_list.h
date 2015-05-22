@@ -35,7 +35,9 @@ class SafeList {
 public:
     typedef SmartPtr<OBj> ObjPtr;
 
-    SafeList () {}
+    SafeList ()
+        : _pop_paused (false)
+    {}
     ~SafeList () {
     }
 
@@ -56,12 +58,22 @@ public:
     void wakeup () {
         _new_obj_cond.broadcast ();
     }
+    void pause_pop () {
+        SmartLock lock(_mutex);
+        _pop_paused = true;
+        wakeup ();
+    }
+    void resume_pop () {
+        SmartLock lock(_mutex);
+        _pop_paused = false;
+    }
     inline void clear ();
 
 private:
     std::list<ObjPtr> _obj_list;
     Mutex             _mutex;
     XCam::Cond        _new_obj_cond;
+    bool              _pop_paused;
 };
 
 
@@ -71,6 +83,9 @@ SafeList<OBj>::pop (int32_t timeout)
 {
     SmartLock lock (_mutex);
     int code = 0;
+
+    if (_pop_paused)
+        return NULL;
 
     if (_obj_list.empty()) {
         if (timeout < 0)

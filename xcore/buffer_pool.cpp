@@ -174,7 +174,7 @@ BufferPool::stop ()
         SmartLock lock (_mutex);
         _started = false;
     }
-    _buf_list.wakeup ();
+    _buf_list.pause_pop ();
 }
 
 void

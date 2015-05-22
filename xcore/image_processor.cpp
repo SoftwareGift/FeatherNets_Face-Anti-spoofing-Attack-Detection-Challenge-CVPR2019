@@ -87,13 +87,63 @@ bool ImageProcessorThread::loop ()
     return false;
 }
 
+class X3aResultsProcessThread
+    : public Thread
+{
+    typedef SafeList<X3aResult> ResultQueue;
+public:
+    X3aResultsProcessThread (ImageProcessor *processor)
+        : Thread ("x3a_results_process_thread")
+        , _processor (processor)
+    {}
+    ~X3aResultsProcessThread () {}
+
+    XCamReturn push_result (SmartPtr<X3aResult> &result) {
+        _queue.push (result);
+        return XCAM_RETURN_NO_ERROR;
+    }
+
+    void triger_stop () {
+        _queue.pause_pop ();
+    }
+
+    virtual bool loop ();
+
+private:
+    ImageProcessor  *_processor;
+    ResultQueue      _queue;
+};
+
+bool X3aResultsProcessThread::loop ()
+{
+    X3aResultList result_list;
+    SmartPtr<X3aResult> result;
+
+    result = _queue.pop (-1);
+    if (!result.ptr ())
+        return false;
+
+    result_list.push_back (result);
+    while ((result = _queue.pop (0)).ptr ()) {
+        result_list.push_back (result);
+    }
+
+    XCamReturn ret = _processor->process_3a_results (result_list);
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_DEBUG ("processing 3a result failed");
+    }
+
+    return true;
+}
 ImageProcessor::ImageProcessor (const char* name)
     : _name (NULL)
     , _callback (NULL)
 {
-    _processor_thread = new ImageProcessorThread (this);
     if (name)
         _name = strdup (name);
+
+    _processor_thread = new ImageProcessorThread (this);
+    _results_thread = new X3aResultsProcessThread (this);
 }
 
 ImageProcessor::~ImageProcessor ()
@@ -113,7 +163,10 @@ ImageProcessor::set_callback (ImageProcessCallback *callback)
 XCamReturn
 ImageProcessor::start()
 {
-    if (!_processor_thread->start()) {
+    if (!_results_thread->start ()) {
+        return XCAM_RETURN_ERROR_THREAD;
+    }
+    if (!_processor_thread->start ()) {
         return XCAM_RETURN_ERROR_THREAD;
     }
     XCAM_LOG_INFO ("ImageProcessor(%s) started", XCAM_STR (_name));
@@ -123,11 +176,13 @@ ImageProcessor::start()
 XCamReturn
 ImageProcessor::stop()
 {
-    _video_buf_queue.wakeup ();
+    _video_buf_queue.pause_pop ();
+    _results_thread->triger_stop ();
 
     emit_stop ();
 
     _processor_thread->stop ();
+    _results_thread->stop ();
     XCAM_LOG_DEBUG ("ImageProcessor(%s) stopped", XCAM_STR (_name));
     return XCAM_RETURN_NO_ERROR;
 }
@@ -144,6 +199,40 @@ ImageProcessor::push_buffer (SmartPtr<VideoBuffer> &buf)
 
 XCamReturn
 ImageProcessor::push_3a_results (X3aResultList &results)
+{
+    XCAM_ASSERT (!results.empty ());
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    for (X3aResultList::iterator i_res = results.begin();
+            i_res != results.end(); ++i_res) {
+        SmartPtr<X3aResult> &res = *i_res;
+
+        ret = _results_thread->push_result (res);
+        if (ret != XCAM_RETURN_NO_ERROR)
+            break;
+    }
+
+    XCAM_FAIL_RETURN(
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "processor(%s) push 3a results failed", XCAM_STR(get_name()));
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+ImageProcessor::push_3a_result (SmartPtr<X3aResult> &result)
+{
+    XCamReturn ret = _results_thread->push_result (result);
+    XCAM_FAIL_RETURN(
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "processor(%s) push 3a result failed", XCAM_STR(get_name()));
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+ImageProcessor::process_3a_results (X3aResultList &results)
 {
     X3aResultList valid_results;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -171,7 +260,7 @@ ImageProcessor::push_3a_results (X3aResultList &results)
 }
 
 XCamReturn
-ImageProcessor::push_3a_result (SmartPtr<X3aResult> &result)
+ImageProcessor::process_3a_result (SmartPtr<X3aResult> &result)
 {
     X3aResultList valid_results;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
