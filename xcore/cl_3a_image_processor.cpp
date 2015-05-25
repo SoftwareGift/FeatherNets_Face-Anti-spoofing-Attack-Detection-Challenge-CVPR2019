@@ -40,8 +40,8 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_hdr (false)
     , _enable_denoise (false)
     , _enable_snr (true)
-    , _enable_gamma (false)
-    , _enable_macc (false)
+    , _enable_gamma (true)
+    , _enable_macc (true)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
