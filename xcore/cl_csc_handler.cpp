@@ -78,7 +78,9 @@ CLCscImageKernel::prepare_arguments (
         work_size.global[1] = video_info.height / 2;
         arg_count = 4;
     }
-    else if ((video_info.format == XCAM_PIX_FMT_LAB) || (video_info.format == V4L2_PIX_FMT_RGBA32)) {
+    else if ((video_info.format == XCAM_PIX_FMT_LAB)
+             || (video_info.format == V4L2_PIX_FMT_RGBA32)
+             || (video_info.format == V4L2_PIX_FMT_YUYV)) {
         work_size.global[0] = video_info.width;
         work_size.global[1] = video_info.height;
         arg_count = 2;
@@ -102,6 +104,7 @@ CLCscImageHandler::CLCscImageHandler (const char *name, CLCscType type)
         _output_format = XCAM_PIX_FMT_LAB;
         break;
     case CL_CSC_TYPE_RGBA64TORGBA:
+    case CL_CSC_TYPE_YUYVTORGBA:
         _output_format = V4L2_PIX_FMT_RGBA32;
         break;
     default:
@@ -165,6 +168,10 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
 #include "kernel_csc_rgba64torgba.cl"
     XCAM_CL_KERNEL_FUNC_END;
 
+    XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_yuyvtorgba)
+#include "kernel_csc_yuyvtorgba.cl"
+    XCAM_CL_KERNEL_FUNC_END;
+
 
     if (type == CL_CSC_TYPE_RGBATONV12) {
         csc_kernel = new CLCscImageKernel (context, "kernel_csc_rgbatonv12");
@@ -177,6 +184,10 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
     else if (type == CL_CSC_TYPE_RGBA64TORGBA) {
         csc_kernel = new CLCscImageKernel (context, "kernel_csc_rgba64torgba");
         ret = csc_kernel->load_from_source (kernel_csc_rgba64torgba_body, strlen (kernel_csc_rgba64torgba_body));
+    }
+    else if (type == CL_CSC_TYPE_YUYVTORGBA) {
+        csc_kernel = new CLCscImageKernel (context, "kernel_csc_yuyvtorgba");
+        ret = csc_kernel->load_from_source (kernel_csc_yuyvtorgba_body, strlen (kernel_csc_yuyvtorgba_body));
     }
 
     XCAM_FAIL_RETURN (

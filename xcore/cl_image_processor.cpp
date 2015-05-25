@@ -24,6 +24,7 @@
 #include "drm_display.h"
 #include "cl_demo_handler.h"
 #include "cl_blc_handler.h"
+#include "cl_csc_handler.h"
 
 
 namespace XCam {

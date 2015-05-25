@@ -104,6 +104,7 @@ xcam_sources +=              \
 	cl_image_handler.cpp     \
 	cl_image_processor.cpp   \
 	cl_3a_image_processor.cpp      \
+	cl_csc_image_processor.cpp    \
 	cl_3a_stats_calculator.cpp     \
 	cl_demo_handler.cpp      \
 	cl_blc_handler.cpp       \

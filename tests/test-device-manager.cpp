@@ -28,6 +28,7 @@
 #endif
 #if HAVE_LIBCL
 #include "cl_3a_image_processor.h"
+#include "cl_csc_image_processor.h"
 #endif
 #if HAVE_LIBDRM
 #include "drm_display.h"
@@ -79,6 +80,10 @@ public:
 
     void enable_display(bool value) {
         _enable_display = value;
+    }
+
+    void set_display_mode(DrmDisplayMode mode) {
+        _display->set_display_mode (mode);
     }
 
 protected:
@@ -242,7 +247,9 @@ void print_help (const char *bin_name)
             "\t -d cap_mode   specify capture mode\n"
             "\t               cap_mode select from [video, still], default is [video]\n"
             "\t -i frame_save specify the frame count to save, default is 0 which means endless\n"
-            "\t -p           preview on local display\n"
+            "\t -p preview on local display\n"
+            "\t -e display_mode    preview mode\n"
+            "\t                select from [primary, overlay], default is [primary]\n"
             "\t -h            help\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
@@ -257,7 +264,9 @@ int main (int argc, char *argv[])
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
     SmartPtr<ImageProcessor> isp_processor;
+    SmartPtr<CLCscImageProcessor> cl_csc_proccessor;
     AnalyzerType  analyzer_type = AnalyzerTypeSimple;
+    DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
 #if HAVE_LIBDRM
     SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance();
 #endif
@@ -273,7 +282,7 @@ int main (int argc, char *argv[])
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
 
-    while ((opt =  getopt(argc, argv, "sca:n:m:f:d:pi:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "sca:n:m:f:d:pi:e:h")) != -1) {
         switch (opt) {
         case 'a': {
             if (!strcmp (optarg, "dynamic"))
@@ -330,6 +339,17 @@ int main (int argc, char *argv[])
         case 'p':
             need_display = true;
             break;
+        case 'e': {
+            if (!strcmp (optarg, "primary"))
+                display_mode = DRM_DISPLAY_MODE_PRIMARY;
+            else if (!strcmp (optarg, "overlay"))
+                display_mode = DRM_DISPLAY_MODE_OVERLAY;
+            else {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+        }
         case 'i':
             device_manager->set_frame_save(atoi(optarg));
             break;
@@ -343,9 +363,10 @@ int main (int argc, char *argv[])
         }
     }
 
-    if (need_display)
+    if (need_display) {
         device_manager->enable_display (true);
-
+        device_manager->set_display_mode (display_mode);
+    }
     if (!device.ptr ())  {
         if (capture_mode == V4L2_CAPTURE_MODE_STILL)
             device = new AtomispDevice (CAPTURE_DEVICE_STILL);
@@ -421,6 +442,11 @@ int main (int argc, char *argv[])
 
     XCAM_ASSERT (isp_processor.ptr ());
     device_manager->add_image_processor (isp_processor);
+    if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display && (!have_cl_processor)) {
+        cl_csc_proccessor = new CLCscImageProcessor();
+        XCAM_ASSERT (cl_csc_proccessor.ptr ());
+        device_manager->add_image_processor (cl_csc_proccessor);
+    }
 
 #if HAVE_LIBCL
     if (have_cl_processor) {

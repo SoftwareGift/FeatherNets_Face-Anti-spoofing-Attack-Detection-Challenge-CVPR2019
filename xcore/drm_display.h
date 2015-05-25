@@ -50,6 +50,12 @@ class DrmBoData;
 class DrmBoBufferPool;
 class DrmBoBuffer;
 
+enum DrmDisplayMode {
+    DRM_DISPLAY_MODE_NONE = 0,
+    DRM_DISPLAY_MODE_PRIMARY,
+    DRM_DISPLAY_MODE_OVERLAY,
+};
+
 class DrmDisplay {
     friend class DrmBoBufferPool;
     friend class CLBoBufferPool;
@@ -97,6 +103,11 @@ public:
         const enum v4l2_buf_type buf_type);
     SmartPtr<DrmBoBuffer> convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuffer> &buf_in);
 
+    bool set_display_mode(DrmDisplayMode mode) {
+        _display_mode = mode;
+        return true;
+    };
+
 private:
     DrmDisplay (const char* module = NULL);
 
@@ -107,6 +118,7 @@ private:
     XCamReturn get_connector(drmModeRes *res);
     XCamReturn get_plane();
     XCamReturn set_plane(const FB &fb);
+    XCamReturn set_crtc(const FB &fb);
     XCamReturn page_flip(const FB &fb);
 
 private:
@@ -115,12 +127,13 @@ private:
     char *_module;
     int _fd;
     drm_intel_bufmgr *_buf_manager;
-
+    DrmDisplayMode _display_mode;
     int _crtc_index;
     unsigned int _crtc_id;
     unsigned int _con_id;
     unsigned int _encoder_id;
     unsigned int _plane_id;
+    drmModeModeInfo _mode;
     drmModeConnector *_connector;
     bool _is_render_inited;
 

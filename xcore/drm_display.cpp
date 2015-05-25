@@ -48,6 +48,7 @@ DrmDisplay::DrmDisplay(const char* module)
     : _module(NULL)
     , _fd (-1)
     , _buf_manager (NULL)
+    , _display_mode (DRM_DISPLAY_MODE_PRIMARY)
     , _crtc_index (-1)
     , _crtc_id (0)
     , _con_id (0)
@@ -133,6 +134,7 @@ DrmDisplay::get_connector(drmModeRes *res)
         if(_connector->connection == DRM_MODE_CONNECTED) {
             _con_id = res->connectors[i];
             _encoder_id = res->encoders[i];
+            _mode = *_connector->modes;
         }
         drmModeFreeConnector(_connector);
     }
@@ -227,8 +229,8 @@ DrmDisplay::render_init (
                      "failed to get plane with required format %s", strerror(errno));
 
     drmModeFreeResources(resource);
-
-    _is_render_inited = true;
+    if (_display_mode ==  DRM_DISPLAY_MODE_OVERLAY)
+        _is_render_inited = true;
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -323,6 +325,23 @@ DrmDisplay::render_setup_frame_buffer (SmartPtr<VideoBuffer> &buf)
 }
 
 XCamReturn
+DrmDisplay::set_crtc (const FB &fb)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    uint32_t fb_handle = fb.fb_handle;
+    //uint32_t index = fb.index;
+
+    if( !_is_render_inited) {
+        ret = (XCamReturn) drmModeSetCrtc(_fd,  _crtc_id, fb_handle, 0,
+                                          0, &_con_id, 1, &_mode);
+        XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_IOCTL,
+                         "failed to set crct via drm: %s", strerror(errno));
+        _is_render_inited = true;
+    }
+    return ret;
+}
+
+XCamReturn
 DrmDisplay::set_plane (const FB &fb)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -361,20 +380,37 @@ DrmDisplay::page_flip (const FB &fb)
     XCAM_FAIL_RETURN(ERROR, ret == XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_IOCTL,
                      "failed on page flip: %s", strerror(errno));
 
+    drmEventContext evctx;
+    struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
+    fd_set fds;
+    memset(&evctx, 0, sizeof evctx);
+    evctx.version = DRM_EVENT_CONTEXT_VERSION;
+    evctx.vblank_handler = NULL;
+    //evctx.page_flip_handler = page_flip_handler;
+    FD_ZERO(&fds);
+    FD_SET(_fd, &fds);
+    select(_fd + 1, &fds, NULL, NULL, &timeout);
+    drmHandleEvent(_fd, &evctx);
+
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 DrmDisplay::render_buffer(SmartPtr<VideoBuffer> &buf)
 {
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     FBMap::iterator iter = _buf_fb_handles.find (buf.ptr ());
     XCAM_FAIL_RETURN(
         ERROR,
         iter != _buf_fb_handles.end (),
         XCAM_RETURN_ERROR_PARAM,
         "buffer not register on framebuf");
-
-    XCamReturn ret = _plane_id ? set_plane(iter->second) : page_flip(iter->second);
+    if(_display_mode == DRM_DISPLAY_MODE_OVERLAY)
+        ret = _plane_id ? set_plane(iter->second) : page_flip(iter->second);
+    else if(_display_mode == DRM_DISPLAY_MODE_PRIMARY) {
+        ret = set_crtc (iter->second);
+        ret = page_flip (iter->second);
+    }
     _display_buf = buf;
 
     return ret;
