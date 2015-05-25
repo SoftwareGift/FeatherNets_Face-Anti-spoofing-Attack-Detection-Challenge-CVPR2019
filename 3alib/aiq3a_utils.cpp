@@ -165,9 +165,9 @@ translate_atomisp_parameters (
         macc->head.type = XCAM_3A_RESULT_MACC;
         macc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         macc->head.version = XCAM_VERSION;
-        coefficient = pow (2, (15 - atomisp_params.macc_config->color_effect));
+        coefficient = pow (2, (13 - atomisp_params.macc_config->color_effect));
         for (int i = 0; i < XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE; i++) {
-            macc->table[i] = (double)atomisp_params.macc_config->table.data[i] / coefficient;
+            macc->table[i] = (double)atomisp_params.macc_table->data[i] / coefficient;
         }
         results[result_count++] = (XCam3aResultHead*)macc;
     }
