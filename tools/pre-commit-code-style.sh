@@ -5,7 +5,7 @@ ASTYLE=astyle
 ASTYLE_PARMS="--indent=spaces=4 --convert-tabs --pad-oper --suffix=none"
 
 echo "---- checking code style ----"
-for file in `git diff-index --cached --name-only HEAD --diff-filter=ACMR | grep -E "\.c$|\.cpp$|\.h$" ` ; do
+for file in `git diff-index --cached --name-only HEAD --diff-filter=ACMR | grep -E "\.c$|\.cpp$|\.h$|\.cl$" ` ; do
     $ASTYLE ${ASTYLE_PARMS} ${file}
     ret=$?
     if [ $ret != 0 ] ; then
