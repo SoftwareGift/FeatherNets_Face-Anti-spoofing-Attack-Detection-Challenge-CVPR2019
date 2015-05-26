@@ -5,4 +5,10 @@ else
 X3ALIB_DIR =
 endif
 
-SUBDIRS = clx_kernel xcore wrapper tests $(X3ALIB_DIR) pkgconfig
+if HAVE_LIBCL
+CLX_KERNEL_DIR = clx_kernel
+else
+CLX_KERNEL_DIR =
+endif
+
+SUBDIRS = $(CLX_KERNEL_DIR) xcore wrapper tests $(X3ALIB_DIR) pkgconfig
