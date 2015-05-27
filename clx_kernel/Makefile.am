@@ -4,6 +4,7 @@ clx_kernel_sources = \
 	kernel_csc_rgba64torgba.clx   \
 	kernel_csc_rgbatolab.clx      \
 	kernel_csc_rgbatonv12.clx     \
+	kernel_csc_nv12torgba.clx     \
 	kernel_csc_yuyvtorgba.clx     \
 	kernel_demo.clx               \
 	kernel_demosaic.clx           \

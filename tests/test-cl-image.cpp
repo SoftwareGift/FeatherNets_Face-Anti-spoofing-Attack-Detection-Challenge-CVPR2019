@@ -123,7 +123,7 @@ print_help (const char *bin_name)
             "\t -o output    specify output file path\n"
             "\t -p count     specify cl kernel loop count\n"
             "\t -c csc_type  specify csc type, default:rgba2nv12\n"
-            "\t              select from [rgbatonv12, rgbatolab, rgba64torgba]\n"
+            "\t              select from [rgbatonv12, rgbatolab, rgba64torgba, yuyvtorgba, nv12torgba]\n"
             "\t -d hdr_type  specify hdr type, default:rgb\n"
             "\t              select from [rgb, lab]\n"
             "\t -h           help\n"
@@ -224,6 +224,10 @@ int main (int argc, char *argv[])
                 csc_type = CL_CSC_TYPE_RGBATOLAB;
             else if (!strcasecmp (optarg, "rgba64torgba"))
                 csc_type = CL_CSC_TYPE_RGBA64TORGBA;
+            else if (!strcasecmp (optarg, "yuyvtorgba"))
+                csc_type = CL_CSC_TYPE_YUYVTORGBA;
+            else if (!strcasecmp (optarg, "nv12torgba"))
+                csc_type = CL_CSC_TYPE_NV12TORGBA;
             else
                 print_help (bin_name);
             break;

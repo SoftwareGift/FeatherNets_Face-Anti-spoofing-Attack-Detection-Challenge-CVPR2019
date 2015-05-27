@@ -33,6 +33,7 @@ enum CLCscType {
     CL_CSC_TYPE_RGBATOLAB,
     CL_CSC_TYPE_RGBA64TORGBA,
     CL_CSC_TYPE_YUYVTORGBA,
+    CL_CSC_TYPE_NV12TORGBA,
 };
 
 class CLCscImageKernel
@@ -41,6 +42,7 @@ class CLCscImageKernel
 public:
     explicit CLCscImageKernel (SmartPtr<CLContext> &context, const char *name);
     bool set_matrix (float *matrix);
+    bool set_csc_kernel_type(CLCscType type);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -53,6 +55,7 @@ private:
 
     uint32_t _vertical_offset;
     float _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
+    CLCscType _kernel_csc_type;
     SmartPtr<CLBuffer>  _matrix_buffer;
 };
 

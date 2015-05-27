@@ -28,6 +28,7 @@ namespace XCam {
 CLCscImageKernel::CLCscImageKernel (SmartPtr<CLContext> &context, const char *name)
     : CLImageKernel (context, name)
     , _vertical_offset (0)
+    , _kernel_csc_type (CL_CSC_TYPE_RGBATONV12)
 {
     set_matrix (default_rgbtoyuv_matrix);
 }
@@ -36,6 +37,13 @@ bool
 CLCscImageKernel::set_matrix (float * matrix)
 {
     memcpy(_rgbtoyuv_matrix, matrix, sizeof(float)*XCAM_COLOR_MATRIX_SIZE);
+    return true;
+}
+
+bool
+CLCscImageKernel::set_csc_kernel_type (CLCscType type)
+{
+    _kernel_csc_type = type;
     return true;
 }
 
@@ -73,18 +81,24 @@ CLCscImageKernel::prepare_arguments (
     args[3].arg_size = sizeof (cl_mem);
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    if (video_info.format == V4L2_PIX_FMT_NV12) {
+    if (_kernel_csc_type == CL_CSC_TYPE_RGBATONV12) {
         work_size.global[0] = video_info.width / 2;
         work_size.global[1] = video_info.height / 2;
         arg_count = 4;
     }
-    else if ((video_info.format == XCAM_PIX_FMT_LAB)
-             || (video_info.format == V4L2_PIX_FMT_RGBA32)
-             || (video_info.format == V4L2_PIX_FMT_YUYV)) {
+    else if ((_kernel_csc_type == CL_CSC_TYPE_RGBATOLAB)
+             || (_kernel_csc_type == CL_CSC_TYPE_RGBA64TORGBA)
+             || (_kernel_csc_type == CL_CSC_TYPE_YUYVTORGBA)) {
         work_size.global[0] = video_info.width;
         work_size.global[1] = video_info.height;
         arg_count = 2;
     }
+    else if(_kernel_csc_type == CL_CSC_TYPE_NV12TORGBA) {
+        work_size.global[0] = video_info.width / 2;
+        work_size.global[1] = video_info.height / 2;
+        arg_count = 3;
+    }
+
     work_size.local[0] = 4;
     work_size.local[1] = 4;
 
@@ -105,6 +119,7 @@ CLCscImageHandler::CLCscImageHandler (const char *name, CLCscType type)
         break;
     case CL_CSC_TYPE_RGBA64TORGBA:
     case CL_CSC_TYPE_YUYVTORGBA:
+    case CL_CSC_TYPE_NV12TORGBA:
         _output_format = V4L2_PIX_FMT_RGBA32;
         break;
     default:
@@ -172,6 +187,10 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
 #include "kernel_csc_yuyvtorgba.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
+    XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_csc_nv12torgba)
+#include "kernel_csc_nv12torgba.clx"
+    XCAM_CL_KERNEL_FUNC_END;
+
 
     if (type == CL_CSC_TYPE_RGBATONV12) {
         csc_kernel = new CLCscImageKernel (context, "kernel_csc_rgbatonv12");
@@ -189,6 +208,10 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
         csc_kernel = new CLCscImageKernel (context, "kernel_csc_yuyvtorgba");
         ret = csc_kernel->load_from_source (kernel_csc_yuyvtorgba_body, strlen (kernel_csc_yuyvtorgba_body));
     }
+    else if (type == CL_CSC_TYPE_NV12TORGBA) {
+        csc_kernel = new CLCscImageKernel (context, "kernel_csc_nv12torgba");
+        ret = csc_kernel->load_from_source (kernel_csc_nv12torgba_body, strlen (kernel_csc_nv12torgba_body));
+    }
 
     XCAM_FAIL_RETURN (
         WARNING,
@@ -198,6 +221,7 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
 
     XCAM_ASSERT (csc_kernel->is_valid ());
 
+    csc_kernel->set_csc_kernel_type (type);
     csc_handler = new CLCscImageHandler ("cl_handler_csc", type);
     csc_handler->set_csc_kernel (csc_kernel);
 
