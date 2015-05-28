@@ -46,7 +46,7 @@ typedef struct _XCam3ADescription {
     XCamReturn (*create_context)           (XCam3AContext **context);
     XCamReturn (*destroy_context)          (XCam3AContext *context);
     XCamReturn (*configure_3a)             (XCam3AContext *context, uint32_t width, uint32_t height, double framerate);
-    XCamReturn (*set_3a_stats)             (XCam3AContext *context, XCam3AStats *stats);
+    XCamReturn (*set_3a_stats)             (XCam3AContext *context, XCam3AStats *stats, int64_t timestamp);
     XCamReturn (*update_common_params)     (XCam3AContext *context, XCamCommonParam *params);
     XCamReturn (*analyze_awb)              (XCam3AContext *context, XCamAwbParam *params);
     XCamReturn (*analyze_ae)               (XCam3AContext *context, XCamAeParam *params);

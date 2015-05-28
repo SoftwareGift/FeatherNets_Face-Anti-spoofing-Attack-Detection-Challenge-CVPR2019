@@ -54,6 +54,7 @@ private:
 private:
     SmartPtr<X3aStatsPool>           _stats_pool;
     SmartPtr<CLBuffer>               _stats_cl_buffer;
+    int64_t                          _stats_timestamp;
     XCam3AStatsInfo                  _stats_info;
     bool                             _data_allocated;
 

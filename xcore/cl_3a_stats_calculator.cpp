@@ -28,6 +28,7 @@ CL3AStatsCalculatorKernel::CL3AStatsCalculatorKernel (
     SmartPtr<CL3AStatsCalculator> &image
 )
     : CLImageKernel (context, "kernel_3a_stats")
+    , _stats_timestamp (InvalidTimestamp)
     , _data_allocated (false)
     , _image (image)
 {
@@ -50,6 +51,7 @@ CL3AStatsCalculatorKernel::prepare_arguments (
         return XCAM_RETURN_ERROR_MEM;
     }
 
+    _stats_timestamp = input->get_timestamp ();
     _image_in = new CLVaImage (context, input);
 
     //set args;
@@ -98,6 +100,7 @@ CL3AStatsCalculatorKernel::post_execute ()
     XCAM_FAIL_RETURN (WARNING, ret == XCAM_RETURN_NO_ERROR, ret, "3a stats buffer enqueue event wait failed");
     event.release ();
 
+    stats->set_timestamp (_stats_timestamp);
     //post stats out
     return _image->post_stats (stats);
 }

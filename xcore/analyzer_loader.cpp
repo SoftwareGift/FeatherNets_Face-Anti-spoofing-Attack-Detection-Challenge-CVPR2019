@@ -269,7 +269,7 @@ DynamicAnalyzer::pre_3a_analyze (SmartPtr<X3aStats> &stats)
 
     XCAM_ASSERT (_context);
     _cur_stats = stats;
-    ret = _desc->set_3a_stats (_context, stats->get_stats());
+    ret = _desc->set_3a_stats (_context, stats->get_stats (), stats->get_timestamp ());
     XCAM_FAIL_RETURN (WARNING,
                       ret == XCAM_RETURN_NO_ERROR,
                       ret,

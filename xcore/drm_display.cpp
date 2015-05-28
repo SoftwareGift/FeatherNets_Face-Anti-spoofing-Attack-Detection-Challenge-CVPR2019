@@ -447,6 +447,7 @@ DrmDisplay::convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuf
     bo_data = new DrmBoData (self, bo);
     new_bo_buf = new DrmBoBuffer (buf_in->get_video_info (), bo_data);
     new_bo_buf->set_parent (buf_in);
+    new_bo_buf->set_timestamp (buf_in->get_timestamp ());
     return new_bo_buf;
 }
 

@@ -242,6 +242,7 @@ CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBo
     }
 
     new_buf = _buf_pool->get_buffer (_buf_pool);
+    new_buf->set_timestamp (input->get_timestamp ());
     XCAM_FAIL_RETURN(
         WARNING,
         new_buf.ptr(),

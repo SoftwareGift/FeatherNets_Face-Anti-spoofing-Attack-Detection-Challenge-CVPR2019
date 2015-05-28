@@ -229,7 +229,7 @@ xcam_configure_3a (XCam3AContext *context, uint32_t width, uint32_t height, doub
 }
 
 static XCamReturn
-xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats)
+xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats, int64_t timestamp)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     XCam3AAiqContext *aiq_context = AIQ_CONTEXT_CAST (context);
@@ -245,10 +245,7 @@ xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats)
     XCAM_ASSERT (raw_stats);
 
     XCamAiq3A::translate_3a_stats (stats, raw_stats);
-
-    struct timeval now;
-    gettimeofday (&now, NULL);
-    isp_stats->set_timestamp (XCAM_TIMEVAL_2_USEC (now));
+    isp_stats->set_timestamp (timestamp);
 
     ret = analyzer->push_3a_stats (isp_stats);
     if (ret != XCAM_RETURN_NO_ERROR) {
