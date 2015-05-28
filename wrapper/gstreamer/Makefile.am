@@ -14,7 +14,7 @@ XCAMSRC_LIBS += $(LIBDRM_LIBS)
 endif
 
 # Note: plugindir is set in configure
-plugindir="\$(libdir)/gstreamer-1.0"
+plugindir="$(libdir)/gstreamer-1.0"
 
 # sources used to compile this plug-in
 libgstxcamsrc_la_SOURCES =                  \

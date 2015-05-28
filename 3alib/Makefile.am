@@ -11,7 +11,7 @@ XCAMSRC_CXXFLAGS += $(LIBDRM_CFLAGS)
 XCAMSRC_LIBS += $(LIBDRM_LIBS)
 endif
 
-plugindir="\$(libdir)/xcam"
+plugindir="$(libdir)/xcam"
 
 libxcam_3a_aiq_la_SOURCES =                  \
 			   aiq_wrapper.cpp           \
