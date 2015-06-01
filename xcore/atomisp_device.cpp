@@ -61,7 +61,10 @@ AtomispDevice::pre_set_format (struct v4l2_format &format)
     subdev_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
     subdev_fmt.format.width = format.fmt.pix.width + 32;
     subdev_fmt.format.height = format.fmt.pix.height + 17;
-    subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB10_1X10; //depends on sensor V4L2_MBUS_FMT_UYVY8_1X16;
+    if (format.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB12)
+        subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB12_1X12; //depends on sensor
+    else
+        subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB10_1X10; //depends on sensor
     subdev_fmt.format.field = V4L2_FIELD_NONE;
 
     if (io_control(VIDIOC_SUBDEV_S_FMT, &subdev_fmt) < 0) {

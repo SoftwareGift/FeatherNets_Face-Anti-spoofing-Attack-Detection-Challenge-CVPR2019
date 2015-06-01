@@ -117,6 +117,15 @@ V4l2BufferProxy::v4l2_format_to_video_info (
         info.strides [0] = format.fmt.pix.bytesperline;
         info.offsets[0] = 0;
         break;
+    case V4L2_PIX_FMT_SBGGR12:
+    case V4L2_PIX_FMT_SGBRG12:
+    case V4L2_PIX_FMT_SGRBG12:
+    case V4L2_PIX_FMT_SRGGB12:
+        info.color_bits = 12;
+        info.components = 1;
+        info.strides [0] = format.fmt.pix.bytesperline;
+        info.offsets[0] = 0;
+        break;
     default:
         XCAM_LOG_WARNING (
             "unknown v4l2 format(%s) to video info",

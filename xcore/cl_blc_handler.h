@@ -53,6 +53,7 @@ protected:
 private:
     XCAM_DEAD_COPY (CLBlcImageKernel);
     CLBLCConfig _blc_config;
+    uint32_t _color_bits;
 };
 
 class CLBlcImageHandler

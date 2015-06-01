@@ -151,6 +151,10 @@ MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
     case V4L2_PIX_FMT_SGBRG10:
     case V4L2_PIX_FMT_SGRBG10:
     case V4L2_PIX_FMT_SRGGB10:
+    case V4L2_PIX_FMT_SBGGR12:
+    case V4L2_PIX_FMT_SGBRG12:
+    case V4L2_PIX_FMT_SGRBG12:
+    case V4L2_PIX_FMT_SRGGB12:
         size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 2;
         break;
     default:
@@ -243,7 +247,7 @@ void print_help (const char *bin_name)
             "\t -n interval   save file on every [interval] frame\n"
             "\t -c            process image with cl kernel\n"
             "\t -f pixel_fmt  specify output pixel format\n"
-            "\t               pixel_fmt select from [NV12, YUYV, BA10], default is [NV12]\n"
+            "\t               pixel_fmt select from [NV12, YUYV, BA10, RG12], default is [NV12]\n"
             "\t -d cap_mode   specify capture mode\n"
             "\t               cap_mode select from [video, still], default is [video]\n"
             "\t -i frame_save specify the frame count to save, default is 0 which means endless\n"
@@ -408,7 +412,10 @@ int main (int argc, char *argv[])
     //device->set_mem_type (V4L2_MEMORY_DMABUF);
     device->set_mem_type (v4l2_mem_type);
     device->set_buffer_count (8);
-    device->set_framerate (25, 1);
+    if (pixel_format == V4L2_PIX_FMT_SRGGB12)
+        device->set_framerate (30, 1);
+    else
+        device->set_framerate (25, 1);
     ret = device->open ();
     CHECK (ret, "device(%s) open failed", device->get_device_name());
     ret = device->set_format (1920, 1080, pixel_format, V4L2_FIELD_NONE, 1920 * 2);
