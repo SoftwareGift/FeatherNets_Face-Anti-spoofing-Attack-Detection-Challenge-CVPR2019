@@ -130,6 +130,7 @@ DeviceManager::set_analyzer (SmartPtr<X3aAnalyzer> analyzer)
 
     XCAM_ASSERT (analyzer.ptr () && !_3a_analyzer.ptr ());
     _3a_analyzer = analyzer;
+
     return true;
 }
 
@@ -175,9 +176,12 @@ DeviceManager::start ()
 
         if (!_3a_analyzer.ptr()) {
             _3a_analyzer = X3aAnalyzerManager::instance()->create_analyzer();
+            if (!_3a_analyzer.ptr()) {
+                XCAM_FAILED_STOP (ret = XCAM_RETURN_ERROR_PARAM, "create analyzer failed");
+            }
         }
-        if (!_3a_analyzer.ptr()) {
-            XCAM_FAILED_STOP (ret = XCAM_RETURN_ERROR_PARAM, "create analyzer failed");
+        if (_3a_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
+            XCAM_FAILED_STOP (ret = XCAM_RETURN_ERROR_PARAM, "prepare analyzer handler failed");
         }
         _3a_analyzer->set_results_callback (this);
 

@@ -28,6 +28,7 @@
 #include "smartptr.h"
 #include "xcam_mutex.h"
 #include "video_buffer.h"
+#include "v4l2_buffer_proxy.h"
 
 namespace XCam {
 
@@ -37,10 +38,21 @@ public:
 
     GstBuffer* gbuf(SmartPtr<VideoBuffer> &buf) {
         XCAM_ASSERT (buf.ptr ());
-        if (_v2g.find (buf->get_fd ()) == _v2g.end ()) { //non-existing
-            return NULL;
+        if (buf->get_fd ()) {
+            // DMA buffer
+            if (_v2g.find (buf->get_fd ()) == _v2g.end ()) { //non-existing
+                return NULL;
+            }
+            return _v2g[buf->get_fd ()];
         }
-        return _v2g[buf->get_fd ()];
+        else {
+            // V4L2 buffer
+            SmartPtr<V4l2BufferProxy> v4l2_buf = buf.dynamic_cast_ptr<V4l2BufferProxy> ();
+            if (_v2g.find (v4l2_buf->get_v4l2_buf_index ()) == _v2g.end ()) { //non-existing
+                return NULL;
+            }
+            return _v2g[v4l2_buf->get_v4l2_buf_index ()];
+        }
     }
     int vbuf(GstBuffer* gbuf) {
         if (_g2v.find (gbuf) == _g2v.end ()) { //non-existing
@@ -50,8 +62,17 @@ public:
     }
     void setmap(GstBuffer* gbuf, SmartPtr<VideoBuffer>& buf) {
         XCAM_ASSERT (buf.ptr ());
-        _g2v[gbuf] = buf->get_fd ();
-        _v2g[buf->get_fd ()] = gbuf;
+        if (buf->get_fd ()) {
+            // DMA buffer
+            _g2v[gbuf] = buf->get_fd ();
+            _v2g[buf->get_fd ()] = gbuf;
+        }
+        else {
+            // V4L2 buffer
+            SmartPtr<V4l2BufferProxy> v4l2_buf = buf.dynamic_cast_ptr<V4l2BufferProxy> ();
+            _g2v[gbuf] = v4l2_buf->get_v4l2_buf_index ();
+            _v2g[v4l2_buf->get_v4l2_buf_index ()] = gbuf;
+        }
     }
 
 private:

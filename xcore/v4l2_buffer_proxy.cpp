@@ -49,6 +49,8 @@ V4l2Buffer::unmap ()
 int
 V4l2Buffer::get_fd ()
 {
+    if (_buf.memory == V4L2_MEMORY_MMAP)
+        return NULL;
     return _buf.m.fd;
 }
 

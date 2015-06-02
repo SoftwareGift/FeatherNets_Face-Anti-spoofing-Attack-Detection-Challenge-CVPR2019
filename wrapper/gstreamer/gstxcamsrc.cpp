@@ -286,9 +286,7 @@ gst_xcamsrc_start (GstBaseSrc *src)
     capture_device->set_capture_mode (xcamsrc->capture_mode);
     capture_device->set_mem_type (xcamsrc->mem_type);
     capture_device->set_buffer_count (xcamsrc->buf_count);
-    capture_device->set_framerate (xcamsrc->_fps_n, xcamsrc->_fps_d);
     capture_device->open ();
-    capture_device->set_format (xcamsrc->width, xcamsrc->height, xcamsrc->pixelformat, xcamsrc->field, xcamsrc->bytes_perline);
 
     SmartPtr<V4l2SubDevice> event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
     device_manager->set_event_device (event_device);
@@ -341,9 +339,12 @@ gst_xcamsrc_start (GstBaseSrc *src)
         analyzer = new X3aAnalyzerSimple ();
         break;
     }
+    XCAM_ASSERT (analyzer.ptr ());
+    if (analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("analyzer(%s) prepare handlers failed", analyzer->get_name ());
+        return FALSE;
+    }
     device_manager->set_analyzer (analyzer);
-
-    device_manager->start ();
 
     return TRUE;
 }
@@ -373,18 +374,38 @@ gst_xcambufferpool_new (Gstxcamsrc *xcamsrc, GstCaps *caps);
 static gboolean
 gst_xcamsrc_set_caps (GstBaseSrc *src, GstCaps *caps)
 {
+    GstVideoInfo info;
+    gst_video_info_from_caps (&info, caps);
+
     Gstxcamsrc *xcamsrc = GST_XCAMSRC (src);
 
-    guint32 block_size = DEFAULT_BLOCKSIZE;
     SmartPtr<MainDeviceManager> device_manager = DeviceManagerInstance::device_manager_instance();
-    SmartPtr<V4l2Device> device = device_manager->get_capture_device();
+    SmartPtr<V4l2Device> capture_device = device_manager->get_capture_device ();
+    capture_device->set_framerate (info.fps_n, info.fps_d);
+    capture_device->set_format (info.width, info.height, xcamsrc->pixelformat, xcamsrc->field,  info.stride[0]);
 
+    if (device_manager->start () != XCAM_RETURN_NO_ERROR)
+        return FALSE;
 
+    guint32 block_size = DEFAULT_BLOCKSIZE;
     struct v4l2_format format;
-    device->get_format (format);
+    capture_device->get_format (format);
     block_size = format.fmt.pix.sizeimage;
 
     gst_base_src_set_blocksize (GST_BASE_SRC (xcamsrc), block_size);
+
+    xcamsrc->_video_info = info;
+    gsize offset = 0;
+    for (int n = 0; n < GST_VIDEO_INFO_N_PLANES (&xcamsrc->_video_info); n++) {
+        GST_VIDEO_INFO_PLANE_OFFSET (&xcamsrc->_video_info, n) = offset;
+        if (format.fmt.pix.pixelformat == V4L2_PIX_FMT_NV12) {
+            GST_VIDEO_INFO_PLANE_STRIDE (&xcamsrc->_video_info, n) = format.fmt.pix.bytesperline * 2 / 3;
+        }
+        else {
+            GST_VIDEO_INFO_PLANE_STRIDE (&xcamsrc->_video_info, n) = format.fmt.pix.bytesperline / 2;
+        }
+        offset += GST_VIDEO_INFO_PLANE_STRIDE (&xcamsrc->_video_info, n) * format.fmt.pix.height;
+    }
 
     xcamsrc->duration = gst_util_uint64_scale_int (GST_SECOND, xcamsrc->_fps_d, xcamsrc->_fps_n);
     xcamsrc->pool = gst_xcambufferpool_new ((Gstxcamsrc*)src, caps);

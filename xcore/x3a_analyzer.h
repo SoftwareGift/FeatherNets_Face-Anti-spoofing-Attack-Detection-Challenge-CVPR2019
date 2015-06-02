@@ -50,6 +50,8 @@ public:
 
     bool set_results_callback (AnalyzerCallback *callback);
 
+    XCamReturn prepare_handlers ();
+    // prepare_handlers must called before init
     XCamReturn init (uint32_t width, uint32_t height, double framerate);
     XCamReturn deinit ();
     XCamReturn start ();

@@ -23,6 +23,8 @@
 #include "v4l2dev.h"
 #include "drm_bo_buffer.h"
 #include <stdio.h>
+#include "gst/gstmemory.h"
+#include <linux/videodev2.h>
 
 using namespace XCam;
 
@@ -61,10 +63,31 @@ xcam_bufferpool_acquire_buffer (GstBufferPool *bpool, GstBuffer **buffer, GstBuf
         gbuf = gst_buffer_new();
         GST_BUFFER (gbuf)->pool = (GstBufferPool *) pool;
 
-        gst_buffer_append_memory (gbuf,
-                                  gst_dmabuf_allocator_alloc (pool->allocator,
-                                          buf->get_fd (),
-                                          buf->get_size ()));
+        if (buf->get_fd ()) {
+            gst_buffer_append_memory (gbuf,
+                                      gst_dmabuf_allocator_alloc (pool->allocator,
+                                              buf->get_fd (),
+                                              buf->get_size ()));
+        }
+        else {
+            gst_buffer_append_memory (gbuf,
+                                      gst_memory_new_wrapped (GST_MEMORY_FLAG_NO_SHARE,
+                                              buf->map (),
+                                              buf->get_size (),
+                                              0,
+                                              buf->get_size (),
+                                              NULL,
+                                              NULL));
+        }
+
+        GstVideoInfo info = xcamsrc->_video_info;
+        gst_buffer_add_video_meta_full (gbuf, GST_VIDEO_FRAME_FLAG_NONE,
+                                        GST_VIDEO_INFO_FORMAT (&xcamsrc->_video_info),
+                                        GST_VIDEO_INFO_WIDTH (&xcamsrc->_video_info),
+                                        GST_VIDEO_INFO_HEIGHT (&xcamsrc->_video_info),
+                                        GST_VIDEO_INFO_N_PLANES (&xcamsrc->_video_info),
+                                        xcamsrc->_video_info.offset,
+                                        xcamsrc->_video_info.stride);
         bufmap->setmap (gbuf, buf);
         XCAM_LOG_DEBUG ("%s new gst-buf: fd(%d), size(%d)",
                         __func__, buf->get_fd (), buf->get_size ());

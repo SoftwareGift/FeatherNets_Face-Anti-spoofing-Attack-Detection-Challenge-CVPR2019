@@ -25,6 +25,7 @@
 #include <gst/base/gstpushsrc.h>
 #include <linux/videodev2.h>
 #include <xcam_defs.h>
+#include <gst/video/video.h>
 
 #define DEFAULT_BLOCKSIZE   1843200
 #define CAPTURE_DEVICE_STILL  "/dev/video0"
@@ -106,6 +107,7 @@ struct _Gstxcamsrc
 
     guint64 offset;
 
+    GstVideoInfo _video_info;
 };
 
 struct _GstxcamsrcClass

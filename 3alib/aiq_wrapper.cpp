@@ -204,6 +204,14 @@ xcam_configure_3a (XCam3AContext *context, uint32_t width, uint32_t height, doub
         "setup aiq 3a analyzer failed");
 
     SmartPtr<X3aAnalyzerAiq> analyzer = aiq_context->get_analyzer ();
+
+    ret = analyzer->prepare_handlers ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "analyzer(aiq3alib) prepare handlers failed");
+
     ret = analyzer->init (width, height, framerate);
     XCAM_FAIL_RETURN (
         WARNING,

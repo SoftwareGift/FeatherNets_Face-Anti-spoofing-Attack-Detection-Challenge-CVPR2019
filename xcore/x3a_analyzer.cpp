@@ -161,19 +161,16 @@ X3aAnalyzer::set_results_callback (AnalyzerCallback *callback)
 }
 
 XCamReturn
-X3aAnalyzer::init (uint32_t width, uint32_t height, double framerate)
+X3aAnalyzer::prepare_handlers ()
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<AeHandler> ae_handler;
     SmartPtr<AwbHandler> awb_handler;
     SmartPtr<AfHandler> af_handler;
     SmartPtr<CommonHandler> common_handler;
 
-
-    XCAM_ASSERT (!_width && !_height);
-    _width = width;
-    _height = height;
-    _framerate = framerate;
+    if (_ae_handler.ptr() && _awb_handler.ptr() &&
+            _af_handler.ptr() && _common_handler.ptr())
+        return XCAM_RETURN_NO_ERROR;
 
     XCAM_ASSERT (!_ae_handler.ptr() || !_awb_handler.ptr() ||
                  !_af_handler.ptr() || !_common_handler.ptr());
@@ -185,13 +182,35 @@ X3aAnalyzer::init (uint32_t width, uint32_t height, double framerate)
 
     if (!ae_handler.ptr() || !awb_handler.ptr() || !af_handler.ptr() || !common_handler.ptr()) {
         XCAM_LOG_WARNING ("create handlers failed");
-        deinit ();
         return XCAM_RETURN_ERROR_MEM;
     }
+
     _ae_handler = ae_handler;
     _awb_handler = awb_handler;
     _af_handler = af_handler;
     _common_handler = common_handler;
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+X3aAnalyzer::init (uint32_t width, uint32_t height, double framerate)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+
+    if (!_ae_handler.ptr() || !_awb_handler.ptr() ||
+            !_af_handler.ptr() || !_common_handler.ptr()) {
+        XCAM_LOG_WARNING (
+            "analyzer:%s init failed, <prepare_handlers> need called first",
+            XCAM_STR(get_name ()));
+        return XCAM_RETURN_ERROR_PARAM;
+    }
+
+    XCAM_ASSERT (!_width && !_height);
+    _width = width;
+    _height = height;
+    _framerate = framerate;
 
     ret = internal_init (width, height, _framerate);
     if (ret != XCAM_RETURN_NO_ERROR) {
