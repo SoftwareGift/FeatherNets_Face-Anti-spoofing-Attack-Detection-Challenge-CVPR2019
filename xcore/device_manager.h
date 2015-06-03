@@ -75,6 +75,16 @@ public:
     bool set_analyzer (SmartPtr<X3aAnalyzer> analyzer);
     bool add_image_processor (SmartPtr<ImageProcessor> processor);
 
+    SmartPtr<V4l2Device>& get_capture_device () {
+        return _device;
+    }
+    SmartPtr<V4l2SubDevice>& get_event_device () {
+        return _subdevice;
+    }
+    SmartPtr<X3aAnalyzer>& get_analyzer () {
+        return _3a_analyzer;
+    }
+
     bool is_running () const {
         return _is_running;
     }

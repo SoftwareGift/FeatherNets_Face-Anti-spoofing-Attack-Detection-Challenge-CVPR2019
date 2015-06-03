@@ -16,55 +16,37 @@
  * limitations under the License.
  *
  * Author: John Ye <john.ye@intel.com>
+ * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#ifndef __GST_XCAMSRC_H__
-#define __GST_XCAMSRC_H__
+#ifndef GST_XCAM_SRC_H
+#define GST_XCAM_SRC_H
 
-#include <gst/gst.h>
+#include "main_dev_manager.h"
 #include <gst/base/gstpushsrc.h>
-#include <linux/videodev2.h>
-#include <xcam_defs.h>
-#include <gst/video/video.h>
 
-#define DEFAULT_BLOCKSIZE   1843200
-#define CAPTURE_DEVICE_STILL  "/dev/video0"
-#define CAPTURE_DEVICE_VIDEO  "/dev/video3"
-#define DEFAULT_EVENT_DEVICE    "/dev/v4l-subdev6"
-#define DEFAULT_CPF_FILE_NAME   "/etc/atomisp/imx185.cpf"
-#define DEFAULT_DYNAMIC_3A_LIB  "/usr/lib/xcam/libxcam_3a_aiq.so"
+using namespace XCam;
+using namespace GstXCam;
 
-#define DEFAULT_PROP_DEVICE_NAME    "/dev/video3"
-#define DEFAULT_PROP_SENSOR     0
-#define DEFAULT_PROP_CAPTURE_MODE    0
-#define DEFAULT_PROP_IO_MODE        4
-#define DEFAULT_PROP_BUFFERCOUNT    8
-#define DEFAULT_PROP_FPSN       25
-#define DEFAULT_PROP_FPSD       1
-#define DEFAULT_PROP_WIDTH      1920
-#define DEFAULT_PROP_HEIGHT     1080
-#define DEFAULT_PROP_PIXELFORMAT    V4L2_PIX_FMT_NV12 //420 instead of 0
-#define DEFAULT_PROP_FIELD      V4L2_FIELD_NONE // 0
-#define DEFAULT_PROP_BYTESPERLINE   3840
+XCAM_BEGIN_DECLARE
 
-#define V4L2_CAPTURE_MODE_STILL 0x2000
-#define V4L2_CAPTURE_MODE_VIDEO 0x4000
-#define V4L2_CAPTURE_MODE_PREVIEW 0x8000
+#define GST_TYPE_XCAM_SRC \
+  (gst_xcam_src_get_type ())
+#define GST_XCAM_SRC(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_XCAM_SRC,GstXCamSrc))
+#define GST_XCAM_SRC_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_XCAM_SRC,GstXCamSrcClass))
+#define GST_IS_XCAM_SRC(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_XCAM_SRC))
+#define GST_IS_XCAM_SRC_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_XCAM_SRC))
+#define GST_XCAM_SRC_CAST(obj)   ((GstXCamSrc *) obj)
 
-G_BEGIN_DECLS
+#define GST_XCAM_SRC_MEM_MODE(src) ((GST_XCAM_SRC_CAST(src))->mem_type)
+#define GST_XCAM_SRC_FRMAE_DURATION(src) ((GST_XCAM_SRC_CAST(src))->duration)
+#define GST_XCAM_SRC_BUF_COUNT(src) ((GST_XCAM_SRC_CAST(src))->buf_count)
+#define GST_XCAM_SRC_OUT_VIDEO_INFO(src) (&(GST_XCAM_SRC_CAST(src))->gst_video_info)
 
-/* #defines don't like whitespacey bits */
-#define GST_TYPE_XCAMSRC \
-  (gst_xcamsrc_get_type())
-#define GST_XCAMSRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_XCAMSRC,Gstxcamsrc))
-#define GST_XCAMSRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_XCAMSRC,GstxcamsrcClass))
-#define GST_IS_XCAMSRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_XCAMSRC))
-#define GST_IS_XCAMSRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_XCAMSRC))
-#define GST_XCAMSRC_CAST(obj)   ((Gstxcamsrc *) obj)
 
 typedef enum {
     ISP_IMAGE_PROCESSOR = 0,
@@ -77,46 +59,39 @@ typedef enum {
     DYNAMIC_ANALYZER,
 } AnalyzerType;
 
-typedef struct _Gstxcamsrc      Gstxcamsrc;
-typedef struct _GstxcamsrcClass GstxcamsrcClass;
+typedef struct _GstXCamSrc      GstXCamSrc;
+typedef struct _GstXCamSrcClass GstXCamSrcClass;
 
-struct _Gstxcamsrc
+struct _GstXCamSrc
 {
-    GstPushSrc pushsrc;
+    GstPushSrc                   pushsrc;
+    GstBufferPool               *pool;
 
-    GstBufferPool *pool;
+    uint32_t                     buf_count;
+    uint32_t                     sensor_id;
+    uint32_t                     capture_mode;
+    char                        *device;
+    gboolean                     enable_3a;
 
-    guint buf_count;
-
-    guint _fps_n;
-    guint _fps_d;
-
-    guint width;
-    guint height;
-    guint pixelformat;
-    enum v4l2_field field;
-    guint bytes_perline;
-    gint sensor_id;
-    guint capture_mode;
-    enum v4l2_memory mem_type;
-    ImageProcessorType image_processor_type;
-    AnalyzerType analyzer_type;
-
-    GstClockTime duration;
-    GstClockTime ctrl_time;
-
-    guint64 offset;
-
-    GstVideoInfo _video_info;
+    GstClockTime                 duration;
+    enum v4l2_memory             mem_type;
+    enum v4l2_field              field;
+    struct v4l2_format           input_format;
+    uint32_t                     out_format;
+    GstVideoInfo                 gst_video_info;
+    VideoBufferInfo              xcam_video_info;
+    ImageProcessorType           image_processor_type;
+    AnalyzerType                 analyzer_type;
+    SmartPtr<MainDeviceManager>  device_manager;
 };
 
-struct _GstxcamsrcClass
+struct _GstXCamSrcClass
 {
     GstPushSrcClass parent_class;
 };
 
-GType gst_xcamsrc_get_type (void);
+GType gst_xcam_src_get_type (void);
 
-G_END_DECLS
+XCAM_END_DECLARE
 
-#endif /* __GST_XCAMSRC_H__ */
+#endif // GST_XCAM_SRC_H

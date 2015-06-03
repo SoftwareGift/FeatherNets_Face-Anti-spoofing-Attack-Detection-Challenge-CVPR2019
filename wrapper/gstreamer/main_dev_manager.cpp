@@ -1,5 +1,5 @@
 /*
- * v4l2dev.cpp - wrapper of V4l2Device
+ * main_dev_manager.cpp - main device manager
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -16,24 +16,14 @@
  * limitations under the License.
  *
  * Author: John Ye <john.ye@intel.com>
+ * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "v4l2dev.h"
-namespace XCam {
+#include "main_dev_manager.h"
 
-SmartPtr<MainDeviceManager> DeviceManagerInstance::_device_manager (NULL);
-Mutex               DeviceManagerInstance::_device_manager_mutex;
+using namespace XCam;
 
-SmartPtr<MainDeviceManager>&
-DeviceManagerInstance::device_manager_instance ()
-{
-    SmartLock lock (_device_manager_mutex);
-    if (_device_manager.ptr())
-        return _device_manager;
-
-    _device_manager = new MainDeviceManager;
-    return _device_manager;
-}
+namespace GstXCam {
 
 MainDeviceManager::MainDeviceManager()
 {
@@ -52,11 +42,28 @@ MainDeviceManager::handle_message (SmartPtr<XCamMessage> &msg)
 void
 MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
 {
-    bufs_mutex.lock ();
-    bufs.push (buf);
-    if (bufs.size() == 1)
-        bufs_cond.signal ();
-    bufs_mutex.unlock ();
+    XCAM_ASSERT (buf.ptr ());
+    _ready_buffers.push (buf);
+}
+
+SmartPtr<VideoBuffer>
+MainDeviceManager::dequeue_buffer ()
+{
+    SmartPtr<VideoBuffer> ret;
+    ret = _ready_buffers.pop (-1);
+    return ret;
+}
+
+void
+MainDeviceManager::pause_dequeue ()
+{
+    return _ready_buffers.pause_pop ();
+}
+
+void
+MainDeviceManager::resume_dequeue ()
+{
+    return _ready_buffers.resume_pop ();
 }
 
 };

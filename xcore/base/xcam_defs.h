@@ -61,6 +61,9 @@
 
 #define XCAM_UNUSED(variable) (void)(variable)
 
+#define XCAM_CONSTRUCTOR(obj, TYPE, ...) new (&obj) TYPE(## __VA_ARGS__)
+#define XCAM_DESTRUCTOR(obj, TYPE) (obj).~TYPE()
+
 #define XCAM_MAX(a, b)  ((a) > (b) ? (a) : (b))
 #define XCAM_MIN(a, b)  ((a) < (b) ? (a) : (b))
 

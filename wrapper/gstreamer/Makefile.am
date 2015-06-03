@@ -18,12 +18,10 @@ plugindir="$(libdir)/gstreamer-1.0"
 
 # sources used to compile this plug-in
 libgstxcamsrc_la_SOURCES =                  \
+			   gstxcambuffermeta.cpp        \
 			   gstxcamsrc.cpp               \
 			   gstxcambufferpool.cpp        \
-			   stub.cpp                     \
-			   bufmap.cpp                   \
-			   v4l2dev.cpp                  \
-			   fmt.cpp                      \
+			   main_dev_manager.cpp         \
 			   $(NULL)
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
@@ -50,10 +48,9 @@ libgstxcamsrc_la_LDFLAGS =                          \
 libgstxcamsrc_la_LIBTOOLFLAGS = --tag=disable-static
 
 # headers we need but don't want installed
-noinst_HEADERS = gstxcambufferpool.h     \
+noinst_HEADERS =                          \
+			   gstxcambufferpool.h        \
 			   gstxcamsrc.h               \
-			   stub.h                     \
-			   bufmap.h                   \
-			   v4l2dev.h                  \
-			   fmt.h                      \
+			   gstxcambuffermeta.h        \
+			   main_dev_manager.h         \
 			   $(NULL)

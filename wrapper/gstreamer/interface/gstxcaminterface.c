@@ -43,6 +43,7 @@ gst_xcam_3a_interface_get_type (void)
             0,
             0,
             NULL,
+            NULL
         };
 
         gst_xcam_3a_interface_type = g_type_register_static (G_TYPE_INTERFACE,
@@ -86,7 +87,6 @@ gst_xcam_3a_iface_init (GstXCam3AInterface * iface)
     iface->set_manual_saturation = NULL;
     iface->set_manual_sharpness = NULL;
     iface->set_night_mode = NULL;
-    iface->set_3a_mode = NULL;
     iface->set_hdr_mode = NULL;
     iface->set_denoise_mode = NULL;
     iface->set_gamma_mode = NULL;
