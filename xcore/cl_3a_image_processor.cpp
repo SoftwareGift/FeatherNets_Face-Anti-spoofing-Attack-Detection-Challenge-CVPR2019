@@ -40,6 +40,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_hdr (false)
     , _enable_denoise (false)
     , _enable_snr (true)
+    , _tnr_mode (0)
     , _enable_gamma (true)
     , _enable_macc (true)
 {
@@ -292,17 +293,15 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     /* Temporal Noise Reduction (RGB domain) */
-    {
-        image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_RGB);
-        _tnr_rgb = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
-        XCAM_FAIL_RETURN (
-            WARNING,
-            _tnr_rgb.ptr (),
-            XCAM_RETURN_ERROR_CL,
-            "CL3aImageProcessor create tnr handler failed");
-        //_tnr_rgb->set_mode(CL_TNR_TYPE_RGB);
-        add_handler (image_handler);
-    }
+    image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_RGB);
+    _tnr_rgb = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _tnr_rgb.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create tnr handler failed");
+    _tnr_rgb->set_mode (CL_TNR_TYPE_RGB & _tnr_mode);
+    add_handler (image_handler);
 
     /* simple noise reduction */
     image_handler = create_cl_snr_image_handler (context);
@@ -327,8 +326,28 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     /* color space conversion */
-    if (_out_smaple_type == OutSampleYuv) {
-        image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_RGBATONV12);
+    image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_RGBATONV12);
+    _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _csc .ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create csc handler failed");
+    add_handler (image_handler);
+
+    /* Temporal Noise Reduction (YUV domain) */
+    image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_YUV);
+    _tnr_yuv = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _tnr_yuv.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create tnr handler failed");
+    _tnr_yuv->set_mode (CL_TNR_TYPE_YUV & _tnr_mode);
+    add_handler (image_handler);
+
+    if (_out_smaple_type == OutSampleRGB) {
+        image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
         _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
         XCAM_FAIL_RETURN (
             WARNING,
@@ -336,23 +355,7 @@ CL3aImageProcessor::create_handlers ()
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create csc handler failed");
         add_handler (image_handler);
-    } else if (_out_smaple_type == OutSampleRGB) {
-        _demosaic->set_output_format (_output_fourcc);
     }
-
-    /* Temporal Noise Reduction (YUV domain) */
-    if (_out_smaple_type == OutSampleYuv) {
-        image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_YUV);
-        _tnr_yuv = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
-        XCAM_FAIL_RETURN (
-            WARNING,
-            _tnr_yuv.ptr (),
-            XCAM_RETURN_ERROR_CL,
-            "CL3aImageProcessor create tnr handler failed");
-        _tnr_yuv->set_mode(CL_TNR_TYPE_YUV);
-        add_handler (image_handler);
-    }
-
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -423,6 +426,8 @@ CL3aImageProcessor::set_macc (bool enable)
 bool
 CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
 {
+    _tnr_mode = mode;
+
     STREAM_LOCK;
     //TODO: map denoise level to threshold & gain
     XCAM_UNUSED(level);

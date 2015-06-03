@@ -29,6 +29,9 @@
 #if HAVE_LIBCL
 #include "cl_3a_image_processor.h"
 #include "cl_csc_image_processor.h"
+#include "cl_hdr_handler.h"
+#include "cl_tnr_handler.h"
+#include "cl_denoise_handler.h"
 #endif
 #if HAVE_LIBDRM
 #include "drm_display.h"
@@ -39,6 +42,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string>
+#include <getopt.h>
 #include "test_common.h"
 
 using namespace XCam;
@@ -239,6 +243,7 @@ void dev_stop_handler(int sig)
 void print_help (const char *bin_name)
 {
     printf ("Usage: %s [-a analyzer]\n"
+            "Configurations:\n"
             "\t -a analyzer   specify a analyzer\n"
             "\t               select from [simple, aiq, dynamic], default is [simple]\n"
             "\t -m mem_type   specify video memory type\n"
@@ -255,6 +260,14 @@ void print_help (const char *bin_name)
             "\t -e display_mode    preview mode\n"
             "\t                select from [primary, overlay], default is [primary]\n"
             "\t -h            help\n"
+            "CL features:\n"
+            "\t --hdr         specify hdr type, default is hdr off\n"
+            "\t               select from [rgb, lab]\n"
+            "\t --tnr         specify temporal noise reduction type, default is tnr off\n"
+            "\t               select from [rgb, yuv, both]\n"
+            "\t --tnr-level   specify tnr level\n"
+            "\t --enable-bnr  enable bilateral noise reduction\n"
+            "\t --enable-snr  enable simple noise reduction\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
 }
@@ -285,8 +298,23 @@ int main (int argc, char *argv[])
     int opt;
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
+    uint32_t hdr_type = CL_HDR_DISABLE;
+    uint32_t tnr_type = CL_TNR_DISABLE;
+    uint32_t bnr_type = CL_DENOISE_DISABLE;
+    uint32_t snr_type = CL_DENOISE_DISABLE;
+    uint8_t tnr_level = 0;
 
-    while ((opt =  getopt(argc, argv, "sca:n:m:f:d:pi:e:h")) != -1) {
+    const char *short_opts = "sca:n:m:f:d:pi:e:h";
+    const struct option long_opts[] = {
+        {"hdr", required_argument, NULL, 'H'},
+        {"tnr", required_argument, NULL, 'T'},
+        {"tnr-level", required_argument, NULL, 'L'},
+        {"enable-bnr", no_argument, NULL, 'B'},
+        {"enable-snr", no_argument, NULL, 'S'},
+        {0, 0, 0, 0},
+    };
+
+    while ((opt = getopt_long(argc, argv, short_opts, long_opts, NULL)) != -1) {
         switch (opt) {
         case 'a': {
             if (!strcmp (optarg, "dynamic"))
@@ -357,6 +385,46 @@ int main (int argc, char *argv[])
         case 'i':
             device_manager->set_frame_save(atoi(optarg));
             break;
+        case 'H': {
+            if (!strcasecmp (optarg, "rgb"))
+                hdr_type = CL_HDR_TYPE_RGB;
+            else if (!strcasecmp (optarg, "lab"))
+                hdr_type = CL_HDR_TYPE_LAB;
+            else {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+        }
+        case 'B': {
+            bnr_type = CL_DENOISE_TYPE_BILATERIAL;
+            break;
+        }
+        case 'S': {
+            snr_type = CL_DENOISE_TYPE_SIMPLE;
+            break;
+        }
+        case 'T': {
+            if (!strcasecmp (optarg, "yuv"))
+                tnr_type = CL_TNR_TYPE_YUV;
+            else if (!strcasecmp (optarg, "rgb"))
+                tnr_type = CL_TNR_TYPE_RGB;
+            else if (!strcasecmp (optarg, "both"))
+                tnr_type = CL_TNR_TYPE_YUV | CL_TNR_TYPE_RGB;
+            else {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+        }
+        case 'L': {
+            if (atoi(optarg) < 0 || atoi(optarg) > 255) {
+                print_help (bin_name);
+                return -1;
+            }
+            tnr_level = atoi(optarg);
+            break;
+        }
         case 'h':
             print_help (bin_name);
             return 0;
@@ -459,12 +527,13 @@ int main (int argc, char *argv[])
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
-        //cl_processor->set_hdr (true);
-        cl_processor->set_denoise (false);
+        cl_processor->set_hdr (hdr_type);
+        cl_processor->set_denoise (bnr_type);
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
-        cl_processor->set_snr (false);
+        cl_processor->set_snr (snr_type);
+        cl_processor->set_tnr (tnr_type, tnr_level);
         device_manager->add_image_processor (cl_processor);
     }
 #endif
