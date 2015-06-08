@@ -19,6 +19,7 @@
  */
 
 #include "drm_bo_buffer.h"
+#include "x3a_stats_pool.h"
 
 namespace XCam {
 
@@ -92,6 +93,19 @@ DrmBoBuffer::get_bo ()
         NULL,
         "DrmBoBuffer get_buffer_data failed with NULL");
     return bo->get_bo ();
+}
+
+SmartPtr<X3aStats>
+DrmBoBuffer::find_3a_stats ()
+{
+    for (VideoBufferList::iterator iter = _attached_bufs.begin ();
+            iter != _attached_bufs.end (); ++iter) {
+        SmartPtr<X3aStats> stats = (*iter).dynamic_cast_ptr<X3aStats> ();
+        if (stats.ptr ())
+            return stats;
+    }
+
+    return NULL;
 }
 
 DrmBoBufferPool::DrmBoBufferPool (SmartPtr<DrmDisplay> &display)

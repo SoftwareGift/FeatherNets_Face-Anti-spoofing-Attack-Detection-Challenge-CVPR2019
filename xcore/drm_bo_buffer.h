@@ -30,6 +30,7 @@
 namespace XCam {
 
 class DrmBoBufferPool;
+class X3aStats;
 
 class DrmBoData
     : public BufferData
@@ -67,6 +68,8 @@ class DrmBoBuffer
 public:
     virtual ~DrmBoBuffer () {}
     drm_intel_bo *get_bo ();
+
+    SmartPtr<X3aStats> find_3a_stats ();
 
 protected:
     DrmBoBuffer (const VideoBufferInfo &info, const SmartPtr<DrmBoData> &data);

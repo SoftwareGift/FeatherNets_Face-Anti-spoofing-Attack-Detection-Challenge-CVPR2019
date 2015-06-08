@@ -22,6 +22,8 @@
 #define XCAM_VIDEO_BUFFER_H
 
 #include "xcam_utils.h"
+#include "smartptr.h"
+#include <list>
 
 namespace XCam {
 
@@ -59,6 +61,9 @@ namespace XCam {
 #define XCAM_PIX_FMT_LAB    v4l2_fourcc('h', 'L', 'a', 'b')
 
 #define XCAM_VIDEO_MAX_COMPONENTS 4
+
+class VideoBuffer;
+typedef std::list<SmartPtr<VideoBuffer>>  VideoBufferList;
 
 struct VideoBufferInfo {
     uint32_t format;

@@ -38,6 +38,8 @@ BufferProxy::BufferProxy (const SmartPtr<BufferData> &data)
 
 BufferProxy::~BufferProxy ()
 {
+    clear_attached_buffers ();
+
     if (_pool.ptr ()) {
         _pool->release (_data);
     }
@@ -64,6 +66,43 @@ BufferProxy::get_fd ()
 {
     XCAM_ASSERT (_data.ptr ());
     return _data->get_fd ();
+}
+
+bool
+BufferProxy::attach_buffer (const SmartPtr<VideoBuffer>& buf)
+{
+    _attached_bufs.push_back (buf);
+    return true;
+}
+
+bool
+BufferProxy::detach_buffer (const SmartPtr<VideoBuffer>& buf)
+{
+    for (VideoBufferList::iterator iter = _attached_bufs.begin ();
+            iter != _attached_bufs.end (); ++iter) {
+        SmartPtr<VideoBuffer>& current = *iter;
+        if (current.ptr () == buf.ptr ()) {
+            _attached_bufs.erase (iter);
+            return true;
+        }
+    }
+
+    //not found
+    return false;
+}
+
+bool
+BufferProxy::copy_attaches (const SmartPtr<BufferProxy>& buf)
+{
+    _attached_bufs.insert (
+        _attached_bufs.end (), buf->_attached_bufs.begin (), buf->_attached_bufs.end ());
+    return true;
+}
+
+void
+BufferProxy::clear_attached_buffers ()
+{
+    _attached_bufs.clear ();
 }
 
 BufferPool::BufferPool ()

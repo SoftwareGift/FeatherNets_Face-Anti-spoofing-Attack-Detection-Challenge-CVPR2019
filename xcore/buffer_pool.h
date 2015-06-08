@@ -65,13 +65,22 @@ public:
     virtual bool unmap ();
     virtual int get_fd();
 
+    bool attach_buffer (const SmartPtr<VideoBuffer>& buf);
+    bool detach_buffer (const SmartPtr<VideoBuffer>& buf);
+    bool copy_attaches (const SmartPtr<BufferProxy>& buf);
+
 protected:
     SmartPtr<BufferData> &get_buffer_data () {
         return _data;
     }
 
+    void clear_attached_buffers ();
+
 private:
     XCAM_DEAD_COPY (BufferProxy);
+
+protected:
+    VideoBufferList            _attached_bufs;
 
 private:
     SmartPtr<BufferData>       _data;
