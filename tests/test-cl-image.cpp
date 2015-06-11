@@ -168,7 +168,8 @@ int main (int argc, char *argv[])
                 input_format = V4L2_PIX_FMT_RGBA32;
             else if (! strcasecmp (optarg, "rgba64"))
                 input_format = XCAM_PIX_FMT_RGBA64;
-
+            else if (!strcasecmp (optarg, "rg12"))
+                input_format = V4L2_PIX_FMT_SRGGB12;
             else
                 print_help (bin_name);
             break;
