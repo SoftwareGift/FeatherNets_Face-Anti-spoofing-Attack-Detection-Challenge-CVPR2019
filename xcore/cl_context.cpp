@@ -117,6 +117,7 @@ CLContext::flush ()
     cl_command_queue cmd_queue_id = NULL;
     SmartPtr<CLCommandQueue> cmd_queue = get_default_cmd_queue ();
 
+    XCAM_ASSERT (cmd_queue.ptr ());
     cmd_queue_id = cmd_queue->get_cmd_queue_id ();
     error_code = clFlush (cmd_queue_id);
 
@@ -137,6 +138,7 @@ CLContext::finish ()
     cl_command_queue cmd_queue_id = NULL;
     SmartPtr<CLCommandQueue> cmd_queue = get_default_cmd_queue ();
 
+    XCAM_ASSERT (cmd_queue.ptr ());
     cmd_queue_id = cmd_queue->get_cmd_queue_id ();
     error_code = clFinish (cmd_queue_id);
 

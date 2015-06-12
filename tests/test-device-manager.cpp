@@ -169,6 +169,11 @@ MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
     }
 
     open_file ();
+
+    if (!_file) {
+        XCAM_LOG_ERROR ("open file failed");
+    }
+
     if (fwrite (frame, size, 1, _file) <= 0) {
         XCAM_LOG_WARNING ("write frame failed.");
     }

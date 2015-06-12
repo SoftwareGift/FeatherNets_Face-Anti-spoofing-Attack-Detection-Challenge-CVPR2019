@@ -101,6 +101,7 @@ X3aStatsPool::allocate_data (const VideoBufferInfo &buffer_info)
         (XCam3AStats *) xcam_malloc0 (
             sizeof (XCam3AStats) +
             sizeof (XCamGridStat) * _stats_info.aligned_width * _stats_info.aligned_height);
+    XCAM_ASSERT (stats);
     stats->info = _stats_info;
     return new X3aStatsData (stats);
 }

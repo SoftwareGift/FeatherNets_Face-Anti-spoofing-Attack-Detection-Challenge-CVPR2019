@@ -131,7 +131,7 @@ DrmDisplay::get_connector(drmModeRes *res)
                      "No connector found");
     for(int i = 0; i < res->count_connectors; ++i) {
         _connector = drmModeGetConnector(_fd, res->connectors[i]);
-        if(_connector->connection == DRM_MODE_CONNECTED) {
+        if(_connector && _connector->connection == DRM_MODE_CONNECTED) {
             _con_id = res->connectors[i];
             _encoder_id = res->encoders[i];
             _mode = *_connector->modes;
@@ -300,6 +300,7 @@ DrmDisplay::render_setup_frame_buffer (SmartPtr<VideoBuffer> &buf)
         bo_handle = prime.handle;
     } else if (bo_buf.ptr ()) {
         const drm_intel_bo* bo = bo_buf->get_bo ();
+        XCAM_ASSERT (bo);
         bo_handle = bo->handle;
     } else {
         XCAM_ASSERT (false);

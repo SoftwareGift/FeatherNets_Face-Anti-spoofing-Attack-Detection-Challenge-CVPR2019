@@ -78,6 +78,7 @@ read_cpf_file (const char *cpf_file, uint8_t **buf)
         goto read_error;
 
     *buf = (uint8_t*) xcam_new0 (size);
+    XCAM_ASSERT (buf);
     if (fread (*buf, 1, size, fp) != size)
         goto read_error;
 
@@ -127,6 +128,7 @@ xcam_cpf_read (const char *cpf_file, XCamCpfBlob *aiq_cpf, XCamCpfBlob *hal_cpf)
         goto free_buf;
     }
     aiq_cpf->data = (uint8_t*) malloc (blob_size);
+    XCAM_ASSERT (aiq_cpf->data);
     aiq_cpf->size = blob_size;
     memcpy (aiq_cpf->data, blob, blob_size);
 
@@ -149,6 +151,7 @@ xcam_cpf_read (const char *cpf_file, XCamCpfBlob *aiq_cpf, XCamCpfBlob *hal_cpf)
             // ignore HAL, not necessary
         } else if (blob && blob_size > 0) {
             hal_cpf->data = (uint8_t*) malloc (blob_size);
+            XCAM_ASSERT (hal_cpf->data);
             hal_cpf->size = blob_size;
             memcpy (hal_cpf->data, blob, blob_size);
         }

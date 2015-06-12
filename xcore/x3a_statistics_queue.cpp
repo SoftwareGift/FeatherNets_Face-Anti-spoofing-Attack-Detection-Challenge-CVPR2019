@@ -160,8 +160,9 @@ X3aStatisticsQueue::alloc_isp_statsictics ()
     //uint32_t grid_size = _grid_info.width * _grid_info.height;
 
     struct atomisp_3a_statistics *stats = xcam_malloc0_type (struct atomisp_3a_statistics);
+    XCAM_ASSERT (stats);
     stats->data = (struct atomisp_3a_output*)xcam_malloc0 (grid_size * sizeof(*stats->data));
-    XCAM_ASSERT (stats && stats->data);
+    XCAM_ASSERT (stats->data);
     if (!stats || !stats->data)
         return NULL;
 
@@ -202,9 +203,8 @@ X3aStatisticsQueue::allocate_data (const VideoBufferInfo &buffer_info)
     stats = (XCam3AStats *) xcam_malloc0 (
                 sizeof (XCam3AStats) +
                 sizeof (XCamGridStat) * stats_info.aligned_width * stats_info.aligned_height);
-    stats->info = stats_info;
-
     XCAM_ASSERT (isp_stats && stats);
+    stats->info = stats_info;
 
     return new X3aIspStatsData (isp_stats, stats);
 }

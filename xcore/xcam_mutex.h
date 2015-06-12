@@ -72,6 +72,7 @@ public:
 
         gettimeofday (&now, NULL);
         now.tv_usec += time_in_us;
+        xcam_mem_clear (abstime);
         abstime.tv_sec += now.tv_sec + now.tv_usec / 1000000;
         abstime.tv_nsec = (now.tv_usec % 1000000) * 1000;
 

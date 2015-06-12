@@ -219,6 +219,7 @@ create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type)
         NULL,
         "CL image handler(%s) load source failed", csc_kernel->get_kernel_name());
 
+    XCAM_ASSERT (csc_kernel.ptr ());
     XCAM_ASSERT (csc_kernel->is_valid ());
 
     csc_kernel->set_csc_kernel_type (type);

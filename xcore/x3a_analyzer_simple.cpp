@@ -218,6 +218,12 @@ X3aAnalyzerSimple::analyze_ae (X3aResultList &output)
     static const uint32_t expect_y_mean = 110;
 
     const XCam3AStats *stats = _current_stats->get_stats ();
+    XCAM_FAIL_RETURN(
+        WARNING,
+        stats,
+        XCAM_RETURN_ERROR_UNKNOWN,
+        "failed to get XCam3AStats");
+
     double sum_y = 0.0;
     double target_exposure = 1.0;
     SmartPtr<X3aExposureResult> result = new X3aExposureResult (XCAM_3A_RESULT_EXPOSURE);

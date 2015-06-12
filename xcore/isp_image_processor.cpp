@@ -156,7 +156,8 @@ IspImageProcessor::apply_exposure_result (X3aResultList &results)
                     ((ret = _controller->set_3a_exposure (res.ptr ())) != XCAM_RETURN_NO_ERROR)) {
                 XCAM_LOG_WARNING ("set 3a exposure to sensor failed");
             }
-            res->set_done (true);
+            if (res.ptr ())
+                res->set_done (true);
             results.erase (iter++);
         } else if ((*iter)->get_type() == XCAM_3A_RESULT_EXPOSURE) {
             SmartPtr<X3aExposureResult> res = (*iter).dynamic_cast_ptr<X3aExposureResult> ();
