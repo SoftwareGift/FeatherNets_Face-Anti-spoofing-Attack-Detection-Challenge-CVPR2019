@@ -202,6 +202,8 @@ static gboolean gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps);
 static gboolean gst_xcam_src_decide_allocation (GstBaseSrc *src, GstQuery *query);
 static gboolean gst_xcam_src_start (GstBaseSrc *src);
 static gboolean gst_xcam_src_stop (GstBaseSrc *src);
+static gboolean gst_xcam_src_unlock (GstBaseSrc *src);
+static gboolean gst_xcam_src_unlock_stop (GstBaseSrc *src);
 static GstFlowReturn gst_xcam_src_alloc (GstBaseSrc *src, guint64 offset, guint size, GstBuffer **buffer);
 static GstFlowReturn gst_xcam_src_fill (GstPushSrc *src, GstBuffer *out);
 
@@ -326,6 +328,8 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
 
     basesrc_class->start = GST_DEBUG_FUNCPTR (gst_xcam_src_start);
     basesrc_class->stop = GST_DEBUG_FUNCPTR (gst_xcam_src_stop);
+    basesrc_class->unlock = GST_DEBUG_FUNCPTR (gst_xcam_src_unlock);
+    basesrc_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_xcam_src_unlock_stop);
     basesrc_class->alloc = GST_DEBUG_FUNCPTR (gst_xcam_src_alloc);
     pushsrc_class->fill = GST_DEBUG_FUNCPTR (gst_xcam_src_fill);
 }
@@ -336,6 +340,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
 {
     gst_base_src_set_format (GST_BASE_SRC (xcamsrc), GST_FORMAT_TIME);
     gst_base_src_set_live (GST_BASE_SRC (xcamsrc), TRUE);
+    gst_base_src_set_do_timestamp (GST_BASE_SRC (xcamsrc), TRUE);
 
     xcamsrc->buf_count = DEFAULT_PROP_BUFFERCOUNT;
     xcamsrc->sensor_id = 0;
@@ -357,6 +362,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->analyzer_type = DEFAULT_PROP_ANALYZER;
     XCAM_CONSTRUCTOR (xcamsrc->device_manager, SmartPtr<MainDeviceManager>);
     xcamsrc->device_manager = new MainDeviceManager;
+
 }
 
 static void
@@ -600,11 +606,34 @@ gst_xcam_src_stop (GstBaseSrc *src)
 {
     GstXCamSrc *xcamsrc = GST_XCAM_SRC_CAST (src);
     SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
+    XCAM_ASSERT (device_manager.ptr ());
 
     device_manager->stop();
     device_manager->get_capture_device()->close ();
     device_manager->get_event_device()->close ();
     device_manager->pause_dequeue ();
+    return TRUE;
+}
+
+static gboolean
+gst_xcam_src_unlock (GstBaseSrc *src)
+{
+    GstXCamSrc *xcamsrc = GST_XCAM_SRC_CAST (src);
+    SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
+    XCAM_ASSERT (device_manager.ptr ());
+
+    device_manager->pause_dequeue ();
+    return TRUE;
+}
+
+static gboolean
+gst_xcam_src_unlock_stop (GstBaseSrc *src)
+{
+    GstXCamSrc *xcamsrc = GST_XCAM_SRC_CAST (src);
+    SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
+    XCAM_ASSERT (device_manager.ptr ());
+
+    device_manager->resume_dequeue ();
     return TRUE;
 }
 
@@ -737,7 +766,11 @@ gst_xcam_src_decide_allocation (GstBaseSrc *src, GstQuery *query)
         gst_query_remove_nth_allocation_pool (query, 0);
     }
 
-    gst_query_add_allocation_pool (query, xcamsrc->pool, 0, 0, 0);
+    gst_query_add_allocation_pool (
+        query, xcamsrc->pool,
+        GST_VIDEO_INFO_WIDTH (&xcamsrc->gst_video_info),
+        GST_XCAM_SRC_BUF_COUNT (xcamsrc),
+        GST_XCAM_SRC_BUF_COUNT (xcamsrc));
 
     return GST_BASE_SRC_CLASS (parent_class)->decide_allocation (src, query);
 }

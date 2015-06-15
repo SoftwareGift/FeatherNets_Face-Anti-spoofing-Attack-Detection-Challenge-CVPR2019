@@ -212,8 +212,10 @@ gst_xcam_buffer_pool_acquire_buffer (
         video_meta->map = NULL;
         video_meta->unmap = NULL;
     }
-    GST_BUFFER_TIMESTAMP (out_buf) = video_buf->get_timestamp () * 1000; //us to ns
-    GST_BUFFER_DURATION (out_buf) = GST_XCAM_SRC_FRMAE_DURATION (pool->src);
+
+    // If do_timestamp, no necessary to set timestamp
+    //GST_BUFFER_TIMESTAMP (out_buf) = video_buf->get_timestamp () * 1000; //us to ns
+    //GST_BUFFER_DURATION (out_buf) = GST_XCAM_SRC_FRMAE_DURATION (pool->src);
 
     *buffer = out_buf;
     return GST_FLOW_OK;
