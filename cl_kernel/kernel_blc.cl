@@ -16,6 +16,25 @@ typedef struct
     float  level_gb;   /* Black level for GB pixels */
 } BLCConfig;
 
+uint decompression(uint data_in, uint color_bits)
+{
+    uint data_out = 0;
+
+    if (color_bits == 12) {
+        if (data_in <= 2048)
+            data_out = data_in;
+        else if ((data_in > 2048) && (data_in <= 2944))
+            data_out = 2048 + 16 * (data_in - 2048);
+        else
+            data_out = 16384 + 64 * (data_in - 2944);
+    }
+    else {
+        data_out = data_in << (16 - color_bits);
+    }
+
+    return data_out;
+}
+
 __kernel void kernel_blc (__read_only image2d_t input,
                           __write_only image2d_t output,
                           BLCConfig blc_config,
@@ -33,25 +52,24 @@ __kernel void kernel_blc (__read_only image2d_t input,
     int2 pos_b = (int2)(x1, y1);
 
     uint4 pixel;
-    uint shift_left_bits;
-    shift_left_bits = 16 - color_bits;
+
     pixel = read_imageui(input, sampler, pos_r);
-    pixel.x = pixel.x << shift_left_bits;
-    pixel.x = pixel.x - blc_config.level_r * 65536;
+    pixel.x = floor(pixel.x - blc_config.level_r * (pown(2.0, color_bits)) + 0.5);
+    pixel.x = decompression(pixel.x, color_bits);
     write_imageui(output, pos_r, pixel);
 
     pixel = read_imageui(input, sampler, pos_gr);
-    pixel.x = pixel.x << shift_left_bits;
-    pixel.x = pixel.x - blc_config.level_gr * 65536;
+    pixel.x = floor(pixel.x - blc_config.level_gr * (pown(2.0, color_bits)) + 0.5);
+    pixel.x = decompression(pixel.x, color_bits);
     write_imageui(output, pos_gr, pixel);
 
     pixel = read_imageui(input, sampler, pos_gb);
-    pixel.x = pixel.x << shift_left_bits;
-    pixel.x = pixel.x - blc_config.level_gb * 65536;
+    pixel.x = floor(pixel.x - blc_config.level_gb * (pown(2.0, color_bits)) + 0.5);
+    pixel.x = decompression(pixel.x, color_bits);
     write_imageui(output, pos_gb, pixel);
 
     pixel = read_imageui(input, sampler, pos_b);
-    pixel.x = pixel.x << shift_left_bits;
-    pixel.x = pixel.x - blc_config.level_b * 65536;
+    pixel.x = floor(pixel.x - blc_config.level_b * (pown(2.0, color_bits)) + 0.5);
+    pixel.x = decompression(pixel.x, color_bits);
     write_imageui(output, pos_b, pixel);
 }

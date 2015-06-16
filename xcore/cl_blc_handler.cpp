@@ -66,10 +66,10 @@ CLBlcImageKernel::prepare_arguments (
     /* This is a temporary workaround to hard code black level for 12bit raw data.
         And it should be removed once tunning is finished.   */
     if (_color_bits == 12) {
-        _blc_config.level_gr = 240 / (double)pow(2, 16);
-        _blc_config.level_r = 240 / (double)pow(2, 16);
-        _blc_config.level_b = 240 / (double)pow(2, 16);
-        _blc_config.level_gb = 240 / (double)pow(2, 16);
+        _blc_config.level_gr = 240 / (double)pow(2, 12);
+        _blc_config.level_r = 240 / (double)pow(2, 12);
+        _blc_config.level_b = 240 / (double)pow(2, 12);
+        _blc_config.level_gb = 240 / (double)pow(2, 12);
     }
 
     //set args;
