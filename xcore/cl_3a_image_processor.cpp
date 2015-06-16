@@ -30,6 +30,7 @@
 #include "cl_snr_handler.h"
 #include "cl_macc_handler.h"
 #include "cl_tnr_handler.h"
+#include "cl_ee_handler.h"
 
 namespace XCam {
 
@@ -43,6 +44,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _tnr_mode (0)
     , _enable_gamma (true)
     , _enable_macc (true)
+    , _enable_ee (true)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
@@ -204,6 +206,20 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         break;
     }
 
+    case XCAM_3A_RESULT_EDGE_ENHANCEMENT: {
+        SmartPtr<X3aEdgeEnhancementResult> ee_ee_res = result.dynamic_cast_ptr<X3aEdgeEnhancementResult> ();
+        XCAM_ASSERT (ee_ee_res.ptr ());
+        if (!_ee.ptr())
+            break;
+        _ee->set_ee_config_ee (ee_ee_res->get_standard_result ());
+        SmartPtr<X3aNoiseReductionResult> ee_nr_res = result.dynamic_cast_ptr<X3aNoiseReductionResult> ();
+        XCAM_ASSERT (ee_nr_res.ptr ());
+        if (!_ee.ptr())
+            break;
+        _ee->set_ee_config_nr (ee_nr_res->get_standard_result ());
+        break;
+    }
+
     default:
         XCAM_LOG_WARNING ("CL3aImageProcessor unknow 3a result:%d", res_type);
         break;
@@ -346,6 +362,17 @@ CL3aImageProcessor::create_handlers ()
     _tnr_yuv->set_mode (CL_TNR_TYPE_YUV & _tnr_mode);
     add_handler (image_handler);
 
+    /* ee */
+    image_handler = create_cl_ee_image_handler (context);
+    _ee = image_handler.dynamic_cast_ptr<CLEeImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _ee.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create ee handler failed");
+    _ee->set_kernels_enable (_enable_ee);
+    add_handler (image_handler);
+
     if (_out_smaple_type == OutSampleRGB) {
         image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
         _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
@@ -438,6 +465,18 @@ CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
         ret = _tnr_yuv->set_kernels_enable (mode & CL_TNR_TYPE_YUV);
 
     return ret;
+}
+
+bool
+CL3aImageProcessor::set_ee (bool enable)
+{
+    _enable_ee = enable;
+
+    STREAM_LOCK;
+
+    if (_ee.ptr ())
+        return _ee->set_kernels_enable (enable);
+    return true;
 }
 
 };

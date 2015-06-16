@@ -32,6 +32,7 @@
 #include "cl_gamma_handler.h"
 #include "cl_snr_handler.h"
 #include "cl_macc_handler.h"
+#include "cl_ee_handler.h"
 
 using namespace XCam;
 
@@ -48,6 +49,7 @@ enum TestHandlerType {
     TestHandlerGamma,
     TestHandlerSimpleNoiseReduction,
     TestHandlerMacc,
+    TestHandlerEe,
 };
 
 struct TestFileHandle {
@@ -115,7 +117,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, macc]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, macc, ee]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
@@ -211,6 +213,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerSimpleNoiseReduction;
             else if (!strcasecmp (optarg, "macc"))
                 handler_type = TestHandlerMacc;
+            else if (!strcasecmp (optarg, "ee"))
+                handler_type = TestHandlerEe;
             else
                 print_help (bin_name);
             break;
@@ -339,7 +343,20 @@ int main (int argc, char *argv[])
     case TestHandlerMacc:
         image_handler = create_cl_macc_image_handler (context);
         break;
-
+    case TestHandlerEe: {
+        XCam3aResultEdgeEnhancement ee;
+        XCam3aResultNoiseReduction nr;
+        ee.gain = 2.0;
+        ee.threshold = 150.0;
+        nr.gain = 0.1;
+        SmartPtr<CLEeImageHandler> ee_handler;
+        image_handler = create_cl_ee_image_handler (context);
+        ee_handler = image_handler.dynamic_cast_ptr<CLEeImageHandler> ();
+        XCAM_ASSERT (ee_handler.ptr ());
+        ee_handler->set_ee_config_ee (ee);
+        ee_handler->set_ee_config_nr (nr);
+        break;
+    }
     default:
         XCAM_LOG_ERROR ("unsupported image handler type:%d", handler_type);
         return -1;

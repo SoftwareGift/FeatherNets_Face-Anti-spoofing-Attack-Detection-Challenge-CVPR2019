@@ -118,6 +118,7 @@ xcam_sources +=              \
         cl_snr_handler.cpp       \
 	cl_macc_handler.cpp	 \
 	cl_tnr_handler.cpp	\
+	cl_ee_handler.cpp	 \
 	$(NULL)
 endif
 
