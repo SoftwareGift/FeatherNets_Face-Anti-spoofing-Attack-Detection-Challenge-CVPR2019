@@ -100,6 +100,7 @@ DeviceManager::set_capture_device (SmartPtr<V4l2Device> device)
     _device = device;
     return true;
 }
+
 bool
 DeviceManager::set_event_device (SmartPtr<V4l2SubDevice> device)
 {

@@ -63,6 +63,8 @@ public:
     XCamReturn pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn post_execute ();
 
+    virtual void pre_stop () {}
+
 protected:
     virtual XCamReturn prepare_arguments (
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
@@ -95,7 +97,7 @@ public:
     bool is_kernels_enabled () const;
 
     XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    void emit_stop ();
+    virtual void emit_stop ();
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (

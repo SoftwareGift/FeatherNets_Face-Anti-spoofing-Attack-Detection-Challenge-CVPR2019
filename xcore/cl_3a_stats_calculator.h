@@ -46,6 +46,8 @@ public:
 
     virtual XCamReturn post_execute ();
 
+    virtual void pre_stop ();
+
 private:
     bool allocate_data (const VideoBufferInfo &buffer_info);
 

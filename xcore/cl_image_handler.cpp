@@ -258,6 +258,11 @@ CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBo
 void
 CLImageHandler::emit_stop ()
 {
+    for (KernelList::iterator i_kernel = _kernels.begin ();
+            i_kernel != _kernels.end ();  ++i_kernel) {
+        (*i_kernel)->pre_stop ();
+    }
+
     if (_buf_pool.ptr ())
         _buf_pool->stop ();
 }

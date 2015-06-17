@@ -84,6 +84,8 @@ CL3AStatsCalculatorKernel::post_execute ()
     _image_in.release ();
     //copy out and post 3a stats
     buffer = _stats_pool->get_buffer (_stats_pool);
+    XCAM_FAIL_RETURN (WARNING, buffer.ptr (), XCAM_RETURN_ERROR_MEM, "3a stats pool stopped.");
+
     stats = buffer.dynamic_cast_ptr<X3aStats> ();
     XCAM_ASSERT (stats.ptr ());
     stats_ptr = stats->get_stats ();
@@ -103,6 +105,13 @@ CL3AStatsCalculatorKernel::post_execute ()
     _output_buffer->attach_buffer (stats);
     //post stats out
     return _image->post_stats (stats);
+}
+
+void
+CL3AStatsCalculatorKernel::pre_stop ()
+{
+    if (_stats_pool.ptr ())
+        _stats_pool->stop ();
 }
 
 bool
