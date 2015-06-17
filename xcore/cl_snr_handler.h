@@ -50,7 +50,6 @@ class CLSnrImageHandler
 public:
     explicit CLSnrImageHandler (const char *name);
     bool set_simple_kernel(SmartPtr<CLSnrImageKernel> &kernel);
-    bool set_mode (uint32_t mode);
 
 private:
     XCAM_DEAD_COPY (CLSnrImageHandler);

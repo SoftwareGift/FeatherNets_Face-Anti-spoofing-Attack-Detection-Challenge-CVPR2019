@@ -39,12 +39,10 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _out_smaple_type (OutSampleYuv)
     , _enable_hdr (false)
-    , _enable_denoise (false)
-    , _enable_snr (true)
     , _tnr_mode (0)
     , _enable_gamma (true)
     , _enable_macc (true)
-    , _enable_ee (true)
+    , _snr_mode (XCAM_DENOISE_TYPE_SIMPLE | XCAM_DENOISE_TYPE_EE)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
@@ -297,15 +295,15 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create demosaic handler failed");
     add_handler (image_handler);
 
-    /* denoise */
+    /* bilateral noise reduction */
     image_handler = create_cl_denoise_image_handler (context);
-    _denoise = image_handler.dynamic_cast_ptr<CLDenoiseImageHandler> ();
+    _binr = image_handler.dynamic_cast_ptr<CLDenoiseImageHandler> ();
     XCAM_FAIL_RETURN (
         WARNING,
-        _denoise.ptr (),
+        _binr.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create denoise handler failed");
-    _denoise->set_mode (_enable_denoise);
+    _binr->set_kernels_enable (XCAM_DENOISE_TYPE_BILATERAL & _snr_mode);
     add_handler (image_handler);
 
     /* Temporal Noise Reduction (RGB domain) */
@@ -327,7 +325,7 @@ CL3aImageProcessor::create_handlers ()
         _snr.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create snr handler failed");
-    _snr->set_mode (_enable_snr);
+    _snr->set_kernels_enable (XCAM_DENOISE_TYPE_SIMPLE & _snr_mode);
     add_handler (image_handler);
 
     /* macc */
@@ -370,7 +368,7 @@ CL3aImageProcessor::create_handlers ()
         _ee.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create ee handler failed");
-    _ee->set_kernels_enable (_enable_ee);
+    _ee->set_kernels_enable (XCAM_DENOISE_TYPE_EE & _snr_mode);
     add_handler (image_handler);
 
     if (_out_smaple_type == OutSampleRGB) {
@@ -401,19 +399,6 @@ CL3aImageProcessor::set_hdr (uint32_t mode)
 }
 
 bool
-CL3aImageProcessor::set_denoise (uint32_t mode)
-{
-    _enable_denoise = mode;
-
-    STREAM_LOCK;
-
-    if (_denoise.ptr ())
-        return _denoise->set_mode (mode);
-    return true;
-
-}
-
-bool
 CL3aImageProcessor::set_gamma (bool enable)
 {
     _enable_gamma = enable;
@@ -427,14 +412,19 @@ CL3aImageProcessor::set_gamma (bool enable)
 }
 
 bool
-CL3aImageProcessor::set_snr (uint32_t mode)
+CL3aImageProcessor::set_denoise (uint32_t mode)
 {
-    _enable_snr = mode;
+    _snr_mode = mode;
 
     STREAM_LOCK;
 
     if (_snr.ptr ())
-        return _snr->set_mode (mode);
+        _snr->set_kernels_enable (XCAM_DENOISE_TYPE_SIMPLE & _snr_mode);
+    if (_binr.ptr ())
+        _binr->set_kernels_enable (XCAM_DENOISE_TYPE_BILATERAL & _snr_mode);
+    if (_ee.ptr ())
+        _ee->set_kernels_enable (XCAM_DENOISE_TYPE_EE & _snr_mode);
+
     return true;
 }
 
@@ -466,17 +456,4 @@ CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
 
     return ret;
 }
-
-bool
-CL3aImageProcessor::set_ee (bool enable)
-{
-    _enable_ee = enable;
-
-    STREAM_LOCK;
-
-    if (_ee.ptr ())
-        return _ee->set_kernels_enable (enable);
-    return true;
-}
-
 };

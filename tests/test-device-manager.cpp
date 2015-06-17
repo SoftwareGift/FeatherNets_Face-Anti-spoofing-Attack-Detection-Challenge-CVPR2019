@@ -31,13 +31,12 @@
 #include "cl_csc_image_processor.h"
 #include "cl_hdr_handler.h"
 #include "cl_tnr_handler.h"
-#include "cl_denoise_handler.h"
 #endif
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #endif
 #include "analyzer_loader.h"
-
+#include <base/xcam_3a_types.h>
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -273,6 +272,7 @@ void print_help (const char *bin_name)
             "\t --tnr-level   specify tnr level\n"
             "\t --enable-bnr  enable bilateral noise reduction\n"
             "\t --enable-snr  enable simple noise reduction\n"
+            "\t --enable-ee   enable YEENR\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
 }
@@ -305,8 +305,7 @@ int main (int argc, char *argv[])
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
     uint32_t hdr_type = CL_HDR_DISABLE;
     uint32_t tnr_type = CL_TNR_DISABLE;
-    uint32_t bnr_type = CL_DENOISE_DISABLE;
-    uint32_t snr_type = CL_DENOISE_DISABLE;
+    uint32_t denoise_type = 0;
     uint8_t tnr_level = 0;
 
     const char *short_opts = "sca:n:m:f:d:pi:e:h";
@@ -316,6 +315,7 @@ int main (int argc, char *argv[])
         {"tnr-level", required_argument, NULL, 'L'},
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-snr", no_argument, NULL, 'S'},
+        {"enable-ee", no_argument, NULL, 'E'},
         {0, 0, 0, 0},
     };
 
@@ -402,11 +402,15 @@ int main (int argc, char *argv[])
             break;
         }
         case 'B': {
-            bnr_type = CL_DENOISE_TYPE_BILATERIAL;
+            denoise_type |= XCAM_DENOISE_TYPE_BILATERAL;
             break;
         }
         case 'S': {
-            snr_type = CL_DENOISE_TYPE_SIMPLE;
+            denoise_type |= XCAM_DENOISE_TYPE_SIMPLE;
+            break;
+        }
+        case 'E': {
+            denoise_type |= XCAM_DENOISE_TYPE_EE;
             break;
         }
         case 'T': {
@@ -533,11 +537,10 @@ int main (int argc, char *argv[])
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
         cl_processor->set_hdr (hdr_type);
-        cl_processor->set_denoise (bnr_type);
+        cl_processor->set_denoise (denoise_type);
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
-        cl_processor->set_snr (snr_type);
         cl_processor->set_tnr (tnr_type, tnr_level);
         device_manager->add_image_processor (cl_processor);
     }

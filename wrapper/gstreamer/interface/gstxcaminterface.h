@@ -416,10 +416,16 @@ struct _GstXCam3AInterface {
      * \brief set denoise mode.
      *
      * \param[in,out]    xcam          XCam3A handle
-     * \param[in]        mode          0: disable, 1: simple, 2: bilinear
+     * \param[in]        mode          bit mask to enable/disable denoise functions
+     *                                 each bit controls a specific denoise function, 0: disable, 1: enable
+     *                                   bit 0: simple noise reduction
+     *                                   bit 1: bilateral noise reduction
+     *                                   bit 2: luminance noise reduction and edge enhancement
+     *                                   bit 3: bayer noise reduction
+     *                                   bit 4: advanced bayer noise reduction
      * \return           bool          0 on success
      */
-    gboolean (* set_denoise_mode)               (GstXCam3A *xcam, guint8 mode);
+    gboolean (* set_denoise_mode)               (GstXCam3A *xcam, guint32 mode);
 
     /*!
      * \brief set gamma mode.

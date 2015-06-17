@@ -83,14 +83,6 @@ CLDenoiseImageHandler::CLDenoiseImageHandler (const char *name)
 }
 
 bool
-CLDenoiseImageHandler::set_mode (uint32_t mode)
-{
-    _bilateral_kernel->set_enable (mode == CL_DENOISE_TYPE_BILATERIAL);
-
-    return true;
-}
-
-bool
 CLDenoiseImageHandler::set_bi_kernel (SmartPtr<CLDenoiseImageKernel> &kernel)
 {
     SmartPtr<CLImageKernel> image_kernel = kernel;

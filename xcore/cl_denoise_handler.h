@@ -25,12 +25,6 @@
 
 namespace XCam {
 
-enum CLDenoiseType {
-    CL_DENOISE_DISABLE = 0,
-    CL_DENOISE_TYPE_SIMPLE,
-    CL_DENOISE_TYPE_BILATERIAL,
-};
-
 class CLDenoiseImageKernel
     : public CLImageKernel
 {
@@ -56,7 +50,7 @@ class CLDenoiseImageHandler
 {
 public:
     explicit CLDenoiseImageHandler (const char *name);
-    bool set_mode (uint32_t mode);
+    bool set_enable (bool enable);
 
     bool set_bi_kernel (SmartPtr<CLDenoiseImageKernel> &kernel);
 

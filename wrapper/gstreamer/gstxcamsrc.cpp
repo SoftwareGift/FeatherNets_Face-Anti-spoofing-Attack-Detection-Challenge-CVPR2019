@@ -240,7 +240,7 @@ static gboolean gst_xcam_src_set_manual_sharpness (GstXCam3A *xcam3a, guint8 val
 static gboolean gst_xcam_src_set_dvs (GstXCam3A *xcam3a, gboolean enable);
 static gboolean gst_xcam_src_set_night_mode (GstXCam3A *xcam3a, gboolean enable);
 static gboolean gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode);
-static gboolean gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint8 mode);
+static gboolean gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint32 mode);
 static gboolean gst_xcam_src_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable);
 
 static gboolean gst_xcam_src_plugin_init (GstPlugin * xcamsrc);
@@ -1098,7 +1098,7 @@ gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode)
 }
 
 static gboolean
-gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint8 mode)
+gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint32 mode)
 {
     GST_XCAM_INTERFACE_HEADER (xcam3a, src, device_manager, analyzer);
     XCAM_UNUSED (analyzer);
@@ -1107,8 +1107,7 @@ gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint8 mode)
     gboolean ret;
     SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
     if (cl_image_processor.ptr ()) {
-        ret = cl_image_processor->set_denoise (mode) &&
-              cl_image_processor->set_snr (mode);
+        ret = cl_image_processor->set_denoise (mode);
         return ret;
     }
     else

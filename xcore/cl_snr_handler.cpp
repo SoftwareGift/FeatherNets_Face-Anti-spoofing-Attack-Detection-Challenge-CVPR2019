@@ -79,14 +79,6 @@ CLSnrImageHandler::set_simple_kernel(SmartPtr<CLSnrImageKernel> &kernel)
     return true;
 }
 
-bool
-CLSnrImageHandler::set_mode (uint32_t mode)
-{
-    _simple_kernel->set_enable (mode == CL_DENOISE_TYPE_SIMPLE);
-
-    return true;
-}
-
 SmartPtr<CLImageHandler>
 create_cl_snr_image_handler (SmartPtr<CLContext> &context)
 {

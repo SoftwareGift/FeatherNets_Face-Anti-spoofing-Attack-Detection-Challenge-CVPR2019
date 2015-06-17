@@ -145,6 +145,14 @@ typedef enum {
     XCAM_COLOR_EFFECT_GRAYSCALE,
 } XCamColorEffect;
 
+typedef enum {
+    XCAM_DENOISE_TYPE_SIMPLE    = (1UL << 0), // simple noise reduction
+    XCAM_DENOISE_TYPE_BILATERAL = (1UL << 1), // bilateral noise reduction
+    XCAM_DENOISE_TYPE_EE        = (1UL << 2), // luminance noise reduction and edge enhancement
+    XCAM_DENOISE_TYPE_BNR       = (1UL << 3), // bayer noise reduction
+    XCAM_DENOISE_TYPE_ANR       = (1UL << 4), // advanced bayer noise reduction
+} XCamDenoiseType;
+
 XCAM_END_DECLARE
 
 #endif //__XCAM_3A_TYPES_H
