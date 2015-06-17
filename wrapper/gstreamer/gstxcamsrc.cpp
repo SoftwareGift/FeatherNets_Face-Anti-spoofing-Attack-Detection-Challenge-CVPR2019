@@ -347,6 +347,9 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     xcamsrc->device = NULL;
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
+    xcamsrc->time_offset_ready = FALSE;
+    xcamsrc->time_offset = -1;
+    xcamsrc->buf_mark = 0;
     xcamsrc->duration = 0;
     xcamsrc->mem_type = DEFAULT_PROP_MEM_MODE;
     xcamsrc->field = DEFAULT_PROP_FIELD;
@@ -793,12 +796,29 @@ static GstFlowReturn
 gst_xcam_src_fill (GstPushSrc *basesrc, GstBuffer *buf)
 {
     GstXCamSrc *src = GST_XCAM_SRC_CAST (basesrc);
-    XCAM_UNUSED (src);
-    XCAM_UNUSED (buf);
-    //GstClockTime timestamp, duration;
 
-    //GST_BUFFER_TIMESTAMP (buf) = timestamp;
-    //GST_BUFFER_DURATION (buf) = duration;
+    GST_BUFFER_OFFSET (buf) = src->buf_mark;
+    GST_BUFFER_OFFSET_END (buf) = GST_BUFFER_OFFSET (buf) + 1;
+    ++src->buf_mark;
+
+    if (!GST_CLOCK_TIME_IS_VALID (GST_BUFFER_TIMESTAMP (buf)))
+        return GST_FLOW_OK;
+
+    if (!src->time_offset_ready) {
+        GstClock *clock = GST_ELEMENT_CLOCK (src);
+        GstClockTime actual_time = 0;
+
+        if (!clock)
+            return GST_FLOW_OK;
+
+        actual_time = gst_clock_get_time (clock) - GST_ELEMENT_CAST (src)->base_time;
+        src->time_offset = actual_time - GST_BUFFER_TIMESTAMP (buf);
+        src->time_offset_ready = TRUE;
+        gst_object_ref (clock);
+    }
+
+    GST_BUFFER_TIMESTAMP (buf) += src->time_offset;
+    GST_BUFFER_DURATION (buf) = src->duration;
 
     return GST_FLOW_OK;
 }

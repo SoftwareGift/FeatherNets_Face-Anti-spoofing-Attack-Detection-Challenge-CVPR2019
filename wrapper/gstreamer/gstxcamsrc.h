@@ -73,7 +73,11 @@ struct _GstXCamSrc
     char                        *device;
     gboolean                     enable_3a;
 
+    gboolean                     time_offset_ready;
+    int64_t                      time_offset;
+    int64_t                      buf_mark;
     GstClockTime                 duration;
+
     enum v4l2_memory             mem_type;
     enum v4l2_field              field;
     struct v4l2_format           input_format;
