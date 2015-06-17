@@ -50,7 +50,7 @@ int
 V4l2Buffer::get_fd ()
 {
     if (_buf.memory == V4L2_MEMORY_MMAP)
-        return NULL;
+        return -1;
     return _buf.m.fd;
 }
 
