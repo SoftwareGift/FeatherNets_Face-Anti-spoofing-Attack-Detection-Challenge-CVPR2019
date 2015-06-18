@@ -818,7 +818,7 @@ gst_xcam_src_fill (GstPushSrc *basesrc, GstBuffer *buf)
     }
 
     GST_BUFFER_TIMESTAMP (buf) += src->time_offset;
-    GST_BUFFER_DURATION (buf) = src->duration;
+    //GST_BUFFER_DURATION (buf) = src->duration;
 
     return GST_FLOW_OK;
 }
