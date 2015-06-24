@@ -65,6 +65,7 @@ protected:
 private:
     SmartPtr<CLContext>            _context;
     ImageHandlerList               _handlers;
+    XCAM_OBJ_PROFILING_DEFINES;
 };
 
 };

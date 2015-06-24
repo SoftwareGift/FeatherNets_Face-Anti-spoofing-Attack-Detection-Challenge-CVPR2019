@@ -141,6 +141,8 @@ CLImageHandler::CLImageHandler (const char *name)
     XCAM_ASSERT (name);
     if (name)
         _name = strdup (name);
+
+    XCAM_OBJ_PROFILING_INIT;
 }
 
 CLImageHandler::~CLImageHandler ()
@@ -283,6 +285,8 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
         return XCAM_RETURN_NO_ERROR;
     }
 
+    XCAM_OBJ_PROFILING_START;
+
     XCAM_FAIL_RETURN (
         WARNING,
         (ret = prepare_output_buf (input, output)) == XCAM_RETURN_NO_ERROR,
@@ -325,6 +329,8 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
             "cl_image_handler(%s) post_execute kernel(%s) failed",
             XCAM_STR (_name), kernel->get_kernel_name ());
     }
+
+    XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
 
     return XCAM_RETURN_NO_ERROR;
 }

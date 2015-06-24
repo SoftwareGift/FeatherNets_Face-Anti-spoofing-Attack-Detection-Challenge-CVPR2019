@@ -118,6 +118,8 @@ private:
     char                      *_name;
     KernelList                 _kernels;
     SmartPtr<BufferPool>       _buf_pool;
+
+    XCAM_OBJ_PROFILING_DEFINES;
 };
 
 };

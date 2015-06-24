@@ -34,6 +34,11 @@ AC_ARG_ENABLE(debug,
     [], [enable_debug="no"])
 AM_CONDITIONAL([DEBUG], [test "$enable_debug" = "yes"])
 
+AC_ARG_ENABLE(profiling,
+    AS_HELP_STRING([--enable-profiling],
+                   [enable profiling, @<:@default=no@:>@]),
+    [], [enable_profiling="no"])
+
 AC_ARG_ENABLE(drm,
     AS_HELP_STRING([--enable-drm],
                    [enable drm buffer, @<:@default=yes@:>@]),
@@ -73,6 +78,12 @@ if test "$enable_docs" = "yes"; then
     fi
 fi
 AM_CONDITIONAL(ENABLE_DOCS, test "$enable_docs" = "yes")
+
+# check profiling
+ENABLE_PROFILING=0
+if test "$enable_profiling" = "yes"; then
+    ENABLE_PROFILING=1
+fi
 
 # check drm
 HAVE_LIBDRM=0
@@ -152,6 +163,9 @@ AC_SUBST(XCAM_CFLAGS)
 AC_SUBST(XCAM_CXXFLAGS)
 
 # define macor in config.h
+AC_DEFINE_UNQUOTED([ENABLE_PROFILING], $ENABLE_PROFILING,
+    [enable profiling])
+
 AC_DEFINE_UNQUOTED([HAVE_LIBDRM], $HAVE_LIBDRM,
     [have libdrm])
 AM_CONDITIONAL([HAVE_LIBDRM], [test "$HAVE_LIBDRM" -eq 1])
@@ -191,6 +205,7 @@ echo "
      libxcam configuration summary
      version                    : $XCAM_VERSION
      enable debug               : $enable_debug
+     enable profiling           : $enable_profiling
      build aiq analyzer         : $enable_aiq
      build GStreamer plugin     : $enable_gst
      use local aiq              : $use_local_aiq

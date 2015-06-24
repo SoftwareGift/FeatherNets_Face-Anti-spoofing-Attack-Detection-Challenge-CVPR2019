@@ -26,6 +26,7 @@
 #endif
 
 #include <base/xcam_common.h>
+#include <xcam_obj_debug.h>
 extern "C" {
 #include <linux/videodev2.h>
 }

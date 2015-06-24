@@ -35,6 +35,7 @@ CLImageProcessor::CLImageProcessor (const char* name)
     _context = CLDevice::instance ()->get_context ();
     XCAM_ASSERT (_context.ptr());
     XCAM_LOG_DEBUG ("CLImageProcessor constructed");
+    XCAM_OBJ_PROFILING_INIT;
 }
 
 CLImageProcessor::~CLImageProcessor ()
@@ -84,6 +85,8 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
 
+    XCAM_OBJ_PROFILING_START;
+
     drm_bo_in = display->convert_to_drm_bo_buf (display, input);
     XCAM_FAIL_RETURN (
         WARNING,
@@ -108,6 +111,8 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
             "CL image handler(%s) execute buffer failed", (*i_handler)->get_name());
         drm_bo_in = drm_bo_out;
     }
+
+    XCAM_OBJ_PROFILING_END(get_name(), 30);
 
     output = drm_bo_out;
     return XCAM_RETURN_NO_ERROR;

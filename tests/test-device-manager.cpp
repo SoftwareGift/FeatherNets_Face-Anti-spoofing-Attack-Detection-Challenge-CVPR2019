@@ -65,6 +65,7 @@ public:
 #if HAVE_LIBDRM
         _display = DrmDisplay::instance();
 #endif
+        XCAM_OBJ_PROFILING_INIT;
     }
 
     ~MainDeviceManager () {
@@ -106,6 +107,7 @@ private:
     uint32_t   _frame_save;
     SmartPtr<DrmDisplay> _display;
     bool       _enable_display;
+    XCAM_OBJ_PROFILING_DEFINES;
 };
 
 void
@@ -119,8 +121,12 @@ MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
 {
     FPS_CALCULATION (fps_buf, 30);
 
+    XCAM_OBJ_PROFILING_START;
+
     if (_enable_display)
         display_buf (buf);
+
+    XCAM_OBJ_PROFILING_END("main_dev_manager_display", 30);
 
     if (!_save_file)
         return ;
