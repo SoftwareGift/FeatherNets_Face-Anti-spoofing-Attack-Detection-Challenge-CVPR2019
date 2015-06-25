@@ -65,6 +65,7 @@ IspImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_G_GAMMA:
     case XCAM_3A_RESULT_B_GAMMA:
     case XCAM_3A_RESULT_MACC:
+    case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
         return true;
     default:
         return false;

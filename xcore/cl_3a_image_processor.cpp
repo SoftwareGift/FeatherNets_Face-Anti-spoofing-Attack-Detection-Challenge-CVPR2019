@@ -32,7 +32,7 @@
 #include "cl_tnr_handler.h"
 #include "cl_ee_handler.h"
 #include "cl_dpc_handler.h"
-
+#include "cl_bnr_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 8
 
@@ -105,6 +105,7 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_RGB2YUV_MATRIX:
     case XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION:
     case XCAM_3A_RESULT_MACC:
+    case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
         return true;
 
     default:
@@ -225,6 +226,15 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         break;
     }
 
+    case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION: {
+        SmartPtr<X3aBayerNoiseReduction> bnr_res = result.dynamic_cast_ptr<X3aBayerNoiseReduction> ();
+        XCAM_ASSERT (bnr_res.ptr ());
+        if (!_bnr.ptr())
+            break;
+        _bnr->set_bnr_config (bnr_res->get_standard_result ());
+        break;
+    }
+
     default:
         XCAM_LOG_WARNING ("CL3aImageProcessor unknow 3a result:%d", res_type);
         break;
@@ -258,6 +268,16 @@ CL3aImageProcessor::create_handlers ()
         image_handler.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create dpc handler failed");
+    add_handler (image_handler);
+
+    image_handler = create_cl_bnr_image_handler (context);
+    _bnr = image_handler.dynamic_cast_ptr<CLBnrImageHandler> ();;
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _bnr.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create bnr handler failed");
+    _bnr->set_kernels_enable (XCAM_DENOISE_TYPE_BNR & _snr_mode);
     add_handler (image_handler);
 
     image_handler = create_cl_3a_stats_image_handler (context);
@@ -446,6 +466,8 @@ CL3aImageProcessor::set_denoise (uint32_t mode)
         _binr->set_kernels_enable (XCAM_DENOISE_TYPE_BILATERAL & _snr_mode);
     if (_ee.ptr ())
         _ee->set_kernels_enable (XCAM_DENOISE_TYPE_EE & _snr_mode);
+    if (_bnr.ptr ())
+        _bnr->set_kernels_enable (XCAM_DENOISE_TYPE_BNR & _snr_mode);
 
     return true;
 }
