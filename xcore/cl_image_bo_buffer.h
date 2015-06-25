@@ -33,6 +33,7 @@ class CLImageBoData
 {
     friend class CLBoBufferPool;
 public:
+    virtual int get_fd ();
 
 private:
     explicit CLImageBoData (SmartPtr<DrmDisplay> &display, SmartPtr<CLImage> &image, drm_intel_bo *bo);

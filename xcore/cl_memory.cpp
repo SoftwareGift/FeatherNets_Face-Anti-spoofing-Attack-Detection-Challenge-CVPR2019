@@ -52,7 +52,7 @@ CLMemory::~CLMemory ()
 int32_t
 CLMemory::export_fd ()
 {
-    if (_mem_fd <= 0)
+    if (_mem_fd >= 0)
         return _mem_fd;
 
     _mem_fd = _context->export_mem_fd (_mem_id);

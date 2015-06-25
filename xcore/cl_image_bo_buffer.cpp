@@ -30,6 +30,14 @@ CLImageBoData::CLImageBoData (SmartPtr<DrmDisplay> &display, SmartPtr<CLImage> &
     XCAM_ASSERT (image->get_mem_id ());
 }
 
+int
+CLImageBoData::get_fd ()
+{
+    if (!_image.ptr())
+        return -1;
+    return _image->export_fd ();
+}
+
 CLImageBoBuffer::CLImageBoBuffer (const VideoBufferInfo &info, const SmartPtr<CLImageBoData> &data)
     : DrmBoBuffer (info, data)
 {
@@ -67,7 +75,7 @@ CLBoBufferPool::create_image_bo (const VideoBufferInfo &info)
     mem_fd = image->export_fd ();
     XCAM_FAIL_RETURN (
         WARNING,
-        mem_fd < 0,
+        mem_fd >= 0,
         NULL,
         "CLBoBufferPool export image fd failed");
 
