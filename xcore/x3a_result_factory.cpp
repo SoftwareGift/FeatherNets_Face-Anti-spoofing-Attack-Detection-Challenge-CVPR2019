@@ -121,6 +121,8 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
     case XCAM_3A_RESULT_B_GAMMA:
         result = create_b_gamma_table ((XCam3aResultGammaTable*)from);
         break;
+    case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
+        result = create_bayer_noise_reduction ((XCam3aResultBayerNoiseReduction*)from);
     default:
         XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", type);
         break;
@@ -229,6 +231,12 @@ SmartPtr<X3aChromaToneControlResult>
 X3aResultFactory::create_chroma_tone_control (XCam3aResultChromaToneControl *from)
 {
     XCAM_3A_RESULT_FACTORY (X3aChromaToneControlResult, XCAM_3A_RESULT_CHROMA_TONE_CONTROL, from);
+}
+
+SmartPtr<X3aBayerNoiseReduction>
+X3aResultFactory::create_bayer_noise_reduction (XCam3aResultBayerNoiseReduction *from)
+{
+    XCAM_3A_RESULT_FACTORY (X3aBayerNoiseReduction, XCAM_3A_RESULT_BAYER_NOISE_REDUCTION, from);
 }
 
 };

@@ -53,6 +53,7 @@ public:
     SmartPtr<X3aGammaTableResult> create_b_gamma_table (XCam3aResultGammaTable *from = NULL);
     SmartPtr<X3aMaccMatrixResult> create_macc (XCam3aResultMaccMatrix *from = NULL);
     SmartPtr<X3aChromaToneControlResult> create_chroma_tone_control (XCam3aResultChromaToneControl *from = NULL);
+    SmartPtr<X3aBayerNoiseReduction> create_bayer_noise_reduction (XCam3aResultBayerNoiseReduction *from = NULL);
 
 protected:
     explicit X3aResultFactory ();

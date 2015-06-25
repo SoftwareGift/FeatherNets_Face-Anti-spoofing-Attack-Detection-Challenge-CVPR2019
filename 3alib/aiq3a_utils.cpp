@@ -187,6 +187,18 @@ translate_atomisp_parameters (
         results[result_count++] = (XCam3aResultHead*)dpc;
     }
 
+    /* Translation for bnr config */
+    XCAM_ASSERT (result_count < max_count);
+    if (atomisp_params.nr_config) {
+        XCam3aResultBayerNoiseReduction *bnr = xcam_malloc0_type (XCam3aResultBayerNoiseReduction);
+        bnr->head.type = XCAM_3A_RESULT_BAYER_NOISE_REDUCTION;
+        bnr->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+        bnr->head.version = XCAM_VERSION;
+        bnr->bnr_gain = (double)atomisp_params.nr_config->bnr_gain / pow(2, 16);
+        bnr->direction = (double)atomisp_params.nr_config->direction / pow(2, 16);
+        results[result_count++] = (XCam3aResultHead*)bnr;
+    }
+
     return result_count;
 }
 

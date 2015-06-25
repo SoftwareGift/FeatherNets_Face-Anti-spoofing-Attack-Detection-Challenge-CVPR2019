@@ -59,6 +59,7 @@ typedef enum _XCam3aResultType {
     XCAM_3A_RESULT_LUMA_NOISE_REDUCTION,
     XCAM_3A_RESULT_ADVANCED_NOISE_REDUCTION,
     XCAM_3A_RESULT_CHROMA_NOISER_EDUCTION,
+    XCAM_3A_RESULT_BAYER_NOISE_REDUCTION,
 
     XCAM_3A_RESULT_EDGE_ENHANCEMENT,
     //XCAM_3A_RESULT_FRIGLE_CONTROL,
@@ -162,6 +163,14 @@ typedef struct _XCam3aResultNoiseReduction {
     double           threshold1;
     double           threshold2;
 } XCam3aResultNoiseReduction;
+
+typedef struct _XCam3aResultBayerNoiseReduction {
+    XCam3aResultHead head;
+
+    /* data */
+    double           bnr_gain;
+    double           direction;
+} XCam3aResultBayerNoiseReduction;
 
 typedef struct _XCam3aResultEdgeEnhancement {
     XCam3aResultHead head;
