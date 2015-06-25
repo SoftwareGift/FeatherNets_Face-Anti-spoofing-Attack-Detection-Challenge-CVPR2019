@@ -228,6 +228,7 @@ CLContext::execute_kernel (
     cl_event *event_out_id = NULL;
     cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
     uint32_t num_of_events_wait = 0;
+    uint32_t work_group_size = 0;
 
     XCAM_ASSERT (kernel);
 
@@ -241,6 +242,12 @@ CLContext::execute_kernel (
     num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
     if (event_out.ptr ())
         event_out_id = &event_out->get_event_id ();
+
+    for (uint32_t i = 0; i < work_dims; ++i) {
+        work_group_size *= local_sizes[i];
+    }
+    if (!work_group_size)
+        local_sizes = NULL;
 
     error_code =
         clEnqueueNDRangeKernel (

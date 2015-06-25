@@ -20,6 +20,8 @@
 
 #include "cl_image_handler.h"
 #include "drm_display.h"
+#include "cl_device.h"
+
 
 namespace XCam {
 
@@ -29,8 +31,7 @@ CLWorkSize::CLWorkSize ()
     : dim (XCAM_DEFAULT_IMAGE_DIM)
 {
     xcam_mem_clear (global);
-    for (uint32_t i = 0; i < XCAM_CL_KERNEL_MAX_WORK_DIM; ++i)
-        local [i] = 1;
+    xcam_mem_clear (local);
 }
 
 CLArgument::CLArgument()
@@ -121,8 +122,8 @@ CLImageKernel::prepare_arguments (
         work_size.global[0] = out_info.width;
         work_size.global[1] = out_info.height;
     }
-    work_size.local[0] = 4;
-    work_size.local[1] = 4;
+    work_size.local[0] = 0;
+    work_size.local[1] = 0;
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -330,6 +331,8 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
             "cl_image_handler(%s) post_execute kernel(%s) failed",
             XCAM_STR (_name), kernel->get_kernel_name ());
     }
+
+    //CLDevice::instance()->get_context ()->finish ();
 
     XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
 

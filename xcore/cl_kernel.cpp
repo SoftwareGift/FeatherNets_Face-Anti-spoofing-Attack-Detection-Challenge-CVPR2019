@@ -23,7 +23,7 @@
 #include "cl_device.h"
 
 #define XCAM_CL_KERNEL_DEFAULT_WORK_DIM 2
-#define XCAM_CL_KERNEL_DEFAULT_LOCAL_WORK_SIZE 1
+#define XCAM_CL_KERNEL_DEFAULT_LOCAL_WORK_SIZE 0
 
 namespace XCam {
 
@@ -162,7 +162,7 @@ CLKernel::set_work_size (uint32_t dim, size_t *global, size_t *local)
 
     XCAM_FAIL_RETURN (
         WARNING,
-        work_group_size <= dev_info.max_work_group_size,
+        work_group_size == 0 || work_group_size <= dev_info.max_work_group_size,
         XCAM_RETURN_ERROR_PARAM,
         "kernel(%s) work-group-size:%d is greater than device max work-group-size(%d)",
         _name, work_group_size, dev_info.max_work_group_size);
