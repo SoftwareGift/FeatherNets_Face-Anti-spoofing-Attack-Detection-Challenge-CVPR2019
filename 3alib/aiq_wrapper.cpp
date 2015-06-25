@@ -249,6 +249,11 @@ xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats, int64_t timestamp
 
     // Convert stats to atomisp_3a_stats;
     SmartPtr<X3aIspStatistics> isp_stats = aiq_context->get_stats_buffer ();
+    if (!isp_stats.ptr ()) {
+        XCAM_LOG_WARNING ("get stats bufffer failed or stopped");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
     struct atomisp_3a_statistics *raw_stats = isp_stats->get_isp_stats ();
     XCAM_ASSERT (raw_stats);
 

@@ -244,13 +244,14 @@ CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBo
     }
 
     new_buf = _buf_pool->get_buffer (_buf_pool);
-    new_buf->set_timestamp (input->get_timestamp ());
-    new_buf->copy_attaches (input);
     XCAM_FAIL_RETURN(
         WARNING,
         new_buf.ptr(),
         XCAM_RETURN_ERROR_UNKNOWN,
         "CLImageHandler(%s) failed to get drm buffer from pool", XCAM_STR (_name));
+
+    new_buf->set_timestamp (input->get_timestamp ());
+    new_buf->copy_attaches (input);
 
     output = new_buf.dynamic_cast_ptr<DrmBoBuffer> ();
     XCAM_ASSERT (output.ptr ());
