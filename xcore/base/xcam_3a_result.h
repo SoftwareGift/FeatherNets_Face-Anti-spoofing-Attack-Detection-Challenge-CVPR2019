@@ -148,7 +148,10 @@ typedef struct _XCam3aResultDefectPixel {
 
     /* data */
     double           gain;
-    double           threshold;
+    double           gr_threshold;
+    double           r_threshold;
+    double           b_threshold;
+    double           gb_threshold;
 } XCam3aResultDefectPixel;
 
 typedef struct _XCam3aResultNoiseReduction {

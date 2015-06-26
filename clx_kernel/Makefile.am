@@ -18,6 +18,7 @@ clx_kernel_sources = \
 	kernel_tnr_yuv.clx            \
 	kernel_wb.clx                 \
 	kernel_ee.clx              \
+        kernel_dpc.clx              \
 	$(NULL)
 
 cl_quote_sh = \

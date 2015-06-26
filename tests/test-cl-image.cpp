@@ -33,6 +33,7 @@
 #include "cl_snr_handler.h"
 #include "cl_macc_handler.h"
 #include "cl_ee_handler.h"
+#include "cl_dpc_handler.h"
 
 using namespace XCam;
 
@@ -286,8 +287,20 @@ int main (int argc, char *argv[])
         blc_handler->set_blc_config (blc);
         break;
     }
-    case TestHandlerDefect:
+    case TestHandlerDefect:  {
+        XCam3aResultDefectPixel dpc;
+        dpc.r_threshold = 0.125;
+        dpc.gr_threshold = 0.125;
+        dpc.gb_threshold = 0.125;
+        dpc.b_threshold = 0.125;
+        image_handler = create_cl_dpc_image_handler (context);
+        SmartPtr<CLDpcImageHandler> dpc_handler;
+        dpc_handler = image_handler.dynamic_cast_ptr<CLDpcImageHandler> ();
+        XCAM_ASSERT (dpc_handler.ptr ());
+        dpc_handler->set_dpc_config (dpc);
         break;
+    }
+    break;
     case TestHandlerDemosaic: {
         SmartPtr<CLBayer2RGBImageHandler> ba2rgb_handler;
         image_handler = create_cl_demosaic_image_handler (context);
