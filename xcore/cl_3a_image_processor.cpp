@@ -31,6 +31,7 @@
 #include "cl_macc_handler.h"
 #include "cl_tnr_handler.h"
 #include "cl_ee_handler.h"
+#include "cl_dpc_handler.h"
 
 namespace XCam {
 
@@ -156,7 +157,10 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
 
     case XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION: {
         SmartPtr<X3aDefectPixelResult> def_res = result.dynamic_cast_ptr<X3aDefectPixelResult> ();
-        //XCAM_ASSERT (def_res.ptr ());
+        XCAM_ASSERT (def_res.ptr ());
+        if (!_dpc.ptr())
+            break;
+        _dpc->set_dpc_config (def_res->get_standard_result ());
         break;
     }
 
@@ -242,6 +246,15 @@ CL3aImageProcessor::create_handlers ()
         image_handler.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create blc handler failed");
+    add_handler (image_handler);
+
+    image_handler = create_cl_dpc_image_handler (context);
+    _dpc = image_handler.dynamic_cast_ptr<CLDpcImageHandler> ();;
+    XCAM_FAIL_RETURN (
+        WARNING,
+        image_handler.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create dpc handler failed");
     add_handler (image_handler);
 
     image_handler = create_cl_3a_stats_image_handler (context);

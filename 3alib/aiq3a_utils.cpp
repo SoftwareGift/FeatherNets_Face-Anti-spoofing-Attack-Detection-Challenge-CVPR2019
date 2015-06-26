@@ -172,6 +172,21 @@ translate_atomisp_parameters (
         results[result_count++] = (XCam3aResultHead*)macc;
     }
 
+    /* Translation for defect pixel correction */
+    XCAM_ASSERT (result_count < max_count);
+    if (atomisp_params.dp_config) {
+        XCam3aResultDefectPixel *dpc = xcam_malloc0_type (XCam3aResultDefectPixel);
+        dpc->head.type = XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION;
+        dpc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+        dpc->head.version = XCAM_VERSION;
+        coefficient = pow (2, 16);
+        dpc->gr_threshold = atomisp_params.dp_config->threshold / coefficient;
+        dpc->r_threshold = atomisp_params.dp_config->threshold / coefficient;
+        dpc->b_threshold = atomisp_params.dp_config->threshold / coefficient;
+        dpc->gb_threshold = atomisp_params.dp_config->threshold / coefficient;
+        results[result_count++] = (XCam3aResultHead*)dpc;
+    }
+
     return result_count;
 }
 

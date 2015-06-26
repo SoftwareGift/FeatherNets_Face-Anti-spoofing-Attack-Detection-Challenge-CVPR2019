@@ -40,6 +40,7 @@ class CLSnrImageHandler;
 class CLBlcImageHandler;
 class CLTnrImageHandler;
 class CLEeImageHandler;
+class CLDpcImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -94,6 +95,7 @@ private:
     SmartPtr<CLSnrImageHandler>        _snr;
     SmartPtr<CLDenoiseImageHandler>    _binr;
     SmartPtr<CLEeImageHandler>         _ee;
+    SmartPtr<CLDpcImageHandler>        _dpc;
 
     uint32_t                           _enable_hdr;
     uint32_t                           _tnr_mode;
