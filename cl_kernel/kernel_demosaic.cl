@@ -11,10 +11,10 @@ __kernel void kernel_demosaic (__read_only image2d_t input, __write_only image2d
 //    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
-
     int x0 = x - 1;
     int y0 = y - 1;
     float4 p[16];
+#if 0
     p[0] = read_imagef (input, sampler, (int2)(x0, y0));
     p[1] = read_imagef (input, sampler, (int2)(x0 + 1, y0));
     p[2] = read_imagef (input, sampler, (int2)(x0 + 2, y0));
@@ -31,10 +31,13 @@ __kernel void kernel_demosaic (__read_only image2d_t input, __write_only image2d
     p[13] = read_imagef (input, sampler, (int2)(x0 + 1, y0 + 3));
     p[14] = read_imagef (input, sampler, (int2)(x0 + 2, y0 + 3));
     p[15] = read_imagef (input, sampler, (int2)(x0 + 3, y0 + 3));
+#endif
 
-//    for (int i = 0; i < 16; ++i) {
-//        p[i] = read_imagef (input, sampler, (int2)(x0 + i % 4, y0 + i / 4));
-//    }
+#pragma unroll
+
+    for (int i = 0; i < 16; ++i) {
+        p[i] = read_imagef (input, sampler, (int2)(x0 + i % 4, y0 + i / 4));
+    }
 
     float4 p00, p01, p10, p11;
     p00.x = (p[4].x + p[6].x) / 2.0;

@@ -35,105 +35,17 @@ __kernel void kernel_3a_stats (__read_only image2d_t input, __global XCamGridSta
 
 #pragma unroll
     for (j = 0; j < 16; j += 2) {
-
-// grid (0, 0)
-        i = 0;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-// grid (1, 0)
-        ++i;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-// grid (2, 0)
-        ++i;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-// grid (3, 0)
-        ++i;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-// grid (4, 0)
-        ++i;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-// grid (5, 0)
-        ++i;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-// grid (6, 0)
-        ++i;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-
-// grid (7, 0)
-        ++i;
-        p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        ++i;
-        p[2] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
-        p[3] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
-        sum_gr += p[0].x;
-        sum_b += p[1].x;
-        sum_r += p[2].x;
-        sum_gb += p[3].x;
-
-//end for loop
+#pragma unroll
+        for (i = 0; i < 16; i += 2) {
+            p[0] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j));
+            p[1] = read_imagef (input, sampler, (int2)(x0 + i, y0 + j + 1));
+            p[2] = read_imagef (input, sampler, (int2)(x0 + i + 1, y0 + j));
+            p[3] = read_imagef (input, sampler, (int2)(x0 + i + 1, y0 + j + 1));
+            sum_gr += p[0].x;
+            sum_b += p[1].x;
+            sum_r += p[2].x;
+            sum_gb += p[3].x;
+        }
     }
 
     avg_gr = sum_gr / count;
