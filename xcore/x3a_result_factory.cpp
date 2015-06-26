@@ -123,6 +123,7 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
         break;
     case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
         result = create_bayer_noise_reduction ((XCam3aResultBayerNoiseReduction*)from);
+        break;
     default:
         XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", type);
         break;
