@@ -124,7 +124,7 @@ CL3AStatsCalculatorKernel::allocate_data (const VideoBufferInfo &buffer_info)
 
     XCAM_FAIL_RETURN (
         WARNING,
-        _stats_pool->reserve (6),
+        _stats_pool->reserve (32), // need reserve more if as attachement
         false,
         "reserve cl stats buffer failed");
 

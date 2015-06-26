@@ -112,6 +112,9 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
         drm_bo_in = drm_bo_out;
     }
 
+    if (drm_bo_out.ptr ())
+        drm_bo_out->clear_attached_buffers ();
+
     XCAM_OBJ_PROFILING_END(get_name(), 30);
 
     output = drm_bo_out;
