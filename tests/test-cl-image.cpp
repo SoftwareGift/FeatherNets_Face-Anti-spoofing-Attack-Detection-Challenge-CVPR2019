@@ -34,6 +34,7 @@
 #include "cl_macc_handler.h"
 #include "cl_ee_handler.h"
 #include "cl_dpc_handler.h"
+#include "cl_bnr_handler.h"
 
 using namespace XCam;
 
@@ -49,6 +50,7 @@ enum TestHandlerType {
     TestHandlerDenoise,
     TestHandlerGamma,
     TestHandlerSimpleNoiseReduction,
+    TestHandlerBayerNoiseReduction,
     TestHandlerMacc,
     TestHandlerEe,
 };
@@ -118,7 +120,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, macc, ee]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
@@ -212,6 +214,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerGamma;
             else if (!strcasecmp (optarg, "snr"))
                 handler_type = TestHandlerSimpleNoiseReduction;
+            else if (!strcasecmp (optarg, "bnr"))
+                handler_type = TestHandlerBayerNoiseReduction;
             else if (!strcasecmp (optarg, "macc"))
                 handler_type = TestHandlerMacc;
             else if (!strcasecmp (optarg, "ee"))
@@ -351,6 +355,17 @@ int main (int argc, char *argv[])
         gamma_handler = image_handler.dynamic_cast_ptr<CLGammaImageHandler> ();
         XCAM_ASSERT (gamma_handler.ptr ());
         gamma_handler->set_gamma_table (gamma_table);
+        break;
+    }
+    case TestHandlerBayerNoiseReduction: {
+        XCam3aResultBayerNoiseReduction bnr;
+        bnr.bnr_gain = 0.2;
+        bnr.direction = 0.01;
+        image_handler = create_cl_bnr_image_handler (context);
+        SmartPtr<CLBnrImageHandler> bnr_handler;
+        bnr_handler = image_handler.dynamic_cast_ptr<CLBnrImageHandler> ();
+        XCAM_ASSERT (bnr_handler.ptr ());
+        bnr_handler->set_bnr_config (bnr);
         break;
     }
     case TestHandlerMacc:

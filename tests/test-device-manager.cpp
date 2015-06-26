@@ -280,7 +280,8 @@ void print_help (const char *bin_name)
             "\t --bilateral   enable bilateral noise reduction\n"
             "\t --enable-snr  enable simple noise reduction\n"
             "\t --enable-ee   enable YEENR\n"
-            "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee)\n\n"
+            "\t --enable-bnr  enable bayer noise reduction\n"
+            "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr)\n\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
 }
@@ -324,6 +325,7 @@ int main (int argc, char *argv[])
         {"bilateral", no_argument, NULL, 'I'},
         {"enable-snr", no_argument, NULL, 'S'},
         {"enable-ee", no_argument, NULL, 'E'},
+        {"enable-bnr", no_argument, NULL, 'B'},
         {0, 0, 0, 0},
     };
 
@@ -419,6 +421,10 @@ int main (int argc, char *argv[])
         }
         case 'E': {
             denoise_type |= XCAM_DENOISE_TYPE_EE;
+            break;
+        }
+        case 'B': {
+            denoise_type |= XCAM_DENOISE_TYPE_BNR;
             break;
         }
         case 'T': {
