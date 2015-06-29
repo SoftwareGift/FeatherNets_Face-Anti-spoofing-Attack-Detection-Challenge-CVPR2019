@@ -1076,23 +1076,25 @@ AiqCommonHandler::analyze (X3aResultList &output)
 
     AnalyzerHandler::HanlderLock lock(this);
 
+    ia_aiq_gbce_input_params gbce_input;
+    xcam_mem_clear (gbce_input);
     if (has_gbce_unlock()) {
-        ia_aiq_gbce_input_params gbce_input;
-        xcam_mem_clear (gbce_input);
         gbce_input.gbce_level = ia_aiq_gbce_level_use_tuning;
-        gbce_input.frame_use = _aiq_compositor->get_frame_use ();
-        gbce_input.ev_shift = _aiq_compositor->get_ae_ev_shift_unlock ();
-        ia_handle = _aiq_compositor->get_handle ();
-        XCAM_ASSERT (ia_handle);
-        ia_error = ia_aiq_gbce_run (ia_handle, &gbce_input, &gbce_result);
-
-        XCAM_FAIL_RETURN (ERROR, ia_error == ia_err_none, XCAM_RETURN_ERROR_AIQ, "AIQ run GBCE failed");
-
-        //TODO, need copy GBCE result out, not just assign
-        _gbce_result = gbce_result;
-    } else {
-        _gbce_result = NULL;
     }
+    else {
+        gbce_input.gbce_level = ia_aiq_gbce_level_bypass;
+    }
+    gbce_input.frame_use = _aiq_compositor->get_frame_use ();
+    gbce_input.ev_shift = _aiq_compositor->get_ae_ev_shift_unlock ();
+    ia_handle = _aiq_compositor->get_handle ();
+    XCAM_ASSERT (ia_handle);
+    ia_error = ia_aiq_gbce_run (ia_handle, &gbce_input, &gbce_result);
+
+    XCAM_FAIL_RETURN (ERROR, ia_error == ia_err_none, XCAM_RETURN_ERROR_AIQ, "AIQ run GBCE failed");
+
+    //TODO, need copy GBCE result out, not just assign
+    _gbce_result = gbce_result;
+
     return XCAM_RETURN_NO_ERROR;
 }
 
