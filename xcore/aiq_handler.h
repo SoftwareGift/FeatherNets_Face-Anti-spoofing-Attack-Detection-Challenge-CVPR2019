@@ -250,6 +250,9 @@ public:
         out_width = _width;
         out_height = _height;
     }
+    void set_framerate (double framerate) {
+        _ae_handler->set_framerate (framerate);
+    }
     bool open (ia_binary_data &cpf);
     void close ();
 

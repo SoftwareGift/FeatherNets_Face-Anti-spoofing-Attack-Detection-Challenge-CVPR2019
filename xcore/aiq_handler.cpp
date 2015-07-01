@@ -351,7 +351,7 @@ AiqAeHandler::AiqAeHandler (SmartPtr<AiqCompositor> &aiq_compositor)
     _input.manual_analog_gain = -1.0;
     _input.manual_iso = -1.0;
     _input.aec_features = NULL;
-    _input.manual_limits = NULL;
+    _input.manual_limits = &_manual_limits;
 }
 
 bool
@@ -488,6 +488,19 @@ bool AiqAeHandler::ensure_ae_manual ()
         _input.manual_exposure_time_us = -1;
         _input.manual_analog_gain = -1;
     }
+
+    _input.manual_limits->manual_exposure_time_min =
+        _sensor_descriptor.coarse_integration_time_min
+        * _sensor_descriptor.pixel_periods_per_line
+        / _sensor_descriptor.pixel_clock_freq_mhz;
+    _input.manual_limits->manual_exposure_time_max =
+        (_sensor_descriptor.line_periods_per_field - _sensor_descriptor.coarse_integration_time_max_margin)
+        * _sensor_descriptor.pixel_periods_per_line
+        / _sensor_descriptor.pixel_clock_freq_mhz;
+    _input.manual_limits->manual_frame_time_us_min = -1;
+    _input.manual_limits->manual_frame_time_us_max = 1000000 / this->get_framerate_unlock ();
+    _input.manual_limits->manual_iso_min = -1;
+    _input.manual_limits->manual_iso_max = -1;
 
     return true;
 }
