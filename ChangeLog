@@ -1,1 +1,15 @@
+2015/07/02: release libxcam version 0.2.0
+ * add gstreamer plugin 'xcamsrc' for Linux media framework support
+ * support loading user-defined 3a algorithm lib dynamically
+ * support more manual 3a features on ISP, e.g multiple-ae-window, ae/awb speed...
+ * add OpenCL pipeline for 3a image processing
+   - bayer format features, black level correction, defect pixel
+     correction, whitebalance, 3a statistics calculation,
+     demosaic, gamma correction, HDR(high dynamic range)
+   - RGBA format features, bilateral NR(noise reduction), simple NR,
+     temporal NR, macc, color correction
+   - YUV format features,  temporal NR, edge enhancement, color conversion
+   - support any user-defined 3a algorithms(e.g AIQ)
+ * rich test cases, e.g. test-device-manager, test-cl-image
+
 2015/01/15: Initial xcam version 0.1
