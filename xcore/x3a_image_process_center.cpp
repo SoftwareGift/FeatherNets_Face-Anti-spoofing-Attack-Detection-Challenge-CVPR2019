@@ -181,7 +181,7 @@ X3aImageProcessCenter::put_3a_result (SmartPtr<X3aResult> &result)
 }
 
 void
-X3aImageProcessCenter::process_buffer_done (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf)
+X3aImageProcessCenter::process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf)
 {
     ImageProcessorIter i_pro = _image_processors.begin();
     for (; i_pro != _image_processors.end(); ++i_pro)
@@ -200,8 +200,9 @@ X3aImageProcessCenter::process_buffer_done (ImageProcessor *processor, SmartPtr<
 
     if (++i_pro != _image_processors.end()) {
         SmartPtr<ImageProcessor> &next_processor = *i_pro;
+        SmartPtr<VideoBuffer> cur_buf = buf;
         XCAM_ASSERT (next_processor.ptr());
-        XCamReturn ret = next_processor->push_buffer (buf);
+        XCamReturn ret = next_processor->push_buffer (cur_buf);
         if (ret != XCAM_RETURN_NO_ERROR) {
             XCAM_LOG_ERROR ("processor(%s) failed in push_buffer", next_processor->get_name());
         }
@@ -216,7 +217,7 @@ X3aImageProcessCenter::process_buffer_done (ImageProcessor *processor, SmartPtr<
 }
 
 void
-X3aImageProcessCenter::process_buffer_failed (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf)
+X3aImageProcessCenter::process_buffer_failed (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf)
 {
     if (_callback)
         _callback->process_buffer_failed(processor, buf);
@@ -225,7 +226,7 @@ X3aImageProcessCenter::process_buffer_failed (ImageProcessor *processor, SmartPt
 }
 
 void
-X3aImageProcessCenter::process_image_result_done (ImageProcessor *processor, SmartPtr<X3aResult> &result)
+X3aImageProcessCenter::process_image_result_done (ImageProcessor *processor, const SmartPtr<X3aResult> &result)
 {
     if (_callback)
         _callback->process_image_result_done(processor, result);

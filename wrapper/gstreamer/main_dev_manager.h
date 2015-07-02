@@ -80,10 +80,10 @@ public:
 #endif
 
 protected:
-    virtual void handle_message (XCam::SmartPtr<XCam::XCamMessage> &msg);
-    virtual void handle_buffer (XCam::SmartPtr<XCam::VideoBuffer> &buf);
+    virtual void handle_message (const XCam::SmartPtr<XCam::XCamMessage> &msg);
+    virtual void handle_buffer (const XCam::SmartPtr<XCam::VideoBuffer> &buf);
 
-public:
+private:
     XCam::SafeList<XCam::VideoBuffer>         _ready_buffers;
 #if HAVE_LIBCL
     XCam::SmartPtr<XCam::CL3aImageProcessor>  _cl_image_processor;

@@ -96,8 +96,8 @@ public:
     XCamReturn stop ();
 
 protected:
-    virtual void handle_message (SmartPtr<XCamMessage> &msg) = 0;
-    virtual void handle_buffer (SmartPtr<VideoBuffer> &buf) = 0;
+    virtual void handle_message (const SmartPtr<XCamMessage> &msg) = 0;
+    virtual void handle_buffer (const SmartPtr<VideoBuffer> &buf) = 0;
 
 protected:
     //virtual functions derived from PollCallback
@@ -111,9 +111,9 @@ protected:
     virtual void x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp, const char *msg);
 
     //virtual functions derived from ImageProcessCallback
-    virtual void process_buffer_done (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf);
-    virtual void process_buffer_failed (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf);
-    virtual void process_image_result_done (ImageProcessor *processor, SmartPtr<X3aResult> &result);
+    virtual void process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf);
+    virtual void process_buffer_failed (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf);
+    virtual void process_image_result_done (ImageProcessor *processor, const SmartPtr<X3aResult> &result);
 
 private:
     void post_message (XCamMessageType type, int64_t timestamp, const char *msg);

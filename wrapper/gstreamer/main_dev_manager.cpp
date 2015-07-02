@@ -34,13 +34,13 @@ MainDeviceManager::~MainDeviceManager()
 }
 
 void
-MainDeviceManager::handle_message (SmartPtr<XCamMessage> &msg)
+MainDeviceManager::handle_message (const SmartPtr<XCamMessage> &msg)
 {
     XCAM_UNUSED (msg);
 }
 
 void
-MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
+MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
 {
     XCAM_ASSERT (buf.ptr ());
     _ready_buffers.push (buf);

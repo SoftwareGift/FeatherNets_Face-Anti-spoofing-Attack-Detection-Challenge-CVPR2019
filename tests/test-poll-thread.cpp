@@ -34,30 +34,6 @@
 
 using namespace XCam;
 
-class MainDeviceManager
-    : public DeviceManager
-{
-public:
-    MainDeviceManager ()
-        : _file (NULL)
-    {}
-
-    ~MainDeviceManager () {
-        close_file ();
-    }
-
-protected:
-    virtual void handle_message (SmartPtr<XCamMessage> &msg);
-    virtual void handle_buffer (SmartPtr<VideoBuffer> &buf);
-
-private:
-    void open_file ();
-    void close_file ();
-
-    FILE      *_file;
-};
-
-
 class PollCB: public PollCallback {
 public:
 

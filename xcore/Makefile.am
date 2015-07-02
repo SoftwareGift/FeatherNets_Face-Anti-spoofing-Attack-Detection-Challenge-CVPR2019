@@ -115,11 +115,12 @@ xcam_sources +=              \
 	cl_wb_handler.cpp        \
 	cl_denoise_handler.cpp   \
 	cl_gamma_handler.cpp	 \
-        cl_snr_handler.cpp       \
-	cl_macc_handler.cpp	 \
-	cl_tnr_handler.cpp	\
-	cl_ee_handler.cpp	 \
-        cl_dpc_handler.cpp       \
+	cl_snr_handler.cpp	     \
+	cl_macc_handler.cpp	     \
+	cl_tnr_handler.cpp	     \
+	cl_ee_handler.cpp	     \
+	cl_dpc_handler.cpp	     \
+	priority_buffer_queue.cpp	 \
 	$(NULL)
 endif
 

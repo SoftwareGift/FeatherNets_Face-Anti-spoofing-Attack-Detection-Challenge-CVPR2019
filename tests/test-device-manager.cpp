@@ -91,10 +91,10 @@ public:
     }
 
 protected:
-    virtual void handle_message (SmartPtr<XCamMessage> &msg);
-    virtual void handle_buffer (SmartPtr<VideoBuffer> &buf);
+    virtual void handle_message (const SmartPtr<XCamMessage> &msg);
+    virtual void handle_buffer (const SmartPtr<VideoBuffer> &buf);
 
-    int display_buf (SmartPtr<VideoBuffer> &buf);
+    int display_buf (const SmartPtr<VideoBuffer> &buf);
 
 private:
     void open_file ();
@@ -111,13 +111,13 @@ private:
 };
 
 void
-MainDeviceManager::handle_message (SmartPtr<XCamMessage> &msg)
+MainDeviceManager::handle_message (const SmartPtr<XCamMessage> &msg)
 {
     XCAM_UNUSED (msg);
 }
 
 void
-MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
+MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
 {
     FPS_CALCULATION (fps_buf, 30);
 
@@ -185,10 +185,11 @@ MainDeviceManager::handle_buffer (SmartPtr<VideoBuffer> &buf)
 }
 
 int
-MainDeviceManager::display_buf (SmartPtr<VideoBuffer> &buf)
+MainDeviceManager::display_buf (const SmartPtr<VideoBuffer> &data)
 {
 #if HAVE_LIBDRM
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    SmartPtr<VideoBuffer> buf = data;
     const VideoBufferInfo & frame_info = buf->get_video_info ();
     struct v4l2_rect rect = { 0, 0, (int)frame_info.width, (int)frame_info.height };
 

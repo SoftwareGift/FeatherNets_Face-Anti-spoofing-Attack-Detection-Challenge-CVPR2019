@@ -80,7 +80,7 @@ CL3AStatsCalculatorKernel::post_execute ()
     XCam3AStats *stats_ptr = NULL;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    context->finish ();
+    //context->finish ();
     _image_in.release ();
     //copy out and post 3a stats
     buffer = _stats_pool->get_buffer (_stats_pool);

@@ -48,9 +48,9 @@ public:
     XCamReturn put_3a_result (SmartPtr<X3aResult> &result);
 
     //derived from ImageProcessCallback
-    virtual void process_buffer_done (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf);
-    virtual void process_buffer_failed (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf);
-    virtual void process_image_result_done (ImageProcessor *processor, SmartPtr<X3aResult> &result);
+    virtual void process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf);
+    virtual void process_buffer_failed (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf);
+    virtual void process_image_result_done (ImageProcessor *processor, const SmartPtr<X3aResult> &result);
 
 private:
     XCAM_DEAD_COPY (X3aImageProcessCenter);

@@ -24,7 +24,7 @@
 namespace XCam {
 
 void
-ImageProcessCallback::process_buffer_done (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf) {
+ImageProcessCallback::process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf) {
     XCAM_ASSERT (buf.ptr() && processor);
 
     int64_t ts = buf->get_timestamp();
@@ -36,7 +36,7 @@ ImageProcessCallback::process_buffer_done (ImageProcessor *processor, SmartPtr<V
 }
 
 void
-ImageProcessCallback::process_buffer_failed (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf)
+ImageProcessCallback::process_buffer_failed (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf)
 {
     XCAM_ASSERT (buf.ptr() && processor);
 
@@ -49,7 +49,7 @@ ImageProcessCallback::process_buffer_failed (ImageProcessor *processor, SmartPtr
 }
 
 void
-ImageProcessCallback::process_image_result_done (ImageProcessor *processor, SmartPtr<X3aResult> &result)
+ImageProcessCallback::process_image_result_done (ImageProcessor *processor, const SmartPtr<X3aResult> &result)
 {
     XCAM_ASSERT (result.ptr() && processor);
 
@@ -163,11 +163,21 @@ ImageProcessor::set_callback (ImageProcessCallback *callback)
 XCamReturn
 ImageProcessor::start()
 {
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_results_thread->start ()) {
         return XCAM_RETURN_ERROR_THREAD;
     }
     if (!_processor_thread->start ()) {
         return XCAM_RETURN_ERROR_THREAD;
+    }
+    ret = emit_start ();
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_WARNING ("ImageProcessor(%s) emit start failed", XCAM_STR (_name));
+        _video_buf_queue.pause_pop ();
+        _results_thread->triger_stop ();
+        _processor_thread->stop ();
+        _results_thread->stop ();
+        return ret;
     }
     XCAM_LOG_INFO ("ImageProcessor(%s) started", XCAM_STR (_name));
     return XCAM_RETURN_NO_ERROR;
@@ -295,7 +305,22 @@ ImageProcessor::filter_valid_results (X3aResultList &input, X3aResultList &valid
     }
 }
 
-XCamReturn ImageProcessor::buffer_process_loop ()
+void
+ImageProcessor::notify_process_buffer_done (const SmartPtr<VideoBuffer> &buf)
+{
+    if (_callback)
+        _callback->process_buffer_done (this, buf);
+}
+
+void
+ImageProcessor::notify_process_buffer_failed (const SmartPtr<VideoBuffer> &buf)
+{
+    if (_callback)
+        _callback->process_buffer_failed (this, buf);
+}
+
+XCamReturn
+ImageProcessor::buffer_process_loop ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<VideoBuffer> new_buf;
@@ -305,20 +330,23 @@ XCamReturn ImageProcessor::buffer_process_loop ()
         return XCAM_RETURN_ERROR_MEM;
 
     ret = this->process_buffer (buf, new_buf);
-    if (ret != XCAM_RETURN_NO_ERROR) {
+    if (ret < XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_DEBUG ("processing buffer failed");
+        notify_process_buffer_failed (buf);
+        return ret;
     }
 
-    if (_callback) {
-        if (ret == XCAM_RETURN_NO_ERROR)
-            _callback->process_buffer_done (this, new_buf);
-        else
-            _callback->process_buffer_failed (this, buf);
-    }
+    if (new_buf.ptr ())
+        notify_process_buffer_done (new_buf);
 
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+ImageProcessor::emit_start ()
+{
+    return XCAM_RETURN_NO_ERROR;
+}
 
 void
 ImageProcessor::emit_stop ()

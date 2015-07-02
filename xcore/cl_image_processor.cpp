@@ -23,17 +23,45 @@
 #include "cl_image_handler.h"
 #include "drm_display.h"
 #include "cl_demo_handler.h"
-#include "cl_blc_handler.h"
-#include "cl_csc_handler.h"
-
+#include "xcam_thread.h"
 
 namespace XCam {
 
+class CLHandlerThread
+    : public Thread
+{
+public:
+    CLHandlerThread (CLImageProcessor *processor)
+        : Thread ("CLHandlerThread")
+        , _processor (processor)
+    {}
+    ~CLHandlerThread () {}
+
+    virtual bool loop ();
+
+private:
+    CLImageProcessor *_processor;
+};
+
+bool CLHandlerThread::loop ()
+{
+    XCAM_ASSERT (_processor);
+    XCamReturn ret = _processor->process_cl_buffer_queue ();
+    if (ret != XCAM_RETURN_NO_ERROR && ret != XCAM_RETURN_BYPASS)
+        return false;
+    return true;
+}
+
 CLImageProcessor::CLImageProcessor (const char* name)
     : ImageProcessor (name ? name : "CLImageProcessor")
+    , _seq_num (0)
 {
     _context = CLDevice::instance ()->get_context ();
     XCAM_ASSERT (_context.ptr());
+
+    _handler_thread = new CLHandlerThread (this);
+    XCAM_ASSERT (_handler_thread.ptr ());
+
     XCAM_LOG_DEBUG ("CLImageProcessor constructed");
     XCAM_OBJ_PROFILING_INIT;
 }
@@ -81,11 +109,9 @@ CLImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
 XCamReturn
 CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
-    SmartPtr<DrmBoBuffer> drm_bo_in, drm_bo_out;
+    SmartPtr<DrmBoBuffer> drm_bo_in;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-
-    XCAM_OBJ_PROFILING_START;
 
     drm_bo_in = display->convert_to_drm_bo_buf (display, input);
     XCAM_FAIL_RETURN (
@@ -100,34 +126,131 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
         ret = create_handlers ();
     }
 
-    for (ImageHandlerList::iterator i_handler = _handlers.begin ();
-            i_handler != _handlers.end ();  ++i_handler)
+    XCAM_FAIL_RETURN (
+        WARNING,
+        !_handlers.empty () || ret != XCAM_RETURN_NO_ERROR,
+        XCAM_RETURN_ERROR_CL,
+        "CL image processor create handlers failed");
+
+    SmartPtr<PriorityBuffer> p_buf = new PriorityBuffer;
+    p_buf->set_seq_num (_seq_num++);
+    p_buf->data = drm_bo_in;
+    p_buf->handler = *(_handlers.begin ());
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _process_buffer_queue.push_priority_buf (p_buf),
+        XCAM_RETURN_ERROR_UNKNOWN,
+        "CLImageProcessor push priority buffer failed");
+
+    while (!_done_buffer_queue.is_empty ()) {
+        SmartPtr<DrmBoBuffer> done_buf = _done_buffer_queue.pop (50000); //50ms
+        if (!done_buf.ptr ())
+            break;
+        //notify buffer done
+        notify_process_buffer_done (done_buf);
+    }
+
+    output = NULL; // consider call back?
+    return XCAM_RETURN_BYPASS;
+}
+
+XCamReturn
+CLImageProcessor::process_cl_buffer_queue ()
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    SmartPtr<PriorityBuffer> p_buf = _process_buffer_queue.pop (-1);
+    if (!p_buf.ptr ()) {
+        XCAM_LOG_DEBUG ("cl buffer queue stopped");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
+    SmartPtr<DrmBoBuffer> data = p_buf->data;
+    SmartPtr<CLImageHandler> handler = p_buf->handler;
+    SmartPtr <DrmBoBuffer> out_data;
+
+    XCAM_ASSERT (data.ptr () && handler.ptr ());
+
+    XCAM_LOG_DEBUG ("buf:%d, rank:%d\n", p_buf->seq_num, p_buf->rank);
+
     {
-        ret = (*i_handler)->execute (drm_bo_in, drm_bo_out);
+        STREAM_LOCK;
+        ret = handler->execute (data, out_data);
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,
             ret,
-            "CL image handler(%s) execute buffer failed", (*i_handler)->get_name());
-        drm_bo_in = drm_bo_out;
+            "CLImageProcessor execute image handler failed");
+        XCAM_ASSERT (out_data.ptr ());
+
+        // for loop in handler, find next handler
+        ImageHandlerList::iterator i_handler = _handlers.begin ();
+        for (; i_handler != _handlers.end ();  ++i_handler)
+        {
+            if (handler.ptr () == (*i_handler).ptr ()) {
+                ++i_handler;
+                if (i_handler != _handlers.end ())
+                    p_buf->handler = *i_handler;
+                else
+                    p_buf->handler = NULL;
+                break;
+            }
+        }
     }
 
-    if (drm_bo_out.ptr ())
-        drm_bo_out->clear_attached_buffers ();
+    // buffer processed by all handlers, done
+    if (!p_buf->handler.ptr ()) {
+        if (out_data.ptr ())
+            out_data->clear_attached_buffers ();
 
-    XCAM_OBJ_PROFILING_END(get_name(), 30);
+#if ENABLE_PROFILING
+        XCAM_OBJ_PROFILING_START;
+        //CLDevice::instance()->get_context ()->finish ();
+        XCAM_OBJ_PROFILING_END (get_name (), 30);
+#endif
+        // buffer done, push back
+        _done_buffer_queue.push (out_data);
+        return XCAM_RETURN_NO_ERROR;
+    }
 
-    output = drm_bo_out;
+    p_buf->data = out_data;
+    p_buf->down_rank ();
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _process_buffer_queue.push_priority_buf (p_buf),
+        XCAM_RETURN_ERROR_UNKNOWN,
+        "CLImageProcessor push priority buffer failed");
+
+    return ret;
+}
+
+XCamReturn
+CLImageProcessor::emit_start ()
+{
+    _done_buffer_queue.resume_pop ();
+    _process_buffer_queue.resume_pop ();
+
+    if (!_handler_thread->start ())
+        return XCAM_RETURN_ERROR_THREAD;
+
     return XCAM_RETURN_NO_ERROR;
 }
 
 void
 CLImageProcessor::emit_stop ()
 {
+    _process_buffer_queue.pause_pop();
+    _done_buffer_queue.pause_pop ();
+
     for (ImageHandlerList::iterator i_handler = _handlers.begin ();
             i_handler != _handlers.end ();  ++i_handler) {
         (*i_handler)->emit_stop ();
     }
+
+    _handler_thread->stop ();
+    _process_buffer_queue.clear ();
+    _done_buffer_queue.clear ();
 }
 
 XCamReturn

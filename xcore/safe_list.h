@@ -34,6 +34,7 @@ template<class OBj>
 class SafeList {
 public:
     typedef SmartPtr<OBj> ObjPtr;
+    typedef std::list<ObjPtr> ObjList;
 
     SafeList ()
         : _pop_paused (false)
@@ -69,8 +70,8 @@ public:
     }
     inline void clear ();
 
-private:
-    std::list<ObjPtr> _obj_list;
+protected:
+    ObjList           _obj_list;
     Mutex             _mutex;
     XCam::Cond        _new_obj_cond;
     bool              _pop_paused;

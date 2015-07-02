@@ -311,20 +311,20 @@ DeviceManager::x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp,
 }
 
 void
-DeviceManager::process_buffer_done (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf)
+DeviceManager::process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf)
 {
     ImageProcessCallback::process_buffer_done (processor, buf);
     handle_buffer (buf);
 }
 
 void
-DeviceManager::process_buffer_failed (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf)
+DeviceManager::process_buffer_failed (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf)
 {
     ImageProcessCallback::process_buffer_failed (processor, buf);
 }
 
 void
-DeviceManager::process_image_result_done (ImageProcessor *processor, SmartPtr<X3aResult> &result)
+DeviceManager::process_image_result_done (ImageProcessor *processor, const SmartPtr<X3aResult> &result)
 {
     ImageProcessCallback::process_image_result_done (processor, result);
 }

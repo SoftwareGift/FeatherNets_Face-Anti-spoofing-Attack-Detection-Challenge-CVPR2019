@@ -23,17 +23,21 @@
 
 #include "xcam_utils.h"
 #include "image_processor.h"
+#include "priority_buffer_queue.h"
 #include <list>
 
 namespace XCam {
 
 class CLImageHandler;
 class CLContext;
+class CLHandlerThread;
 
 class CLImageProcessor
     : public ImageProcessor
 {
     typedef std::list<SmartPtr<CLImageHandler>>  ImageHandlerList;
+    friend class CLHandlerThread;
+
 public:
     explicit CLImageProcessor (const char* name = NULL);
     virtual ~CLImageProcessor ();
@@ -47,12 +51,15 @@ protected:
     virtual XCamReturn apply_3a_results (X3aResultList &results);
     virtual XCamReturn apply_3a_result (SmartPtr<X3aResult> &result);
     virtual XCamReturn process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn emit_start ();
     virtual void emit_stop ();
 
     SmartPtr<CLContext> get_cl_context ();
 
 private:
     virtual XCamReturn create_handlers ();
+
+    XCamReturn process_cl_buffer_queue ();
     XCAM_DEAD_COPY (CLImageProcessor);
 
 protected:
@@ -65,6 +72,10 @@ protected:
 private:
     SmartPtr<CLContext>            _context;
     ImageHandlerList               _handlers;
+    SmartPtr<CLHandlerThread>      _handler_thread;
+    PriorityBufferQueue            _process_buffer_queue;
+    SafeList<DrmBoBuffer>          _done_buffer_queue;
+    uint32_t                       _seq_num;
     XCAM_OBJ_PROFILING_DEFINES;
 };
 

@@ -36,9 +36,9 @@ class ImageProcessCallback {
 public:
     ImageProcessCallback () {}
     virtual ~ImageProcessCallback () {}
-    virtual void process_buffer_done (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf);
-    virtual void process_buffer_failed (ImageProcessor *processor, SmartPtr<VideoBuffer> &buf);
-    virtual void process_image_result_done (ImageProcessor *processor, SmartPtr<X3aResult> &result);
+    virtual void process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf);
+    virtual void process_buffer_failed (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf);
+    virtual void process_image_result_done (ImageProcessor *processor, const SmartPtr<X3aResult> &result);
 
 private:
     XCAM_DEAD_COPY (ImageProcessCallback);
@@ -77,7 +77,12 @@ protected:
     virtual XCamReturn apply_3a_result (SmartPtr<X3aResult> &result) = 0;
     // buffer runs in another thread
     virtual XCamReturn process_buffer(SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output) = 0;
+    virtual XCamReturn emit_start ();
     virtual void emit_stop ();
+
+
+    void notify_process_buffer_done (const SmartPtr<VideoBuffer> &buf);
+    void notify_process_buffer_failed (const SmartPtr<VideoBuffer> &buf);
 
 private:
     void filter_valid_results (X3aResultList &input, X3aResultList &valid_results);
