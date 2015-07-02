@@ -46,7 +46,7 @@ __kernel void kernel_ee (__read_only image2d_t input, __write_only image2d_t out
     int X = get_global_size(0);
     int Y = get_global_size(1);
 
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
     float4 y_in, y_out, uv_in;
     float4 a[5], b[5], c[5], d[5], e[5];
 
@@ -56,11 +56,6 @@ __kernel void kernel_ee (__read_only image2d_t input, __write_only image2d_t out
         write_imagef(output, (int2)(x, y / 2 + vertical_offset), uv_in);
     }
 
-    if (x < 2 || y < 2 || x > (X - 3) || y > (Y - 3)) {
-        y_in = read_imagef(input, sampler, (int2)(x, y));
-        write_imagef(output, (int2)(x, y), y_in);
-    }
-    else {
         a[0] = read_imagef(input, sampler, (int2)(x - 2, y - 2));
         a[1] = read_imagef(input, sampler, (int2)(x - 1, y - 2));
         a[2] = read_imagef(input, sampler, (int2)(x, y - 2));
@@ -135,5 +130,4 @@ __kernel void kernel_ee (__read_only image2d_t input, __write_only image2d_t out
         y_out.z = 0.0;
         y_out.w = 1.0;
         write_imagef(output, (int2)(x, y), y_out);
-    }
 }
