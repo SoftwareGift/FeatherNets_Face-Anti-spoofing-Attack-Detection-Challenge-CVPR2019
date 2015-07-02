@@ -228,7 +228,7 @@ CLContext::execute_kernel (
     cl_event *event_out_id = NULL;
     cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
     uint32_t num_of_events_wait = 0;
-    uint32_t work_group_size = 0;
+    uint32_t work_group_size = 1;
 
     XCAM_ASSERT (kernel);
 
