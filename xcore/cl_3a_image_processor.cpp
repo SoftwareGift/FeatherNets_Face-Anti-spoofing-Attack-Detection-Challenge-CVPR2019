@@ -33,6 +33,9 @@
 #include "cl_ee_handler.h"
 #include "cl_dpc_handler.h"
 
+
+#define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 8
+
 namespace XCam {
 
 CL3aImageProcessor::CL3aImageProcessor ()
@@ -360,6 +363,7 @@ CL3aImageProcessor::create_handlers ()
         _csc .ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create csc handler failed");
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     add_handler (image_handler);
 
     /* Temporal Noise Reduction (YUV domain) */
@@ -371,6 +375,7 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create tnr handler failed");
     _tnr_yuv->set_mode (CL_TNR_TYPE_YUV & _tnr_mode);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     add_handler (image_handler);
 
     /* ee */
@@ -382,6 +387,8 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create ee handler failed");
     _ee->set_kernels_enable (XCAM_DENOISE_TYPE_EE & _snr_mode);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
     if (_out_smaple_type == OutSampleRGB) {
@@ -392,6 +399,8 @@ CL3aImageProcessor::create_handlers ()
             _csc .ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create csc handler failed");
+        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
         add_handler (image_handler);
     }
 

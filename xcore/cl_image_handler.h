@@ -84,12 +84,26 @@ private:
 
 class CLImageHandler
 {
+public:
     typedef std::list<SmartPtr<CLImageKernel>> KernelList;
+    enum BufferPoolType {
+        CLBoPoolType  = 0,
+        DrmBoPoolType,
+    };
+
 public:
     explicit CLImageHandler (const char *name);
     virtual ~CLImageHandler ();
     const char *get_name () const {
         return _name;
+    }
+
+    void set_pool_type (BufferPoolType type) {
+        _buf_pool_type = type;
+    }
+    void set_pool_size (uint32_t size) {
+        XCAM_ASSERT (size);
+        _buf_pool_size = size;
     }
 
     bool add_kernel (SmartPtr<CLImageKernel> &kernel);
@@ -118,6 +132,8 @@ private:
     char                      *_name;
     KernelList                 _kernels;
     SmartPtr<BufferPool>       _buf_pool;
+    BufferPoolType             _buf_pool_type;
+    uint32_t                   _buf_pool_size;
 
     XCAM_OBJ_PROFILING_DEFINES;
 };

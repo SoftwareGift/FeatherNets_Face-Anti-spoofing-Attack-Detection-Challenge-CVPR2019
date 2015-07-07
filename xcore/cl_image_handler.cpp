@@ -21,11 +21,11 @@
 #include "cl_image_handler.h"
 #include "drm_display.h"
 #include "cl_device.h"
-
+#include "cl_image_bo_buffer.h"
 
 namespace XCam {
 
-#define XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM 6
+#define XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM 4
 
 CLWorkSize::CLWorkSize ()
     : dim (XCAM_DEFAULT_IMAGE_DIM)
@@ -138,6 +138,8 @@ CLImageKernel::post_execute ()
 
 CLImageHandler::CLImageHandler (const char *name)
     : _name (NULL)
+    , _buf_pool_type (CLImageHandler::CLBoPoolType)
+    , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
 {
     XCAM_ASSERT (name);
     if (name)
@@ -198,13 +200,26 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
         XCAM_RETURN_ERROR_CL,
         "CLImageHandler(%s) failed to get drm dispay", XCAM_STR (_name));
 
-    buffer_pool = new DrmBoBufferPool (display);
+    if (_buf_pool_type == CLImageHandler::DrmBoPoolType)
+        buffer_pool = new DrmBoBufferPool (display);
+    else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
+        SmartPtr<XCam::CLContext> context = CLDevice::instance()->get_context ();
+        buffer_pool = new CLBoBufferPool (display, context);
+    }
+
+    XCAM_FAIL_RETURN(
+        WARNING,
+        buffer_pool.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLImageHandler(%s) create buffer pool failed, pool_type:%d",
+        XCAM_STR (_name), (int32_t)_buf_pool_type);
+
     XCAM_ASSERT (buffer_pool.ptr ());
     buffer_pool->set_video_info (video_info);
 
     XCAM_FAIL_RETURN(
         WARNING,
-        buffer_pool->reserve (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM),
+        buffer_pool->reserve (_buf_pool_size),
         XCAM_RETURN_ERROR_CL,
         "CLImageHandler(%s) failed to init drm buffer pool", XCAM_STR (_name));
 

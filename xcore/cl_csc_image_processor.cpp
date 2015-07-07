@@ -51,6 +51,7 @@ CLCscImageProcessor::create_handlers ()
         _csc .ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLCscImageProcessor create csc handler failed");
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     add_handler (image_handler);
     return XCAM_RETURN_NO_ERROR;
 }
