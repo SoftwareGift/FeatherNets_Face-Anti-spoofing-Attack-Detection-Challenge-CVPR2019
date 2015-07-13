@@ -329,6 +329,7 @@ CL3aImageProcessor::create_handlers ()
         _demosaic.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create demosaic handler failed");
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
     /* bilateral noise reduction */
@@ -340,6 +341,7 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create denoise handler failed");
     _binr->set_kernels_enable (XCAM_DENOISE_TYPE_BILATERAL & _snr_mode);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
     /* Temporal Noise Reduction (RGB domain) */
