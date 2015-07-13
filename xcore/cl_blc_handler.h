@@ -64,6 +64,11 @@ public:
     bool set_blc_config (XCam3aResultBlackLevel blc);
     bool set_blc_kernel(SmartPtr<CLBlcImageKernel> &kernel);
 
+protected:
+    virtual XCamReturn prepare_buffer_pool_video_info (
+        const VideoBufferInfo &input,
+        VideoBufferInfo &output);
+
 private:
     XCAM_DEAD_COPY (CLBlcImageHandler);
     SmartPtr<CLBlcImageKernel> _blc_kernel;

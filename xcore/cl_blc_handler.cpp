@@ -38,10 +38,11 @@ CLBlcImageKernel::prepare_arguments (
     CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & video_info = input->get_video_info ();
+    const VideoBufferInfo & in_video_info = input->get_video_info ();
+    const VideoBufferInfo & out_video_info = output->get_video_info ();
     CLImageDesc image_info;
-    uint32_t channel_bits = XCAM_ALIGN_UP (video_info.color_bits, 8);
-    _color_bits = video_info.color_bits;
+    uint32_t channel_bits = XCAM_ALIGN_UP (in_video_info.color_bits, 8);
+    _color_bits = in_video_info.color_bits;
 
     xcam_mem_clear (image_info);
     image_info.format.image_channel_order = CL_R;
@@ -49,11 +50,14 @@ CLBlcImageKernel::prepare_arguments (
         image_info.format.image_channel_data_type = CL_UNSIGNED_INT8;
     else if (channel_bits == 16)
         image_info.format.image_channel_data_type = CL_UNSIGNED_INT16;
-    image_info.width = video_info.width;
-    image_info.height = video_info.height;
-    image_info.row_pitch = video_info.strides[0];
+    image_info.width = in_video_info.width;
+    image_info.height = in_video_info.height;
+    image_info.row_pitch = in_video_info.strides[0];
 
     _image_in = new CLVaImage (context, input, image_info, 0);
+
+    image_info.format.image_channel_data_type = CL_UNSIGNED_INT16;
+    image_info.row_pitch = out_video_info.strides[0];
     _image_out = new CLVaImage (context, output, image_info, 0);
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
@@ -123,6 +127,25 @@ CLBlcImageHandler::set_blc_kernel(SmartPtr<CLBlcImageKernel> &kernel)
     _blc_kernel = kernel;
     return true;
 }
+
+XCamReturn
+CLBlcImageHandler::prepare_buffer_pool_video_info (
+    const VideoBufferInfo &input,
+    VideoBufferInfo &output)
+{
+    const uint32_t format = XCAM_PIX_FMT_SGRBG16;
+    bool format_inited = output.init (format, input.width, input.height);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        format_inited,
+        XCAM_RETURN_ERROR_PARAM,
+        "CL image handler(%s) prepare ouput format(%s) unsupported",
+        get_name (), xcam_fourcc_to_string (format));
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 
 SmartPtr<CLImageHandler>
 create_cl_blc_image_handler (SmartPtr<CLContext> &context)
