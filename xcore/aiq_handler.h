@@ -290,6 +290,9 @@ private:
     ia_aiq                    *_ia_handle;
     ia_mkn                    *_ia_mkn;
     ia_aiq_pa_results         *_pa_result;
+#ifdef HAVE_AIQ_2_7
+    ia_aiq_sa_results         *_sa_result;
+#endif
     ia_aiq_frame_use           _frame_use;
     ia_aiq_frame_params        _frame_params;
 

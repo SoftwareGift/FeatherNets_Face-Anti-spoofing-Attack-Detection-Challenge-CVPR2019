@@ -42,6 +42,9 @@ struct IspInputParameters {
     ia_aiq_awb_results         *awb_results;
     ia_aiq_gbce_results        *gbce_results;
     ia_aiq_pa_results          *pa_results;
+#ifdef HAVE_AIQ_2_7
+    ia_aiq_sa_results          *sa_results;
+#endif
     int8_t                      manual_brightness;
     int8_t                      manual_contrast;
     int8_t                      manual_hue;
@@ -57,6 +60,9 @@ struct IspInputParameters {
         , awb_results (NULL)
         , gbce_results (NULL)
         , pa_results (NULL)
+#ifdef HAVE_AIQ_2_7
+        , sa_results (NULL)
+#endif
         , manual_brightness (0)
         , manual_contrast (0)
         , manual_hue (0)
@@ -140,6 +146,9 @@ IaIspAdaptor22::run (
     _input_params.awb_results = isp_input_params->awb_results;
     _input_params.gbce_results = isp_input_params->gbce_results;
     _input_params.pa_results = isp_input_params->pa_results;
+#ifdef HAVE_AIQ_2_7
+    _input_params.sa_results = isp_input_params->sa_results;
+#endif
     _input_params.manual_brightness = isp_input_params->manual_brightness;
     _input_params.manual_contrast = isp_input_params->manual_contrast;
     _input_params.manual_hue = isp_input_params->manual_hue;
@@ -301,13 +310,21 @@ AiqAeHandler::AiqAeResult::copy (ia_aiq_ae_results *result)
     this->aiq_exp_param = *result->exposures[0].exposure;
     this->sensor_exp_param = *result->exposures[0].sensor_exposure;
     this->weight_grid = *result->weight_grid;
+#ifdef HAVE_AIQ_2_7
+    this->flash_param = result->flashes[0];
+#else
     this->flash_param = *result->flash;
+#endif
 
     this->ae_exp_ret.exposure = &this->aiq_exp_param;
     this->ae_exp_ret.sensor_exposure = &this->sensor_exp_param;
     this->ae_result.exposures = &this->ae_exp_ret;
     this->ae_result.weight_grid = &this->weight_grid;
+#ifdef HAVE_AIQ_2_7
+    this->ae_result.flashes[0] = this->flash_param;
+#else
     this->ae_result.flash = &this->flash_param;
+#endif
     this->ae_result.num_exposures = 1;
 }
 
@@ -1122,6 +1139,9 @@ AiqCompositor::AiqCompositor ()
     : _ia_handle (NULL)
     , _ia_mkn (NULL)
     , _pa_result (NULL)
+#ifdef HAVE_AIQ_2_7
+    , _sa_result (NULL)
+#endif
     , _frame_use (ia_aiq_frame_use_video)
     , _width (0)
     , _height (0)
@@ -1160,6 +1180,9 @@ AiqCompositor::open (ia_binary_data &cpf)
     }
 
     _pa_result = NULL;
+#ifdef HAVE_AIQ_2_7
+    _sa_result = NULL;
+#endif
 
     XCAM_LOG_DEBUG ("Aiq compositor opened");
     return true;
@@ -1185,6 +1208,9 @@ AiqCompositor::close ()
     _common_handler.release ();
 
     _pa_result = NULL;
+#ifdef HAVE_AIQ_2_7
+    _sa_result = NULL;
+#endif
 
     XCAM_LOG_DEBUG ("Aiq compositor closed");
 }
@@ -1240,6 +1266,11 @@ AiqCompositor::set_3a_stats (SmartPtr<X3aIspStatistics> &stats)
 
     if (_pa_result)
         aiq_stats_input.frame_pa_parameters = _pa_result;
+
+#ifdef HAVE_AIQ_2_7
+    if (_sa_result)
+        aiq_stats_input.frame_sa_parameters = _sa_result;
+#endif
 
     if (_ae_handler->is_started()) {
 #ifdef USE_HIST_GRID_WEIGHTING
@@ -1456,6 +1487,10 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
     IspInputParameters isp_params;
     ia_aiq_pa_input_params pa_input;
     ia_aiq_pa_results *pa_result = NULL;
+#ifdef HAVE_AIQ_2_7
+    ia_aiq_sa_input_params sa_input;
+    ia_aiq_sa_results *sa_result = NULL;
+#endif
     ia_err ia_error = ia_err_none;
     ia_binary_data output;
     AiqAeHandler *aiq_ae = _ae_handler.ptr();
@@ -1472,10 +1507,12 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
         "handlers are not AIQ inherited");
 
     xcam_mem_clear (pa_input);
+#ifndef HAVE_AIQ_2_7
     pa_input.frame_use = _frame_use;
+    pa_input.sensor_frame_params = &_frame_params;
+#endif
     if (aiq_ae->is_started())
         pa_input.exposure_params = (aiq_ae->get_result ())->exposures[0].exposure;
-    pa_input.sensor_frame_params = &_frame_params;
     pa_input.color_gains = NULL;
 
     if (aiq_common->_params.enable_night_mode) {
@@ -1500,12 +1537,37 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
             XCAM_LOG_DEBUG ("Zero gain would cause ISP division fatal error");
         }
         else {
+#ifdef HAVE_AIQ_2_7
+            _pa_result->color_gains.gr = aiq_awb->_params.gr_gain;
+            _pa_result->color_gains.r = aiq_awb->_params.r_gain;
+            _pa_result->color_gains.b = aiq_awb->_params.b_gain;
+            _pa_result->color_gains.gb = aiq_awb->_params.gb_gain;
+#else
             _pa_result->color_gains[0] = aiq_awb->_params.gr_gain;
             _pa_result->color_gains[1] = aiq_awb->_params.r_gain;
             _pa_result->color_gains[2] = aiq_awb->_params.b_gain;
             _pa_result->color_gains[3] = aiq_awb->_params.gb_gain;
+#endif
         }
     }
+
+#ifdef HAVE_AIQ_2_7
+    xcam_mem_clear (sa_input);
+    sa_input.frame_use = _frame_use;
+    sa_input.sensor_frame_params = &_frame_params;
+    if (aiq_common->_params.enable_night_mode) {
+        sa_input.awb_results = NULL;
+    }
+    else {
+        sa_input.awb_results = aiq_awb->get_result ();
+    }
+
+    ia_error = ia_aiq_sa_run (_ia_handle, &sa_input, &sa_result);
+    if (ia_error != ia_err_none) {
+        XCAM_LOG_WARNING ("AIQ sa run failed"); // but not return error
+    }
+    _sa_result = sa_result;
+#endif
 
     isp_params.frame_use = _frame_use;
     isp_params.awb_results = aiq_awb->get_result ();
@@ -1514,6 +1576,9 @@ XCamReturn AiqCompositor::integrate (X3aResultList &results)
     isp_params.gbce_results = aiq_common->get_gbce_result ();
     isp_params.sensor_frame_params = &_frame_params;
     isp_params.pa_results = pa_result;
+#ifdef HAVE_AIQ_2_7
+    isp_params.sa_results = sa_result;
+#endif
 
     isp_params.manual_brightness = (int8_t)(aiq_common->get_brightness_unlock() * 128.0);
     isp_params.manual_contrast = (int8_t)(aiq_common->get_contrast_unlock() * 128.0);
