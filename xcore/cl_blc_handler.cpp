@@ -50,7 +50,7 @@ CLBlcImageKernel::prepare_arguments (
     else if (channel_bits == 16)
         image_info.format.image_channel_data_type = CL_UNSIGNED_INT16;
     image_info.width = video_info.width;
-    image_info.height = (video_info.size / video_info.strides[0]) / 4 * 4;
+    image_info.height = video_info.height;
     image_info.row_pitch = video_info.strides[0];
 
     _image_in = new CLVaImage (context, input, image_info, 0);
