@@ -36,6 +36,7 @@ struct CLImageDesc {
     uint32_t                size;
 
     CLImageDesc ();
+    bool operator == (const CLImageDesc& desc) const;
 };
 
 class CLMemory {
@@ -58,8 +59,9 @@ public:
     void release_fd ();
 
 protected:
-    void set_mem_id (cl_mem &id) {
+    void set_mem_id (cl_mem &id, bool need_destroy = true) {
         _mem_id = id;
+        _mem_need_destroy = need_destroy;
     }
     SmartPtr<CLContext> &get_context () {
         return _context;
@@ -72,6 +74,7 @@ private:
     SmartPtr<CLContext>   _context;
     cl_mem                _mem_id;
     int32_t               _mem_fd;
+    bool                  _mem_need_destroy;
 };
 
 class CLBuffer

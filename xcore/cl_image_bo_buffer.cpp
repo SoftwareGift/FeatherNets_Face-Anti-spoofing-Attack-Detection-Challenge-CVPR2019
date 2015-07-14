@@ -43,6 +43,20 @@ CLImageBoBuffer::CLImageBoBuffer (const VideoBufferInfo &info, const SmartPtr<CL
 {
 }
 
+SmartPtr<CLImage>
+CLImageBoBuffer::get_cl_image ()
+{
+    SmartPtr<BufferData> data = get_buffer_data ();
+    SmartPtr<CLImageBoData> image = data.dynamic_cast_ptr<CLImageBoData> ();
+
+    XCAM_FAIL_RETURN(
+        WARNING,
+        image.ptr(),
+        NULL,
+        "CLImageBoBuffer get_buffer_data failed with NULL");
+    return image->get_image ();
+}
+
 CLBoBufferPool::CLBoBufferPool (SmartPtr<DrmDisplay> &display, SmartPtr<CLContext> &context)
     : DrmBoBufferPool (display)
     , _context (context)

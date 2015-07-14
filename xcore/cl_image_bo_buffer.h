@@ -28,10 +28,14 @@
 
 namespace XCam {
 
+class CLImageBoBuffer;
+class CLBoBufferPool;
+
 class CLImageBoData
     : public DrmBoData
 {
     friend class CLBoBufferPool;
+    friend class CLImageBoBuffer;
 public:
     virtual int get_fd ();
 
@@ -47,12 +51,13 @@ private:
     SmartPtr<CLImage>          _image;
 };
 
-class CLBoBufferPool;
-
 class CLImageBoBuffer
     : public DrmBoBuffer
 {
     friend class CLBoBufferPool;
+public:
+    SmartPtr<CLImage> get_cl_image ();
+
 protected:
     CLImageBoBuffer (const VideoBufferInfo &info, const SmartPtr<CLImageBoData> &data);
 };
