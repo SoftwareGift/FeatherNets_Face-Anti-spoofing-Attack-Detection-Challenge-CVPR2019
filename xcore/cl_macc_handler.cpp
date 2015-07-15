@@ -72,8 +72,8 @@ CLMaccImageKernel::prepare_arguments (
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = out_info.width/4;
-    work_size.global[1] = out_info.height/2;
+    work_size.global[0] = out_info.width / 4;
+    work_size.global[1] = out_info.height / 2;
     work_size.local[0] = 4;
     work_size.local[1] = 4;
 
@@ -92,7 +92,7 @@ CLMaccImageHandler::CLMaccImageHandler (const char *name)
 }
 
 bool
-CLMaccImageHandler::set_macc_table (XCam3aResultMaccMatrix macc)
+CLMaccImageHandler::set_macc_table (const XCam3aResultMaccMatrix &macc)
 {
     float macc_table[XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE];
     for(int i = 0; i < XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE; i++)

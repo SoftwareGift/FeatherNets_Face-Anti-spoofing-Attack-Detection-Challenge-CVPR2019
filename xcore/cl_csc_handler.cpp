@@ -34,7 +34,7 @@ CLCscImageKernel::CLCscImageKernel (SmartPtr<CLContext> &context, const char *na
 }
 
 bool
-CLCscImageKernel::set_matrix (float * matrix)
+CLCscImageKernel::set_matrix (const float * matrix)
 {
     memcpy(_rgbtoyuv_matrix, matrix, sizeof(float)*XCAM_COLOR_MATRIX_SIZE);
     return true;
@@ -137,7 +137,7 @@ CLCscImageHandler::set_csc_kernel (SmartPtr<CLCscImageKernel> &kernel)
 }
 
 bool
-CLCscImageHandler::set_rgbtoyuv_matrix (XCam3aResultColorMatrix matrix)
+CLCscImageHandler::set_rgbtoyuv_matrix (const XCam3aResultColorMatrix &matrix)
 {
     float matrix_table[XCAM_COLOR_MATRIX_SIZE];
     for (int i = 0; i < XCAM_COLOR_MATRIX_SIZE; i++)

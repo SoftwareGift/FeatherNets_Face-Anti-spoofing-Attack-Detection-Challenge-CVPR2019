@@ -87,7 +87,7 @@ CLDpcImageHandler::CLDpcImageHandler (const char *name)
 }
 
 bool
-CLDpcImageHandler::set_dpc_config (XCam3aResultDefectPixel dpc)
+CLDpcImageHandler::set_dpc_config (const XCam3aResultDefectPixel &dpc)
 {
     CLDPCConfig _dpc_config;
     _dpc_config.gr_threshold = (float)dpc.gr_threshold;

@@ -44,7 +44,6 @@ CLBlcImageKernel::prepare_arguments (
     uint32_t channel_bits = XCAM_ALIGN_UP (in_video_info.color_bits, 8);
     _color_bits = in_video_info.color_bits;
 
-    xcam_mem_clear (image_info);
     image_info.format.image_channel_order = CL_R;
     if (channel_bits == 8)
         image_info.format.image_channel_data_type = CL_UNSIGNED_INT8;
@@ -108,7 +107,7 @@ CLBlcImageHandler::CLBlcImageHandler (const char *name)
 }
 
 bool
-CLBlcImageHandler::set_blc_config (XCam3aResultBlackLevel blc)
+CLBlcImageHandler::set_blc_config (const XCam3aResultBlackLevel &blc)
 {
     CLBLCConfig _blc_config;
     _blc_config.level_r = (float)blc.r_level;

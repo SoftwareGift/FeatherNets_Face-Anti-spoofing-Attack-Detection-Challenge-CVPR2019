@@ -62,7 +62,7 @@ class CLBnrImageHandler
 {
 public:
     explicit CLBnrImageHandler (const char *name);
-    bool set_bnr_config (XCam3aResultBayerNoiseReduction bnr);
+    bool set_bnr_config (const XCam3aResultBayerNoiseReduction &bnr);
     bool set_simple_kernel(SmartPtr<CLBnrImageKernel> &kernel);
 
 private:

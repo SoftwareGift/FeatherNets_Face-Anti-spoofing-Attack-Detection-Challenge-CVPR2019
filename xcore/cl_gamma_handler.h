@@ -52,7 +52,7 @@ class CLGammaImageHandler
 {
 public:
     explicit CLGammaImageHandler (const char *name);
-    bool set_gamma_table (XCam3aResultGammaTable gamma);
+    bool set_gamma_table (const XCam3aResultGammaTable &gamma);
     bool set_gamma_kernel(SmartPtr<CLGammaImageKernel> &kernel);
 
 private:

@@ -61,7 +61,7 @@ class CLBlcImageHandler
 {
 public:
     explicit CLBlcImageHandler (const char *name);
-    bool set_blc_config (XCam3aResultBlackLevel blc);
+    bool set_blc_config (const XCam3aResultBlackLevel &blc);
     bool set_blc_kernel(SmartPtr<CLBlcImageKernel> &kernel);
 
 protected:

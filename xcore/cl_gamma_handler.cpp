@@ -97,8 +97,8 @@ CLGammaImageKernel::prepare_arguments (
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = out_info.width/4;
-    work_size.global[1] = out_info.height/2;
+    work_size.global[0] = out_info.width / 4;
+    work_size.global[1] = out_info.height / 2;
     work_size.local[0] = 4;
     work_size.local[1] = 4;
 
@@ -117,7 +117,7 @@ CLGammaImageHandler::CLGammaImageHandler (const char *name)
 }
 
 bool
-CLGammaImageHandler::set_gamma_table (XCam3aResultGammaTable gamma)
+CLGammaImageHandler::set_gamma_table (const XCam3aResultGammaTable &gamma)
 {
     float gamma_table[XCAM_GAMMA_TABLE_SIZE];
     for(int i = 0; i < XCAM_GAMMA_TABLE_SIZE; i++)

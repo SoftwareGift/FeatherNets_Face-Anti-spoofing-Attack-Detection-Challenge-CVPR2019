@@ -66,6 +66,7 @@ MessageThread::loop()
 XCamMessage::XCamMessage (XCamMessageType type, int64_t timestamp, const char *message)
     : timestamp (timestamp)
     , msg_id (type)
+    , msg (NULL)
 {
     if (message)
         this->msg = strdup (message);

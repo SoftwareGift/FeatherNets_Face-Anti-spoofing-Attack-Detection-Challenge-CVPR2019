@@ -53,6 +53,8 @@ struct XCamMessage {
         int64_t timestamp = InvalidTimestamp,
         const char *message = NULL);
     ~XCamMessage ();
+
+    XCAM_DEAD_COPY (XCamMessage);
 };
 
 class MessageThread;

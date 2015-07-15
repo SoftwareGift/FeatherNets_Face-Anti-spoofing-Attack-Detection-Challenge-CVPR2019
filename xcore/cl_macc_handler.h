@@ -52,7 +52,7 @@ class CLMaccImageHandler
 {
 public:
     explicit CLMaccImageHandler (const char *name);
-    bool set_macc_table (XCam3aResultMaccMatrix macc);
+    bool set_macc_table (const XCam3aResultMaccMatrix &macc);
     bool set_macc_kernel(SmartPtr<CLMaccImageKernel> &kernel);
 
 private:

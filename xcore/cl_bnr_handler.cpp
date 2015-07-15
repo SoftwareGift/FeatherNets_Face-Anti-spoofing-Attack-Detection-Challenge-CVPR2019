@@ -81,7 +81,7 @@ CLBnrImageHandler::CLBnrImageHandler (const char *name)
 }
 
 bool
-CLBnrImageHandler::set_bnr_config (XCam3aResultBayerNoiseReduction bnr)
+CLBnrImageHandler::set_bnr_config (const XCam3aResultBayerNoiseReduction &bnr)
 {
     CLBNRConfig _bnr_config;
     _bnr_config.bnr_gain = (float)bnr.bnr_gain;

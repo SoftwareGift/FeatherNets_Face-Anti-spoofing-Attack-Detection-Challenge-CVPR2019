@@ -61,7 +61,7 @@ class CLDpcImageHandler
 {
 public:
     explicit CLDpcImageHandler (const char *name);
-    bool set_dpc_config (XCam3aResultDefectPixel dpc);
+    bool set_dpc_config (const XCam3aResultDefectPixel &dpc);
     bool set_dpc_kernel(SmartPtr<CLDpcImageKernel> &kernel);
 
 private:

@@ -41,7 +41,7 @@ class CLCscImageKernel
 {
 public:
     explicit CLCscImageKernel (SmartPtr<CLContext> &context, const char *name);
-    bool set_matrix (float *matrix);
+    bool set_matrix (const float *matrix);
     bool set_csc_kernel_type(CLCscType type);
 
 protected:
@@ -65,7 +65,7 @@ class CLCscImageHandler
 public:
     explicit CLCscImageHandler (const char *name, CLCscType type);
     bool set_csc_kernel(SmartPtr<CLCscImageKernel> &kernel);
-    bool set_rgbtoyuv_matrix (XCam3aResultColorMatrix matrix);
+    bool set_rgbtoyuv_matrix (const XCam3aResultColorMatrix &matrix);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
