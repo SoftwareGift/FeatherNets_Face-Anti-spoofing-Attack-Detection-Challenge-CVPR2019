@@ -28,6 +28,7 @@ CL3AStatsCalculatorKernel::CL3AStatsCalculatorKernel (
     SmartPtr<CL3AStatsCalculator> &image
 )
     : CLImageKernel (context, "kernel_3a_stats")
+    , _stats_buf_index (0)
     , _data_allocated (false)
     , _image (image)
 {
@@ -56,7 +57,7 @@ CL3AStatsCalculatorKernel::prepare_arguments (
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_stats_cl_buffer->get_mem_id ();
+    args[1].arg_adress = &_stats_cl_buffer[_stats_buf_index]->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
     arg_count = 2;
 
@@ -89,7 +90,7 @@ CL3AStatsCalculatorKernel::post_execute ()
     stats = buffer.dynamic_cast_ptr<X3aStats> ();
     XCAM_ASSERT (stats.ptr ());
     stats_ptr = stats->get_stats ();
-    ret = _stats_cl_buffer->enqueue_read (
+    ret = _stats_cl_buffer[_stats_buf_index]->enqueue_read (
               stats_ptr->stats,
               0, _stats_info.aligned_width * _stats_info.aligned_height * sizeof (stats_ptr->stats[0]),
               CLEvent::EmptyList, event);
@@ -103,6 +104,9 @@ CL3AStatsCalculatorKernel::post_execute ()
 
     stats->set_timestamp (_output_buffer->get_timestamp ());
     _output_buffer->attach_buffer (stats);
+
+    _stats_buf_index = ((_stats_buf_index + 1) % XCAM_CL_3A_STATS_BUFFER_COUNT);
+
     //post stats out
     return _image->post_stats (stats);
 }
@@ -129,15 +133,20 @@ CL3AStatsCalculatorKernel::allocate_data (const VideoBufferInfo &buffer_info)
         "reserve cl stats buffer failed");
 
     _stats_info = _stats_pool->get_stats_info ();
-    _stats_cl_buffer = new CLBuffer (
-        context,
-        _stats_info.aligned_width * _stats_info.aligned_height * sizeof (XCamGridStat));
 
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _stats_cl_buffer->is_valid (),
-        false,
-        "allocate cl stats buffer failed");
+    for (uint32_t i = 0; i < XCAM_CL_3A_STATS_BUFFER_COUNT; ++i) {
+        _stats_cl_buffer[i] = new CLBuffer (
+            context,
+            _stats_info.aligned_width * _stats_info.aligned_height * sizeof (XCamGridStat));
+
+        XCAM_ASSERT (_stats_cl_buffer[i].ptr ());
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _stats_cl_buffer[i]->is_valid (),
+            false,
+            "allocate cl stats buffer failed");
+    }
+    _stats_buf_index = 0;
     _data_allocated = true;
 
     return true;

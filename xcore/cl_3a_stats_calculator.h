@@ -27,6 +27,8 @@
 #include "x3a_stats_pool.h"
 #include "stats_callback_interface.h"
 
+#define XCAM_CL_3A_STATS_BUFFER_COUNT 6
+
 namespace XCam {
 
 class CL3AStatsCalculator;
@@ -55,7 +57,8 @@ private:
 
 private:
     SmartPtr<X3aStatsPool>           _stats_pool;
-    SmartPtr<CLBuffer>               _stats_cl_buffer;
+    SmartPtr<CLBuffer>               _stats_cl_buffer[XCAM_CL_3A_STATS_BUFFER_COUNT];
+    uint32_t                         _stats_buf_index;
     SmartPtr<DrmBoBuffer>            _output_buffer;
     XCam3AStatsInfo                  _stats_info;
     bool                             _data_allocated;
