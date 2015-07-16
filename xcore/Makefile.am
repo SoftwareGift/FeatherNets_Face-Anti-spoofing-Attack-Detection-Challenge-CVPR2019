@@ -9,7 +9,7 @@ XCAM_CORE_LIBS = -ldl   \
 if DEBUG
 endif
 
-if HAVE_IA_AIQ
+if ENABLE_IA_AIQ
 if USE_LOCAL_AIQ
 IA_IMAGING_CFLAGS =  \
 	-I$(top_srcdir)/ext/ia_imaging/include \
@@ -75,7 +75,7 @@ xcam_sources =               \
 	xcam_thread.cpp          \
 	$(NULL)
 
-if HAVE_IA_AIQ
+if ENABLE_IA_AIQ
 xcam_sources +=              \
 	libtbd.c                 \
 	xcam_cpf_reader.c        \

@@ -98,13 +98,16 @@ if test "$enable_libcl" = "yes"; then
 fi
 
 # check AIQ
-HAVE_IA_AIQ=0
+ENABLE_IA_AIQ=0
 USE_LOCAL_AIQ=0
 if test "$enable_aiq" = "yes"; then
-    HAVE_IA_AIQ=1
-    PKG_CHECK_MODULES(IA_AIQ, [libia_aiq], [USE_LOCAL_AIQ=0], [USE_LOCAL_AIQ=1])
-	# installed in default PATH
-    # AC_CHECK_HEADERS([ia_aiq.h], [HAVE_IA_AIQ=1], [:])
+    ENABLE_IA_AIQ=1
+    PKG_CHECK_MODULES(IA_AIQ, ia_imaging,
+        PKG_CHECK_EXISTS(ia_imaging >= 2.7,
+            AC_DEFINE(HAVE_AIQ_2_7, 1, [defined if ia_imaging >= v2.0_007 is found])
+        ),
+        [USE_LOCAL_AIQ=1]
+    )
 fi
 
 # check 3a lib build
@@ -178,9 +181,9 @@ AM_CONDITIONAL([HAVE_LIBCL], [test "$HAVE_LIBCL" -eq 1])
 AM_CONDITIONAL([USE_LOCAL_ATOMISP], [test "$USE_LOCAL_ATOMISP" -eq 1])
 
 # aiq (ia_imaging)
-AC_DEFINE_UNQUOTED([HAVE_IA_AIQ], $HAVE_IA_AIQ,
+AC_DEFINE_UNQUOTED([HAVE_IA_AIQ], $ENABLE_IA_AIQ,
     [have aiq binary])
-AM_CONDITIONAL([HAVE_IA_AIQ], [test "$HAVE_IA_AIQ" -eq 1])
+AM_CONDITIONAL([ENABLE_IA_AIQ], [test "$ENABLE_IA_AIQ" -eq 1])
 AM_CONDITIONAL([USE_LOCAL_AIQ], [test "$USE_LOCAL_AIQ" -eq 1])
 
 AC_CONFIG_FILES([Makefile
@@ -206,8 +209,8 @@ echo "
      version                    : $XCAM_VERSION
      enable debug               : $enable_debug
      enable profiling           : $enable_profiling
-     build aiq analyzer         : $enable_aiq
      build GStreamer plugin     : $enable_gst
+     build aiq analyzer         : $enable_aiq
      use local aiq              : $use_local_aiq
      use local atomisp          : $use_local_atomisp
      have opencl lib            : $have_libcl
