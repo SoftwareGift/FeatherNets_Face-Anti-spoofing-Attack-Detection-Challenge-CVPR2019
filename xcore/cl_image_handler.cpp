@@ -25,7 +25,7 @@
 
 namespace XCam {
 
-#define XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM 6
+#define XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM 4
 
 CLWorkSize::CLWorkSize ()
     : dim (XCAM_DEFAULT_IMAGE_DIM)

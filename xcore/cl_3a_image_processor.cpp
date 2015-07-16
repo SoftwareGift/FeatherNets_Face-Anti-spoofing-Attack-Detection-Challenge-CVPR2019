@@ -34,7 +34,7 @@
 #include "cl_dpc_handler.h"
 #include "cl_bnr_handler.h"
 
-#define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 8
+#define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 
 namespace XCam {
 
