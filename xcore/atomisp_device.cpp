@@ -43,7 +43,6 @@ AtomispDevice::pre_set_format (struct v4l2_format &format)
     this->get_framerate (fps_n, fps_d);
     if (fps_n != 0 && fps_d != 0) {
         struct v4l2_subdev_frame_interval frame_intvl;
-
         xcam_mem_clear (frame_intvl);
         if (io_control (VIDIOC_SUBDEV_G_FRAME_INTERVAL, &frame_intvl) < 0) {
             XCAM_LOG_WARNING ("atomisp device(%s) get framerate failed ", XCAM_STR (get_device_name()));
@@ -56,21 +55,42 @@ AtomispDevice::pre_set_format (struct v4l2_format &format)
         }
     }
 
+    // negotiate and set sensor output format by subdev
     xcam_mem_clear (subdev_fmt);
     subdev_fmt.pad = 0;
-    subdev_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
-    subdev_fmt.format.width = format.fmt.pix.width + 32;
-    subdev_fmt.format.height = format.fmt.pix.height + 17;
-    if (format.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB12)
-        subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB12_1X12; //depends on sensor
-    else
-        subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB10_1X10; //depends on sensor
+    subdev_fmt.which = V4L2_SUBDEV_FORMAT_TRY;
+    subdev_fmt.format.width = format.fmt.pix.width;
+    subdev_fmt.format.height = format.fmt.pix.height;
     subdev_fmt.format.field = V4L2_FIELD_NONE;
+    if (format.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB12) {
+        subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB12_1X12;
+    } else {
+        subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB10_1X10;
+    }
+
+    if (io_control(VIDIOC_SUBDEV_S_FMT, &subdev_fmt) < 0) {
+        XCAM_LOG_ERROR ("atomisp device(%s) try subdev format failed", XCAM_STR (get_device_name()));
+        return XCAM_RETURN_ERROR_IOCTL;
+    }
+    XCAM_LOG_INFO ("target subdev format (%dx%d, code %d)",
+                   subdev_fmt.format.width,
+                   subdev_fmt.format.height,
+                   subdev_fmt.format.code);
+
+    subdev_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
+    if (io_control (VIDIOC_SUBDEV_G_FMT, &subdev_fmt) < 0) {
+        XCAM_LOG_ERROR ("atomisp device(%s) get subdev format failed", XCAM_STR (get_device_name()));
+    }
+    XCAM_LOG_INFO ("negotiated subdev format (%dx%d, code %d)",
+                   subdev_fmt.format.width,
+                   subdev_fmt.format.height,
+                   subdev_fmt.format.code);
 
     if (io_control(VIDIOC_SUBDEV_S_FMT, &subdev_fmt) < 0) {
         XCAM_LOG_ERROR ("atomisp device(%s) set subdev format failed", XCAM_STR (get_device_name()));
         return XCAM_RETURN_ERROR_IOCTL;
     }
+
     return XCAM_RETURN_NO_ERROR;
 }
 
