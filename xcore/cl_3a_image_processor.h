@@ -99,7 +99,7 @@ private:
     SmartPtr<CLEeImageHandler>         _ee;
     SmartPtr<CLDpcImageHandler>        _dpc;
 
-    uint32_t                           _enable_hdr;
+    uint32_t                           _hdr_mode;
     uint32_t                           _tnr_mode;
     bool                               _enable_gamma;
     bool                               _enable_macc;

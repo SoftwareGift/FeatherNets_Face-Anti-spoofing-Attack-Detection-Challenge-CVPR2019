@@ -42,7 +42,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _out_smaple_type (OutSampleYuv)
-    , _enable_hdr (false)
+    , _hdr_mode (0)
     , _tnr_mode (0)
     , _enable_gamma (true)
     , _enable_macc (true)
@@ -318,7 +318,8 @@ CL3aImageProcessor::create_handlers ()
         _hdr.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create hdr handler failed");
-    _hdr->set_mode (_enable_hdr);
+    if(_hdr_mode == CL_HDR_TYPE_RGB)
+        _hdr->set_mode (_hdr_mode);
     add_handler (image_handler);
 
     /* demosaic */
@@ -330,6 +331,18 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create demosaic handler failed");
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
+    /* hdr-lab*/
+    image_handler = create_cl_hdr_image_handler (context, CL_HDR_DISABLE);
+    _hdr = image_handler.dynamic_cast_ptr<CLHdrImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _hdr.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create hdr handler failed");
+    if(_hdr_mode == CL_HDR_TYPE_LAB)
+        _hdr->set_mode (_hdr_mode);
     add_handler (image_handler);
 
     /* bilateral noise reduction */
@@ -432,7 +445,7 @@ CL3aImageProcessor::create_handlers ()
 bool
 CL3aImageProcessor::set_hdr (uint32_t mode)
 {
-    _enable_hdr = mode;
+    _hdr_mode = mode;
 
     STREAM_LOCK;
 
