@@ -32,7 +32,7 @@
 namespace XCam {
 
 class AnalyzerHandler {
-    friend class HanlderLock;
+    friend class HandlerLock;
 public:
     explicit AnalyzerHandler() {}
     virtual ~AnalyzerHandler () {}
@@ -40,14 +40,14 @@ public:
     virtual XCamReturn analyze (X3aResultList &output) = 0;
 
 protected:
-    class HanlderLock
+    class HandlerLock
         : public SmartLock
     {
     public:
-        HanlderLock(AnalyzerHandler *handler)
+        HandlerLock(AnalyzerHandler *handler)
             : SmartLock (handler->_mutex)
         {}
-        ~HanlderLock() {}
+        ~HandlerLock() {}
     };
 
     // members

@@ -514,7 +514,7 @@ bool AiqAeHandler::ensure_ae_ev_shift ()
 SmartPtr<X3aResult>
 AiqAeHandler::pop_result ()
 {
-    //AnalyzerHandler::HanlderLock lock(this);
+    //AnalyzerHandler::HandlerLock lock(this);
 
     X3aIspExposureResult *result = new X3aIspExposureResult(XCAM_IMAGE_PROCESS_ONCE);
     struct atomisp_exposure sensor;
@@ -547,7 +547,7 @@ AiqAeHandler::analyze (X3aResultList &output)
     bool need_apply = false;
     SmartPtr<X3aResult> result;
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     if (!ensure_ia_parameters ()) {
         XCAM_LOG_ERROR ("AIQ AE ensure ia parameters failed");
@@ -673,7 +673,7 @@ XCamFlickerMode
 AiqAeHandler::get_flicker_mode ()
 {
     {
-        AnalyzerHandler::HanlderLock lock(this);
+        AnalyzerHandler::HandlerLock lock(this);
     }
     return AeHandler::get_flicker_mode ();
 }
@@ -681,7 +681,7 @@ AiqAeHandler::get_flicker_mode ()
 int64_t
 AiqAeHandler::get_current_exposure_time ()
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     return (int64_t)_result.aiq_exp_param.exposure_time_us;
 }
@@ -689,7 +689,7 @@ AiqAeHandler::get_current_exposure_time ()
 double
 AiqAeHandler::get_current_analog_gain ()
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     return (double)_result.aiq_exp_param.analog_gain;
 }
 
@@ -697,7 +697,7 @@ double
 AiqAeHandler::get_max_analog_gain ()
 {
     {
-        AnalyzerHandler::HanlderLock lock(this);
+        AnalyzerHandler::HandlerLock lock(this);
     }
     return AeHandler::get_max_analog_gain ();
 }
@@ -705,7 +705,7 @@ AiqAeHandler::get_max_analog_gain ()
 XCamReturn
 AiqAeHandler::set_RGBS_weight_grid (ia_aiq_rgbs_grid **out_rgbs_grid)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     rgbs_grid_block *rgbs_grid_ptr = (*out_rgbs_grid)->blocks_ptr;
     uint32_t rgbs_grid_index = 0;
@@ -811,7 +811,7 @@ AiqAeHandler::set_RGBS_weight_grid (ia_aiq_rgbs_grid **out_rgbs_grid)
 XCamReturn
 AiqAeHandler::set_hist_weight_grid (ia_aiq_hist_weight_grid **out_weight_grid)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     uint16_t hist_grid_width = (*out_weight_grid)->width;
     uint16_t hist_grid_height = (*out_weight_grid)->height;
@@ -961,7 +961,7 @@ AiqAwbHandler::analyze (X3aResultList &output)
 
     XCAM_UNUSED (output);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     if (!ensure_ia_parameters ()) {
         XCAM_LOG_ERROR ("AIQ AE ensure ia parameters failed");
@@ -1087,7 +1087,7 @@ AiqCommonHandler::analyze (X3aResultList &output)
 
     XCAM_UNUSED (output);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     ia_aiq_gbce_input_params gbce_input;
     xcam_mem_clear (gbce_input);

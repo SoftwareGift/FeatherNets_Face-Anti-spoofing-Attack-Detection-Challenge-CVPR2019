@@ -79,7 +79,7 @@ public:
     {}
     virtual XCamReturn analyze (X3aResultList &output) {
         XCAM_UNUSED (output);
-        AnalyzerHandler::HanlderLock lock(this);
+        AnalyzerHandler::HandlerLock lock(this);
         XCamAeParam param = this->get_params_unlock ();
         return _analyzer->analyze_ae (param);
     }
@@ -97,7 +97,7 @@ public:
     {}
     virtual XCamReturn analyze (X3aResultList &output) {
         XCAM_UNUSED (output);
-        AnalyzerHandler::HanlderLock lock(this);
+        AnalyzerHandler::HandlerLock lock(this);
         XCamAwbParam param = this->get_params_unlock ();
         return _analyzer->analyze_awb (param);
     }
@@ -115,7 +115,7 @@ public:
     {}
     virtual XCamReturn analyze (X3aResultList &output) {
         XCAM_UNUSED (output);
-        AnalyzerHandler::HanlderLock lock(this);
+        AnalyzerHandler::HandlerLock lock(this);
         XCamAfParam param = this->get_params_unlock ();
         return _analyzer->analyze_af (param);
     }
@@ -134,7 +134,7 @@ public:
     {}
     virtual XCamReturn analyze (X3aResultList &output) {
         XCAM_UNUSED (output);
-        AnalyzerHandler::HanlderLock lock(this);
+        AnalyzerHandler::HandlerLock lock(this);
         return XCAM_RETURN_NO_ERROR;
     }
 

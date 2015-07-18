@@ -57,7 +57,7 @@ AeHandler::reset_parameters ()
 bool
 AeHandler::set_mode (XCamAeMode mode)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.mode = mode;
 
     XCAM_LOG_DEBUG ("ae set mode [%d]", mode);
@@ -67,7 +67,7 @@ AeHandler::set_mode (XCamAeMode mode)
 bool
 AeHandler::set_metering_mode (XCamAeMeteringMode mode)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.metering_mode = mode;
 
     XCAM_LOG_DEBUG ("ae set metering mode [%d]", mode);
@@ -77,7 +77,7 @@ AeHandler::set_metering_mode (XCamAeMeteringMode mode)
 bool
 AeHandler::set_window (XCam3AWindow *window)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.window = *window;
 
     XCAM_LOG_DEBUG ("ae set metering mode window [x:%d, y:%d, x_end:%d, y_end:%d, weight:%d]",
@@ -105,7 +105,7 @@ AeHandler::set_window (XCam3AWindow *window, uint8_t count)
         count = XCAM_AE_MAX_METERING_WINDOW_COUNT;
     }
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     _params.window = *window;
 
@@ -136,7 +136,7 @@ AeHandler::set_window (XCam3AWindow *window, uint8_t count)
 bool
 AeHandler::set_ev_shift (double ev_shift)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.ev_shift = ev_shift;
 
     XCAM_LOG_DEBUG ("ae set ev shift:%.03f", ev_shift);
@@ -146,7 +146,7 @@ AeHandler::set_ev_shift (double ev_shift)
 bool
 AeHandler::set_speed (double speed)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.speed = speed;
 
     XCAM_LOG_DEBUG ("ae set speed:%.03f", speed);
@@ -156,7 +156,7 @@ AeHandler::set_speed (double speed)
 bool
 AeHandler::set_flicker_mode (XCamFlickerMode flicker)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.flicker_mode = flicker;
 
     XCAM_LOG_DEBUG ("ae set flicker:%d", flicker);
@@ -166,14 +166,14 @@ AeHandler::set_flicker_mode (XCamFlickerMode flicker)
 XCamFlickerMode
 AeHandler::get_flicker_mode ()
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     return _params.flicker_mode;
 }
 
 int64_t
 AeHandler::get_current_exposure_time ()
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     if (_params.mode == XCAM_AE_MODE_MANUAL)
         return _params.manual_exposure_time;
     return INT64_C(-1);
@@ -182,7 +182,7 @@ AeHandler::get_current_exposure_time ()
 double
 AeHandler::get_current_analog_gain ()
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     if (_params.mode == XCAM_AE_MODE_MANUAL)
         return _params.manual_analog_gain;
     return 0.0;
@@ -191,7 +191,7 @@ AeHandler::get_current_analog_gain ()
 bool
 AeHandler::set_manual_exposure_time (int64_t time_in_us)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.manual_exposure_time = time_in_us;
 
     XCAM_LOG_DEBUG ("ae set manual exposure time: %lldus", time_in_us);
@@ -201,7 +201,7 @@ AeHandler::set_manual_exposure_time (int64_t time_in_us)
 bool
 AeHandler::set_manual_analog_gain (double gain)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.manual_analog_gain = gain;
 
     XCAM_LOG_DEBUG ("ae set manual analog gain: %.03f", gain);
@@ -211,7 +211,7 @@ AeHandler::set_manual_analog_gain (double gain)
 bool
 AeHandler::set_aperture (double fn)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.aperture_fn = fn;
 
     XCAM_LOG_DEBUG ("ae set aperture fn: %.03f", fn);
@@ -221,7 +221,7 @@ AeHandler::set_aperture (double fn)
 bool
 AeHandler::set_max_analog_gain (double max_gain)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.max_analog_gain = max_gain;
 
     XCAM_LOG_DEBUG ("ae set max analog_gain: %.03f", max_gain);
@@ -230,13 +230,13 @@ AeHandler::set_max_analog_gain (double max_gain)
 
 double AeHandler::get_max_analog_gain ()
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     return _params.max_analog_gain;
 }
 
 bool AeHandler::set_exposure_time_range (int64_t min_time_in_us, int64_t max_time_in_us)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.exposure_time_min = min_time_in_us;
     _params.exposure_time_max = max_time_in_us;
 
@@ -247,7 +247,7 @@ bool AeHandler::set_exposure_time_range (int64_t min_time_in_us, int64_t max_tim
 bool
 AeHandler::set_framerate (double framerate)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.framerate = framerate;
 
     XCAM_LOG_DEBUG ("ae set framerate: %.03f", framerate);
@@ -258,7 +258,7 @@ bool
 AeHandler::update_parameters (const XCamAeParam &params)
 {
     {
-        AnalyzerHandler::HanlderLock lock (this);
+        AnalyzerHandler::HandlerLock lock (this);
         _params = params;
     }
     XCAM_LOG_DEBUG ("ae parameters updated");
@@ -270,7 +270,7 @@ AeHandler::get_exposure_time_range (int64_t *min_time_in_us, int64_t *max_time_i
 {
     XCAM_ASSERT (min_time_in_us && max_time_in_us);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     *min_time_in_us = _params.exposure_time_min;
     *max_time_in_us = _params.exposure_time_max;
 
@@ -305,7 +305,7 @@ AwbHandler::reset_parameters ()
 bool
 AwbHandler::set_mode (XCamAwbMode mode)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.mode = mode;
 
     XCAM_LOG_DEBUG ("awb set mode [%d]", mode);
@@ -321,7 +321,7 @@ AwbHandler::set_speed (double speed)
         false,
         "awb speed(%f) is out of range, suggest (0.0, 1.0]", speed);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.speed = speed;
 
     XCAM_LOG_DEBUG ("awb set speed [%f]", speed);
@@ -337,7 +337,7 @@ AwbHandler::set_color_temperature_range (uint32_t cct_min, uint32_t cct_max)
         false,
         "awb set wrong cct(%u, %u) parameters", cct_min, cct_max);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.cct_min = cct_min;
     _params.cct_max = cct_max;
 
@@ -354,7 +354,7 @@ AwbHandler::set_manual_gain (double gr, double r, double b, double gb)
         false,
         "awb manual gain value must >= 0.0");
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.gr_gain = gr;
     _params.r_gain = r;
     _params.b_gain = b;
@@ -367,7 +367,7 @@ bool
 AwbHandler::update_parameters (const XCamAwbParam &params)
 {
     {
-        AnalyzerHandler::HanlderLock lock (this);
+        AnalyzerHandler::HandlerLock lock (this);
         _params = params;
     }
     XCAM_LOG_DEBUG ("awb parameters updated");
@@ -378,7 +378,7 @@ bool
 AfHandler::update_parameters (const XCamAfParam &params)
 {
     {
-        AnalyzerHandler::HanlderLock lock (this);
+        AnalyzerHandler::HandlerLock lock (this);
         _params = params;
     }
     XCAM_LOG_DEBUG ("af parameters updated");
@@ -410,7 +410,7 @@ CommonHandler::reset_parameters ()
 
 bool CommonHandler::set_dvs (bool enable)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.enable_dvs = enable;
 
     XCAM_LOG_DEBUG ("common 3A enable dvs:%s", XCAM_BOOL2STR(enable));
@@ -420,7 +420,7 @@ bool CommonHandler::set_dvs (bool enable)
 bool
 CommonHandler::set_gbce (bool enable)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.enable_gbce = enable;
 
     XCAM_LOG_DEBUG ("common 3A enable gbce:%s", XCAM_BOOL2STR(enable));
@@ -430,7 +430,7 @@ CommonHandler::set_gbce (bool enable)
 bool
 CommonHandler::set_night_mode (bool enable)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.enable_night_mode = enable;
 
     XCAM_LOG_DEBUG ("common 3A enable night mode:%s", XCAM_BOOL2STR(enable));
@@ -447,7 +447,7 @@ CommonHandler::set_noise_reduction_level (double level)
         false,
         "set NR levlel(%.03f) out of range[-1.0, 1.0]", level);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.nr_level = level;
 
     XCAM_LOG_DEBUG ("common 3A set NR level:%.03f", level);
@@ -463,7 +463,7 @@ CommonHandler::set_temporal_noise_reduction_level (double level)
         false,
         "set TNR levlel(%.03f) out of range[-1.0, 1.0]", level);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.tnr_level = level;
 
     XCAM_LOG_DEBUG ("common 3A set TNR level:%.03f", level);
@@ -479,7 +479,7 @@ CommonHandler::set_manual_brightness (double level)
         false,
         "set brightness levlel(%.03f) out of range[-1.0, 1.0]", level);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.brightness = level;
 
     XCAM_LOG_DEBUG ("common 3A set brightness level:%.03f", level);
@@ -494,7 +494,7 @@ bool CommonHandler::set_manual_contrast (double level)
         false,
         "set contrast levlel(%.03f) out of range[-1.0, 1.0]", level);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.contrast = level;
 
     XCAM_LOG_DEBUG ("common 3A set contrast level:%.03f", level);
@@ -509,7 +509,7 @@ bool CommonHandler::set_manual_hue (double level)
         false,
         "set hue levlel(%.03f) out of range[-1.0, 1.0]", level);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.hue = level;
 
     XCAM_LOG_DEBUG ("common 3A set hue level:%.03f", level);
@@ -525,7 +525,7 @@ CommonHandler::set_manual_saturation (double level)
         false,
         "set saturation levlel(%.03f) out of range[-1.0, 1.0]", level);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.saturation = level;
 
     XCAM_LOG_DEBUG ("common 3A set saturation level:%.03f", level);
@@ -540,7 +540,7 @@ bool CommonHandler::set_manual_sharpness (double level)
         false,
         "set sharpness levlel(%.03f) out of range[-1.0, 1.0]", level);
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     _params.sharpness = level;
 
     XCAM_LOG_DEBUG ("common 3A set sharpness level:%.03f", level);
@@ -550,7 +550,7 @@ bool CommonHandler::set_manual_sharpness (double level)
 bool
 CommonHandler::set_gamma_table (double *r_table, double *g_table, double *b_table)
 {
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
     if (!r_table && ! g_table && !b_table) {
         _params.is_manual_gamma = false;
         XCAM_LOG_DEBUG ("common 3A disabled gamma");
@@ -578,7 +578,7 @@ CommonHandler::set_color_effect (XCamColorEffect effect)
 {
     // TODO validate the input
 
-    AnalyzerHandler::HanlderLock lock(this);
+    AnalyzerHandler::HandlerLock lock(this);
 
     _params.color_effect = effect;
 
@@ -590,7 +590,7 @@ bool
 CommonHandler::update_parameters (const XCamCommonParam &params)
 {
     {
-        AnalyzerHandler::HanlderLock lock (this);
+        AnalyzerHandler::HandlerLock lock (this);
         _params = params;
     }
     XCAM_LOG_DEBUG ("common parameters updated");
