@@ -64,6 +64,7 @@ public:
     virtual bool set_denoise (uint32_t mode);
     virtual bool set_gamma (bool enable);
     virtual bool set_macc (bool enable);
+    virtual bool set_dpc (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
 
 protected:
@@ -103,6 +104,7 @@ private:
     uint32_t                           _tnr_mode;
     bool                               _enable_gamma;
     bool                               _enable_macc;
+    bool                               _enable_dpc;
     uint32_t                           _snr_mode; // spatial nr mode
 };
 

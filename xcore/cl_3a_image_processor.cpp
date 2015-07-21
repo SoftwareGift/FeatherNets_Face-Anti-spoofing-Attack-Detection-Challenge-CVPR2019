@@ -46,6 +46,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _tnr_mode (0)
     , _enable_gamma (true)
     , _enable_macc (true)
+    , _enable_dpc (false)
     , _snr_mode (XCAM_DENOISE_TYPE_SIMPLE | XCAM_DENOISE_TYPE_EE)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
@@ -268,6 +269,7 @@ CL3aImageProcessor::create_handlers ()
         image_handler.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create dpc handler failed");
+    _dpc->set_kernels_enable(_enable_dpc);
     add_handler (image_handler);
 
     image_handler = create_cl_bnr_image_handler (context);
@@ -496,6 +498,19 @@ CL3aImageProcessor::set_macc (bool enable)
 
     if (_macc.ptr ())
         return _macc->set_kernels_enable (enable);
+    return true;
+}
+
+bool
+CL3aImageProcessor::set_dpc (bool enable)
+{
+    _enable_dpc = enable;
+
+    STREAM_LOCK;
+
+    if (_dpc.ptr ())
+        return _dpc->set_kernels_enable (enable);
+
     return true;
 }
 

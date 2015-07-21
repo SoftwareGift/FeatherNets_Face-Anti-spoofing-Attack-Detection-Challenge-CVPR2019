@@ -281,7 +281,8 @@ void print_help (const char *bin_name)
             "\t --enable-snr  enable simple noise reduction\n"
             "\t --enable-ee   enable YEENR\n"
             "\t --enable-bnr  enable bayer noise reduction\n"
-            "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr)\n\n"
+            "\t --enable-dpc  enable defect pixel correction\n"
+            "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
 }
@@ -316,6 +317,7 @@ int main (int argc, char *argv[])
     uint32_t tnr_type = CL_TNR_DISABLE;
     uint32_t denoise_type = 0;
     uint8_t tnr_level = 0;
+    bool dpc_type = false;
 
     const char *short_opts = "sca:n:m:f:d:pi:e:h";
     const struct option long_opts[] = {
@@ -326,6 +328,7 @@ int main (int argc, char *argv[])
         {"enable-snr", no_argument, NULL, 'S'},
         {"enable-ee", no_argument, NULL, 'E'},
         {"enable-bnr", no_argument, NULL, 'B'},
+        {"enable-dpc", no_argument, NULL, 'D'},
         {0, 0, 0, 0},
     };
 
@@ -425,6 +428,10 @@ int main (int argc, char *argv[])
         }
         case 'B': {
             denoise_type |= XCAM_DENOISE_TYPE_BNR;
+            break;
+        }
+        case 'D': {
+            dpc_type = true;
             break;
         }
         case 'T': {
@@ -550,6 +557,7 @@ int main (int argc, char *argv[])
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
+        cl_processor->set_dpc(dpc_type);
         cl_processor->set_hdr (hdr_type);
         cl_processor->set_denoise (denoise_type);
         if (need_display) {
