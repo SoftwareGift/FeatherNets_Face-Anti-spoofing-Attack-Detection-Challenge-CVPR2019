@@ -35,6 +35,7 @@ typedef struct  {
     cl_float  level_r;   /* Black level for R pixels */
     cl_float  level_b;   /* Black level for B pixels */
     cl_float  level_gb;  /* Black level for GB pixels */
+    uint32_t  color_bits;
 } CLBLCConfig;
 
 class CLBlcImageKernel
@@ -42,7 +43,7 @@ class CLBlcImageKernel
 {
 public:
     explicit CLBlcImageKernel (SmartPtr<CLContext> &context);
-    bool set_blc (CLBLCConfig blc);
+    bool set_blc (const XCam3aResultBlackLevel &blc);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -53,7 +54,6 @@ protected:
 private:
     XCAM_DEAD_COPY (CLBlcImageKernel);
     CLBLCConfig _blc_config;
-    uint32_t _color_bits;
 };
 
 class CLBlcImageHandler

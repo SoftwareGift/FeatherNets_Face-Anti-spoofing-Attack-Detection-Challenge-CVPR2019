@@ -29,6 +29,7 @@ CLBlcImageKernel::CLBlcImageKernel (SmartPtr<CLContext> &context)
     _blc_config.level_r = XCAM_CL_BLC_DEFAULT_LEVEL;
     _blc_config.level_b = XCAM_CL_BLC_DEFAULT_LEVEL;
     _blc_config.level_gb = XCAM_CL_BLC_DEFAULT_LEVEL;
+    _blc_config.color_bits = 0;
 }
 
 XCamReturn
@@ -42,7 +43,7 @@ CLBlcImageKernel::prepare_arguments (
     const VideoBufferInfo & out_video_info = output->get_video_info ();
     CLImageDesc image_info;
     uint32_t channel_bits = XCAM_ALIGN_UP (in_video_info.color_bits, 8);
-    _color_bits = in_video_info.color_bits;
+    _blc_config.color_bits = in_video_info.color_bits;
 
     image_info.format.image_channel_order = CL_R;
     if (channel_bits == 8)
@@ -68,7 +69,7 @@ CLBlcImageKernel::prepare_arguments (
 
     /* This is a temporary workaround to hard code black level for 12bit raw data.
         And it should be removed once tunning is finished.   */
-    if (_color_bits == 12) {
+    if (_blc_config.color_bits == 12) {
         _blc_config.level_gr = 240 / (double)pow(2, 12);
         _blc_config.level_r = 240 / (double)pow(2, 12);
         _blc_config.level_b = 240 / (double)pow(2, 12);
@@ -82,9 +83,7 @@ CLBlcImageKernel::prepare_arguments (
     args[1].arg_size = sizeof (cl_mem);
     args[2].arg_adress = &_blc_config;
     args[2].arg_size = sizeof (CLBLCConfig);
-    args[3].arg_adress = &_color_bits;
-    args[3].arg_size = sizeof (_color_bits);
-    arg_count = 4;
+    arg_count = 3;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = image_info.width / 2;
@@ -96,9 +95,13 @@ CLBlcImageKernel::prepare_arguments (
 }
 
 bool
-CLBlcImageKernel::set_blc (CLBLCConfig blc)
+CLBlcImageKernel::set_blc (const XCam3aResultBlackLevel &blc)
 {
-    _blc_config = blc;
+    _blc_config.level_r = (float)blc.r_level;
+    _blc_config.level_gr = (float)blc.gr_level;
+    _blc_config.level_gb = (float)blc.gb_level;
+    _blc_config.level_b = (float)blc.b_level;
+    _blc_config.color_bits = 0;
     return true;
 }
 CLBlcImageHandler::CLBlcImageHandler (const char *name)
@@ -109,13 +112,7 @@ CLBlcImageHandler::CLBlcImageHandler (const char *name)
 bool
 CLBlcImageHandler::set_blc_config (const XCam3aResultBlackLevel &blc)
 {
-    CLBLCConfig _blc_config;
-    _blc_config.level_r = (float)blc.r_level;
-    _blc_config.level_gr = (float)blc.gr_level;
-    _blc_config.level_gb = (float)blc.gb_level;
-    _blc_config.level_b = (float)blc.b_level;;
-    _blc_kernel->set_blc(_blc_config);
-    return true;
+    return _blc_kernel->set_blc(blc);
 }
 
 bool
