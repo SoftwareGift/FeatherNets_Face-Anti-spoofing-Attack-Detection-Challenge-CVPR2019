@@ -20,7 +20,7 @@
 
 #include "priority_buffer_queue.h"
 
-#define XCAM_PRIORITY_BUFFER_FIXED_DELAY 1
+#define XCAM_PRIORITY_BUFFER_FIXED_DELAY 6
 
 namespace XCam {
 

@@ -33,6 +33,7 @@
 #include "cl_ee_handler.h"
 #include "cl_dpc_handler.h"
 #include "cl_bnr_handler.h"
+#include "cl_bayer_pipe_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 
@@ -145,18 +146,20 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_WHITE_BALANCE: {
         SmartPtr<X3aWhiteBalanceResult> wb_res = result.dynamic_cast_ptr<X3aWhiteBalanceResult> ();
         XCAM_ASSERT (wb_res.ptr ());
-        if (!_wb.ptr())
-            break;
-        _wb->set_wb_config (wb_res->get_standard_result ());
+        if (_wb.ptr ())
+            _wb->set_wb_config (wb_res->get_standard_result ());
+        if (_bayer_pipe.ptr ())
+            _bayer_pipe->set_wb_config (wb_res->get_standard_result ());
         break;
     }
 
     case XCAM_3A_RESULT_BLACK_LEVEL: {
         SmartPtr<X3aBlackLevelResult> bl_res = result.dynamic_cast_ptr<X3aBlackLevelResult> ();
         XCAM_ASSERT (bl_res.ptr ());
-        if (!_black_level.ptr())
-            break;
-        _black_level->set_blc_config (bl_res->get_standard_result ());
+        if (_black_level.ptr ())
+            _black_level->set_blc_config (bl_res->get_standard_result ());
+        if (_bayer_pipe.ptr ())
+            _bayer_pipe->set_blc_config (bl_res->get_standard_result ());
         break;
     }
 
@@ -194,9 +197,10 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_Y_GAMMA: {
         SmartPtr<X3aGammaTableResult> gamma_res = result.dynamic_cast_ptr<X3aGammaTableResult> ();
         XCAM_ASSERT (gamma_res.ptr ());
-        if (!_gamma.ptr())
-            break;
-        _gamma->set_gamma_table (gamma_res->get_standard_result ());
+        if (_gamma.ptr())
+            _gamma->set_gamma_table (gamma_res->get_standard_result ());
+        if (_bayer_pipe.ptr ())
+            _bayer_pipe->set_gamma_table (gamma_res->get_standard_result ());
         break;
     }
 
@@ -252,6 +256,20 @@ CL3aImageProcessor::create_handlers ()
 
     XCAM_ASSERT (context.ptr ());
 
+#if 1
+    /* bayer pipeline */
+    image_handler = create_cl_bayer_pipe_image_handler (context);
+    _bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();;
+    XCAM_FAIL_RETURN (
+        WARNING,
+        image_handler.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create bayer pipe handler failed");
+    _bayer_pipe->set_stats_callback (_stats_callback);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
+#else
     /* black leve as first */
     image_handler = create_cl_blc_image_handler (context);
     _black_level = image_handler.dynamic_cast_ptr<CLBlcImageHandler> ();;
@@ -334,6 +352,7 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create demosaic handler failed");
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
+#endif
 
     /* hdr-lab*/
     image_handler = create_cl_hdr_image_handler (context, CL_HDR_DISABLE);

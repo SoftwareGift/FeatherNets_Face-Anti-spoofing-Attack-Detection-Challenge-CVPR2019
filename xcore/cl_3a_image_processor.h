@@ -42,6 +42,7 @@ class CLTnrImageHandler;
 class CLEeImageHandler;
 class CLDpcImageHandler;
 class CLBnrImageHandler;
+class CLBayerPipeImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -99,6 +100,9 @@ private:
     SmartPtr<CLDenoiseImageHandler>    _binr;
     SmartPtr<CLEeImageHandler>         _ee;
     SmartPtr<CLDpcImageHandler>        _dpc;
+
+    // simple 3a bayer pipeline
+    SmartPtr<CLBayerPipeImageHandler>  _bayer_pipe;
 
     uint32_t                           _hdr_mode;
     uint32_t                           _tnr_mode;

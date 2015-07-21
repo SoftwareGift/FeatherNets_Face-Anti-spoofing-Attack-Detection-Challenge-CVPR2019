@@ -120,6 +120,15 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
         XCAM_RETURN_ERROR_MEM,
         "CL image processor can't handle this buffer, maybe type error");
 
+    while (!_done_buffer_queue.is_empty ()) {
+        SmartPtr<DrmBoBuffer> done_buf = _done_buffer_queue.pop (50000); //50ms
+        if (!done_buf.ptr ())
+            break;
+        //notify buffer done
+        notify_process_buffer_done (done_buf);
+    }
+    output = NULL; // consider call back?
+
     STREAM_LOCK;
 
     if (_handlers.empty()) {
@@ -143,15 +152,6 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
         XCAM_RETURN_ERROR_UNKNOWN,
         "CLImageProcessor push priority buffer failed");
 
-    while (!_done_buffer_queue.is_empty ()) {
-        SmartPtr<DrmBoBuffer> done_buf = _done_buffer_queue.pop (50000); //50ms
-        if (!done_buf.ptr ())
-            break;
-        //notify buffer done
-        notify_process_buffer_done (done_buf);
-    }
-
-    output = NULL; // consider call back?
     return XCAM_RETURN_BYPASS;
 }
 
