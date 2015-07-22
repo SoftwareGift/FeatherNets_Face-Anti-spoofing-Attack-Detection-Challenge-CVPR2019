@@ -242,6 +242,7 @@ static gboolean gst_xcam_src_set_night_mode (GstXCam3A *xcam3a, gboolean enable)
 static gboolean gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode);
 static gboolean gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint32 mode);
 static gboolean gst_xcam_src_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable);
+static gboolean gst_xcam_src_set_dpc_mode(GstXCam3A * xcam3a, gboolean enable);
 
 static gboolean gst_xcam_src_plugin_init (GstPlugin * xcamsrc);
 
@@ -515,6 +516,7 @@ gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface)
     iface->set_hdr_mode = gst_xcam_src_set_hdr_mode;
     iface->set_denoise_mode = gst_xcam_src_set_denoise_mode;
     iface->set_gamma_mode = gst_xcam_src_set_gamma_mode;
+    iface->set_dpc_mode = gst_xcam_src_set_dpc_mode;
 }
 
 static gboolean
@@ -1125,6 +1127,21 @@ gst_xcam_src_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable)
     SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
     if (cl_image_processor.ptr ())
         return cl_image_processor->set_gamma (enable);
+    else
+#endif
+        return false;
+}
+
+static gboolean
+gst_xcam_src_set_dpc_mode (GstXCam3A *xcam3a, gboolean enable)
+{
+    GST_XCAM_INTERFACE_HEADER (xcam3a, src, device_manager, analyzer);
+    XCAM_UNUSED (analyzer);
+
+#if HAVE_LIBCL
+    SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
+    if (cl_image_processor.ptr ())
+        return cl_image_processor->set_dpc (enable);
     else
 #endif
         return false;
