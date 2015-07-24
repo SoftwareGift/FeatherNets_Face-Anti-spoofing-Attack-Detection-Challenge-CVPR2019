@@ -203,6 +203,8 @@ CLImageProcessor::process_cl_buffer_queue ()
         if (out_data.ptr ())
             out_data->clear_attached_buffers ();
 
+    CLDevice::instance()->get_context ()->finish ();
+
 #if ENABLE_PROFILING
         XCAM_OBJ_PROFILING_START;
         //CLDevice::instance()->get_context ()->finish ();
