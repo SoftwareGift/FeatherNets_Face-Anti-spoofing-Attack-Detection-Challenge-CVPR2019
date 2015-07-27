@@ -98,7 +98,6 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
 {
     if (result.ptr() == NULL)
         return false;
-
     switch (result->get_type ()) {
     case XCAM_3A_RESULT_WHITE_BALANCE:
     case XCAM_3A_RESULT_BLACK_LEVEL:
@@ -109,6 +108,7 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION:
     case XCAM_3A_RESULT_MACC:
     case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
+    case XCAM_3A_RESULT_BRIGHTNESS:
         return true;
 
     default:
@@ -243,6 +243,15 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         break;
     }
 
+    case XCAM_3A_RESULT_BRIGHTNESS: {
+        SmartPtr<X3aBrightnessResult> brightness_res = result.dynamic_cast_ptr<X3aBrightnessResult> ();
+        XCAM_ASSERT (brightness_res.ptr ());
+        if (!_gamma.ptr())
+            break;
+        float brightness_level = ((XCam3aResultBrightness)brightness_res->get_standard_result()).brightness_level;
+        _gamma->set_manual_brightness(brightness_level);
+        break;
+    }
     default:
         XCAM_LOG_WARNING ("CL3aImageProcessor unknow 3a result:%d", res_type);
         break;
@@ -562,4 +571,5 @@ CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
 
     return ret;
 }
+
 };

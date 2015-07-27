@@ -266,6 +266,8 @@ void print_help (const char *bin_name)
             "\t               pixel_fmt select from [NV12, YUYV, BA10, RG12], default is [NV12]\n"
             "\t -d cap_mode   specify capture mode\n"
             "\t               cap_mode select from [video, still], default is [video]\n"
+            "\t -b brightness specify brightness level\n"
+            "\t               brightness level select from [0, 256], default is [128]\n"
             "\t -i frame_save specify the frame count to save, default is 0 which means endless\n"
             "\t -p preview on local display\n"
             "\t -e display_mode    preview mode\n"
@@ -318,8 +320,9 @@ int main (int argc, char *argv[])
     uint32_t denoise_type = 0;
     uint8_t tnr_level = 0;
     bool dpc_type = false;
+    int32_t brightness_level = 128;
 
-    const char *short_opts = "sca:n:m:f:d:pi:e:h";
+    const char *short_opts = "sca:n:m:f:d:b:pi:e:h";
     const struct option long_opts[] = {
         {"hdr", required_argument, NULL, 'H'},
         {"tnr", required_argument, NULL, 'T'},
@@ -382,6 +385,13 @@ int main (int argc, char *argv[])
             else if (!strcmp (optarg, "video"))
                 capture_mode = V4L2_CAPTURE_MODE_VIDEO;
             else  {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+        case 'b':
+            brightness_level = atoi(optarg);
+            if(brightness_level < 0 || brightness_level > 256) {
                 print_help (bin_name);
                 return -1;
             }
@@ -555,6 +565,7 @@ int main (int argc, char *argv[])
 
 #if HAVE_LIBCL
     if (have_cl_processor) {
+
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
         cl_processor->set_dpc(dpc_type);
@@ -564,6 +575,7 @@ int main (int argc, char *argv[])
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
         cl_processor->set_tnr (tnr_type, tnr_level);
+        analyzer->set_parameter_brightness((brightness_level - 128) / 128.0);
         device_manager->add_image_processor (cl_processor);
     }
 #endif

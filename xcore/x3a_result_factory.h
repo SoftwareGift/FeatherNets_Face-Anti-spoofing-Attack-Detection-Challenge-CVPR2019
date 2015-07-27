@@ -54,7 +54,7 @@ public:
     SmartPtr<X3aMaccMatrixResult> create_macc (XCam3aResultMaccMatrix *from = NULL);
     SmartPtr<X3aChromaToneControlResult> create_chroma_tone_control (XCam3aResultChromaToneControl *from = NULL);
     SmartPtr<X3aBayerNoiseReduction> create_bayer_noise_reduction (XCam3aResultBayerNoiseReduction *from = NULL);
-
+    SmartPtr<X3aBrightnessResult> create_brightness (XCam3aResultBrightness *from = NULL);
 protected:
     explicit X3aResultFactory ();
 

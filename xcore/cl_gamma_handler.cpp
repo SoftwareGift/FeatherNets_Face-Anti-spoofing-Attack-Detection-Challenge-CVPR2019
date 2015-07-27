@@ -111,8 +111,10 @@ CLGammaImageKernel::set_gamma (float *gamma)
     memcpy(_gamma_table, gamma, sizeof(float)*XCAM_GAMMA_TABLE_SIZE);
     return true;
 }
+
 CLGammaImageHandler::CLGammaImageHandler (const char *name)
-    : CLImageHandler (name)
+    : CLImageHandler (name),
+      _brightness_impact (1)
 {
 }
 
@@ -120,9 +122,21 @@ bool
 CLGammaImageHandler::set_gamma_table (const XCam3aResultGammaTable &gamma)
 {
     float gamma_table[XCAM_GAMMA_TABLE_SIZE];
+
     for(int i = 0; i < XCAM_GAMMA_TABLE_SIZE; i++)
-        gamma_table[i] = (float)gamma.table[i];
+    {
+        gamma_table[i] = (float)gamma.table[i] * _brightness_impact;
+        if(gamma_table[i] > 255) gamma_table[i] = 255;
+    }
     _gamma_kernel->set_gamma(gamma_table);
+    return true;
+}
+
+bool
+CLGammaImageHandler::set_manual_brightness (float level)
+{
+    _brightness_impact = level + 1;
+    _brightness_impact = (_brightness_impact <= 0) ? 0 : _brightness_impact;
     return true;
 }
 
@@ -134,7 +148,6 @@ CLGammaImageHandler::set_gamma_kernel(SmartPtr<CLGammaImageKernel> &kernel)
     _gamma_kernel = kernel;
     return true;
 }
-
 
 SmartPtr<CLImageHandler>
 create_cl_gamma_image_handler (SmartPtr<CLContext> &context)

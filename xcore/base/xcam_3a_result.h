@@ -72,6 +72,7 @@ typedef enum _XCam3aResultType {
     XCAM_3A_RESULT_R_GAMMA,
     XCAM_3A_RESULT_G_GAMMA,
     XCAM_3A_RESULT_B_GAMMA,
+    XCAM_3A_RESULT_BRIGHTNESS,
     //XCAM_3A_RESULT_SHADING_TABLE,
     XCAM_3A_RESULT_USER_DEFINED_TYPE = 0x8000,
 } XCam3aResultType;
@@ -201,6 +202,12 @@ typedef struct _XCam3aResultChromaToneControl {
     double           uv_gain [XCAM_GAMMA_TABLE_SIZE]; // according to Y
 } XCam3aResultChromaToneControl;
 
+typedef struct _XCam3aResultBrightness {
+    XCam3aResultHead head;
+
+    /* data */
+    double           brightness_level; // range [-1,1], -1 is full dark , 0 is normal val, 1 is full bright
+} XCam3aResultBrightness;
 
 XCAM_END_DECLARE
 

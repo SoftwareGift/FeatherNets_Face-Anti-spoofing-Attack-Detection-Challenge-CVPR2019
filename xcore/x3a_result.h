@@ -138,8 +138,7 @@ typedef X3aStandardResultT<XCam3aResultGammaTable>     X3aGammaTableResult;
 typedef X3aStandardResultT<XCam3aResultMaccMatrix>     X3aMaccMatrixResult;
 typedef X3aStandardResultT<XCam3aResultChromaToneControl> X3aChromaToneControlResult;
 typedef X3aStandardResultT<XCam3aResultBayerNoiseReduction> X3aBayerNoiseReduction;
-
-
+typedef X3aStandardResultT<XCam3aResultBrightness>      X3aBrightnessResult;
 };
 
 #endif //XCAM_3A_RESULT_H

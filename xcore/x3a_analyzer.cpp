@@ -582,6 +582,12 @@ X3aAnalyzer::set_gamma_table (double *r_table, double *g_table, double *b_table)
 }
 
 bool
+X3aAnalyzer::set_parameter_brightness(double level)
+{
+    _brightness_level_param = level;
+}
+
+bool
 X3aAnalyzer::update_awb_parameters (const XCamAwbParam &params)
 {
     XCAM_ASSERT (_awb_handler.ptr());

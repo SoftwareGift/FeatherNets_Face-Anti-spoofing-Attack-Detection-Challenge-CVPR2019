@@ -232,9 +232,19 @@ translate_3a_results_to_xcam (X3aResultList &list,
             result_count += translate_atomisp_parameters (atomisp_params, &results[result_count], max_count - result_count);
             break;
         }
-        default:
+        case XCAM_3A_RESULT_BRIGHTNESS: {
+            SmartPtr<X3aBrightnessResult> xcam_brightness =
+                isp_result.dynamic_cast_ptr<X3aBrightnessResult>();
+            const XCam3aResultBrightness &brightness = xcam_brightness->get_standard_result();
+            XCam3aResultBrightness *new_brightness = xcam_malloc0_type(XCam3aResultBrightness);
+            *new_brightness = brightness;
+            results[result_count++] = (XCam3aResultHead*)new_brightness;
+            break;
+        }
+        default: {
             XCAM_LOG_WARNING ("unknow type(%d) in translation", isp_result->get_type());
             break;
+        }
         }
     }
     return result_count;

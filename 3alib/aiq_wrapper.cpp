@@ -23,6 +23,7 @@
 #include "x3a_analyzer_aiq.h"
 #include "x3a_statistics_queue.h"
 #include "aiq3a_utils.h"
+#include "x3a_result_factory.h"
 
 #define DEFAULT_AIQ_CPF_FILE       "/etc/atomisp/imx185.cpf"
 
@@ -48,6 +49,7 @@ public:
 
     // derive from AnalyzerCallback
     virtual void x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results);
+    void update_brightness_result(XCamCommonParam *params);
 
 private:
     XCAM_DEAD_COPY (XCam3AAiqContext);
@@ -59,9 +61,11 @@ private:
 
     Mutex                          _result_mutex;
     X3aResultList                  _results;
+    double                         _brightness_level;
 };
 
 XCam3AAiqContext::XCam3AAiqContext ()
+    : _brightness_level(0)
 {
 }
 
@@ -127,6 +131,24 @@ XCam3AAiqContext::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &re
     XCAM_UNUSED (analyzer);
     SmartLock  locker (_result_mutex);
     _results.insert (_results.end (), results.begin (), results.end ());
+}
+
+void
+XCam3AAiqContext::update_brightness_result(XCamCommonParam *params)
+{
+    if( params->brightness == _brightness_level)
+        return;
+    _brightness_level = params->brightness;
+
+    XCam3aResultBrightness *xcam3a_brightness_result = xcam_malloc0_type (XCam3aResultBrightness);
+    xcam3a_brightness_result->head.type =   XCAM_3A_RESULT_BRIGHTNESS;
+    xcam3a_brightness_result->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    xcam3a_brightness_result->head.version = XCAM_VERSION;
+    xcam3a_brightness_result->brightness_level = _brightness_level;
+
+    SmartPtr<X3aResult> brightness_result =
+        X3aResultFactory::instance ()->create_3a_result ((XCam3aResultHead*)xcam3a_brightness_result);
+    _results.push_back(brightness_result);
 }
 
 uint32_t
@@ -277,6 +299,10 @@ xcam_update_common_params (XCam3AContext *context, XCamCommonParam *params)
 
         analyzer->update_common_parameters (*params);
     }
+#if 0
+    XCam3AAiqContext *aiq_context = AIQ_CONTEXT_CAST (context);
+    aiq_context->update_brightness_result(params);
+#endif
     return XCAM_RETURN_NO_ERROR;
 }
 

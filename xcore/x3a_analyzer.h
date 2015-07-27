@@ -101,6 +101,7 @@ public:
     bool set_manual_sharpness (double level);
     bool set_gamma_table (double *r_table, double *g_table, double *b_table);
     bool set_color_effect(XCamColorEffect effect);
+    bool set_parameter_brightness (double level);
 
     // whole update of parameters
     bool update_awb_parameters (const XCamAwbParam &params);
@@ -159,6 +160,9 @@ private:
     XCamReturn analyze_3a_statistics (SmartPtr<X3aStats> &stats);
 
     XCAM_DEAD_COPY (X3aAnalyzer);
+
+protected:
+    double                   _brightness_level_param;
 
 private:
     char                    *_name;

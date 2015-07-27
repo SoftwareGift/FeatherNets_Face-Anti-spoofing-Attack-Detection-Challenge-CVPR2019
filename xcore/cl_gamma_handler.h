@@ -34,6 +34,7 @@ public:
     explicit CLGammaImageKernel (SmartPtr<CLContext> &context);
     bool set_gamma (float *gamma);
 
+
 protected:
     virtual XCamReturn prepare_arguments (
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
@@ -54,11 +55,13 @@ public:
     explicit CLGammaImageHandler (const char *name);
     bool set_gamma_table (const XCam3aResultGammaTable &gamma);
     bool set_gamma_kernel(SmartPtr<CLGammaImageKernel> &kernel);
+    bool set_manual_brightness (float level);
 
 private:
     XCAM_DEAD_COPY (CLGammaImageHandler);
 
     SmartPtr<CLGammaImageKernel> _gamma_kernel;
+    float _brightness_impact;
 };
 
 SmartPtr<CLImageHandler>

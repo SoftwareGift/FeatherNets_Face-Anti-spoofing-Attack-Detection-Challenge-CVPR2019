@@ -258,6 +258,7 @@ DynamicAnalyzer::configure_3a ()
                       ret == XCAM_RETURN_NO_ERROR,
                       ret,
                       "dynamic analyzer configure 3a failed");
+    set_manual_brightness(_brightness_level_param);
 
     return XCAM_RETURN_NO_ERROR;
 }
