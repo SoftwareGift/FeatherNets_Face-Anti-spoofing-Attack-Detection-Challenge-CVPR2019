@@ -203,13 +203,10 @@ CLImageProcessor::process_cl_buffer_queue ()
         if (out_data.ptr ())
             out_data->clear_attached_buffers ();
 
-    CLDevice::instance()->get_context ()->finish ();
-
-#if ENABLE_PROFILING
         XCAM_OBJ_PROFILING_START;
-        //CLDevice::instance()->get_context ()->finish ();
+        CLDevice::instance()->get_context ()->finish ();
         XCAM_OBJ_PROFILING_END (get_name (), 30);
-#endif
+
         // buffer done, push back
         _done_buffer_queue.push (out_data);
         return XCAM_RETURN_NO_ERROR;

@@ -348,7 +348,7 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
     }
 
 #if ENABLE_PROFILING
-    //CLDevice::instance()->get_context ()->finish ();
+    CLDevice::instance()->get_context ()->finish ();
 #endif
 
     XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
