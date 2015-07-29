@@ -21,6 +21,7 @@ clx_kernel_sources = \
 	kernel_ee.clx              \
         kernel_dpc.clx              \
 	kernel_bnr.clx                \
+	kernel_yuv_pipe.clx                \
 	$(NULL)
 
 cl_quote_sh = \

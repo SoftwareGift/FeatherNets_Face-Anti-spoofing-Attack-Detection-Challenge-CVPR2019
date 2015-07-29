@@ -34,6 +34,7 @@
 #include "cl_dpc_handler.h"
 #include "cl_bnr_handler.h"
 #include "cl_bayer_pipe_handler.h"
+#include "cl_yuv_pipe_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 
@@ -175,18 +176,20 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_RGB2YUV_MATRIX: {
         SmartPtr<X3aColorMatrixResult> csc_res = result.dynamic_cast_ptr<X3aColorMatrixResult> ();
         XCAM_ASSERT (csc_res.ptr ());
-        if (!_csc.ptr())
-            break;
-        _csc->set_rgbtoyuv_matrix (csc_res->get_standard_result ());
+        if (_csc.ptr())
+            _csc->set_rgbtoyuv_matrix (csc_res->get_standard_result ());
+        if (_yuv_pipe.ptr())
+            _yuv_pipe->set_rgbtoyuv_matrix (csc_res->get_standard_result ());
         break;
     }
 
     case XCAM_3A_RESULT_MACC: {
         SmartPtr<X3aMaccMatrixResult> macc_res = result.dynamic_cast_ptr<X3aMaccMatrixResult> ();
         XCAM_ASSERT (macc_res.ptr ());
-        if (!_macc.ptr())
-            break;
-        _macc->set_macc_table (macc_res->get_standard_result ());
+        if (_macc.ptr())
+            _macc->set_macc_table (macc_res->get_standard_result ());
+        if (_yuv_pipe.ptr())
+            _yuv_pipe->set_macc_table (macc_res->get_standard_result ());
         break;
     }
     case XCAM_3A_RESULT_R_GAMMA:
@@ -399,7 +402,16 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create snr handler failed");
     _snr->set_kernels_enable (XCAM_DENOISE_TYPE_SIMPLE & _snr_mode);
     add_handler (image_handler);
-
+#if 1
+    image_handler = create_cl_yuv_pipe_image_handler (context);
+    _yuv_pipe = image_handler.dynamic_cast_ptr<CLYuvPipeImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _yuv_pipe.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create macc handler failed");
+    add_handler (image_handler);
+#else
     /* macc */
     image_handler = create_cl_macc_image_handler (context);
     _macc = image_handler.dynamic_cast_ptr<CLMaccImageHandler> ();
@@ -421,6 +433,7 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create csc handler failed");
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     add_handler (image_handler);
+#endif
 
     /* Temporal Noise Reduction (YUV domain) */
     image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_YUV);

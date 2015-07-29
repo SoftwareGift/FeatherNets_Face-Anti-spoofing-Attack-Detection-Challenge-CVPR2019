@@ -36,6 +36,7 @@
 #include "cl_dpc_handler.h"
 #include "cl_bnr_handler.h"
 #include "cl_bayer_pipe_handler.h"
+#include "cl_yuv_pipe_handler.h"
 
 using namespace XCam;
 
@@ -55,6 +56,7 @@ enum TestHandlerType {
     TestHandlerMacc,
     TestHandlerEe,
     TestHandlerBayerPipe,
+    TestHandlerYuvPipe,
 };
 
 struct TestFileHandle {
@@ -122,7 +124,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
@@ -224,6 +226,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerEe;
             else if (!strcasecmp (optarg, "bayerpipe"))
                 handler_type = TestHandlerBayerPipe;
+            else if (!strcasecmp (optarg, "yuvpipe"))
+                handler_type = TestHandlerYuvPipe;
             else
                 print_help (bin_name);
             break;
@@ -394,6 +398,12 @@ int main (int argc, char *argv[])
         SmartPtr<CLBayerPipeImageHandler> bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();
         XCAM_ASSERT (bayer_pipe.ptr ());
         bayer_pipe->set_output_format (output_format);
+        break;
+    }
+    case TestHandlerYuvPipe: {
+        image_handler = create_cl_yuv_pipe_image_handler (context);
+        SmartPtr<CLYuvPipeImageHandler> yuv_pipe = image_handler.dynamic_cast_ptr<CLYuvPipeImageHandler> ();
+        XCAM_ASSERT (yuv_pipe.ptr ());
         break;
     }
     default:
