@@ -266,6 +266,9 @@ V4l2Device::set_format (struct v4l2_format &format)
         _fps_n = param.parm.capture.timeperframe.denominator;
         _fps_d = param.parm.capture.timeperframe.numerator;
         XCAM_LOG_INFO ("device(%s) set framerate(%d/%d)", XCAM_STR (_name), _fps_n, _fps_d);
+
+        // exit here, otherwise it is an infinite loop
+        break;
     }
 
     ret = post_set_format (format);
