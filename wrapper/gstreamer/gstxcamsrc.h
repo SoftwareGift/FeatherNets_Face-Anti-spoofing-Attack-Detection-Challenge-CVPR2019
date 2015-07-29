@@ -71,6 +71,8 @@ struct _GstXCamSrc
     uint32_t                     sensor_id;
     uint32_t                     capture_mode;
     char                        *device;
+    char                        *path_to_cpf;
+    char                        *path_to_3alib;
     gboolean                     enable_3a;
 
     gboolean                     time_offset_ready;

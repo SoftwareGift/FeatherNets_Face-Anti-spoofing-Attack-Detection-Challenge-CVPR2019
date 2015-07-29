@@ -183,7 +183,9 @@ enum {
     PROP_BUFFERCOUNT,
     PROP_FIELD,
     PROP_IMAGE_PROCESSOR,
-    PROP_3A_ANALYZER
+    PROP_3A_ANALYZER,
+    PROP_CPF,
+    PROP_3A_LIB
 };
 
 static void gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface);
@@ -313,6 +315,16 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                            GST_TYPE_XCAM_SRC_ANALYZER, DEFAULT_PROP_ANALYZER,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+    g_object_class_install_property (
+        gobject_class, PROP_CPF,
+        g_param_spec_string ("path-cpf", "cpf", "Path to cpf",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_3A_LIB,
+        g_param_spec_string ("path-3alib", "3a lib", "Path to dynamic 3A library",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Source",
                                           "Source/Base",
@@ -347,6 +359,8 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->sensor_id = 0;
     xcamsrc->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     xcamsrc->device = NULL;
+    xcamsrc->path_to_cpf = strdup(DEFAULT_CPF_FILE_NAME);
+    xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->time_offset_ready = FALSE;
     xcamsrc->time_offset = -1;
@@ -416,6 +430,12 @@ gst_xcam_src_get_property (
     case PROP_3A_ANALYZER:
         g_value_set_enum (value, src->analyzer_type);
         break;
+    case PROP_CPF:
+        g_value_set_string (value, src->path_to_cpf);
+        break;
+    case PROP_3A_LIB:
+        g_value_set_string (value, src->path_to_3alib);
+        break;
 
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -470,6 +490,24 @@ gst_xcam_src_set_property (
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
         break;
+    case PROP_CPF: {
+        const char * cpf = g_value_get_string (value);
+        if (src->path_to_cpf)
+            xcam_free (src->path_to_cpf);
+        src->path_to_cpf = NULL;
+        if (cpf)
+            src->path_to_cpf = strdup (cpf);
+        break;
+    }
+    case PROP_3A_LIB: {
+        const char * path = g_value_get_string (value);
+        if (src->path_to_3alib)
+            xcam_free (src->path_to_3alib);
+        src->path_to_3alib = NULL;
+        if (path)
+            src->path_to_3alib = strdup (path);
+        break;
+    }
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -579,15 +617,16 @@ gst_xcam_src_start (GstBaseSrc *src)
     switch (xcamsrc->analyzer_type) {
 #if HAVE_IA_AIQ
     case AIQ_ANALYZER:
-        analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE_NAME);
+        XCAM_LOG_INFO ("cpf: %s", xcamsrc->path_to_cpf);
+        analyzer = new X3aAnalyzerAiq (isp_controller, xcamsrc->path_to_cpf);
         break;
 #endif
     case DYNAMIC_ANALYZER: {
-        const char *path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
-        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (path_of_3a);
+        XCAM_LOG_INFO ("dynamic 3a library: %s", xcamsrc->path_to_3alib);
+        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (xcamsrc->path_to_3alib);
         analyzer = loader->load_analyzer (loader);
         if (!analyzer.ptr ()) {
-            XCAM_LOG_ERROR ("load analyzer(%s) failed, please check.", path_of_3a);
+            XCAM_LOG_ERROR ("load analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
             return FALSE;
         }
         break;
