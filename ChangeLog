@@ -1,3 +1,12 @@
+2015/07/31: release libxcam version 0.2.1
+ * improved OCL pipeline on basic 3a image processing
+    - merged bayer kernels with blc, wb, gamma, demosaic and 3a stats.
+    - merged yuv kernerls with rgb2yuv color conversion and macc.
+    - support async framework as option on cl features
+    - support OCL buffer allocation which can choose tiling mode.
+ * support different AIQ versions.
+ * fix capture of dead-loop and sensor format setting.
+
 2015/07/02: release libxcam version 0.2.0
  * add gstreamer plugin 'xcamsrc' for Linux media framework support
  * support loading user-defined 3a algorithm lib dynamically
