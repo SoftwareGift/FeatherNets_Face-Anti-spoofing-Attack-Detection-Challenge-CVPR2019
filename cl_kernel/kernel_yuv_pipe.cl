@@ -5,50 +5,11 @@
  */
 unsigned int get_sector_id (float u, float v)
 {
-    if ((u >= 0.0) && (v >= 0.0 ))
-    {
-        if (v / u <= 0.5)
-            return 0;
-        else if ((v / u > .05) && (v / u <= 1.0))
-            return 1;
-        else if ((v / u > 1.0) && (v / u <= 2.0))
-            return 2;
-        else
-            return 3;
-    }
-    else if ((u < 0.0) && (v >= 0.0))
-    {
-        if (v / u <= -2.0)
-            return 4;
-        if ((v / u > -2.0) && (v / u <= -1.0))
-            return 5;
-        if ((v / u > -1.0) && (v / u <= -0.5))
-            return 6;
-        else
-            return 7;
-    }
-    else if ((u < 0.0) && (v <= 0.0))
-    {
-        if (v / u <= 0.5)
-            return 8;
-        else if ((v / u > 0.5) && (v / u <= 1.0))
-            return 9;
-        else if ((v / u > 1.0) && (v / u <= 2.0))
-            return 10;
-        else
-            return 11;
-    }
-    else
-    {
-        if(v / u <= -2.0)
-            return 12;
-        else if((v / u > -2.0) && (v / u <= -1.0))
-            return 13;
-        else if((v / u > -1.0) && (v / u <= -0.5))
-            return 14;
-        else
-            return 15;
-    }
+    u = fabs(u) > 0.00001f ? u : 0.00001f;
+    float tg = v / u;
+    unsigned int se = tg > 1 ? (tg > 2 ? 3 : 2) : (tg > 0.5 ? 1 : 0);
+    unsigned int so = tg > -1 ? (tg > -0.5 ? 3 : 2) : (tg > -2 ? 1 : 0);
+    return tg > 0 ? (u > 0 ? se : (se + 8)) : (u > 0 ? (so + 12) : (so + 4));
 }
 
 __inline void cl_csc_rgbatonv12(float4 *in, float *out, __global float *matrix)
