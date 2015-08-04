@@ -8,10 +8,7 @@ __constant float table[] = {4.3287616, 5.9319224, 7.1324205, 8.1288157, 8.996576
 
 static float fun(float in)
 {
-    if(in > 0.008856)
-        return pow(in, 1.0 / 3);
-    else
-        return (float)(7.787 * in + 16.0 / 116);
+    return in > 0.008856 ? (native_powr(in, 1.0 / 3)) : (7.787 * in + 16.0 / 116);
 }
 __kernel void kernel_hdr_lab (__read_only image2d_t input, __write_only image2d_t output)
 {
@@ -21,34 +18,27 @@ __kernel void kernel_hdr_lab (__read_only image2d_t input, __write_only image2d_
     float4 pixel_in, pixel_out;
     unsigned int table_id;
     pixel_in = read_imagef(input, sampler, (int2)(x, y));
+
     float X, Y, Z, L, a, b;
     X = 0.412453 * pixel_in.x + 0.357580 * pixel_in.y + 0.180423 * pixel_in.z;
     Y = 0.212671 * pixel_in.x + 0.715160 * pixel_in.y + 0.072169 * pixel_in.z;
     Z = 0.019334 * pixel_in.x + 0.119193 * pixel_in.y + 0.950227 * pixel_in.z;
-    if(Y > 0.008856)
-        L = 116.0 * (pow(Y, 1.0 / 3))  - 16.0;
-    else
-        L = 903.3 * Y;
+    L = Y > 0.008856 ? (116.0 * native_powr(Y, 1.0 / 3) - 16.0) : 903.3 * Y;
     a = 500 * (fun(X) - fun(Y));
     b = 200 * (fun(Y) - fun(Z));
     table_id = (unsigned int)(L * 10) < 1000 ? (unsigned int)(L * 10) : 999;
     L = table[table_id];
     float fX, fY, fZ;
-    Y = pow(L / 116.0, 3.0);
-    if (Y < 0.008856)
-        Y = L / 903.3;
-    if (Y > 0.008856)
-        fY = pow(Y, 1.0 / 3.0);
-    else
-        fY = 7.787 * Y + 16.0 / 116.0;
+    Y = (L / 116.0) * (L / 116.0) * (L / 116.0);
+    Y = Y < 0.008856 ? L / 903.3 : Y;
+    fY = Y > 0.008856 ? (native_powr(Y, 1.0 / 3.0)) : (7.787 * Y + 16.0 / 116.0);
     fX = a / 500.0 + fY;
-    X = pow(fX, 3.0);
-    if(X < 0.008865)
-        X = (fX - 16.0 / 116.0) / 7.787;
+    X = fX * fX * fX;
+    X = X < 0.008865 ? ((fX - 16.0 / 116.0) / 7.787) : X;
     fZ = fY - b / 200.0;
-    Z = pow(fZ, 3.0);
-    if(Z < 0.008865)
-        Z = (fZ - 16.0 / 116.0) / 7.787;
+    Z = fZ * fZ * fZ;
+    Z = Z < 0.008865 ? ((fZ - 16.0 / 116.0) / 7.787) : Z;
+
     pixel_out.x = 3.240479 * X - 1.537150 * Y - 0.498535 * Z;
     pixel_out.y = -0.969256 * X + 1.875992 * Y + 0.041556 * Z;
     pixel_out.z = 0.055648 * X - 0.204043 * Y + 1.204043 * Z;
