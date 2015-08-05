@@ -49,7 +49,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_gamma (true)
     , _enable_macc (true)
     , _enable_dpc (false)
-    , _snr_mode (XCAM_DENOISE_TYPE_SIMPLE | XCAM_DENOISE_TYPE_EE)
+    , _snr_mode (0)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
@@ -419,6 +419,7 @@ CL3aImageProcessor::create_handlers ()
         _yuv_pipe.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create macc handler failed");
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 #else
     /* macc */
