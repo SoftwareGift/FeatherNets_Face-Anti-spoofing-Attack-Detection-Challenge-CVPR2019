@@ -20,6 +20,7 @@
 
 #include "device_manager.h"
 #include "atomisp_device.h"
+#include "uvc_device.h"
 #include "isp_controller.h"
 #include "isp_image_processor.h"
 #include "x3a_analyzer_simple.h"
@@ -270,6 +271,8 @@ void print_help (const char *bin_name)
             "\t               brightness level select from [0, 256], default is [128]\n"
             "\t -i frame_save specify the frame count to save, default is 0 which means endless\n"
             "\t -p preview on local display\n"
+            "\t --usb         specify node for usb camera device, enables capture path through USB camera \n"
+            "\t               specify [/dev/video4, /dev/video5] depending on which node USB camera is attached\n"
             "\t -e display_mode    preview mode\n"
             "\t                select from [primary, overlay], default is [primary]\n"
             "\t -h            help\n"
@@ -321,6 +324,8 @@ int main (int argc, char *argv[])
     uint8_t tnr_level = 0;
     bool dpc_type = false;
     int32_t brightness_level = 128;
+    bool    have_usbcam = 0;
+    char*   usb_device_name = NULL;
 
     const char *short_opts = "sca:n:m:f:d:b:pi:e:h";
     const struct option long_opts[] = {
@@ -332,6 +337,7 @@ int main (int argc, char *argv[])
         {"enable-ee", no_argument, NULL, 'E'},
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-dpc", no_argument, NULL, 'D'},
+        {"usb", required_argument, NULL, 'U'},
         {0, 0, 0, 0},
     };
 
@@ -398,6 +404,11 @@ int main (int argc, char *argv[])
             break;
         case 'p':
             need_display = true;
+            break;
+        case 'U':
+            have_usbcam = true;
+            usb_device_name = strdup(optarg);
+            XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", usb_device_name);
             break;
         case 'e': {
             if (!strcmp (optarg, "primary"))
@@ -480,12 +491,16 @@ int main (int argc, char *argv[])
         device_manager->set_display_mode (display_mode);
     }
     if (!device.ptr ())  {
-        if (capture_mode == V4L2_CAPTURE_MODE_STILL)
-            device = new AtomispDevice (CAPTURE_DEVICE_STILL);
-        else if (capture_mode == V4L2_CAPTURE_MODE_VIDEO)
-            device = new AtomispDevice (CAPTURE_DEVICE_VIDEO);
-        else
-            device = new AtomispDevice (DEFAULT_CAPTURE_DEVICE);
+        if (have_usbcam) {
+            device = new UVCDevice (usb_device_name);
+        } else {
+            if (capture_mode == V4L2_CAPTURE_MODE_STILL)
+                device = new AtomispDevice (CAPTURE_DEVICE_STILL);
+            else if (capture_mode == V4L2_CAPTURE_MODE_VIDEO)
+                device = new AtomispDevice (CAPTURE_DEVICE_VIDEO);
+            else
+                device = new AtomispDevice (DEFAULT_CAPTURE_DEVICE);
+        }
     }
     if (!event_device.ptr ())
         event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);

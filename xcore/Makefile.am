@@ -59,6 +59,7 @@ xcam_sources =               \
 	isp_config_translator.cpp \
 	poll_thread.cpp          \
 	sensor_descriptor.cpp    \
+	uvc_device.cpp           \
 	v4l2_buffer_proxy.cpp    \
 	v4l2_device.cpp          \
 	video_buffer.cpp         \
