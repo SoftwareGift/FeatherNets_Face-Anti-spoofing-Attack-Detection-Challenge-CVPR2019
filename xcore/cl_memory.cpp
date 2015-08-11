@@ -29,6 +29,8 @@ CLImageDesc::CLImageDesc ()
 , width (0)
 , height (0)
 , row_pitch (0)
+, slice_pitch (0)
+, array_size (0)
 , size (0)
 {
 }
@@ -40,7 +42,9 @@ CLImageDesc::operator == (const CLImageDesc& desc) const
             desc.format.image_channel_order == this->format.image_channel_order &&
             desc.width == this->width &&
             desc.height == this->height &&
-            desc.row_pitch == this->row_pitch)// &&
+            desc.row_pitch == this->row_pitch &&
+            desc.slice_pitch == this->slice_pitch &&
+            desc.array_size == this->array_size)// &&
         //desc.size == this->size)
         return true;
     return false;
@@ -255,8 +259,10 @@ CLImage::video_info_2_cl_image_desc (
 {
     image_desc.width = video_info.width;
     image_desc.height = video_info.height;
+    image_desc.array_size = 0;
     image_desc.row_pitch = video_info.strides[0];
     XCAM_ASSERT (image_desc.row_pitch >= image_desc.width);
+    image_desc.slice_pitch = 0;
 
     switch (video_info.format) {
     case XCAM_PIX_FMT_RGB48:
@@ -326,7 +332,8 @@ CLImage::video_info_2_cl_image_desc (
     case V4L2_PIX_FMT_NV12:
         image_desc.format.image_channel_order = CL_R;
         image_desc.format.image_channel_data_type = CL_UNORM_INT8;
-        image_desc.height *= 2;
+        image_desc.array_size = 2;
+        image_desc.slice_pitch = video_info.strides [0] * video_info.aligned_height;
         break;
 
     case V4L2_PIX_FMT_YUYV:
@@ -353,19 +360,23 @@ CLImage::video_info_2_cl_image_desc (
 void
 CLImage::init_desc_by_image ()
 {
-    size_t width = 0, height = 0, row_pitch = 0, mem_size = 0;
+    size_t width = 0, height = 0, row_pitch = 0, slice_pitch = 0, array_size = 0, mem_size = 0;
     cl_image_format format = {CL_R, CL_UNORM_INT8};
 
     get_cl_image_info (CL_IMAGE_FORMAT, sizeof(format), &format);
     get_cl_image_info (CL_IMAGE_WIDTH, sizeof(width), &width);
     get_cl_image_info (CL_IMAGE_HEIGHT, sizeof(height), &height);
     get_cl_image_info (CL_IMAGE_ROW_PITCH, sizeof(row_pitch), &row_pitch);
+    get_cl_image_info (CL_IMAGE_SLICE_PITCH, sizeof(slice_pitch), &slice_pitch);
+    get_cl_image_info (CL_IMAGE_ARRAY_SIZE, sizeof(array_size), &array_size);
     get_cl_mem_info (CL_MEM_SIZE, sizeof(mem_size), &mem_size);
 
     _image_desc.format = format;
     _image_desc.width = width;
     _image_desc.height = height;
     _image_desc.row_pitch = row_pitch;
+    _image_desc.slice_pitch = slice_pitch;
+    _image_desc.array_size = array_size;
     _image_desc.size = mem_size;
 }
 
@@ -383,6 +394,10 @@ CLVaImage::CLVaImage (
         XCAM_LOG_WARNING ("CLVaImage create va image failed on default videoinfo");
         return;
     }
+    if (!merge_multi_plane (video_info, cl_desc)) {
+        XCAM_LOG_WARNING ("CLVaImage create va image failed on merging planes");
+        return;
+    }
 
     init_va_image (context, bo, cl_desc, offset);
 }
@@ -396,6 +411,28 @@ CLVaImage::CLVaImage (
     , _bo (bo)
 {
     init_va_image (context, bo, image_info, offset);
+}
+
+bool
+CLVaImage::merge_multi_plane (
+    const VideoBufferInfo &video_info,
+    CLImageDesc &cl_desc)
+{
+    if (cl_desc.array_size <= 1)
+        return true;
+
+    switch (video_info.format) {
+    case V4L2_PIX_FMT_NV12:
+        cl_desc.height = video_info.aligned_height + video_info.height / 2;
+        break;
+
+    default:
+        XCAM_LOG_WARNING ("CLVaImage unknow format(%s) plane change", xcam_fourcc_to_string(video_info.format));
+        return false;
+    }
+    cl_desc.array_size = 0;
+    cl_desc.slice_pitch = 0;
+    return true;
 }
 
 bool
@@ -497,5 +534,55 @@ bool CLImage2D::init_image_2d (
     init_desc_by_image ();
     return true;
 }
+
+CLImage2DArray::CLImage2DArray (
+    SmartPtr<CLContext> &context,
+    const VideoBufferInfo &video_info,
+    cl_mem_flags  flags)
+    : CLImage (context)
+{
+    CLImageDesc cl_desc;
+
+    XCAM_ASSERT (video_info.components >= 2);
+
+    if (!video_info_2_cl_image_desc (video_info, cl_desc)) {
+        XCAM_LOG_WARNING ("CLVaImage create va image failed on default videoinfo");
+        return;
+    }
+    XCAM_ASSERT (cl_desc.array_size >= 2);
+
+    init_image_2d_array (context, cl_desc, flags);
+}
+
+bool CLImage2DArray::init_image_2d_array (
+    SmartPtr<CLContext> &context,
+    const CLImageDesc &desc,
+    cl_mem_flags  flags)
+{
+    cl_mem mem_id = 0;
+    cl_image_desc cl_desc;
+
+    xcam_mem_clear (cl_desc);
+    cl_desc.image_type = CL_MEM_OBJECT_IMAGE2D_ARRAY;
+    cl_desc.image_width = desc.width;
+    cl_desc.image_height = desc.height;
+    cl_desc.image_depth = 1;
+    cl_desc.image_array_size = desc.array_size;
+    cl_desc.image_row_pitch = 0;
+    cl_desc.image_slice_pitch = 0;
+    cl_desc.num_mip_levels = 0;
+    cl_desc.num_samples = 0;
+    cl_desc.buffer = NULL;
+
+    mem_id = context->create_image (flags, desc.format, cl_desc);
+    if (mem_id == NULL) {
+        XCAM_LOG_WARNING ("CLImage2D create image 2d failed");
+        return false;
+    }
+    set_mem_id (mem_id);
+    init_desc_by_image ();
+    return true;
+}
+
 
 };

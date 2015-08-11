@@ -33,6 +33,8 @@ struct CLImageDesc {
     uint32_t                width;
     uint32_t                height;
     uint32_t                row_pitch;
+    uint32_t                slice_pitch;
+    uint32_t                array_size;
     uint32_t                size;
 
     CLImageDesc ();
@@ -155,6 +157,9 @@ private:
     bool init_va_image (
         SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo,
         const CLImageDesc &cl_desc, uint32_t offset);
+    bool merge_multi_plane (
+        const VideoBufferInfo &video_info,
+        CLImageDesc &cl_desc);
 
     XCAM_DEAD_COPY (CLVaImage);
 
@@ -182,6 +187,27 @@ private:
 
     XCAM_DEAD_COPY (CLImage2D);
 };
+
+class CLImage2DArray
+    : public CLImage
+{
+public:
+    explicit CLImage2DArray (
+        SmartPtr<CLContext> &context,
+        const VideoBufferInfo &video_info,
+        cl_mem_flags  flags = CL_MEM_READ_WRITE);
+
+    ~CLImage2DArray () {}
+
+private:
+    bool init_image_2d_array (
+        SmartPtr<CLContext> &context,
+        const CLImageDesc &cl_desc,
+        cl_mem_flags  flags);
+
+    XCAM_DEAD_COPY (CLImage2DArray);
+};
+
 
 };
 #endif //

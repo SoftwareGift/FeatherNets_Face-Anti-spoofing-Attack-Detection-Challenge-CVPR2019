@@ -49,6 +49,7 @@ class CLContext {
     friend class CLBuffer;
     friend class CLVaImage;
     friend class CLImage2D;
+    friend class CLImage2DArray;
 
 public:
     enum KernelBuildType {

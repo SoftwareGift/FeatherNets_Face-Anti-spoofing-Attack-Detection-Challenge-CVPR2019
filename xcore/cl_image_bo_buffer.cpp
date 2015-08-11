@@ -78,7 +78,11 @@ CLBoBufferPool::create_image_bo (const VideoBufferInfo &info)
     drm_intel_bo *bo = NULL;
     CLImageDesc desc;
     SmartPtr<CLImageBoData> data;
-    SmartPtr<CLImage> image = new CLImage2D (_context, info, CL_MEM_READ_WRITE);
+    SmartPtr<CLImage> image;
+    if (info.components == 1)
+        image = new CLImage2D (_context, info, CL_MEM_READ_WRITE);
+    else
+        image = new CLImage2DArray (_context, info, CL_MEM_READ_WRITE);
     XCAM_FAIL_RETURN (
         WARNING,
         image.ptr () && image->get_mem_id (),
@@ -112,6 +116,8 @@ CLBoBufferPool::create_image_bo (const VideoBufferInfo &info)
 bool
 CLBoBufferPool::fixate_video_info (VideoBufferInfo &info)
 {
+    bool need_reset_info = false;
+    uint32_t i = 0;
     SmartPtr<CLImage> image;
     SmartPtr<CLImageBoData> image_data = create_image_bo (info);
     XCAM_FAIL_RETURN (
@@ -124,9 +130,25 @@ CLBoBufferPool::fixate_video_info (VideoBufferInfo &info)
     XCAM_ASSERT (image.ptr ());
 
     CLImageDesc desc = image->get_image_desc ();
-    if (desc.row_pitch != info.strides[0] || desc.size != info.size) {
+    if (desc.row_pitch != info.strides [0] || desc.size != info.size)
+        need_reset_info = true;
+
+    for (i = 1; i < info.components && !need_reset_info; ++i) {
+        XCAM_ASSERT (desc.slice_pitch && desc.array_size >= info.components);
+        if (desc.row_pitch != info.strides [i] ||
+                info.offsets [i] != desc.slice_pitch * i)
+            need_reset_info = true;
+    }
+    if (need_reset_info) {
         uint32_t aligned_width = desc.row_pitch / image->get_pixel_bytes ();
-        info.init (info.format, info.width, info.height, aligned_width, 0, desc.size);
+        uint32_t aligned_height = 0;
+        if (info.components > 0)
+            aligned_height = desc.slice_pitch / desc.row_pitch;
+        info.init (info.format, info.width, info.height, aligned_width, aligned_height, desc.size);
+        for (i = 1; i < info.components; ++i) {
+            info.offsets[i] = desc.slice_pitch * i;
+            info.strides[i] = desc.row_pitch;
+        }
     }
 
     add_data_unsafe (image_data);
