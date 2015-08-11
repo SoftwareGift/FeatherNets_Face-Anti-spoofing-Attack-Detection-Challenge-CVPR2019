@@ -132,6 +132,8 @@ AnalyzerCallback::x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timesta
 
 X3aAnalyzer::X3aAnalyzer (const char *name)
     : _name (NULL)
+    , _sync (false)
+    , _started (false)
     , _width (0)
     , _height (0)
     , _framerate (30.0)
@@ -243,24 +245,49 @@ X3aAnalyzer::deinit ()
 }
 
 XCamReturn
+X3aAnalyzer::set_sync_mode (bool sync)
+{
+    if (_started) {
+        XCAM_LOG_ERROR ("can't set_sync_mode after analyzer started");
+        return XCAM_RETURN_ERROR_PARAM;
+    }
+    _sync = sync;
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 X3aAnalyzer::start ()
 {
-    if (_3a_analyzer_thread->start () == false) {
-        XCAM_LOG_WARNING ("analyzer thread start failed");
-        stop ();
-        return XCAM_RETURN_ERROR_THREAD;
+    if (_sync) {
+        XCamReturn ret = configure_3a ();
+        if (ret != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_ERROR ("analyzer failed to start in sync mode");
+            stop ();
+            return ret;
+        }
+    } else {
+        if (_3a_analyzer_thread->start () == false) {
+            XCAM_LOG_WARNING ("analyzer thread start failed");
+            stop ();
+            return XCAM_RETURN_ERROR_THREAD;
+        }
     }
 
-    XCAM_LOG_INFO ("Analyzer(%s) started.", XCAM_STR(get_name()));
+    _started = true;
+    XCAM_LOG_INFO ("Analyzer(%s) started in %s mode.", XCAM_STR(get_name()),
+                   _sync ? "sync" : "async");
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 X3aAnalyzer::stop ()
 {
-    _3a_analyzer_thread->triger_stop ();
-    _3a_analyzer_thread->stop ();
+    if (!_sync) {
+        _3a_analyzer_thread->triger_stop ();
+        _3a_analyzer_thread->stop ();
+    }
 
+    _started = false;
     XCAM_LOG_INFO ("Analyzer(%s) stopped.", XCAM_STR(get_name()));
     return XCAM_RETURN_NO_ERROR;
 }
@@ -268,13 +295,21 @@ X3aAnalyzer::stop ()
 XCamReturn
 X3aAnalyzer::push_3a_stats (const SmartPtr<X3aStats> &stats)
 {
-    if (!_3a_analyzer_thread->is_running())
-        return XCAM_RETURN_ERROR_THREAD;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    if (_3a_analyzer_thread->push_stats (stats))
-        return XCAM_RETURN_NO_ERROR;
+    if (_sync) {
+        SmartPtr<X3aStats> statistics = stats;
+        ret = analyze_3a_statistics (statistics);
+    }
+    else {
+        if (!_3a_analyzer_thread->is_running())
+            return XCAM_RETURN_ERROR_THREAD;
 
-    return XCAM_RETURN_ERROR_THREAD;
+        if (!_3a_analyzer_thread->push_stats (stats))
+            return XCAM_RETURN_ERROR_THREAD;
+    }
+
+    return ret;
 }
 
 XCamReturn

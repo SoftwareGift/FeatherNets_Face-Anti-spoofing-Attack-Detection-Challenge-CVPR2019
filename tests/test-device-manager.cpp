@@ -275,6 +275,7 @@ void print_help (const char *bin_name)
             "\t               specify [/dev/video4, /dev/video5] depending on which node USB camera is attached\n"
             "\t -e display_mode    preview mode\n"
             "\t                select from [primary, overlay], default is [primary]\n"
+            "\t --sync        set analyzer in sync mode\n"
             "\t -h            help\n"
             "CL features:\n"
             "\t --hdr         specify hdr type, default is hdr off\n"
@@ -326,6 +327,7 @@ int main (int argc, char *argv[])
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
     char*   usb_device_name = NULL;
+    bool sync_mode = false;
 
     const char *short_opts = "sca:n:m:f:d:b:pi:e:h";
     const struct option long_opts[] = {
@@ -338,6 +340,7 @@ int main (int argc, char *argv[])
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-dpc", no_argument, NULL, 'D'},
         {"usb", required_argument, NULL, 'U'},
+        {"sync", no_argument, NULL, 'Y'},
         {0, 0, 0, 0},
     };
 
@@ -423,6 +426,9 @@ int main (int argc, char *argv[])
         }
         case 'i':
             device_manager->set_frame_save(atoi(optarg));
+            break;
+        case 'Y':
+            sync_mode = true;
             break;
         case 'H': {
             if (!strcasecmp (optarg, "rgb"))
@@ -527,6 +533,8 @@ int main (int argc, char *argv[])
         print_help (bin_name);
         return -1;
     }
+    XCAM_ASSERT (analyzer.ptr ());
+    analyzer->set_sync_mode (sync_mode);
 
     signal(SIGINT, dev_stop_handler);
 

@@ -54,6 +54,8 @@ public:
     // prepare_handlers must called before init
     XCamReturn init (uint32_t width, uint32_t height, double framerate);
     XCamReturn deinit ();
+    // set_sync_mode must be called before start
+    XCamReturn set_sync_mode (bool sync);
     XCamReturn start ();
     XCamReturn stop ();
 
@@ -166,6 +168,8 @@ protected:
 
 private:
     char                    *_name;
+    bool                     _sync;
+    bool                     _started;
     uint32_t                 _width;
     uint32_t                 _height;
     double                   _framerate;
