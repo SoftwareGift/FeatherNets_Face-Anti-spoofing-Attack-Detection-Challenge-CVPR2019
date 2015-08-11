@@ -75,16 +75,19 @@ static XCamReturn
 read_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
 {
     const VideoBufferInfo info = buf->get_video_info ();
+    uint32_t bytes = info.get_pixel_bytes (info.format);
     uint8_t *memory = NULL;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     memory = buf->map ();
-    if (fread (memory, 1, info.size, file.fp) != info.size) {
-        if (feof (file.fp))
-            ret = XCAM_RETURN_BYPASS;
-        else {
-            XCAM_LOG_ERROR ("read file failed, size doesn't match");
-            ret = XCAM_RETURN_ERROR_FILE;
+    for (uint32_t i = 0; i < info.height; i++) {
+        if (fread (memory + i * info.strides [0], 1, info.width * bytes, file.fp) != info.width * bytes) {
+            if (feof (file.fp))
+                ret = XCAM_RETURN_BYPASS;
+            else {
+                XCAM_LOG_ERROR ("read file failed, size doesn't match");
+                ret = XCAM_RETURN_ERROR_FILE;
+            }
         }
     }
     buf->unmap ();
@@ -95,13 +98,16 @@ static XCamReturn
 write_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
 {
     const VideoBufferInfo info = buf->get_video_info ();
+    uint32_t bytes = info.get_pixel_bytes (info.format);
     uint8_t *memory = NULL;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     memory = buf->map ();
-    if (fwrite (memory, 1, info.size, file.fp) != info.size) {
-        XCAM_LOG_ERROR ("read file failed, size doesn't match");
-        ret = XCAM_RETURN_ERROR_FILE;
+    for (uint32_t i = 0; i < info.height; i++) {
+        if (fwrite (memory + i * info.strides [0], 1, info.width * bytes, file.fp) != info.width * bytes) {
+            XCAM_LOG_ERROR ("read file failed, size doesn't match");
+            ret = XCAM_RETURN_ERROR_FILE;
+        }
     }
     buf->unmap ();
     return ret;
