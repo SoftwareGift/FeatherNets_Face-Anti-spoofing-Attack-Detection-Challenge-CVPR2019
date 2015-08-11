@@ -21,6 +21,8 @@
 #include "drm_bo_buffer.h"
 #include "x3a_stats_pool.h"
 
+#define OCL_TILING_NONE    0
+
 namespace XCam {
 
 DrmBoData::DrmBoData (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo)
@@ -46,8 +48,20 @@ DrmBoData::map ()
     if (_buf) {
         return _buf;
     }
-    if (drm_intel_bo_map (_bo, 1) != 0)
-        return NULL;
+
+    uint32_t tiling_mode, swizzle_mode;
+
+    drm_intel_bo_get_tiling (_bo, &tiling_mode, &swizzle_mode);
+
+    if (tiling_mode != OCL_TILING_NONE) {
+        if (drm_intel_gem_bo_map_gtt (_bo) != 0)
+            return NULL;
+    }
+    else {
+        if (drm_intel_bo_map (_bo, 1) != 0)
+            return NULL;
+    }
+
     _buf = (uint8_t *)_bo->virt;
     return  _buf;
 }
@@ -57,7 +71,20 @@ DrmBoData::unmap ()
 {
     if (!_buf || !_bo)
         return true;
-    drm_intel_bo_unmap (_bo);
+
+    uint32_t tiling_mode, swizzle_mode;
+
+    drm_intel_bo_get_tiling (_bo, &tiling_mode, &swizzle_mode);
+
+    if (tiling_mode != OCL_TILING_NONE) {
+        if (drm_intel_gem_bo_unmap_gtt (_bo) !=0)
+            return false;
+    }
+    else {
+        if (drm_intel_bo_unmap (_bo) !=0)
+            return false;
+    }
+
     _buf = NULL;
     return true;
 }
