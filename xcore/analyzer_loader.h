@@ -27,6 +27,8 @@
 #include "x3a_analyzer.h"
 
 namespace XCam {
+class IspController;
+class HybridAnalyzer;
 
 class AnalyzerLoader
 {
@@ -34,13 +36,17 @@ public:
     AnalyzerLoader (const char *lib_path);
     ~AnalyzerLoader ();
 
-    SmartPtr<X3aAnalyzer> load_analyzer (SmartPtr<AnalyzerLoader> &self);
+    SmartPtr<X3aAnalyzer> load_dynamic_analyzer (SmartPtr<AnalyzerLoader> &self);
+    SmartPtr<X3aAnalyzer> load_hybrid_analyzer (SmartPtr<AnalyzerLoader> &self,
+            SmartPtr<IspController> &isp,
+            const char *cpf_path);
 
 private:
     bool open_handle ();
     XCam3ADescription *get_symbol (const char *symbol);
     bool close_handle ();
     void convert_results (XCam3aResultHead *from, uint32_t num_of_from, X3aResultList &to);
+    XCam3ADescription *load_analyzer (SmartPtr<AnalyzerLoader> &self);
 
     XCAM_DEAD_COPY(AnalyzerLoader);
 

@@ -104,7 +104,7 @@ X3aAnalyzerManager::load_analyzer_from_binary (const char *path)
 
     _loader.release ();
     _loader = new AnalyzerLoader (path);
-    analyzer = _loader->load_analyzer (_loader);
+    analyzer = _loader->load_dynamic_analyzer (_loader);
 
     if (analyzer.ptr ())
         return analyzer;

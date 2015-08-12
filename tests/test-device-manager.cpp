@@ -239,6 +239,7 @@ typedef enum {
     AnalyzerTypeSimple = 0,
     AnalyzerTypeAiq,
     AnalyzerTypeDynamic,
+    AnalyzerTypeHybrid,
 } AnalyzerType;
 
 void dev_stop_handler(int sig)
@@ -301,6 +302,8 @@ int main (int argc, char *argv[])
     SmartPtr<V4l2SubDevice> event_device;
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
+    SmartPtr<AnalyzerLoader> loader;
+    const char *path_of_3a;
     SmartPtr<ImageProcessor> isp_processor;
     SmartPtr<CLCscImageProcessor> cl_csc_proccessor;
     AnalyzerType  analyzer_type = AnalyzerTypeSimple;
@@ -354,6 +357,8 @@ int main (int argc, char *argv[])
 #if HAVE_IA_AIQ
             else if (!strcmp (optarg, "aiq"))
                 analyzer_type = AnalyzerTypeAiq;
+            else if (!strcmp (optarg, "hybrid"))
+                analyzer_type = AnalyzerTypeHybrid;
 #endif
             else {
                 print_help (bin_name);
@@ -521,11 +526,18 @@ int main (int argc, char *argv[])
     case AnalyzerTypeAiq:
         analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
         break;
+    case AnalyzerTypeHybrid: {
+        path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
+        loader = new AnalyzerLoader (path_of_3a);
+        analyzer = loader->load_hybrid_analyzer (loader, isp_controller, DEFAULT_CPF_FILE);
+        CHECK_EXP (analyzer.ptr (), "load hybrid 3a lib(%s) failed", path_of_3a);
+        break;
+    }
 #endif
     case AnalyzerTypeDynamic: {
-        const char *path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
-        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (path_of_3a);
-        analyzer = loader->load_analyzer (loader);
+        path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
+        loader = new AnalyzerLoader (path_of_3a);
+        analyzer = loader->load_dynamic_analyzer (loader);
         CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
         break;
     }

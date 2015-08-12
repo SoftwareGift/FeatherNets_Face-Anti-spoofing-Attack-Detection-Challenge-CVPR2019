@@ -162,6 +162,7 @@ gst_xcam_src_analyzer_get_type (void)
         {SIMPLE_ANALYZER, "simple 3A analyzer", "simple"},
         {AIQ_ANALYZER, "aiq 3A analyzer", "aiq"},
         {DYNAMIC_ANALYZER, "dynamic load 3A analyzer", "dynamic"},
+        {HYBRID_ANALYZER, "hybrid 3A analyzer", "hybrid"},
         {0, NULL, NULL},
     };
 
@@ -624,9 +625,19 @@ gst_xcam_src_start (GstBaseSrc *src)
     case DYNAMIC_ANALYZER: {
         XCAM_LOG_INFO ("dynamic 3a library: %s", xcamsrc->path_to_3alib);
         SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (xcamsrc->path_to_3alib);
-        analyzer = loader->load_analyzer (loader);
+        analyzer = loader->load_dynamic_analyzer (loader);
         if (!analyzer.ptr ()) {
-            XCAM_LOG_ERROR ("load analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
+            XCAM_LOG_ERROR ("load dynamic analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
+            return FALSE;
+        }
+        break;
+    }
+    case HYBRID_ANALYZER: {
+        XCAM_LOG_INFO ("hybrid 3a library: %s", xcamsrc->path_to_3alib);
+        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (xcamsrc->path_to_3alib);
+        analyzer = loader->load_hybrid_analyzer (loader, isp_controller, xcamsrc->path_to_cpf);
+        if (!analyzer.ptr ()) {
+            XCAM_LOG_ERROR ("load hybrid analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
             return FALSE;
         }
         break;

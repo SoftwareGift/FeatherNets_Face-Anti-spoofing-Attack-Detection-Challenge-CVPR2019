@@ -57,6 +57,7 @@ typedef enum {
     SIMPLE_ANALYZER = 0,
     AIQ_ANALYZER,
     DYNAMIC_ANALYZER,
+    HYBRID_ANALYZER,
 } AnalyzerType;
 
 typedef struct _GstXCamSrc      GstXCamSrc;

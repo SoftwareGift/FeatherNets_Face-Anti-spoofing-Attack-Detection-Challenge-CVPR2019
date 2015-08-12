@@ -52,6 +52,7 @@ xcam_sources =               \
 	analyzer_loader.cpp      \
 	buffer_pool.cpp          \
 	device_manager.cpp       \
+        dynamic_analyzer.cpp     \
 	handler_interface.cpp    \
 	image_processor.cpp      \
 	isp_controller.cpp       \
@@ -82,6 +83,7 @@ xcam_sources +=              \
 	xcam_cpf_reader.c        \
 	aiq_handler.cpp          \
 	x3a_analyzer_aiq.cpp     \
+        hybrid_analyzer.cpp      \
 	$(NULL)
 endif
 
