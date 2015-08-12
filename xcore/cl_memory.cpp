@@ -551,6 +551,10 @@ CLImage2DArray::CLImage2DArray (
     }
     XCAM_ASSERT (cl_desc.array_size >= 2);
 
+    //special process for BYT platform for slice-pitch
+    if (video_info.format == V4L2_PIX_FMT_NV12)
+        cl_desc.height = XCAM_ALIGN_UP (cl_desc.height, 16);
+
     init_image_2d_array (context, cl_desc, flags);
 }
 

@@ -64,7 +64,7 @@ CLYuvPipeImageKernel::prepare_arguments (
     CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & video_info = input->get_video_info ();
+    const VideoBufferInfo & video_info = output->get_video_info ();
 
 
     _image_in = new CLVaImage (context, input);
@@ -102,7 +102,7 @@ CLYuvPipeImageKernel::prepare_arguments (
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = video_info.width / 2 ;
-    work_size.global[1] = video_info.height / 2 ;
+    work_size.global[1] = video_info.aligned_height / 2 ;
     work_size.local[0] = 4;
     work_size.local[1] = 4;
 
