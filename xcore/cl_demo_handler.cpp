@@ -34,21 +34,9 @@ CLDemoImageKernel::prepare_arguments (
     CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & video_info = input->get_video_info ();
-    CLImageDesc image_info;
-    uint32_t channel_bits = XCAM_ALIGN_UP (video_info.color_bits, 8);
 
-    image_info.format.image_channel_order = CL_R;
-    if (channel_bits == 8)
-        image_info.format.image_channel_data_type = CL_UNORM_INT8;
-    else if (channel_bits == 16)
-        image_info.format.image_channel_data_type = CL_UNORM_INT16;
-    image_info.width = video_info.strides[0] / CLImage::calculate_pixel_bytes (image_info.format);
-    image_info.height = (video_info.size / video_info.strides[0]) / 4 * 4;
-    image_info.row_pitch = video_info.strides[0];
-
-    _image_in = new CLVaImage (context, input, image_info);
-    _image_out = new CLVaImage (context, output, image_info);
+    _image_in = new CLVaImage (context, input);
+    _image_out = new CLVaImage (context, output);
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
@@ -64,9 +52,10 @@ CLDemoImageKernel::prepare_arguments (
     args[1].arg_size = sizeof (cl_mem);
     arg_count = 2;
 
+    const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = image_info.width;
-    work_size.global[1] = image_info.height;
+    work_size.global[0] = out_info.width;
+    work_size.global[1] = out_info.height;
     work_size.local[0] = 8;
     work_size.local[1] = 4;
 
