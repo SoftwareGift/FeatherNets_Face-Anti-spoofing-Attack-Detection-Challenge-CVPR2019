@@ -125,6 +125,7 @@ xcam_sources +=              \
 	cl_bnr_handler.cpp	     \
 	cl_bayer_pipe_handler.cpp    \
 	cl_yuv_pipe_handler.cpp    \
+	cl_rgb_pipe_handler.cpp       \
 	$(NULL)
 endif
 

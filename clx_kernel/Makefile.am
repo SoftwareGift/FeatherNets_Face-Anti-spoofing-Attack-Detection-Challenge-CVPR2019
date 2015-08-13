@@ -18,10 +18,11 @@ clx_kernel_sources = \
 	kernel_tnr_yuv.clx            \
 	kernel_bayer_pipe.clx         \
 	kernel_wb.clx                 \
-	kernel_ee.clx              \
-        kernel_dpc.clx              \
+	kernel_ee.clx                 \
+	kernel_dpc.clx                \
+	kernel_rgb_pipe.clx           \
 	kernel_bnr.clx                \
-	kernel_yuv_pipe.clx                \
+	kernel_yuv_pipe.clx           \
 	$(NULL)
 
 cl_quote_sh = \

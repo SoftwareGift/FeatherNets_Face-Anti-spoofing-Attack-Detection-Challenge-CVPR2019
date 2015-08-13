@@ -35,6 +35,7 @@
 #include "cl_bnr_handler.h"
 #include "cl_bayer_pipe_handler.h"
 #include "cl_yuv_pipe_handler.h"
+#include "cl_rgb_pipe_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 
@@ -390,6 +391,18 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
+#if 1
+    image_handler = create_cl_rgb_pipe_image_handler (context);
+    _rgb_pipe = image_handler.dynamic_cast_ptr<CLRgbPipeImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _rgb_pipe.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create rgb pipe handler failed");
+    _rgb_pipe->set_tnr_exposure_params(5, 1, 70000);
+    _rgb_pipe->set_kernels_enable(1);
+    add_handler (image_handler);
+#else
     /* Temporal Noise Reduction (RGB domain) */
     image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_RGB);
     _tnr_rgb = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
@@ -411,6 +424,8 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create snr handler failed");
     _snr->set_kernels_enable (XCAM_DENOISE_TYPE_SIMPLE & _snr_mode);
     add_handler (image_handler);
+#endif
+
 #if 1
     image_handler = create_cl_yuv_pipe_image_handler (context);
     _yuv_pipe = image_handler.dynamic_cast_ptr<CLYuvPipeImageHandler> ();
