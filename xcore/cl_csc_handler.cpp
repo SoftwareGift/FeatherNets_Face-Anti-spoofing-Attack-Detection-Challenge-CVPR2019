@@ -54,14 +54,15 @@ CLCscImageKernel::prepare_arguments (
     CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & video_info = output->get_video_info ();
+    const VideoBufferInfo & in_video_info = input->get_video_info ();
+    const VideoBufferInfo & out_video_info = output->get_video_info ();
 
     _image_in = new CLVaImage (context, input);
     _image_out = new CLVaImage (context, output);
     _matrix_buffer = new CLBuffer (
         context, sizeof(float)*XCAM_COLOR_MATRIX_SIZE,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_rgbtoyuv_matrix);
-    _vertical_offset = video_info.aligned_height;
+    _vertical_offset = out_video_info.aligned_height;
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid () && _matrix_buffer->is_valid());
     XCAM_FAIL_RETURN (
@@ -82,20 +83,21 @@ CLCscImageKernel::prepare_arguments (
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     if (_kernel_csc_type == CL_CSC_TYPE_RGBATONV12) {
-        work_size.global[0] = video_info.width / 2;
-        work_size.global[1] = video_info.height / 2;
+        work_size.global[0] = out_video_info.width / 2;
+        work_size.global[1] = out_video_info.height / 2;
         arg_count = 4;
     }
     else if ((_kernel_csc_type == CL_CSC_TYPE_RGBATOLAB)
              || (_kernel_csc_type == CL_CSC_TYPE_RGBA64TORGBA)
              || (_kernel_csc_type == CL_CSC_TYPE_YUYVTORGBA)) {
-        work_size.global[0] = video_info.width;
-        work_size.global[1] = video_info.height;
+        work_size.global[0] = out_video_info.width;
+        work_size.global[1] = out_video_info.height;
         arg_count = 2;
     }
     else if(_kernel_csc_type == CL_CSC_TYPE_NV12TORGBA) {
-        work_size.global[0] = video_info.width / 2;
-        work_size.global[1] = video_info.height / 2;
+        _vertical_offset = in_video_info.aligned_height;
+        work_size.global[0] = out_video_info.width / 2;
+        work_size.global[1] = out_video_info.height / 2;
         arg_count = 3;
     }
 
