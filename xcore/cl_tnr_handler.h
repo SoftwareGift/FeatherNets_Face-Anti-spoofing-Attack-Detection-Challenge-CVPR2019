@@ -32,7 +32,31 @@ enum CLTnrType {
     CL_TNR_TYPE_RGB = 1 << 1,
 };
 
-#define TNR_PROCESSING_FRAME_COUNT  3
+enum CLTnrHistogramType {
+    CL_TNR_HIST_BRIGHTNESS   = 0,
+    CL_TNR_HIST_HOR_PROJECTION = 1,
+    CL_TNR_HIST_VER_PROJECTION = 2,
+};
+enum CLTnrLightCondition {
+    CL_TNR_LOW_LIGHT = 0,
+    CL_TNR_INDOOR    = 1,
+    CL_TNR_DAY_LIGHT = 2,
+    CL_TNR_LIGHT_COUNT
+};
+typedef struct _CLTnrThreshold {
+    float r;
+    float g;
+    float b;
+    float y;
+    float uv;
+} CLTnrThreshold;
+#define TNR_PROCESSING_FRAME_COUNT  4
+
+static const CLTnrThreshold tnr_threshold[CL_TNR_LIGHT_COUNT] = {
+    {0.0642, 0.0451, 0.0733, 0.0244, 0.0460}, // low light R/G/B/y/uv threshold
+    {0.0045, 0.0029, 0.0039, 0.0018, 0.0027}, // Indoor R/G/B/y/uv threshold
+    {0.0032, 0.0029, 0.0030, 0.0020, 0.0018}  // Daylight R/G/B/y/uv threshold
+};
 
 class CLTnrImageKernel
     : public CLImageKernel
@@ -58,6 +82,7 @@ public:
 
     bool set_gain (float gain);
     bool set_threshold (float thr_y, float thr_uv);
+    bool set_threshold (float thr_r, float thr_g, float thr_b);
 
     virtual XCamReturn post_execute ();
 protected:
@@ -71,11 +96,14 @@ private:
 
     CLTnrType _type;
     float    _gain;
-    float    _thr_Y;
-    float    _thr_C;
+    float    _thr_y;
+    float    _thr_uv;
+    float    _thr_r;
+    float    _thr_g;
+    float    _thr_b;
+    uint8_t  _frame_count;
 
     uint32_t _vertical_offset;
-    uint8_t  _frame_count;
     CLImagePtrList _image_in_list;
     SmartPtr<CLImage> _image_out_prev;
 };
@@ -89,6 +117,8 @@ public:
     bool set_mode (uint32_t mode);
     bool set_gain (float gain);
     bool set_threshold (float thr_y, float thr_uv);
+    bool set_threshold (float thr_r, float thr_g, float thr_b);
+    bool set_exposure_params (double a_gain, double d_gain, int32_t exposure_time);
 
 private:
     XCAM_DEAD_COPY (CLTnrImageHandler);

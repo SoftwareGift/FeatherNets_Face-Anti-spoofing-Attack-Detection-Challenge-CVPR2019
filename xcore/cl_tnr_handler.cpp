@@ -28,8 +28,11 @@ CLTnrImageKernel::CLTnrImageKernel (SmartPtr<CLContext> &context,
     : CLImageKernel (context, name, false)
     , _type (type)
     , _gain (0.5)
-    , _thr_Y (0.05)
-    , _thr_C (0.05)
+    , _thr_y (0.05)
+    , _thr_uv (0.05)
+    , _thr_r (0.064)  // set high initial threshold to get strong denoise effect
+    , _thr_g (0.045)
+    , _thr_b (0.073)
     , _frame_count (TNR_PROCESSING_FRAME_COUNT)
 {
 }
@@ -92,11 +95,11 @@ CLTnrImageKernel::prepare_arguments (
         args[4].arg_adress = &_gain;
         args[4].arg_size = sizeof (_gain);
 
-        args[5].arg_adress = &_thr_Y;
-        args[5].arg_size = sizeof (_thr_Y);
+        args[5].arg_adress = &_thr_y;
+        args[5].arg_size = sizeof (_thr_y);
 
-        args[6].arg_adress = &_thr_C;
-        args[6].arg_size = sizeof (_thr_C);
+        args[6].arg_adress = &_thr_uv;
+        args[6].arg_size = sizeof (_thr_uv);
 
         work_size.global[0] = video_info.width / 2;
         work_size.global[1] = video_info.height / 2;
@@ -110,20 +113,29 @@ CLTnrImageKernel::prepare_arguments (
         args[0].arg_adress = &_image_out->get_mem_id ();
         args[0].arg_size = sizeof (cl_mem);
 
-        args[1].arg_adress = &_thr_Y;
-        args[1].arg_size = sizeof (_thr_Y);
+        args[1].arg_adress = &_gain;
+        args[1].arg_size = sizeof (_gain);
 
-        args[2].arg_adress = &_frame_count;
-        args[2].arg_size = sizeof (_frame_count);
+        args[2].arg_adress = &_thr_r;
+        args[2].arg_size = sizeof (_thr_r);
+
+        args[3].arg_adress = &_thr_g;
+        args[3].arg_size = sizeof (_thr_g);
+
+        args[4].arg_adress = &_thr_b;
+        args[4].arg_size = sizeof (_thr_b);
+
+        args[5].arg_adress = &_frame_count;
+        args[5].arg_size = sizeof (_frame_count);
 
         uint8_t index = 0;
         for (std::list<SmartPtr<CLImage>>::iterator it = _image_in_list.begin (); it != _image_in_list.end (); it++) {
-            args[3 + index].arg_adress = &(*it)->get_mem_id ();
-            args[3 + index].arg_size = sizeof (cl_mem);
+            args[6 + index].arg_adress = &(*it)->get_mem_id ();
+            args[6 + index].arg_size = sizeof (cl_mem);
             index++;
         }
 
-        arg_count = 3 + index;
+        arg_count = 6 + index;
     }
 
     return XCAM_RETURN_NO_ERROR;
@@ -154,8 +166,20 @@ CLTnrImageKernel::set_threshold (float thr_y, float thr_uv)
 {
     XCAM_LOG_DEBUG ("set TNR threshold: Y(%f), UV(%f)", thr_y, thr_uv);
 
-    _thr_Y = thr_y;
-    _thr_C = thr_uv;
+    _thr_y = thr_y;
+    _thr_uv = thr_uv;
+
+    return true;
+}
+
+bool
+CLTnrImageKernel::set_threshold (float thr_r, float thr_g, float thr_b)
+{
+    XCAM_LOG_DEBUG ("set TNR threshold: R(%f), G(%f), B(%f)", thr_r, thr_g, thr_b);
+
+    _thr_r = thr_r;
+    _thr_g = thr_g;
+    _thr_b = thr_b;
 
     return true;
 }
@@ -182,6 +206,7 @@ CLTnrImageHandler::set_mode (uint32_t mode)
     }
 
     _tnr_kernel->set_enable (mode & (CL_TNR_TYPE_YUV | CL_TNR_TYPE_RGB));
+    set_exposure_params(5, 1, 70000);
     return true;
 }
 
@@ -205,6 +230,40 @@ CLTnrImageHandler::set_threshold (float thr_y, float thr_uv)
     }
 
     _tnr_kernel->set_threshold (thr_y, thr_uv);
+
+    return true;
+}
+
+bool
+CLTnrImageHandler::set_threshold (float thr_r, float thr_g, float thr_b)
+{
+    if (!_tnr_kernel->is_valid ()) {
+        XCAM_LOG_ERROR ("set threshold error, invalid TNR kernel !");
+    }
+
+    _tnr_kernel->set_threshold (thr_r, thr_g, thr_b);
+
+    return true;
+}
+
+bool
+CLTnrImageHandler::set_exposure_params (double a_gain, double d_gain, int32_t exposure_time)
+{
+    XCAM_LOG_DEBUG("set_exposure_params a_gain = %f, d_gain = %f, exposure_time = %d", a_gain, d_gain, exposure_time);
+    if (!_tnr_kernel->is_valid ()) {
+        XCAM_LOG_ERROR ("set exposure params, invalid TNR kernel !");
+    }
+
+    if ((exposure_time > 133000) || (a_gain * d_gain > 8)) {
+        _tnr_kernel->set_threshold (tnr_threshold[CL_TNR_LOW_LIGHT].r, tnr_threshold[CL_TNR_LOW_LIGHT].g, tnr_threshold[CL_TNR_LOW_LIGHT].b);
+        _tnr_kernel->set_threshold (tnr_threshold[CL_TNR_LOW_LIGHT].y, tnr_threshold[CL_TNR_LOW_LIGHT].uv);
+    } else if ((exposure_time > 66000) || (a_gain * d_gain > 4)) {
+        _tnr_kernel->set_threshold (tnr_threshold[CL_TNR_INDOOR].r, tnr_threshold[CL_TNR_INDOOR].g, tnr_threshold[CL_TNR_INDOOR].b);
+        _tnr_kernel->set_threshold (tnr_threshold[CL_TNR_INDOOR].y, tnr_threshold[CL_TNR_INDOOR].uv);
+    } else {
+        _tnr_kernel->set_threshold (tnr_threshold[CL_TNR_DAY_LIGHT].r, tnr_threshold[CL_TNR_DAY_LIGHT].g, tnr_threshold[CL_TNR_DAY_LIGHT].b);
+        _tnr_kernel->set_threshold (tnr_threshold[CL_TNR_DAY_LIGHT].y, tnr_threshold[CL_TNR_DAY_LIGHT].uv);
+    }
 
     return true;
 }
