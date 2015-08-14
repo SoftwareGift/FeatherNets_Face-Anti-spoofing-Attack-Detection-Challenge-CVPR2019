@@ -62,7 +62,6 @@ public:
 
     XCamReturn pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn post_execute ();
-
     virtual void pre_stop () {}
 
 protected:

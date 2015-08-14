@@ -23,6 +23,7 @@ clx_kernel_sources = \
 	kernel_rgb_pipe.clx           \
 	kernel_bnr.clx                \
 	kernel_yuv_pipe.clx           \
+	kernel_tonemapping.clx        \
 	$(NULL)
 
 cl_quote_sh = \

@@ -45,6 +45,7 @@ class CLBnrImageHandler;
 class CLBayerPipeImageHandler;
 class CLYuvPipeImageHandler;
 class CLRgbPipeImageHandler;
+class CLTonemappingImageHandler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -77,6 +78,7 @@ public:
     virtual bool set_macc (bool enable);
     virtual bool set_dpc (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
+    virtual bool set_tonemapping (bool enable);
 
     PipelineProfile get_profile () const {
         return _pipeline_profile;
@@ -100,21 +102,22 @@ private:
 
     SmartPtr<StatsCallback>            _stats_callback;
 
-    SmartPtr<CLBlcImageHandler>        _black_level;
-    SmartPtr<CLBayer2RGBImageHandler>  _demosaic;
-    SmartPtr<CLHdrImageHandler>        _hdr;
-    SmartPtr<CLCscImageHandler>        _csc;
-    SmartPtr<CLGammaImageHandler>      _gamma;
-    SmartPtr<CL3AStatsCalculator>      _x3a_stats_calculator;
-    SmartPtr<CLWbImageHandler>         _wb;
-    SmartPtr<CLMaccImageHandler>       _macc;
-    SmartPtr<CLTnrImageHandler>        _tnr_rgb;
-    SmartPtr<CLTnrImageHandler>        _tnr_yuv;
-    SmartPtr<CLSnrImageHandler>        _snr;
-    SmartPtr<CLBnrImageHandler>        _bnr;
-    SmartPtr<CLDenoiseImageHandler>    _binr;
-    SmartPtr<CLEeImageHandler>         _ee;
-    SmartPtr<CLDpcImageHandler>        _dpc;
+    SmartPtr<CLBlcImageHandler>         _black_level;
+    SmartPtr<CLBayer2RGBImageHandler>   _demosaic;
+    SmartPtr<CLHdrImageHandler>         _hdr;
+    SmartPtr<CLCscImageHandler>         _csc;
+    SmartPtr<CLGammaImageHandler>       _gamma;
+    SmartPtr<CL3AStatsCalculator>       _x3a_stats_calculator;
+    SmartPtr<CLWbImageHandler>          _wb;
+    SmartPtr<CLMaccImageHandler>        _macc;
+    SmartPtr<CLTnrImageHandler>         _tnr_rgb;
+    SmartPtr<CLTnrImageHandler>         _tnr_yuv;
+    SmartPtr<CLSnrImageHandler>         _snr;
+    SmartPtr<CLTonemappingImageHandler> _tonemapping;
+    SmartPtr<CLBnrImageHandler>         _bnr;
+    SmartPtr<CLDenoiseImageHandler>     _binr;
+    SmartPtr<CLEeImageHandler>          _ee;
+    SmartPtr<CLDpcImageHandler>         _dpc;
 
     // simple 3a bayer pipeline
     SmartPtr<CLBayerPipeImageHandler>  _bayer_pipe;
@@ -124,6 +127,7 @@ private:
     uint32_t                           _hdr_mode;
     uint32_t                           _tnr_mode;
     bool                               _enable_gamma;
+    bool                               _enable_tonemapping;
     bool                               _enable_macc;
     bool                               _enable_dpc;
     uint32_t                           _snr_mode; // spatial nr mode

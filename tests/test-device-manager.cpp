@@ -289,6 +289,7 @@ void print_help (const char *bin_name)
             "\t --enable-ee   enable YEENR\n"
             "\t --enable-bnr  enable bayer noise reduction\n"
             "\t --enable-dpc  enable defect pixel correction\n"
+            "\t --enable-tonemapping  enable tonemapping\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
@@ -327,6 +328,7 @@ int main (int argc, char *argv[])
     uint32_t denoise_type = 0;
     uint8_t tnr_level = 0;
     bool dpc_type = false;
+    bool tonemapping_type = false;
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
     char*   usb_device_name = NULL;
@@ -342,6 +344,7 @@ int main (int argc, char *argv[])
         {"enable-ee", no_argument, NULL, 'E'},
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-dpc", no_argument, NULL, 'D'},
+        {"enable-tonemapping", no_argument, NULL, 'M'},
         {"usb", required_argument, NULL, 'U'},
         {"sync", no_argument, NULL, 'Y'},
         {0, 0, 0, 0},
@@ -487,6 +490,10 @@ int main (int argc, char *argv[])
             tnr_level = atoi(optarg);
             break;
         }
+        case 'M': {
+            tonemapping_type = true;
+            break;
+        }
         case 'h':
             print_help (bin_name);
             return 0;
@@ -606,6 +613,7 @@ int main (int argc, char *argv[])
         cl_processor->set_dpc(dpc_type);
         cl_processor->set_hdr (hdr_type);
         cl_processor->set_denoise (denoise_type);
+        cl_processor->set_tonemapping(tonemapping_type);
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }

@@ -37,6 +37,7 @@
 #include "cl_bnr_handler.h"
 #include "cl_bayer_pipe_handler.h"
 #include "cl_yuv_pipe_handler.h"
+#include "cl_tonemapping_handler.h"
 
 using namespace XCam;
 
@@ -57,6 +58,7 @@ enum TestHandlerType {
     TestHandlerEe,
     TestHandlerBayerPipe,
     TestHandlerYuvPipe,
+    TestHandlerTonemapping
 };
 
 struct TestFileHandle {
@@ -130,7 +132,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA]\n"
@@ -234,6 +236,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerBayerPipe;
             else if (!strcasecmp (optarg, "yuvpipe"))
                 handler_type = TestHandlerYuvPipe;
+            else if (!strcasecmp (optarg, "tonemapping"))
+                handler_type = TestHandlerTonemapping;
             else
                 print_help (bin_name);
             break;
@@ -403,13 +407,19 @@ int main (int argc, char *argv[])
         image_handler = create_cl_bayer_pipe_image_handler (context);
         SmartPtr<CLBayerPipeImageHandler> bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();
         XCAM_ASSERT (bayer_pipe.ptr ());
-        bayer_pipe->set_output_format (output_format);
+        //bayer_pipe->set_output_format (output_format);
         break;
     }
     case TestHandlerYuvPipe: {
         image_handler = create_cl_yuv_pipe_image_handler (context);
         SmartPtr<CLYuvPipeImageHandler> yuv_pipe = image_handler.dynamic_cast_ptr<CLYuvPipeImageHandler> ();
         XCAM_ASSERT (yuv_pipe.ptr ());
+        break;
+    }
+    case TestHandlerTonemapping: {
+        image_handler = create_cl_tonemapping_image_handler (context);
+        SmartPtr<CLTonemappingImageHandler> tonemapping_pipe = image_handler.dynamic_cast_ptr<CLTonemappingImageHandler> ();
+        XCAM_ASSERT (tonemapping_pipe.ptr ());
         break;
     }
     default:

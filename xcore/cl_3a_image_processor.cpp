@@ -36,6 +36,7 @@
 #include "cl_bayer_pipe_handler.h"
 #include "cl_yuv_pipe_handler.h"
 #include "cl_rgb_pipe_handler.h"
+#include "cl_tonemapping_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 
@@ -49,6 +50,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _hdr_mode (0)
     , _tnr_mode (0)
     , _enable_gamma (true)
+    , _enable_tonemapping (false)
     , _enable_macc (true)
     , _enable_dpc (false)
     , _snr_mode (0)
@@ -427,6 +429,17 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 #endif
 
+    /* tone mapping*/
+    image_handler = create_cl_tonemapping_image_handler (context);
+    _tonemapping = image_handler.dynamic_cast_ptr<CLTonemappingImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _tonemapping.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create tonemapping handler failed");
+    _tonemapping->set_kernels_enable (_enable_tonemapping);
+    add_handler (image_handler);
+
 #if 1
     image_handler = create_cl_yuv_pipe_image_handler (context);
     _yuv_pipe = image_handler.dynamic_cast_ptr<CLYuvPipeImageHandler> ();
@@ -580,6 +593,19 @@ CL3aImageProcessor::set_dpc (bool enable)
 
     if (_dpc.ptr ())
         return _dpc->set_kernels_enable (enable);
+
+    return true;
+}
+
+bool
+CL3aImageProcessor::set_tonemapping (bool enable)
+{
+    _enable_tonemapping = enable;
+
+    STREAM_LOCK;
+
+    if (_tonemapping.ptr ())
+        return _tonemapping->set_kernels_enable (enable);
 
     return true;
 }

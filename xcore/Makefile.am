@@ -128,6 +128,7 @@ xcam_sources +=              \
 	cl_bayer_pipe_handler.cpp    \
 	cl_yuv_pipe_handler.cpp    \
 	cl_rgb_pipe_handler.cpp       \
+	cl_tonemapping_handler.cpp	\
 	$(NULL)
 endif
 
