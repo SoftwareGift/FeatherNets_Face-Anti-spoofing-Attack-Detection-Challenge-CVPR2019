@@ -89,6 +89,7 @@ struct _GstXCamSrc
     VideoBufferInfo              xcam_video_info;
     ImageProcessorType           image_processor_type;
     AnalyzerType                 analyzer_type;
+    int32_t                      cl_pipe_profile;
     SmartPtr<MainDeviceManager>  device_manager;
 };
 

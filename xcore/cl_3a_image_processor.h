@@ -49,16 +49,24 @@ class CLRgbPipeImageHandler;
 class CL3aImageProcessor
     : public CLImageProcessor
 {
+public:
     enum OutSampleType {
         OutSampleYuv,
         OutSampleRGB,
         OutSampleBayer,
     };
 
+    enum PipelineProfile {
+        BasicPipelineProfile    = 0,
+        AdvancedPipelineProfile,
+        ExtremePipelineProfile,
+    };
+
 public:
     explicit CL3aImageProcessor ();
     virtual ~CL3aImageProcessor ();
 
+    bool set_profile (PipelineProfile value);
     void set_stats_callback (const SmartPtr<StatsCallback> &callback);
 
     bool set_output_format (uint32_t fourcc);
@@ -69,6 +77,10 @@ public:
     virtual bool set_macc (bool enable);
     virtual bool set_dpc (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
+
+    PipelineProfile get_profile () const {
+        return _pipeline_profile;
+    }
 
 protected:
 
@@ -84,6 +96,7 @@ private:
 private:
     uint32_t                           _output_fourcc;
     OutSampleType                      _out_smaple_type;
+    PipelineProfile                    _pipeline_profile;
 
     SmartPtr<StatsCallback>            _stats_callback;
 

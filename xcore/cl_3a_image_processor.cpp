@@ -45,6 +45,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _out_smaple_type (OutSampleYuv)
+    , _pipeline_profile (BasicPipelineProfile)
     , _hdr_mode (0)
     , _tnr_mode (0)
     , _enable_gamma (true)
@@ -400,7 +401,7 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create rgb pipe handler failed");
     _rgb_pipe->set_tnr_exposure_params(5, 1, 70000);
-    _rgb_pipe->set_kernels_enable(1);
+    _rgb_pipe->set_kernels_enable (get_profile () >= AdvancedPipelineProfile);
     add_handler (image_handler);
 #else
     /* Temporal Noise Reduction (RGB domain) */
@@ -502,6 +503,18 @@ CL3aImageProcessor::create_handlers ()
 }
 
 bool
+CL3aImageProcessor::set_profile (const CL3aImageProcessor::PipelineProfile value)
+{
+    _pipeline_profile = value;
+
+    STREAM_LOCK;
+    if (_rgb_pipe.ptr ())
+        _rgb_pipe->set_kernels_enable (get_profile () >= AdvancedPipelineProfile);
+    return true;
+}
+
+
+bool
 CL3aImageProcessor::set_hdr (uint32_t mode)
 {
     _hdr_mode = mode;
@@ -584,6 +597,10 @@ CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
         ret = _tnr_rgb->set_kernels_enable (mode & CL_TNR_TYPE_RGB);
     if (_tnr_yuv.ptr ())
         ret = _tnr_yuv->set_kernels_enable (mode & CL_TNR_TYPE_YUV);
+
+    // fix for merged kernels
+    if (_rgb_pipe.ptr ())
+        _rgb_pipe->set_kernels_enable (mode & CL_TNR_TYPE_RGB);
 
     return ret;
 }

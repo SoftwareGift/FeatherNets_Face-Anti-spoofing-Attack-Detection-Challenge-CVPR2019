@@ -63,7 +63,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
-
+#define DEFAULT_PROP_CL_PIPE_PROFILE    0
 
 #define DEFAULT_VIDEO_WIDTH             1920
 #define DEFAULT_VIDEO_HEIGHT            1080
@@ -175,6 +175,30 @@ gst_xcam_src_analyzer_get_type (void)
     return g_type;
 }
 
+#if HAVE_LIBCL
+#define GST_TYPE_XCAM_SRC_CL_PIPE_PROFILE (gst_xcam_src_cl_pipe_profile_get_type ())
+static GType
+gst_xcam_src_cl_pipe_profile_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue profile_types[] = {
+        {CL3aImageProcessor::BasicPipelineProfile, "cl basic pipe profile", "basic"},
+        {CL3aImageProcessor::AdvancedPipelineProfile, "cl advanced pipe profile", "advanced"},
+        {CL3aImageProcessor::ExtremePipelineProfile, "cl extreme pipe profile", "extreme"},
+        {0, NULL, NULL},
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamSrcCLPipeProfile", profile_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+#endif
+
+
 enum {
     PROP_0,
     PROP_DEVICE,
@@ -185,6 +209,7 @@ enum {
     PROP_FIELD,
     PROP_IMAGE_PROCESSOR,
     PROP_3A_ANALYZER,
+    PROP_PIPE_PROFLE,
     PROP_CPF,
     PROP_3A_LIB
 };
@@ -315,6 +340,13 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
         g_param_spec_enum ("analyzer", "3a analyzer", "3A Analyzer",
                            GST_TYPE_XCAM_SRC_ANALYZER, DEFAULT_PROP_ANALYZER,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+#if HAVE_LIBCL
+    g_object_class_install_property (
+        gobject_class, PROP_PIPE_PROFLE,
+        g_param_spec_enum ("pipe-profile", "cl pipe profile", "CL pipeline profile (only for cl imageprocessor)",
+                           GST_TYPE_XCAM_SRC_CL_PIPE_PROFILE, DEFAULT_PROP_CL_PIPE_PROFILE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+#endif
 
     g_object_class_install_property (
         gobject_class, PROP_CPF,
@@ -382,6 +414,8 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     XCAM_CONSTRUCTOR (xcamsrc->device_manager, SmartPtr<MainDeviceManager>);
     xcamsrc->device_manager = new MainDeviceManager;
 
+    xcamsrc->cl_pipe_profile = DEFAULT_PROP_CL_PIPE_PROFILE;
+
 }
 
 static void
@@ -431,6 +465,13 @@ gst_xcam_src_get_property (
     case PROP_3A_ANALYZER:
         g_value_set_enum (value, src->analyzer_type);
         break;
+
+#if HAVE_LIBCL
+    case PROP_PIPE_PROFLE:
+        g_value_set_enum (value, src->cl_pipe_profile);
+        break;
+#endif
+
     case PROP_CPF:
         g_value_set_string (value, src->path_to_cpf);
         break;
@@ -491,6 +532,13 @@ gst_xcam_src_set_property (
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
         break;
+
+#if HAVE_LIBCL
+    case PROP_PIPE_PROFLE:
+        src->cl_pipe_profile = g_value_get_enum (value);
+        break;
+#endif
+
     case PROP_CPF: {
         const char * cpf = g_value_get_string (value);
         if (src->path_to_cpf)
@@ -606,6 +654,7 @@ gst_xcam_src_start (GstBaseSrc *src)
         device_manager->add_image_processor (isp_processor);
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback (device_manager);
+        cl_processor->set_profile ((CL3aImageProcessor::PipelineProfile)xcamsrc->cl_pipe_profile);
         device_manager->add_image_processor (cl_processor);
         device_manager->set_cl_image_processor (cl_processor);
         break;
