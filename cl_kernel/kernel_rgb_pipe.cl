@@ -20,6 +20,7 @@ typedef struct {
     float           thr_r;
     float           thr_g;
     float           thr_b;
+    float           gain;
 } CLRgbTnrConfig;
 
 __inline void cl_snr (__local float4 *in, float4 *out, int lx, int ly)

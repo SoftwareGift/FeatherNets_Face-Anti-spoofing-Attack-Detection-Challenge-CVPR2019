@@ -55,7 +55,8 @@ typedef enum _XCam3aResultType {
 
     /* noise reduction */
     XCAM_3A_RESULT_NOISE_REDUCTION,
-    XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION,
+    XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB,
+    XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV,
     XCAM_3A_RESULT_LUMA_NOISE_REDUCTION,
     XCAM_3A_RESULT_ADVANCED_NOISE_REDUCTION,
     XCAM_3A_RESULT_CHROMA_NOISER_EDUCTION,
@@ -209,6 +210,13 @@ typedef struct _XCam3aResultBrightness {
     double           brightness_level; // range [-1,1], -1 is full dark , 0 is normal val, 1 is full bright
 } XCam3aResultBrightness;
 
+typedef struct _XCam3aResultTemporalNoiseReduction {
+    XCam3aResultHead head;
+
+    /* data */
+    double           gain;
+    double           threshold[3];
+} XCam3aResultTemporalNoiseReduction;
 XCAM_END_DECLARE
 
 #endif

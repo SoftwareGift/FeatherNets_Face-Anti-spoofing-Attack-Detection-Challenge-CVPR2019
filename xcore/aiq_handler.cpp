@@ -1063,6 +1063,13 @@ AiqAwbHandler::adjust_speed (const ia_aiq_awb_results &last_ret)
             last_ret.final_b_per_g, _result.final_b_per_g, get_speed_unlock ());
 }
 
+uint32_t
+AiqAwbHandler::get_current_estimate_cct ()
+{
+    AnalyzerHandler::HandlerLock lock(this);
+    return (uint32_t)_result.cct_estimate;
+}
+
 XCamReturn
 AiqAfHandler::analyze (X3aResultList &output)
 {

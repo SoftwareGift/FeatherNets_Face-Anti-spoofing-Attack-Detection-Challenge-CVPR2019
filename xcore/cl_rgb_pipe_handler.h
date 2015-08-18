@@ -28,24 +28,12 @@
 
 namespace XCam {
 
-enum CLTgbPipeTnrLightCondition {
-    CL_RGBPIPE_TNR_LOW_LIGHT = 0,
-    CL_RGBPIPE_TNR_INDOOR    = 1,
-    CL_RGBPIPE_TNR_DAY_LIGHT = 2,
-    CL_RGBPIPE_TNR_LIGHT_COUNT
-};
-
 typedef struct {
     float thr_r;
     float thr_g;
     float thr_b;
+    float gain;
 } CLRgbPipeTnrConfig;
-
-static const CLRgbPipeTnrConfig rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_LIGHT_COUNT] = {
-    {0.0642, 0.0451, 0.0733}, // low light R/G/B/threshold
-    {0.0045, 0.0029, 0.0039}, // Indoor R/G/B/ threshold
-    {0.0032, 0.0029, 0.0030}  // Daylight R/G/B/ threshold
-};
 
 class CLRgbPipeImageKernel
     : public CLImageKernel
@@ -56,7 +44,7 @@ public:
     virtual ~CLRgbPipeImageKernel () {
         _image_in_list.clear ();
     }
-    bool set_tnr_threshold (float r, float g, float b);
+    bool set_tnr_config (const XCam3aResultTemporalNoiseReduction& config);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -76,7 +64,7 @@ class CLRgbPipeImageHandler
 public:
     explicit CLRgbPipeImageHandler (const char *name);
     bool set_rgb_pipe_kernel (SmartPtr<CLRgbPipeImageKernel> &kernel);
-    bool set_tnr_exposure_params (double a_gain, double d_gain, int32_t exposure_time);
+    bool set_tnr_config (const XCam3aResultTemporalNoiseReduction& config);
 
 private:
     XCAM_DEAD_COPY (CLRgbPipeImageHandler);

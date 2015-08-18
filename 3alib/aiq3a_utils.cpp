@@ -241,6 +241,17 @@ translate_3a_results_to_xcam (X3aResultList &list,
             results[result_count++] = (XCam3aResultHead*)new_brightness;
             break;
         }
+        case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB:
+        case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
+        {
+            SmartPtr<X3aTemporalNoiseReduction> xcam_tnr =
+                isp_result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
+            const XCam3aResultTemporalNoiseReduction &tnr = xcam_tnr->get_standard_result();
+            XCam3aResultTemporalNoiseReduction *new_tnr = xcam_malloc0_type(XCam3aResultTemporalNoiseReduction);
+            *new_tnr = tnr;
+            results[result_count++] = (XCam3aResultHead*)new_tnr;
+            break;
+        }
         default: {
             XCAM_LOG_WARNING ("unknow type(%d) in translation", isp_result->get_type());
             break;

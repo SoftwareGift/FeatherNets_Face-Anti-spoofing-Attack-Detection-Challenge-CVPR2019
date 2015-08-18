@@ -200,7 +200,6 @@ X3aAnalyzer::init (uint32_t width, uint32_t height, double framerate)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-
     if (!_ae_handler.ptr() || !_awb_handler.ptr() ||
             !_af_handler.ptr() || !_common_handler.ptr()) {
         XCAM_LOG_WARNING (
@@ -321,7 +320,7 @@ X3aAnalyzer::analyze_3a_statistics (SmartPtr<X3aStats> &stats)
     ret = pre_3a_analyze (stats);
     if (ret != XCAM_RETURN_NO_ERROR) {
         notify_calculation_failed(
-            NULL, stats->get_timestamp (), "ae calculation failed");
+            NULL, stats->get_timestamp (), "pre 3a analyze failed");
         return ret;
     }
 
@@ -632,21 +631,21 @@ X3aAnalyzer::update_awb_parameters (const XCamAwbParam &params)
 bool
 X3aAnalyzer::update_common_parameters (const XCamCommonParam &params)
 {
-    XCAM_ASSERT (_awb_handler.ptr());
+    XCAM_ASSERT (_common_handler.ptr());
     return _common_handler->update_parameters (params);
 }
 
 bool
 X3aAnalyzer::update_ae_parameters (const XCamAeParam &params)
 {
-    XCAM_ASSERT (_awb_handler.ptr());
+    XCAM_ASSERT (_ae_handler.ptr());
     return _ae_handler->update_parameters (params);
 }
 
 bool
 X3aAnalyzer::update_af_parameters (const XCamAfParam &params)
 {
-    XCAM_ASSERT (_awb_handler.ptr());
+    XCAM_ASSERT (_af_handler.ptr());
     return _af_handler->update_parameters (params);
 }
 

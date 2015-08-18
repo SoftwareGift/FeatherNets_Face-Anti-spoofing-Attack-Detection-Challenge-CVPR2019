@@ -159,6 +159,9 @@ public:
 
     bool update_parameters (const XCamAwbParam &params);
 
+    //virtual functions
+    virtual uint32_t get_current_estimate_cct ();
+
 protected:
     const XCamAwbParam &get_params_unlock () const {
         return _params;

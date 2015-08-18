@@ -97,8 +97,11 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
     case XCAM_3A_RESULT_NOISE_REDUCTION:
         result = create_noise_reduction ((XCam3aResultNoiseReduction*)from);
         break;
-    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION:
-        result = create_temp_noise_reduction ((XCam3aResultNoiseReduction*)from);
+    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB:
+        result = create_rgb_temp_noise_reduction ((XCam3aResultTemporalNoiseReduction*)from);
+        break;
+    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
+        result = create_yuv_temp_noise_reduction ((XCam3aResultTemporalNoiseReduction*)from);
         break;
     case XCAM_3A_RESULT_EDGE_ENHANCEMENT:
         result = create_edge_enhancement ((XCam3aResultEdgeEnhancement*)from);
@@ -189,10 +192,16 @@ X3aResultFactory::create_noise_reduction (XCam3aResultNoiseReduction *from)
     XCAM_3A_RESULT_FACTORY (X3aNoiseReductionResult, XCAM_3A_RESULT_NOISE_REDUCTION, from);
 }
 
-SmartPtr<X3aNoiseReductionResult>
-X3aResultFactory::create_temp_noise_reduction (XCam3aResultNoiseReduction *from)
+SmartPtr<X3aTemporalNoiseReduction>
+X3aResultFactory::create_rgb_temp_noise_reduction (XCam3aResultTemporalNoiseReduction *from)
 {
-    XCAM_3A_RESULT_FACTORY (X3aNoiseReductionResult, XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION, from);
+    XCAM_3A_RESULT_FACTORY (X3aTemporalNoiseReduction, XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB, from);
+}
+
+SmartPtr<X3aTemporalNoiseReduction>
+X3aResultFactory::create_yuv_temp_noise_reduction (XCam3aResultTemporalNoiseReduction *from)
+{
+    XCAM_3A_RESULT_FACTORY (X3aTemporalNoiseReduction, XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV, from);
 }
 
 SmartPtr<X3aEdgeEnhancementResult>

@@ -162,6 +162,9 @@ public:
 
     virtual XCamReturn analyze (X3aResultList &output);
 
+    // virtual functions from AwbHandler
+    virtual uint32_t get_current_estimate_cct ();
+
     ia_aiq_awb_results *get_result () {
         return &_result;
     }

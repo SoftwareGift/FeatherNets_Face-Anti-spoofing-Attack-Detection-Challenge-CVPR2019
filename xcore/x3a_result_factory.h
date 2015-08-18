@@ -45,7 +45,8 @@ public:
     SmartPtr<X3aDemosaicResult> create_demosaicing (XCam3aResultDemosaic *from = NULL);
     SmartPtr<X3aDefectPixelResult> create_defectpixel (XCam3aResultDefectPixel *from = NULL);
     SmartPtr<X3aNoiseReductionResult> create_noise_reduction (XCam3aResultNoiseReduction *from = NULL);
-    SmartPtr<X3aNoiseReductionResult> create_temp_noise_reduction (XCam3aResultNoiseReduction *from = NULL);
+    SmartPtr<X3aTemporalNoiseReduction> create_rgb_temp_noise_reduction (XCam3aResultTemporalNoiseReduction *from = NULL);
+    SmartPtr<X3aTemporalNoiseReduction> create_yuv_temp_noise_reduction (XCam3aResultTemporalNoiseReduction *from = NULL);
     SmartPtr<X3aEdgeEnhancementResult> create_edge_enhancement (XCam3aResultEdgeEnhancement *from = NULL);
     SmartPtr<X3aGammaTableResult> create_y_gamma_table (XCam3aResultGammaTable *from = NULL);
     SmartPtr<X3aGammaTableResult> create_r_gamma_table (XCam3aResultGammaTable *from = NULL);

@@ -374,6 +374,15 @@ AwbHandler::update_parameters (const XCamAwbParam &params)
     return true;
 }
 
+uint32_t
+AwbHandler::get_current_estimate_cct ()
+{
+    AnalyzerHandler::HandlerLock lock(this);
+    if (_params.mode == XCAM_AWB_MODE_MANUAL)
+        return (_params.cct_max + _params.cct_min) / 2;
+    return 0.0;
+}
+
 bool
 AfHandler::update_parameters (const XCamAfParam &params)
 {

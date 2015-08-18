@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
+#include "base/xcam_3a_result.h"
 
 namespace XCam {
 
@@ -37,31 +38,43 @@ enum CLTnrHistogramType {
     CL_TNR_HIST_HOR_PROJECTION = 1,
     CL_TNR_HIST_VER_PROJECTION = 2,
 };
-enum CLTnrLightCondition {
-    CL_TNR_LOW_LIGHT = 0,
-    CL_TNR_INDOOR    = 1,
-    CL_TNR_DAY_LIGHT = 2,
-    CL_TNR_LIGHT_COUNT
-};
-typedef struct _CLTnrThreshold {
-    float r;
-    float g;
-    float b;
-    float y;
-    float uv;
-} CLTnrThreshold;
-#define TNR_PROCESSING_FRAME_COUNT  4
 
-static const CLTnrThreshold tnr_threshold[CL_TNR_LIGHT_COUNT] = {
-    {0.0642, 0.0451, 0.0733, 0.0244, 0.0460}, // low light R/G/B/y/uv threshold
-    {0.0045, 0.0029, 0.0039, 0.0018, 0.0027}, // Indoor R/G/B/y/uv threshold
-    {0.0032, 0.0029, 0.0030, 0.0020, 0.0018}  // Daylight R/G/B/y/uv threshold
+enum CLTnrAnalyzeDateType {
+    CL_TNR_ANALYZE_STATS = 0,
+    CL_TNR_ANALYZE_RGB   = 1,
 };
+
+typedef struct _CLTnrMotionInfo {
+    int32_t hor_shift; /*!< pixel count of horizontal direction (X) shift  */
+    int32_t ver_shift; /*!< pixel count of vertical direction (Y) shift  */
+    float hor_corr;   /*!< horizontal direction (X) correlation */
+    float ver_corr;   /*!< vertical direction (Y) correlation */
+} CLTnrMotionInfo;
+
+#define TNR_PROCESSING_FRAME_COUNT  4
+#define TNR_GRID_HOR_COUNT          8
+#define TNR_GRID_VER_COUNT          8
+#define TNR_MOTION_THRESHOLD        2
 
 class CLTnrImageKernel
     : public CLImageKernel
 {
     typedef std::list<SmartPtr<CLImage>> CLImagePtrList;
+    typedef std::list<CLTnrMotionInfo> CLTnrMotionInfoList;
+
+private:
+    struct CLTnrHistogram {
+        CLTnrHistogram ();
+        CLTnrHistogram (uint32_t width, uint32_t height);
+        ~CLTnrHistogram ();
+
+        float*   hor_hist_current;
+        float*   hor_hist_reference;
+        float*   ver_hist_current;
+        float*   ver_hist_reference;
+        uint32_t hor_hist_bin;
+        uint32_t ver_hist_bin;
+    };
 
 public:
     explicit CLTnrImageKernel (SmartPtr<CLContext> &context,
@@ -80,9 +93,8 @@ public:
         return _frame_count;
     }
 
-    bool set_gain (float gain);
-    bool set_threshold (float thr_y, float thr_uv);
-    bool set_threshold (float thr_r, float thr_g, float thr_b);
+    bool set_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
 
     virtual XCamReturn post_execute ();
 protected:
@@ -94,14 +106,26 @@ protected:
 private:
     XCAM_DEAD_COPY (CLTnrImageKernel);
 
+    float analyze_motion (SmartPtr<DrmBoBuffer> &input, CLTnrAnalyzeDateType type, CLTnrMotionInfo* info);
+    bool calculate_image_histogram (XCam3AStats *stats, CLTnrHistogramType type, float* histogram);
+    bool calculate_image_histogram (SmartPtr<DrmBoBuffer> &input, CLTnrHistogramType type, float* histogram);
+    bool detect_motion (const float* vector_u, const float* vector_v, const uint32_t vector_len, int& delta, float& corr);
+    float calculate_correlation (const float* vector_u, const float* vector_v, const uint32_t vector_len);
+    void print_image_histogram ();
+
     CLTnrType _type;
-    float    _gain;
+    float    _gain_yuv;
     float    _thr_y;
     float    _thr_uv;
+    float    _gain_rgb;
     float    _thr_r;
     float    _thr_g;
     float    _thr_b;
     uint8_t  _frame_count;
+    uint8_t  _stable_frame_count;
+
+    CLTnrHistogram _image_histogram;
+    CLTnrMotionInfo _motion_info[TNR_GRID_HOR_COUNT * TNR_GRID_VER_COUNT];
 
     uint32_t _vertical_offset;
     CLImagePtrList _image_in_list;
@@ -115,10 +139,8 @@ public:
     explicit CLTnrImageHandler (const char *name);
     bool set_tnr_kernel (SmartPtr<CLTnrImageKernel> &kernel);
     bool set_mode (uint32_t mode);
-    bool set_gain (float gain);
-    bool set_threshold (float thr_y, float thr_uv);
-    bool set_threshold (float thr_r, float thr_g, float thr_b);
-    bool set_exposure_params (double a_gain, double d_gain, int32_t exposure_time);
+    bool set_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
 
 private:
     XCAM_DEAD_COPY (CLTnrImageHandler);

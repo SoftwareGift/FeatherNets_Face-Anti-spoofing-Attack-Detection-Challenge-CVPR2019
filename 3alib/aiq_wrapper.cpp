@@ -24,6 +24,7 @@
 #include "x3a_statistics_queue.h"
 #include "aiq3a_utils.h"
 #include "x3a_result_factory.h"
+#include "x3a_analyze_tuner.h"
 
 #define DEFAULT_AIQ_CPF_FILE       "/etc/atomisp/imx185.cpf"
 
@@ -40,7 +41,7 @@ public:
     ~XCam3AAiqContext ();
     bool setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_data, const char *cpf);
     bool setup_stats_pool (uint32_t width, uint32_t height);
-    SmartPtr<X3aAnalyzerAiq> &get_analyzer () {
+    SmartPtr<X3aAnalyzeTuner> &get_analyzer () {
         return _analyzer;
     }
 
@@ -56,7 +57,7 @@ private:
 
 private:
 // members
-    SmartPtr<X3aAnalyzerAiq>       _analyzer;
+    SmartPtr<X3aAnalyzeTuner>      _analyzer;
     SmartPtr<X3aStatisticsQueue>   _stats_pool;
 
     Mutex                          _result_mutex;
@@ -79,7 +80,7 @@ bool
 XCam3AAiqContext::setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_data, const char *cpf)
 {
     XCAM_ASSERT (!_analyzer.ptr ());
-    _analyzer = new X3aAnalyzerAiq (sensor_mode_data, cpf);
+    _analyzer = new X3aAnalyzeTuner (sensor_mode_data, cpf);
     XCAM_ASSERT (_analyzer.ptr ());
     _analyzer->set_results_callback (this);
     return true;
@@ -165,7 +166,7 @@ XCam3AAiqContext::get_results (X3aResultList &results)
     return size;
 }
 
-static SmartPtr<X3aAnalyzerAiq>
+static SmartPtr<X3aAnalyzeTuner>
 get_analyzer (XCam3AContext *context)
 {
     XCam3AAiqContext *aiq_context = AIQ_CONTEXT_CAST (context);
@@ -225,7 +226,7 @@ xcam_configure_3a (XCam3AContext *context, uint32_t width, uint32_t height, doub
         XCAM_RETURN_ERROR_UNKNOWN,
         "setup aiq 3a analyzer failed");
 
-    SmartPtr<X3aAnalyzerAiq> analyzer = aiq_context->get_analyzer ();
+    SmartPtr<X3aAnalyzeTuner> analyzer = aiq_context->get_analyzer ();
 
     ret = analyzer->prepare_handlers ();
     XCAM_FAIL_RETURN (
@@ -265,7 +266,7 @@ xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats, int64_t timestamp
     XCam3AAiqContext *aiq_context = AIQ_CONTEXT_CAST (context);
     XCAM_ASSERT (aiq_context);
 
-    SmartPtr<X3aAnalyzerAiq> analyzer = aiq_context->get_analyzer ();
+    SmartPtr<X3aAnalyzeTuner> analyzer = aiq_context->get_analyzer ();
     XCAM_ASSERT (analyzer.ptr ());
     XCAM_ASSERT (stats);
 
@@ -294,7 +295,7 @@ static XCamReturn
 xcam_update_common_params (XCam3AContext *context, XCamCommonParam *params)
 {
     if (params) {
-        SmartPtr<X3aAnalyzerAiq> analyzer = get_analyzer (context);
+        SmartPtr<X3aAnalyzeTuner> analyzer = get_analyzer (context);
         XCAM_ASSERT (analyzer.ptr ());
 
         analyzer->update_common_parameters (*params);
@@ -310,7 +311,7 @@ static XCamReturn
 xcam_analyze_awb (XCam3AContext *context, XCamAwbParam *params)
 {
     if (params) {
-        SmartPtr<X3aAnalyzerAiq> analyzer = get_analyzer (context);
+        SmartPtr<X3aAnalyzeTuner> analyzer = get_analyzer (context);
         XCAM_ASSERT (analyzer.ptr ());
 
         analyzer->update_awb_parameters (*params);
@@ -322,7 +323,7 @@ static XCamReturn
 xcam_analyze_ae (XCam3AContext *context, XCamAeParam *params)
 {
     if (params) {
-        SmartPtr<X3aAnalyzerAiq> analyzer = get_analyzer (context);
+        SmartPtr<X3aAnalyzeTuner> analyzer = get_analyzer (context);
         XCAM_ASSERT (analyzer.ptr ());
 
         analyzer->update_ae_parameters (*params);
@@ -334,7 +335,7 @@ static XCamReturn
 xcam_analyze_af (XCam3AContext *context, XCamAfParam *params)
 {
     if (params) {
-        SmartPtr<X3aAnalyzerAiq> analyzer = get_analyzer (context);
+        SmartPtr<X3aAnalyzeTuner> analyzer = get_analyzer (context);
         XCAM_ASSERT (analyzer.ptr ());
 
         analyzer->update_af_parameters (*params);

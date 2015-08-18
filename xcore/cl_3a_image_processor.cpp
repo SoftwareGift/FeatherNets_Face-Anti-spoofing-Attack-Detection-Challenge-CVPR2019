@@ -113,6 +113,8 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_MACC:
     case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
     case XCAM_3A_RESULT_BRIGHTNESS:
+    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB:
+    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
         return true;
 
     default:
@@ -211,16 +213,26 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         break;
     }
 
-    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION: {
-        SmartPtr<X3aNoiseReductionResult> tnr_res = result.dynamic_cast_ptr<X3aNoiseReductionResult> ();
+    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB: {
+        SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
         XCAM_ASSERT (tnr_res.ptr ());
-        if (!_tnr_yuv.ptr())
-            break;
-        float gain = ((XCam3aResultNoiseReduction)tnr_res->get_standard_result()).gain;
-        float thr_y = ((XCam3aResultNoiseReduction)tnr_res->get_standard_result()).threshold1;
-        float thr_uv = ((XCam3aResultNoiseReduction)tnr_res->get_standard_result()).threshold2;
-        _tnr_yuv->set_gain (gain);
-        _tnr_yuv->set_threshold (thr_y, thr_uv);
+#if 0
+        if (_tnr_rgb.ptr()) {
+            _tnr_rgb->set_rgb_config (tnr_res->get_standard_result ());
+        }
+#endif
+        if (_bayer_pipe.ptr ()) {
+            _rgb_pipe->set_tnr_config(tnr_res->get_standard_result ());
+        }
+        break;
+    }
+
+    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV: {
+        SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
+        XCAM_ASSERT (tnr_res.ptr ());
+        if (_tnr_yuv.ptr()) {
+            _tnr_yuv->set_yuv_config (tnr_res->get_standard_result ());
+        }
         break;
     }
 
@@ -402,7 +414,6 @@ CL3aImageProcessor::create_handlers ()
         _rgb_pipe.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create rgb pipe handler failed");
-    _rgb_pipe->set_tnr_exposure_params(5, 1, 70000);
     _rgb_pipe->set_kernels_enable (get_profile () >= AdvancedPipelineProfile);
     add_handler (image_handler);
 #else

@@ -20,6 +20,7 @@
  * Author: Wangfei <feix.w.wang@intel.com>
  */
 #include "xcam_utils.h"
+#include "base/xcam_3a_result.h"
 #include "cl_rgb_pipe_handler.h"
 
 namespace XCam {
@@ -33,12 +34,15 @@ CLRgbPipeImageKernel::CLRgbPipeImageKernel (SmartPtr<CLContext> &context)
 }
 
 bool
-CLRgbPipeImageKernel::set_tnr_threshold (float thr_r, float thr_g, float thr_b)
+CLRgbPipeImageKernel::set_tnr_config (const XCam3aResultTemporalNoiseReduction& config)
 {
-    XCAM_LOG_DEBUG ("set RGB pipe tnr threshold: R(%f), G(%f), B(%f)", thr_r, thr_g, thr_b);
-    _tnr_config.thr_r = thr_r;
-    _tnr_config.thr_g = thr_g;
-    _tnr_config.thr_b = thr_b;
+    _tnr_config.gain = (float)config.gain;
+    _tnr_config.thr_r  = (float)config.threshold[0];
+    _tnr_config.thr_g  = (float)config.threshold[1];
+    _tnr_config.thr_b  = (float)config.threshold[2];
+    XCAM_LOG_DEBUG ("set TNR RGB config: _gain(%f), _thr_r(%f), _thr_g(%f), _thr_b(%f)",
+                    _tnr_config.gain, _tnr_config.thr_r, _tnr_config.thr_g, _tnr_config.thr_b);
+
     return true;
 }
 
@@ -99,29 +103,23 @@ CLRgbPipeImageHandler::CLRgbPipeImageHandler (const char *name)
 }
 
 bool
-CLRgbPipeImageHandler::set_tnr_exposure_params (double a_gain, double d_gain, int32_t exposure_time)
-{
-    XCAM_LOG_DEBUG("set_tnr_exposure_params a_gain = %f, d_gain = %f, exposure_time = %d", a_gain, d_gain, exposure_time);
-    if (!_rgb_pipe_kernel->is_valid ()) {
-        XCAM_LOG_ERROR ("set tnr exposure params, invalid TNR kernel !");
-    }
-    if ((exposure_time > 133000) || (a_gain * d_gain > 8)) {
-        _rgb_pipe_kernel->set_tnr_threshold (rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_LOW_LIGHT].thr_r, rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_LOW_LIGHT].thr_g, rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_LOW_LIGHT].thr_b);
-    } else if ((exposure_time > 66000) || (a_gain * d_gain > 4)) {
-        _rgb_pipe_kernel->set_tnr_threshold (rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_INDOOR].thr_r, rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_INDOOR].thr_g, rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_INDOOR].thr_b);
-    } else {
-        _rgb_pipe_kernel->set_tnr_threshold (rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_DAY_LIGHT].thr_r, rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_DAY_LIGHT].thr_g, rgbpipe_tnr_threshold[CL_RGBPIPE_TNR_DAY_LIGHT].thr_b);
-    }
-
-    return true;
-}
-
-bool
 CLRgbPipeImageHandler::set_rgb_pipe_kernel(SmartPtr<CLRgbPipeImageKernel> &kernel)
 {
     SmartPtr<CLImageKernel> image_kernel = kernel;
     add_kernel (image_kernel);
     _rgb_pipe_kernel = kernel;
+    return true;
+}
+
+bool
+CLRgbPipeImageHandler::set_tnr_config (const XCam3aResultTemporalNoiseReduction& config)
+{
+    if (!_rgb_pipe_kernel->is_valid ()) {
+        XCAM_LOG_ERROR ("set config error, invalid TNR kernel !");
+    }
+
+    _rgb_pipe_kernel->set_tnr_config (config);
+
     return true;
 }
 
