@@ -20,6 +20,7 @@
 
 #include "xcam_thread.h"
 #include "xcam_mutex.h"
+#include <errno.h>
 
 namespace XCam {
 
@@ -93,6 +94,17 @@ bool Thread::start ()
     if (pthread_create (&_thread_id, NULL, (void * (*)(void*))thread_func, this) != 0)
         return false;
     _started = true;
+
+#ifdef __USE_GNU
+    char thread_name[16];
+    xcam_mem_clear (thread_name);
+    snprintf (thread_name, sizeof (thread_name), "xc:%s", XCAM_STR(_name));
+    int ret = pthread_setname_np (_thread_id, thread_name);
+    if (ret != 0) {
+        XCAM_LOG_WARNING ("Thread(%s) set name to thread_id failed.(%d, %s)", XCAM_STR(_name), ret, strerror(ret));
+    }
+#endif
+
     return true;
 }
 
