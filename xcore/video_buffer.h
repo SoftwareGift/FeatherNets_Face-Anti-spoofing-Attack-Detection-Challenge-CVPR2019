@@ -65,6 +65,14 @@ namespace XCam {
 class VideoBuffer;
 typedef std::list<SmartPtr<VideoBuffer>>  VideoBufferList;
 
+struct VideoBufferPlanarInfo {
+    uint32_t width;
+    uint32_t height;
+    uint32_t pixel_bytes;
+
+    VideoBufferPlanarInfo ();
+};
+
 struct VideoBufferInfo {
     uint32_t format;
     uint32_t color_bits;
@@ -83,7 +91,10 @@ struct VideoBufferInfo {
         uint32_t width, uint32_t height,
         uint32_t aligned_width = 0, uint32_t aligned_height = 0, uint32_t size = 0);
 
-    uint32_t get_pixel_bytes (const uint32_t format) const;
+    bool get_planar_info (
+        const uint32_t format,
+        const uint32_t  width, const uint32_t height,
+        VideoBufferPlanarInfo &planar, const uint32_t index = 0) const;
 };
 
 class VideoBuffer {

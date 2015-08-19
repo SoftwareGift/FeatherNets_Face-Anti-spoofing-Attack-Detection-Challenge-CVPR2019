@@ -23,6 +23,12 @@
 
 namespace XCam {
 
+VideoBufferPlanarInfo::VideoBufferPlanarInfo ()
+    : width (0)
+    , height (0)
+    , pixel_bytes (0)
+{ }
+
 VideoBufferInfo::VideoBufferInfo ()
     : format (0)
     , color_bits (8)
@@ -186,18 +192,34 @@ VideoBufferInfo::init (
     return true;
 }
 
-uint32_t
-VideoBufferInfo::get_pixel_bytes (const uint32_t format) const
+bool
+VideoBufferInfo::get_planar_info (
+    const uint32_t format,
+    const uint32_t  width, const uint32_t height,
+    VideoBufferPlanarInfo &planar, const uint32_t index) const
 {
-    uint32_t bytes = 0;
-
     switch (format) {
-    case V4L2_PIX_FMT_NV12:
     case V4L2_PIX_FMT_SBGGR8:
     case V4L2_PIX_FMT_SGBRG8:
     case V4L2_PIX_FMT_SGRBG8:
     case V4L2_PIX_FMT_SRGGB8:
-        bytes = 1;
+        XCAM_ASSERT (index <= 0);
+        planar.width = width;
+        planar.height = height;
+        planar.pixel_bytes = 1;
+        break;
+
+    case V4L2_PIX_FMT_NV12:
+        XCAM_ASSERT (index <= 2);
+        if (index == 0) {
+            planar.width = width;
+            planar.height = height;
+            planar.pixel_bytes = 1;
+        } else if (index == 1) {
+            planar.width = width;
+            planar.height = height / 2;
+            planar.pixel_bytes = 1;
+        }
         break;
 
     case V4L2_PIX_FMT_YUYV:
@@ -212,11 +234,17 @@ VideoBufferInfo::get_pixel_bytes (const uint32_t format) const
     case V4L2_PIX_FMT_SRGGB12:
     case V4L2_PIX_FMT_SBGGR16:
     case XCAM_PIX_FMT_SGRBG16:
-        bytes = 2;
+        XCAM_ASSERT (index <= 0);
+        planar.width = width;
+        planar.height = height;
+        planar.pixel_bytes = 2;
         break;
 
     case V4L2_PIX_FMT_RGB24:
-        bytes = 3;
+        XCAM_ASSERT (index <= 0);
+        planar.width = width;
+        planar.height = height;
+        planar.pixel_bytes = 3;
         break;
 
     case V4L2_PIX_FMT_RGBA32:
@@ -226,25 +254,38 @@ VideoBufferInfo::get_pixel_bytes (const uint32_t format) const
     case V4L2_PIX_FMT_RGB32:
     case V4L2_PIX_FMT_ARGB32:
     case V4L2_PIX_FMT_XRGB32:
-        bytes = 4;
+        XCAM_ASSERT (index <= 0);
+        planar.width = width;
+        planar.height = height;
+        planar.pixel_bytes = 4;
         break;
 
     case XCAM_PIX_FMT_RGB48:
-        bytes = 3 * 2;
+        XCAM_ASSERT (index <= 0);
+        planar.width = width;
+        planar.height = height;
+        planar.pixel_bytes = 3 * 2;
         break;
 
     case XCAM_PIX_FMT_RGBA64:
-        bytes = 4 * 2;
+        XCAM_ASSERT (index <= 0);
+        planar.width = width;
+        planar.height = height;
+        planar.pixel_bytes = 4 * 2;
         break;
 
     case XCAM_PIX_FMT_LAB:
-        bytes = 3 * 4;
+        XCAM_ASSERT (index <= 0);
+        planar.width = width;
+        planar.height = height;
+        planar.pixel_bytes = 3 * 4;
         break;
     default:
         XCAM_LOG_WARNING ("VideoBufferInfo get_pixel_bytes failed, unsupported format:%s", xcam_fourcc_to_string (format));
+        return false;
     }
 
-    return bytes;
+    return true;
 }
 
 };

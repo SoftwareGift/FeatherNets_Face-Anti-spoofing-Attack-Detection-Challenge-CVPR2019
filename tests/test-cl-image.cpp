@@ -77,18 +77,23 @@ static XCamReturn
 read_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
 {
     const VideoBufferInfo info = buf->get_video_info ();
-    uint32_t bytes = info.get_pixel_bytes (info.format);
+    VideoBufferPlanarInfo planar;
     uint8_t *memory = NULL;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     memory = buf->map ();
-    for (uint32_t i = 0; i < info.height; i++) {
-        if (fread (memory + i * info.strides [0], 1, info.width * bytes, file.fp) != info.width * bytes) {
-            if (feof (file.fp))
-                ret = XCAM_RETURN_BYPASS;
-            else {
-                XCAM_LOG_ERROR ("read file failed, size doesn't match");
-                ret = XCAM_RETURN_ERROR_FILE;
+    for (uint32_t index = 0; index < info.components; index++) {
+        info.get_planar_info(info.format, info.width, info.height, planar, index);
+        uint32_t line_bytes = planar.width * planar.pixel_bytes;
+
+        for (uint32_t i = 0; i < planar.height; i++) {
+            if (fread (memory + info.offsets [index] + i * info.strides [index], 1, line_bytes, file.fp) != line_bytes) {
+                if (feof (file.fp))
+                    ret = XCAM_RETURN_BYPASS;
+                else {
+                    XCAM_LOG_ERROR ("read file failed, size doesn't match");
+                    ret = XCAM_RETURN_ERROR_FILE;
+                }
             }
         }
     }
@@ -100,15 +105,20 @@ static XCamReturn
 write_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
 {
     const VideoBufferInfo info = buf->get_video_info ();
-    uint32_t bytes = info.get_pixel_bytes (info.format);
+    VideoBufferPlanarInfo planar;
     uint8_t *memory = NULL;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     memory = buf->map ();
-    for (uint32_t i = 0; i < info.height; i++) {
-        if (fwrite (memory + i * info.strides [0], 1, info.width * bytes, file.fp) != info.width * bytes) {
-            XCAM_LOG_ERROR ("read file failed, size doesn't match");
-            ret = XCAM_RETURN_ERROR_FILE;
+    for (uint32_t index = 0; index < info.components; index++) {
+        info.get_planar_info(info.format, info.width, info.height, planar, index);
+        uint32_t line_bytes = planar.width * planar.pixel_bytes;
+
+        for (uint32_t i = 0; i < planar.height; i++) {
+            if (fwrite (memory + info.offsets [index] + i * info.strides [index], 1, line_bytes, file.fp) != line_bytes) {
+                XCAM_LOG_ERROR ("read file failed, size doesn't match");
+                ret = XCAM_RETURN_ERROR_FILE;
+            }
         }
     }
     buf->unmap ();
