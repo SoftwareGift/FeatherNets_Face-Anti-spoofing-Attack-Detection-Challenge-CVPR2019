@@ -216,14 +216,15 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB: {
         SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
         XCAM_ASSERT (tnr_res.ptr ());
-#if 0
+
         if (_tnr_rgb.ptr()) {
             _tnr_rgb->set_rgb_config (tnr_res->get_standard_result ());
         }
-#endif
-        if (_bayer_pipe.ptr ()) {
+
+        if (_rgb_pipe.ptr ()) {
             _rgb_pipe->set_tnr_config(tnr_res->get_standard_result ());
         }
+
         break;
     }
 
@@ -406,7 +407,7 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
-#if 1
+#if 0
     image_handler = create_cl_rgb_pipe_image_handler (context);
     _rgb_pipe = image_handler.dynamic_cast_ptr<CLRgbPipeImageHandler> ();
     XCAM_FAIL_RETURN (

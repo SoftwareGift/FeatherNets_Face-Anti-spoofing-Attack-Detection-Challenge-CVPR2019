@@ -52,6 +52,7 @@ typedef struct _CLTnrMotionInfo {
 } CLTnrMotionInfo;
 
 #define TNR_PROCESSING_FRAME_COUNT  4
+#define TNR_LIST_FRAME_COUNT  4
 #define TNR_GRID_HOR_COUNT          8
 #define TNR_GRID_VER_COUNT          8
 #define TNR_MOTION_THRESHOLD        2
@@ -95,6 +96,7 @@ public:
 
     bool set_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
     bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_framecount (uint8_t count) ;
 
     virtual XCamReturn post_execute ();
 protected:
@@ -139,6 +141,7 @@ public:
     explicit CLTnrImageHandler (const char *name);
     bool set_tnr_kernel (SmartPtr<CLTnrImageKernel> &kernel);
     bool set_mode (uint32_t mode);
+    bool set_framecount (uint8_t count) ;
     bool set_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
     bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
 

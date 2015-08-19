@@ -119,8 +119,8 @@ CLTnrImageKernel::prepare_arguments (
             _stable_frame_count = TNR_PROCESSING_FRAME_COUNT;
         }
 #endif
-        if (_image_in_list.size () < _frame_count) {
-            while (_image_in_list.size () < _frame_count) {
+        if (_image_in_list.size () < TNR_LIST_FRAME_COUNT) {
+            while (_image_in_list.size () < TNR_LIST_FRAME_COUNT) {
                 _image_in_list.push_back (_image_in);
             }
         } else {
@@ -220,6 +220,16 @@ CLTnrImageKernel::post_execute ()
     }
 
     return CLImageKernel::post_execute ();
+}
+
+bool
+CLTnrImageKernel::set_framecount (uint8_t count)
+{
+    // frame count only support 2/3/4/.
+    XCAM_ASSERT (count >= 2 && count <= 4);
+
+    _frame_count = count;
+    return true;
 }
 
 bool
@@ -639,6 +649,18 @@ CLTnrImageHandler::set_mode (uint32_t mode)
     }
 
     _tnr_kernel->set_enable (mode & (CL_TNR_TYPE_YUV | CL_TNR_TYPE_RGB));
+    return true;
+}
+
+bool
+CLTnrImageHandler::set_framecount (uint8_t count)
+{
+    if (!_tnr_kernel->is_valid ()) {
+        XCAM_LOG_ERROR ("set framecount error, invalid TNR kernel !");
+    }
+
+    _tnr_kernel->set_framecount (count);
+
     return true;
 }
 
