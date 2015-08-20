@@ -160,6 +160,7 @@ protected:
 
 private:
     XCamReturn analyze_3a_statistics (SmartPtr<X3aStats> &stats);
+    void set_results_timestamp (X3aResultList &results, int64_t timestamp);
 
     XCAM_DEAD_COPY (X3aAnalyzer);
 

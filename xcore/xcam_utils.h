@@ -33,7 +33,6 @@ extern "C" {
 namespace XCam {
 
 static const int64_t InvalidTimestamp = INT64_C(-1);
-};
 
 inline double
 linear_interpolate_p2 (double value_start, double value_end,
@@ -119,5 +118,7 @@ linear_interpolate_p4(double value_lt, double value_rt,
                             (weight_lt + weight_rt + weight_lb + weight_rb) + 0.5 );
     return value;
 }
+
+};
 
 #endif //XCAM_UTILS_H

@@ -34,7 +34,7 @@ protected:
     explicit X3aResult (
         uint32_t type,
         XCamImageProcessType process_type = XCAM_IMAGE_PROCESS_ALWAYS,
-        uint64_t timestamp = XCam::InvalidTimestamp
+        int64_t timestamp = XCam::InvalidTimestamp
     )
         : _type (type)
         , _process_type (process_type)
@@ -55,7 +55,10 @@ public:
     void set_done (bool flag) {
         _processed = flag;
     }
-    uint64_t get_timestamp () const {
+    void set_timestamp (int64_t timestamp) {
+        _timestamp = timestamp;
+    }
+    int64_t get_timestamp () const {
         return _timestamp;
     }
     uint32_t get_type () const {
@@ -83,7 +86,7 @@ protected:
     //XCam3aResultType      _type;
     uint32_t              _type;  // XCam3aResultType
     XCamImageProcessType  _process_type;
-    uint64_t              _timestamp;
+    int64_t               _timestamp;
     void                 *_ptr;
     bool                  _processed;
 };

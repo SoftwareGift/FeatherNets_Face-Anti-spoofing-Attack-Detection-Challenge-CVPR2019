@@ -153,49 +153,66 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_WHITE_BALANCE: {
         SmartPtr<X3aWhiteBalanceResult> wb_res = result.dynamic_cast_ptr<X3aWhiteBalanceResult> ();
         XCAM_ASSERT (wb_res.ptr ());
-        if (_wb.ptr ())
+        if (_wb.ptr ()) {
             _wb->set_wb_config (wb_res->get_standard_result ());
-        if (_bayer_pipe.ptr ())
+            _wb->set_3a_result (result);
+        }
+        if (_bayer_pipe.ptr ()) {
             _bayer_pipe->set_wb_config (wb_res->get_standard_result ());
+            _bayer_pipe->set_3a_result (result);
+        }
         break;
     }
 
     case XCAM_3A_RESULT_BLACK_LEVEL: {
         SmartPtr<X3aBlackLevelResult> bl_res = result.dynamic_cast_ptr<X3aBlackLevelResult> ();
         XCAM_ASSERT (bl_res.ptr ());
-        if (_black_level.ptr ())
+        if (_black_level.ptr ()) {
             _black_level->set_blc_config (bl_res->get_standard_result ());
-        if (_bayer_pipe.ptr ())
+            _black_level->set_3a_result (result);
+        }
+        if (_bayer_pipe.ptr ()) {
             _bayer_pipe->set_blc_config (bl_res->get_standard_result ());
+            _bayer_pipe->set_3a_result (result);
+        }
         break;
     }
 
     case XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION: {
         SmartPtr<X3aDefectPixelResult> def_res = result.dynamic_cast_ptr<X3aDefectPixelResult> ();
         XCAM_ASSERT (def_res.ptr ());
-        if (!_dpc.ptr())
-            break;
-        _dpc->set_dpc_config (def_res->get_standard_result ());
+        if (_dpc.ptr ()) {
+            _dpc->set_dpc_config (def_res->get_standard_result ());
+            _dpc->set_3a_result (result);
+        }
         break;
     }
 
     case XCAM_3A_RESULT_RGB2YUV_MATRIX: {
         SmartPtr<X3aColorMatrixResult> csc_res = result.dynamic_cast_ptr<X3aColorMatrixResult> ();
         XCAM_ASSERT (csc_res.ptr ());
-        if (_csc.ptr())
+        if (_csc.ptr()) {
             _csc->set_rgbtoyuv_matrix (csc_res->get_standard_result ());
-        if (_yuv_pipe.ptr())
+            _csc->set_3a_result (result);
+        }
+        if (_yuv_pipe.ptr()) {
             _yuv_pipe->set_rgbtoyuv_matrix (csc_res->get_standard_result ());
+            _yuv_pipe->set_3a_result (result);
+        }
         break;
     }
 
     case XCAM_3A_RESULT_MACC: {
         SmartPtr<X3aMaccMatrixResult> macc_res = result.dynamic_cast_ptr<X3aMaccMatrixResult> ();
         XCAM_ASSERT (macc_res.ptr ());
-        if (_macc.ptr())
+        if (_macc.ptr()) {
             _macc->set_macc_table (macc_res->get_standard_result ());
-        if (_yuv_pipe.ptr())
+            _macc->set_3a_result (result);
+        }
+        if (_yuv_pipe.ptr()) {
             _yuv_pipe->set_macc_table (macc_res->get_standard_result ());
+            _yuv_pipe->set_3a_result (result);
+        }
         break;
     }
     case XCAM_3A_RESULT_R_GAMMA:
@@ -206,23 +223,27 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_Y_GAMMA: {
         SmartPtr<X3aGammaTableResult> gamma_res = result.dynamic_cast_ptr<X3aGammaTableResult> ();
         XCAM_ASSERT (gamma_res.ptr ());
-        if (_gamma.ptr())
+        if (_gamma.ptr()) {
             _gamma->set_gamma_table (gamma_res->get_standard_result ());
-        if (_bayer_pipe.ptr ())
+            _gamma->set_3a_result (result);
+        }
+        if (_bayer_pipe.ptr ()) {
             _bayer_pipe->set_gamma_table (gamma_res->get_standard_result ());
+            _bayer_pipe->set_3a_result (result);
+        }
         break;
     }
 
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB: {
         SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
         XCAM_ASSERT (tnr_res.ptr ());
-
         if (_tnr_rgb.ptr()) {
             _tnr_rgb->set_rgb_config (tnr_res->get_standard_result ());
+            _tnr_rgb->set_3a_result (result);
         }
-
         if (_rgb_pipe.ptr ()) {
             _rgb_pipe->set_tnr_config(tnr_res->get_standard_result ());
+            _rgb_pipe->set_3a_result (result);
         }
 
         break;
@@ -233,6 +254,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         XCAM_ASSERT (tnr_res.ptr ());
         if (_tnr_yuv.ptr()) {
             _tnr_yuv->set_yuv_config (tnr_res->get_standard_result ());
+            _tnr_yuv->set_3a_result (result);
         }
         break;
     }
@@ -248,6 +270,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         if (!_ee.ptr())
             break;
         _ee->set_ee_config_nr (ee_nr_res->get_standard_result ());
+        _ee->set_3a_result (result);
         break;
     }
 
@@ -257,6 +280,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         if (!_bnr.ptr())
             break;
         _bnr->set_bnr_config (bnr_res->get_standard_result ());
+        _bnr->set_3a_result (result);
         break;
     }
 
@@ -267,6 +291,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             break;
         float brightness_level = ((XCam3aResultBrightness)brightness_res->get_standard_result()).brightness_level;
         _gamma->set_manual_brightness(brightness_level);
+        _gamma->set_3a_result (result);
         break;
     }
     default:

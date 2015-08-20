@@ -140,6 +140,7 @@ CLImageHandler::CLImageHandler (const char *name)
     : _name (NULL)
     , _buf_pool_type (CLImageHandler::CLBoPoolType)
     , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
+    , _result_timestamp (XCam::InvalidTimestamp)
 {
     XCAM_ASSERT (name);
     if (name)
@@ -354,6 +355,43 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
     XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+void
+CLImageHandler::set_3a_result (SmartPtr<X3aResult> &result)
+{
+    if (!result.ptr ())
+        return;
+
+    int64_t ts = result->get_timestamp ();
+    _result_timestamp = (ts != XCam::InvalidTimestamp) ? ts : _result_timestamp;
+
+    X3aResultList::iterator i_res = _3a_results.begin ();
+    for (; i_res != _3a_results.end(); ++i_res) {
+        if (result->get_type () == (*i_res)->get_type ()) {
+            (*i_res) = result;
+            break;
+        }
+    }
+
+    if (i_res == _3a_results.end ()) {
+        _3a_results.push_back (result);
+    }
+}
+
+SmartPtr<X3aResult>
+CLImageHandler::get_3a_result (XCam3aResultType type)
+{
+    X3aResultList::iterator i_res = _3a_results.begin ();
+    SmartPtr<X3aResult> res;
+
+    for ( ; i_res != _3a_results.end(); ++i_res) {
+        if (type == (*i_res)->get_type ()) {
+            res = (*i_res);
+            break;
+        }
+    }
+    return res;
 }
 
 };

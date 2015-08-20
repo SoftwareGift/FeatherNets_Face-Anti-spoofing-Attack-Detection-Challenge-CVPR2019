@@ -25,6 +25,7 @@
 #include "cl_kernel.h"
 #include "drm_bo_buffer.h"
 #include "cl_memory.h"
+#include "x3a_result.h"
 
 namespace XCam {
 
@@ -97,6 +98,13 @@ public:
         return _name;
     }
 
+    void set_3a_result (SmartPtr<X3aResult> &result);
+    SmartPtr<X3aResult> get_3a_result (XCam3aResultType type);
+
+    int64_t get_result_timestamp () const {
+        return _result_timestamp;
+    };
+
     void set_pool_type (BufferPoolType type) {
         _buf_pool_type = type;
     }
@@ -133,6 +141,8 @@ private:
     SmartPtr<BufferPool>       _buf_pool;
     BufferPoolType             _buf_pool_type;
     uint32_t                   _buf_pool_size;
+    X3aResultList              _3a_results;
+    int64_t                    _result_timestamp;
 
     XCAM_OBJ_PROFILING_DEFINES;
 };

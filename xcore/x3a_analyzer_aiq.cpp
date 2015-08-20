@@ -104,7 +104,6 @@ X3aAnalyzerAiq::~X3aAnalyzerAiq()
 SmartPtr<AeHandler>
 X3aAnalyzerAiq::create_ae_handler ()
 {
-
     SmartPtr<AiqAeHandler> ae_handler = new AiqAeHandler (_aiq_compositor);
     _aiq_compositor->set_ae_handler (ae_handler);
     return ae_handler;

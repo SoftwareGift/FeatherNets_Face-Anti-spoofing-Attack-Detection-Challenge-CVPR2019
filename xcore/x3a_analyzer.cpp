@@ -359,11 +359,25 @@ X3aAnalyzer::analyze_3a_statistics (SmartPtr<X3aStats> &stats)
         return ret;
     }
 
-    if (!results.empty ())
+    if (!results.empty ()) {
+        set_results_timestamp(results, stats->get_timestamp ());
         notify_calculation_done (results);
+    }
 
     return ret;
+}
 
+void
+X3aAnalyzer::set_results_timestamp (X3aResultList &results, int64_t timestamp)
+{
+    if (results.empty ())
+        return;
+
+    X3aResultList::iterator i_results = results.begin ();
+    for (; i_results != results.end ();  ++i_results)
+    {
+        (*i_results)->set_timestamp(timestamp);
+    }
 }
 
 void
@@ -619,6 +633,7 @@ bool
 X3aAnalyzer::set_parameter_brightness(double level)
 {
     _brightness_level_param = level;
+    return true;
 }
 
 bool
