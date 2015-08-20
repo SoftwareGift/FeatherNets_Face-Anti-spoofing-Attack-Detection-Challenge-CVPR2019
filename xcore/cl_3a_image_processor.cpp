@@ -418,6 +418,7 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create hdr handler failed");
     if(_hdr_mode == CL_HDR_TYPE_LAB)
         _hdr->set_mode (_hdr_mode);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
     /* bilateral noise reduction */
