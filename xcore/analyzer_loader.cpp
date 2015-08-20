@@ -76,7 +76,7 @@ AnalyzerLoader::load_dynamic_analyzer (SmartPtr<AnalyzerLoader> &self)
 
     analyzer = new DynamicAnalyzer (desc, self);
     if (!analyzer.ptr ()) {
-        XCAM_LOG_WARNING ("create analyzer(%s) from lib:%s failed", XCAM_STR (analyzer->get_name()), XCAM_STR (_path));
+        XCAM_LOG_WARNING ("create DynamicAnalyzer from lib:%s failed", XCAM_STR (_path));
         close_handle ();
         return NULL;
     }
@@ -95,7 +95,7 @@ AnalyzerLoader::load_hybrid_analyzer (SmartPtr<AnalyzerLoader> &self,
 
     analyzer = new HybridAnalyzer (desc, self, isp, cpf_path);
     if (!analyzer.ptr ()) {
-        XCAM_LOG_WARNING ("create analyzer(%s) from lib:%s failed", XCAM_STR (analyzer->get_name()), XCAM_STR (_path));
+        XCAM_LOG_WARNING ("create HybridAnalyzer from lib:%s failed", XCAM_STR (_path));
         close_handle ();
         return NULL;
     }

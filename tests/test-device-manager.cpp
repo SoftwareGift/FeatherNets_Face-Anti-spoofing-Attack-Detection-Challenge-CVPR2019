@@ -178,6 +178,7 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
 
     if (!_file) {
         XCAM_LOG_ERROR ("open file failed");
+        return;
     }
 
     if (fwrite (frame, size, 1, _file) <= 0) {

@@ -88,6 +88,7 @@ translate_atomisp_parameters (
     XCAM_ASSERT (result_count < max_count);
     if (atomisp_params.wb_config) {
         XCam3aResultWhiteBalance *wb = xcam_malloc0_type (XCam3aResultWhiteBalance);
+        XCAM_ASSERT (wb);
         wb->head.type = XCAM_3A_RESULT_WHITE_BALANCE;
         wb->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         wb->head.version = XCAM_VERSION;
@@ -103,6 +104,7 @@ translate_atomisp_parameters (
     XCAM_ASSERT (result_count < max_count);
     if (atomisp_params.ob_config) {
         XCam3aResultBlackLevel *blc = xcam_malloc0_type (XCam3aResultBlackLevel);
+        XCAM_ASSERT (blc);
         blc->head.type =    XCAM_3A_RESULT_BLACK_LEVEL;
         blc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         blc->head.version = XCAM_VERSION;
@@ -132,6 +134,7 @@ translate_atomisp_parameters (
         double tmp_matrix [XCAM_COLOR_MATRIX_SIZE] = {0.0};
         double cc_matrix [XCAM_COLOR_MATRIX_SIZE] = {0.0};
         XCam3aResultColorMatrix *cm = xcam_malloc0_type (XCam3aResultColorMatrix);
+        XCAM_ASSERT (cm);
         cm->head.type = XCAM_3A_RESULT_RGB2YUV_MATRIX;
         cm->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         cm->head.version = XCAM_VERSION;
@@ -149,6 +152,7 @@ translate_atomisp_parameters (
     XCAM_ASSERT (result_count < max_count);
     if (atomisp_params.g_gamma_table) {
         XCam3aResultGammaTable *gt = xcam_malloc0_type (XCam3aResultGammaTable);
+        XCAM_ASSERT (gt);
         gt->head.type = XCAM_3A_RESULT_G_GAMMA;
         gt->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         gt->head.version = XCAM_VERSION;
@@ -162,6 +166,7 @@ translate_atomisp_parameters (
     XCAM_ASSERT (result_count < max_count);
     if (atomisp_params.macc_config) {
         XCam3aResultMaccMatrix *macc = xcam_malloc0_type (XCam3aResultMaccMatrix);
+        XCAM_ASSERT (macc);
         macc->head.type = XCAM_3A_RESULT_MACC;
         macc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         macc->head.version = XCAM_VERSION;
@@ -176,6 +181,7 @@ translate_atomisp_parameters (
     XCAM_ASSERT (result_count < max_count);
     if (atomisp_params.dp_config) {
         XCam3aResultDefectPixel *dpc = xcam_malloc0_type (XCam3aResultDefectPixel);
+        XCAM_ASSERT (dpc);
         dpc->head.type = XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION;
         dpc->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         dpc->head.version = XCAM_VERSION;
@@ -191,6 +197,7 @@ translate_atomisp_parameters (
     XCAM_ASSERT (result_count < max_count);
     if (atomisp_params.nr_config) {
         XCam3aResultBayerNoiseReduction *bnr = xcam_malloc0_type (XCam3aResultBayerNoiseReduction);
+        XCAM_ASSERT (bnr);
         bnr->head.type = XCAM_3A_RESULT_BAYER_NOISE_REDUCTION;
         bnr->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
         bnr->head.version = XCAM_VERSION;
@@ -217,6 +224,7 @@ translate_3a_results_to_xcam (X3aResultList &list,
             XCAM_ASSERT (isp_exposure.ptr ());
             const XCam3aResultExposure &exposure = isp_exposure->get_standard_result ();
             XCam3aResultExposure *new_exposure = xcam_malloc0_type (XCam3aResultExposure);
+            XCAM_ASSERT (new_exposure);
             *new_exposure = exposure;
             new_exposure->head.type = XCAM_3A_RESULT_EXPOSURE;
             new_exposure->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
@@ -237,6 +245,7 @@ translate_3a_results_to_xcam (X3aResultList &list,
                 isp_result.dynamic_cast_ptr<X3aBrightnessResult>();
             const XCam3aResultBrightness &brightness = xcam_brightness->get_standard_result();
             XCam3aResultBrightness *new_brightness = xcam_malloc0_type(XCam3aResultBrightness);
+            XCAM_ASSERT (new_brightness);
             *new_brightness = brightness;
             results[result_count++] = (XCam3aResultHead*)new_brightness;
             break;
@@ -248,6 +257,7 @@ translate_3a_results_to_xcam (X3aResultList &list,
                 isp_result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
             const XCam3aResultTemporalNoiseReduction &tnr = xcam_tnr->get_standard_result();
             XCam3aResultTemporalNoiseReduction *new_tnr = xcam_malloc0_type(XCam3aResultTemporalNoiseReduction);
+            XCAM_ASSERT (new_tnr);
             *new_tnr = tnr;
             results[result_count++] = (XCam3aResultHead*)new_tnr;
             break;
