@@ -329,6 +329,7 @@ CL3aImageProcessor::create_handlers ()
         _bayer_pipe->set_output_format (V4L2_PIX_FMT_ABGR32);
     }
 #endif
+    _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
@@ -619,6 +620,8 @@ CL3aImageProcessor::set_denoise (uint32_t mode)
         _ee->set_kernels_enable (XCAM_DENOISE_TYPE_EE & _snr_mode);
     if (_bnr.ptr ())
         _bnr->set_kernels_enable (XCAM_DENOISE_TYPE_BNR & _snr_mode);
+    if (_bayer_pipe.ptr ())
+        _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);
 
     return true;
 }
