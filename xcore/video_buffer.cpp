@@ -281,7 +281,7 @@ VideoBufferInfo::get_planar_info (
         planar.pixel_bytes = 3 * 4;
         break;
     default:
-        XCAM_LOG_WARNING ("VideoBufferInfo get_pixel_bytes failed, unsupported format:%s", xcam_fourcc_to_string (format));
+        XCAM_LOG_WARNING ("VideoBufferInfo get_planar_info failed, unsupported format:%s", xcam_fourcc_to_string (format));
         return false;
     }
 
