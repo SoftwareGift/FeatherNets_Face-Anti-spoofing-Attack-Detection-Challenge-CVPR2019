@@ -39,7 +39,7 @@ __constant float na[25] = { -1.0, -1.0, -1.0, -1.0, -1.0,
                             -1.0, -1.0, -1.0, -1.0, -1.0,
                             -1.0, -1.0, -1.0, -1.0, -1.0
                           };
-__kernel void kernel_ee (__read_only image2d_t input, __write_only image2d_t output, uint vertical_offset, CLEeConfig ee_config)
+__kernel void kernel_ee (__read_only image2d_t input, __write_only image2d_t output, uint vertical_offset_in, uint vertical_offset_out, CLEeConfig ee_config)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
@@ -52,8 +52,8 @@ __kernel void kernel_ee (__read_only image2d_t input, __write_only image2d_t out
 
     // cpy UV
     if(y % 2 == 0) {
-        uv_in = read_imagef(input, sampler, (int2)(x, y / 2 + vertical_offset));
-        write_imagef(output, (int2)(x, y / 2 + vertical_offset), uv_in);
+        uv_in = read_imagef(input, sampler, (int2)(x, y / 2 + vertical_offset_in));
+        write_imagef(output, (int2)(x, y / 2 + vertical_offset_out), uv_in);
     }
 
         a[0] = read_imagef(input, sampler, (int2)(x - 2, y - 2));

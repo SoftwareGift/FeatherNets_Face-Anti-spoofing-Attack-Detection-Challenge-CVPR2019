@@ -49,7 +49,8 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLEeImageKernel);
-    uint32_t _vertical_offset;
+    uint32_t _vertical_offset_in;
+    uint32_t _vertical_offset_out;
     CLEeConfig _ee_config;
 };
 

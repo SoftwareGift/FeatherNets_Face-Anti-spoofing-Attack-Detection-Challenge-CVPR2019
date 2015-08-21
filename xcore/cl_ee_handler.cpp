@@ -24,6 +24,8 @@ namespace XCam {
 
 CLEeImageKernel::CLEeImageKernel (SmartPtr<CLContext> &context)
     : CLImageKernel (context, "kernel_ee")
+    , _vertical_offset_in (0)
+    , _vertical_offset_out (0)
 {
     _ee_config.ee_gain = 2.0;
     _ee_config.ee_threshold = 150.0;
@@ -37,7 +39,8 @@ CLEeImageKernel::prepare_arguments (
     CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & video_info = output->get_video_info ();
+    const VideoBufferInfo & video_info_in = input->get_video_info ();
+    const VideoBufferInfo & video_info_out = output->get_video_info ();
 
     _image_in = new CLVaImage (context, input);
     _image_out = new CLVaImage (context, output);
@@ -49,22 +52,25 @@ CLEeImageKernel::prepare_arguments (
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
-    _vertical_offset = video_info.aligned_height;
+    _vertical_offset_in = video_info_in.aligned_height;
+    _vertical_offset_out= video_info_out.aligned_height;
 
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_vertical_offset;
-    args[2].arg_size = sizeof (_vertical_offset);
-    args[3].arg_adress = &_ee_config;
-    args[3].arg_size = sizeof (CLEeConfig);
-    arg_count = 4;
+    args[2].arg_adress = &_vertical_offset_in;
+    args[2].arg_size = sizeof (_vertical_offset_in);
+    args[3].arg_adress = &_vertical_offset_out;
+    args[3].arg_size = sizeof (_vertical_offset_out);
+    args[4].arg_adress = &_ee_config;
+    args[4].arg_size = sizeof (CLEeConfig);
+    arg_count = 5;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = video_info.width;
-    work_size.global[1] = video_info.height;
+    work_size.global[0] = video_info_in.width;
+    work_size.global[1] = video_info_in.height;
     work_size.local[0] = 4;
     work_size.local[1] = 4;
 
