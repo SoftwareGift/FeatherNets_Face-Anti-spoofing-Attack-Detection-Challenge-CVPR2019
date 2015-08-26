@@ -193,6 +193,8 @@ AC_CONFIG_FILES([Makefile
                  wrapper/gstreamer/Makefile
                  wrapper/gstreamer/interface/Makefile
                  3alib/Makefile
+                 3alib/aiq/Makefile
+                 3alib/hybrid/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc

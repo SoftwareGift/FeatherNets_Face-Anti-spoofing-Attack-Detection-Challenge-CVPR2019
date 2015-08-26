@@ -535,7 +535,7 @@ int main (int argc, char *argv[])
         analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
         break;
     case AnalyzerTypeHybrid: {
-        path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
+        path_of_3a = DEFAULT_HYBRID_3A_LIB;
         loader = new AnalyzerLoader (path_of_3a);
         analyzer = loader->load_hybrid_analyzer (loader, isp_controller, DEFAULT_CPF_FILE);
         CHECK_EXP (analyzer.ptr (), "load hybrid 3a lib(%s) failed", path_of_3a);

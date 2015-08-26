@@ -49,7 +49,7 @@
 #define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
 #define DEFAULT_SAVE_FILE_NAME "capture_buffer"
 #define DEFAULT_DYNAMIC_3A_LIB "/usr/lib/xcam/libxcam_3a_aiq.so"
-
+#define DEFAULT_HYBRID_3A_LIB "/usr/lib/xcam/libxcam_3a_hybrid.so"
 
 #define FPS_CALCULATION(objname, count)                     \
     do{                                              \
