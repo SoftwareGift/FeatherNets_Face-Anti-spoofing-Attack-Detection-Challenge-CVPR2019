@@ -266,7 +266,7 @@ void print_help (const char *bin_name)
             "\t -n interval   save file on every [interval] frame\n"
             "\t -c            process image with cl kernel\n"
             "\t -f pixel_fmt  specify output pixel format\n"
-            "\t               pixel_fmt select from [NV12, YUYV, BA10, RG12], default is [NV12]\n"
+            "\t               pixel_fmt select from [NV12, YUYV, BA10, BA12], default is [NV12]\n"
             "\t -d cap_mode   specify capture mode\n"
             "\t               cap_mode select from [video, still], default is [video]\n"
             "\t -b brightness specify brightness level\n"
