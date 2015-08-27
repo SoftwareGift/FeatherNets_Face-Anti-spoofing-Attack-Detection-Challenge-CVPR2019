@@ -159,11 +159,12 @@ DeviceManager::start ()
     XCAM_FAILED_STOP (ret = _device->start(), "capture device start failed");
 
     //start subdevice
-    XCAM_ASSERT (_subdevice->is_opened());
-    if (!_subdevice.ptr() || !_subdevice->is_opened()) {
-        XCAM_FAILED_STOP (ret = XCAM_RETURN_ERROR_FILE, "event device not ready");
+    //XCAM_ASSERT (_subdevice->is_opened());
+    if (_subdevice.ptr()) {
+        if (!_subdevice->is_opened())
+            XCAM_FAILED_STOP (ret = XCAM_RETURN_ERROR_FILE, "event device not ready");
+        XCAM_FAILED_STOP (ret = _subdevice->start(), "start event device failed");
     }
-    XCAM_FAILED_STOP (ret = _subdevice->start(), "start event device failed");
 
     //suppose _device and _subdevice already started
     if (!_isp_controller.ptr ())
@@ -213,7 +214,8 @@ DeviceManager::start ()
     //Initialize and start poll thread
     _poll_thread = new PollThread;
     _poll_thread->set_capture_device (_device);
-    _poll_thread->set_event_device (_subdevice);
+    if (_subdevice.ptr ())
+        _poll_thread->set_event_device (_subdevice);
     _poll_thread->set_isp_controller (_isp_controller);
     _poll_thread->set_poll_callback (this);
     _poll_thread->set_stats_callback (this);

@@ -583,22 +583,25 @@ int main (int argc, char *argv[])
     CHECK (ret, "device(%s) set format failed", device->get_device_name());
 
     ret = event_device->open ();
-    CHECK (ret, "event device(%s) open failed", event_device->get_device_name());
-    int event = V4L2_EVENT_ATOMISP_3A_STATS_READY;
-    ret = event_device->subscribe_event (event);
-    CHECK_CONTINUE (
-        ret,
-        "device(%s) subscribe event(%d) failed",
-        event_device->get_device_name(), event);
-    event = V4L2_EVENT_FRAME_SYNC;
-    ret = event_device->subscribe_event (event);
-    CHECK_CONTINUE (
-        ret,
-        "device(%s) subscribe event(%d) failed",
-        event_device->get_device_name(), event);
+    if (ret == XCAM_RETURN_NO_ERROR) {
+        CHECK (ret, "event device(%s) open failed", event_device->get_device_name());
+        int event = V4L2_EVENT_ATOMISP_3A_STATS_READY;
+        ret = event_device->subscribe_event (event);
+        CHECK_CONTINUE (
+            ret,
+            "device(%s) subscribe event(%d) failed",
+            event_device->get_device_name(), event);
+        event = V4L2_EVENT_FRAME_SYNC;
+        ret = event_device->subscribe_event (event);
+        CHECK_CONTINUE (
+            ret,
+            "device(%s) subscribe event(%d) failed",
+            event_device->get_device_name(), event);
+
+        device_manager->set_event_device (event_device);
+    }
 
     device_manager->set_capture_device (device);
-    device_manager->set_event_device (event_device);
     device_manager->set_isp_controller (isp_controller);
     if (analyzer.ptr())
         device_manager->set_analyzer (analyzer);

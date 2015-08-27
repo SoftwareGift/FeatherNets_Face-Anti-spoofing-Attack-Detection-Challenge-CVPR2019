@@ -142,7 +142,7 @@ PollThread::set_stats_callback (StatsCallback *callback)
 XCamReturn PollThread::start ()
 {
     _3a_stats_pool = new X3aStatisticsQueue;
-    if (!_event_loop->start ()) {
+    if (_event_dev.ptr () && !_event_loop->start ()) {
         return XCAM_RETURN_ERROR_THREAD;
     }
     if (!_capture_loop->start ()) {
