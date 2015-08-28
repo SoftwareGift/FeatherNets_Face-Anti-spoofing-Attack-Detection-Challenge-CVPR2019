@@ -140,7 +140,9 @@ gst_xcam_src_image_processor_get_type (void)
     static GType g_type = 0;
     static const GEnumValue image_processor_types[] = {
         {ISP_IMAGE_PROCESSOR, "ISP image processor", "isp"},
+#if HAVE_LIBCL
         {CL_IMAGE_PROCESSOR, "CL image processor", "cl"},
+#endif
         {0, NULL, NULL},
     };
 
@@ -525,9 +527,17 @@ gst_xcam_src_set_property (
         if (src->image_processor_type == ISP_IMAGE_PROCESSOR) {
             src->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
         }
+#if HAVE_LIBCL
         else if (src->image_processor_type == CL_IMAGE_PROCESSOR) {
             src->capture_mode = V4L2_CAPTURE_MODE_STILL;
         }
+#else
+        else {
+            XCAM_LOG_WARNING ("this release only supports ISP image processor");
+            src->image_processor_type = ISP_IMAGE_PROCESSOR;
+            src->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
+        }
+#endif
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);

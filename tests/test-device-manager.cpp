@@ -264,7 +264,9 @@ void print_help (const char *bin_name)
             "\t               mem_type select from [dma, mmap], default is [mmap]\n"
             "\t -s            save file to %s\n"
             "\t -n interval   save file on every [interval] frame\n"
+#if HAVE_LIBCL
             "\t -c            process image with cl kernel\n"
+#endif
             "\t -f pixel_fmt  specify output pixel format\n"
             "\t               pixel_fmt select from [NV12, YUYV, BA10, BA12], default is [NV12]\n"
             "\t -d cap_mode   specify capture mode\n"
@@ -279,6 +281,7 @@ void print_help (const char *bin_name)
             "\t                select from [primary, overlay], default is [primary]\n"
             "\t --sync        set analyzer in sync mode\n"
             "\t -h            help\n"
+#if HAVE_LIBCL
             "CL features:\n"
             "\t --hdr         specify hdr type, default is hdr off\n"
             "\t               select from [rgb, lab]\n"
@@ -292,6 +295,7 @@ void print_help (const char *bin_name)
             "\t --enable-dpc  enable defect pixel correction\n"
             "\t --enable-tonemapping  enable tonemapping\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
+#endif
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);
 }
@@ -307,7 +311,9 @@ int main (int argc, char *argv[])
     SmartPtr<AnalyzerLoader> loader;
     const char *path_of_3a;
     SmartPtr<ImageProcessor> isp_processor;
+#if HAVE_LIBCL
     SmartPtr<CLCscImageProcessor> cl_csc_proccessor;
+#endif
     AnalyzerType  analyzer_type = AnalyzerTypeSimple;
     DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
 #if HAVE_LIBDRM
@@ -316,6 +322,11 @@ int main (int argc, char *argv[])
 
 #if HAVE_LIBCL
     SmartPtr<CL3aImageProcessor> cl_processor;
+    uint32_t hdr_type = CL_HDR_DISABLE;
+    uint32_t tnr_type = CL_TNR_DISABLE;
+    uint32_t denoise_type = 0;
+    uint8_t tnr_level = 0;
+    bool dpc_type = false;
 #endif
     bool have_cl_processor = false;
     bool need_display = false;
@@ -324,11 +335,6 @@ int main (int argc, char *argv[])
     int opt;
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
-    uint32_t hdr_type = CL_HDR_DISABLE;
-    uint32_t tnr_type = CL_TNR_DISABLE;
-    uint32_t denoise_type = 0;
-    uint8_t tnr_level = 0;
-    bool dpc_type = false;
     bool tonemapping_type = false;
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
@@ -387,9 +393,11 @@ int main (int argc, char *argv[])
         case 'n':
             device_manager->set_interval (atoi(optarg));
             break;
+#if HAVE_LIBCL
         case 'c':
             have_cl_processor = true;
             break;
+#endif
         case 'f':
             CHECK_EXP ((strlen(optarg) == 4), "invalid pixel format\n");
             pixel_format = v4l2_fourcc ((unsigned)optarg[0],
@@ -439,6 +447,7 @@ int main (int argc, char *argv[])
         case 'Y':
             sync_mode = true;
             break;
+#if HAVE_LIBCL
         case 'H': {
             if (!strcasecmp (optarg, "rgb"))
                 hdr_type = CL_HDR_TYPE_RGB;
@@ -495,6 +504,7 @@ int main (int argc, char *argv[])
             tonemapping_type = true;
             break;
         }
+#endif
         case 'h':
             print_help (bin_name);
             return 0;
@@ -600,15 +610,14 @@ int main (int argc, char *argv[])
 
     XCAM_ASSERT (isp_processor.ptr ());
     device_manager->add_image_processor (isp_processor);
+#if HAVE_LIBCL
     if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display && (!have_cl_processor)) {
         cl_csc_proccessor = new CLCscImageProcessor();
         XCAM_ASSERT (cl_csc_proccessor.ptr ());
         device_manager->add_image_processor (cl_csc_proccessor);
     }
 
-#if HAVE_LIBCL
     if (have_cl_processor) {
-
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
         cl_processor->set_dpc(dpc_type);

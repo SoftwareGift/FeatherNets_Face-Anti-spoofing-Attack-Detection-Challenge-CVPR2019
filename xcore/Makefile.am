@@ -114,7 +114,6 @@ xcam_sources +=              \
 	cl_3a_stats_calculator.cpp     \
 	cl_demo_handler.cpp      \
 	cl_blc_handler.cpp       \
-	drm_bo_buffer.cpp        \
 	cl_hdr_handler.cpp       \
 	cl_demosaic_handler.cpp  \
 	cl_csc_handler.cpp       \
@@ -143,6 +142,7 @@ XCAM_CORE_LIBS +=            \
 	$(NULL)
 
 xcam_sources +=              \
+	drm_bo_buffer.cpp        \
 	drm_display.cpp	         \
 	drm_v4l2_buffer.cpp	 \
 	$(NULL)
