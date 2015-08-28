@@ -21,17 +21,7 @@ uint decompression(uint data_in, uint color_bits)
 {
     uint data_out = 0;
 
-    if (color_bits == 12) {
-        if (data_in <= 2048)
-            data_out = data_in;
-        else if ((data_in > 2048) && (data_in <= 2944))
-            data_out = 2048 + 16 * (data_in - 2048);
-        else
-            data_out = 16384 + 64 * (data_in - 2944);
-    }
-    else {
-        data_out = data_in << (16 - color_bits);
-    }
+    data_out = data_in << (16 - color_bits);
 
     return data_out;
 }
