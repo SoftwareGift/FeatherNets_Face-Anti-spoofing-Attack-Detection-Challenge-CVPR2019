@@ -294,6 +294,8 @@ void print_help (const char *bin_name)
             "\t --enable-bnr  enable bayer noise reduction\n"
             "\t --enable-dpc  enable defect pixel correction\n"
             "\t --enable-tonemapping  enable tonemapping\n"
+            "\t --pipeline    pipe mode\n"
+            "\t               select from [basic, advance], default is [basic]\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
 #endif
             , bin_name
@@ -327,6 +329,7 @@ int main (int argc, char *argv[])
     uint32_t denoise_type = 0;
     uint8_t tnr_level = 0;
     bool dpc_type = false;
+    CL3aImageProcessor::PipelineProfile pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
 #endif
     bool have_cl_processor = false;
     bool need_display = false;
@@ -354,6 +357,7 @@ int main (int argc, char *argv[])
         {"enable-tonemapping", no_argument, NULL, 'M'},
         {"usb", required_argument, NULL, 'U'},
         {"sync", no_argument, NULL, 'Y'},
+        {"pipeline", required_argument, NULL, 'P'},
         {0, 0, 0, 0},
     };
 
@@ -504,6 +508,17 @@ int main (int argc, char *argv[])
             tonemapping_type = true;
             break;
         }
+        case 'P': {
+            if (!strcasecmp (optarg, "basic"))
+                pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
+            else if (!strcasecmp (optarg, "advance"))
+                pipeline_mode = CL3aImageProcessor::AdvancedPipelineProfile;
+            else {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+        }
 #endif
         case 'h':
             print_help (bin_name);
@@ -631,6 +646,7 @@ int main (int argc, char *argv[])
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
         cl_processor->set_tnr (tnr_type, tnr_level);
+        cl_processor->set_profile (pipeline_mode);
         analyzer->set_parameter_brightness((brightness_level - 128) / 128.0);
         device_manager->add_image_processor (cl_processor);
     }
