@@ -137,7 +137,7 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
 
     XCAM_FAIL_RETURN (
         WARNING,
-        !_handlers.empty () || ret != XCAM_RETURN_NO_ERROR,
+        !_handlers.empty () && ret == XCAM_RETURN_NO_ERROR,
         XCAM_RETURN_ERROR_CL,
         "CL image processor create handlers failed");
 
@@ -241,6 +241,7 @@ CLImageProcessor::emit_stop ()
 {
     _process_buffer_queue.pause_pop();
     _done_buffer_queue.pause_pop ();
+
 
     for (ImageHandlerList::iterator i_handler = _handlers.begin ();
             i_handler != _handlers.end ();  ++i_handler) {

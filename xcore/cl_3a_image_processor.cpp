@@ -317,7 +317,7 @@ CL3aImageProcessor::create_handlers ()
 #if 1
     /* bayer pipeline */
     image_handler = create_cl_bayer_pipe_image_handler (context);
-    _bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();;
+    _bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();
     XCAM_FAIL_RETURN (
         WARNING,
         image_handler.ptr (),
@@ -336,7 +336,7 @@ CL3aImageProcessor::create_handlers ()
 #else
     /* black leve as first */
     image_handler = create_cl_blc_image_handler (context);
-    _black_level = image_handler.dynamic_cast_ptr<CLBlcImageHandler> ();;
+    _black_level = image_handler.dynamic_cast_ptr<CLBlcImageHandler> ();
     XCAM_FAIL_RETURN (
         WARNING,
         image_handler.ptr (),
@@ -345,7 +345,7 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     image_handler = create_cl_dpc_image_handler (context);
-    _dpc = image_handler.dynamic_cast_ptr<CLDpcImageHandler> ();;
+    _dpc = image_handler.dynamic_cast_ptr<CLDpcImageHandler> ();
     XCAM_FAIL_RETURN (
         WARNING,
         image_handler.ptr (),
@@ -355,7 +355,7 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     image_handler = create_cl_bnr_image_handler (context);
-    _bnr = image_handler.dynamic_cast_ptr<CLBnrImageHandler> ();;
+    _bnr = image_handler.dynamic_cast_ptr<CLBnrImageHandler> ();
     XCAM_FAIL_RETURN (
         WARNING,
         _bnr.ptr (),
