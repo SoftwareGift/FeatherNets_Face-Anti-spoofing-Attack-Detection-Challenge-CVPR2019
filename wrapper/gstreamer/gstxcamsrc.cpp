@@ -28,8 +28,8 @@
  * <refsect2>
  * <title>Example launch line</title>
  * |[
- * gst-launch-1.0 xcamsrc sensor=0 capturemode=0 capture-mode=1 io-mode=4  \
- *  ! video/x-raw, format=NV12, width=1920, height=1080, framerate=30/1   \
+ * gst-launch-1.0 xcamsrc io-mode=4 sensor-id=0 imageprocessor=0 analyzer=1 \
+ *  ! video/x-raw, format=NV12, width=1920, height=1080, framerate=25/1     \
  *  ! vaapiencode_h264 ! fakesink
  * ]|
  * </refsect2>
@@ -213,7 +213,8 @@ enum {
     PROP_3A_ANALYZER,
     PROP_PIPE_PROFLE,
     PROP_CPF,
-    PROP_3A_LIB
+    PROP_3A_LIB,
+    PROP_INPUT_FMT
 };
 
 static void gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface);
@@ -360,6 +361,11 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
         g_param_spec_string ("path-3alib", "3a lib", "Path to dynamic 3A library",
                              NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+    g_object_class_install_property (
+        gobject_class, PROP_INPUT_FMT,
+        g_param_spec_string ("input-format", "input format", "Input pixel format",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Source",
                                           "Source/Base",
@@ -404,7 +410,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->mem_type = DEFAULT_PROP_MEM_MODE;
     xcamsrc->field = DEFAULT_PROP_FIELD;
 
-    //xcamsrc->input_format = ;
+    xcamsrc->in_format = 0;
     xcamsrc->out_format = DEFAULT_PROP_PIXELFORMAT;
     gst_video_info_init (&xcamsrc->gst_video_info);
     gst_video_info_set_format (&xcamsrc->gst_video_info, GST_VIDEO_FORMAT_NV12, DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT);
@@ -480,6 +486,10 @@ gst_xcam_src_get_property (
     case PROP_3A_LIB:
         g_value_set_string (value, src->path_to_3alib);
         break;
+    case PROP_INPUT_FMT: {
+        g_value_set_string (value, xcam_fourcc_to_string (src->in_format));
+        break;
+    }
 
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -567,6 +577,17 @@ gst_xcam_src_set_property (
             src->path_to_3alib = strdup (path);
         break;
     }
+    case PROP_INPUT_FMT: {
+        const char * fmt = g_value_get_string (value);
+        if (strlen (fmt) == 4)
+            src->in_format = v4l2_fourcc ((unsigned)fmt[0],
+                                          (unsigned)fmt[1],
+                                          (unsigned)fmt[2],
+                                          (unsigned)fmt[3]);
+        else
+            GST_ERROR_OBJECT (src, "Invalid input format: not fourcc");
+        break;
+    }
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -638,6 +659,14 @@ gst_xcam_src_start (GstBaseSrc *src)
             xcamsrc->device = strdup (CAPTURE_DEVICE_VIDEO);
     }
     XCAM_ASSERT (xcamsrc->device);
+
+    // set default input format if set prop wasn't called
+    if (xcamsrc->in_format == 0) {
+        if (xcamsrc->image_processor_type == CL_IMAGE_PROCESSOR)
+            xcamsrc->in_format = V4L2_PIX_FMT_SGRBG10;
+        else
+            xcamsrc->in_format = V4L2_PIX_FMT_NV12;
+    }
 
     capture_device = new AtomispDevice (xcamsrc->device);
     capture_device->set_sensor_id (xcamsrc->sensor_id);
@@ -789,7 +818,7 @@ gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps)
 {
     GstXCamSrc *xcamsrc = GST_XCAM_SRC (src);
     struct v4l2_format format;
-    uint32_t out_format = 0, in_format = 0;
+    uint32_t out_format = 0;
     GstVideoInfo info;
 
     gst_video_info_from_caps (&info, caps);
@@ -803,17 +832,13 @@ gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps)
     if (xcamsrc->image_processor_type == CL_IMAGE_PROCESSOR) {
         SmartPtr<CL3aImageProcessor> processor = xcamsrc->device_manager->get_cl_image_processor ();
         XCAM_ASSERT (processor.ptr ());
-        in_format = V4L2_PIX_FMT_SGRBG10;
         if (!processor->set_output_format (out_format)) {
             GST_ERROR ("CL pipeline doesn't support output format:%" GST_FOURCC_FORMAT,
                        GST_FOURCC_ARGS (out_format));
             return FALSE;
         }
-    } else
-#endif
-    {   // ISP processor
-        in_format = out_format;
     }
+#endif
 
     xcamsrc->out_format = out_format;
 
@@ -823,7 +848,7 @@ gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps)
     capture_device->set_format (
         GST_VIDEO_INFO_WIDTH (&info),
         GST_VIDEO_INFO_HEIGHT(&info),
-        in_format,
+        xcamsrc->in_format,
         xcamsrc->field,
         info.stride [0]);
 
@@ -831,7 +856,6 @@ gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps)
         return FALSE;
 
     capture_device->get_format (format);
-    xcamsrc->input_format = format;
     xcamsrc->gst_video_info = info;
     size_t offset = 0;
     for (uint32_t n = 0; n < GST_VIDEO_INFO_N_PLANES (&xcamsrc->gst_video_info); n++) {

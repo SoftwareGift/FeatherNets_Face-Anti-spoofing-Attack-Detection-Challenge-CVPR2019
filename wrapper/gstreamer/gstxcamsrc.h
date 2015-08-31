@@ -83,7 +83,7 @@ struct _GstXCamSrc
 
     enum v4l2_memory             mem_type;
     enum v4l2_field              field;
-    struct v4l2_format           input_format;
+    uint32_t                     in_format;
     uint32_t                     out_format;
     GstVideoInfo                 gst_video_info;
     VideoBufferInfo              xcam_video_info;
