@@ -109,6 +109,51 @@ void debug_print_3a_stats (XCam3AStats *stats_ptr)
             printf ("%3d", stats_ptr->stats[y * stats_ptr->info.aligned_width + x].avg_y);
         printf ("\n");
     }
+
+#if 0
+#define DUMP_STATS(ch, w, h, aligned_w, stats) do {                 \
+        printf ("stats " #ch ":");                                  \
+        for (uint32_t y = 0; y < h; ++y) {                          \
+            for (uint32_t x = 0; x < w; ++x)                        \
+                printf ("%3d ", stats[y * aligned_w + x].avg_##ch); \
+        }                                                           \
+        printf ("\n");                           \
+    } while (0)
+    DUMP_STATS (r,  stats_ptr->info.width, stats_ptr->info.height,
+                stats_ptr->info.aligned_width, stats_ptr->stats);
+    DUMP_STATS (gr, stats_ptr->info.width, stats_ptr->info.height,
+                stats_ptr->info.aligned_width, stats_ptr->stats);
+    DUMP_STATS (gb, stats_ptr->info.width, stats_ptr->info.height,
+                stats_ptr->info.aligned_width, stats_ptr->stats);
+    DUMP_STATS (b,  stats_ptr->info.width, stats_ptr->info.height,
+                stats_ptr->info.aligned_width, stats_ptr->stats);
+    DUMP_STATS (y,  stats_ptr->info.width, stats_ptr->info.height,
+                stats_ptr->info.aligned_width, stats_ptr->stats);
+#endif
+}
+
+void debug_print_histogram (XCam3AStats *stats_ptr)
+{
+#define DUMP_HISTOGRAM(ch, bins, hist) do {      \
+        printf ("histogram " #ch ":");           \
+        for (uint32_t i = 0; i < bins; i++) {    \
+            if (i % 16 == 0) printf ("\n");      \
+            printf ("%4d ", hist[i].ch);         \
+        }                                        \
+        printf ("\n");                           \
+    } while (0)
+
+    DUMP_HISTOGRAM (r,  stats_ptr->info.histogram_bins, stats_ptr->hist_rgb);
+    DUMP_HISTOGRAM (gr, stats_ptr->info.histogram_bins, stats_ptr->hist_rgb);
+    DUMP_HISTOGRAM (gb, stats_ptr->info.histogram_bins, stats_ptr->hist_rgb);
+    DUMP_HISTOGRAM (b,  stats_ptr->info.histogram_bins, stats_ptr->hist_rgb);
+
+    printf ("histogram y:");
+    for (uint32_t i = 0; i < stats_ptr->info.histogram_bins; i++) {
+        if (i % 16 == 0) printf ("\n");
+        printf ("%4d ", stats_ptr->hist_y[i]);
+    }
+    printf ("\n");
 }
 
 SmartPtr<X3aStats>
@@ -141,8 +186,33 @@ CL3AStatsCalculatorContext::copy_stats_out (const SmartPtr<CLBuffer> &stats_cl_b
     event.release ();
 
     //debug_print_3a_stats (stats_ptr);
+    fill_histogram (stats_ptr);
+    //debug_print_histogram (stats_ptr);
 
     return stats;
+}
+
+bool
+CL3AStatsCalculatorContext::fill_histogram (XCam3AStats * stats)
+{
+    const XCam3AStatsInfo &stats_info = stats->info;
+    const XCamGridStat *grid_stat;
+    XCamHistogram *hist_rgb = stats->hist_rgb;
+    uint32_t *hist_y = stats->hist_y;
+
+    memset (hist_rgb, 0, sizeof(XCamHistogram) * stats_info.histogram_bins);
+    memset (hist_y, 0, sizeof(uint32_t) * stats_info.histogram_bins);
+    for (uint32_t i = 0; i < stats_info.width; i++) {
+        for (uint32_t j = 0; j < stats_info.height; j++) {
+            grid_stat = &stats->stats[j * stats_info.aligned_width + i];
+            hist_rgb[grid_stat->avg_r].r++;
+            hist_rgb[grid_stat->avg_gr].gr++;
+            hist_rgb[grid_stat->avg_gb].gb++;
+            hist_rgb[grid_stat->avg_b].b++;
+            hist_y[grid_stat->avg_y]++;
+        }
+    }
+    return true;
 }
 
 CLBayerPipeImageKernel::CLBayerPipeImageKernel (

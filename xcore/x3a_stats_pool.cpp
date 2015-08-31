@@ -88,6 +88,7 @@ X3aStatsPool::fixate_video_info (VideoBufferInfo &info)
     _stats_info.height = info.height / grid;
     _stats_info.grid_pixel_size = grid;
     _stats_info.bit_depth = 8;
+    _stats_info.histogram_bins = 256;
     return true;
 }
 
@@ -100,9 +101,14 @@ X3aStatsPool::allocate_data (const VideoBufferInfo &buffer_info)
     stats =
         (XCam3AStats *) xcam_malloc0 (
             sizeof (XCam3AStats) +
+            sizeof (XCamHistogram) * _stats_info.histogram_bins +
+            sizeof (uint32_t) * _stats_info.histogram_bins +
             sizeof (XCamGridStat) * _stats_info.aligned_width * _stats_info.aligned_height);
     XCAM_ASSERT (stats);
     stats->info = _stats_info;
+    stats->hist_rgb = (XCamHistogram *) (stats->stats +
+                                         _stats_info.aligned_width * _stats_info.aligned_height);
+    stats->hist_y = (uint32_t *) (stats->hist_rgb + _stats_info.histogram_bins);
     return new X3aStatsData (stats);
 }
 

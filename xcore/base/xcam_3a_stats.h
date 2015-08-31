@@ -32,9 +32,17 @@ typedef struct _XCam3AStatsInfo {
     uint32_t aligned_height;
     uint32_t grid_pixel_size;  // in pixel
     uint32_t bit_depth;
+    uint32_t histogram_bins;
 
     uint32_t reserved[2];
 } XCam3AStatsInfo;
+
+typedef struct _XCamHistogram {
+    uint32_t r;
+    uint32_t gr;
+    uint32_t gb;
+    uint32_t b;
+} XCamHistogram;
 
 typedef struct _XCamGridStat {
     /* ae */
@@ -54,6 +62,8 @@ typedef struct _XCamGridStat {
 
 typedef struct _XCam3AStats {
     XCam3AStatsInfo info;
+    XCamHistogram *hist_rgb;
+    uint32_t *hist_y;
     XCamGridStat stats[0];
 } XCam3AStats;
 

@@ -75,6 +75,8 @@ public:
 private:
     XCAM_DEAD_COPY (CL3AStatsCalculatorContext);
 
+    bool fill_histogram (XCam3AStats *stats);
+
 private:
     SmartPtr<CLContext>              _context;
     SmartPtr<X3aStatsPool>           _stats_pool;

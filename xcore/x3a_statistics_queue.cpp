@@ -83,6 +83,24 @@ X3aIspStatsData::fill_standard_stats ()
                 ((isp_data[i * isp_info.aligned_width + j].af_hpf2 / pixel_count) >> bit_shift);
         }
     }
+
+    if (isp_info.has_histogram) {
+        uint32_t hist_bins = standard_info.histogram_bins;
+        // TODO: atom isp hard code histogram to 256 bins
+        XCAM_ASSERT (hist_bins == 256);
+
+        XCamHistogram *hist_rgb = standard_stats->hist_rgb;
+        uint32_t *hist_y = standard_stats->hist_y;
+        const struct atomisp_3a_rgby_output *isp_hist = _isp_data->rgby_data;
+        for (uint32_t i = 0; i < hist_bins; i++) {
+            hist_rgb[i].r = isp_hist[i].r;
+            hist_rgb[i].gr = isp_hist[i].g;
+            hist_rgb[i].gb = isp_hist[i].g;
+            hist_rgb[i].b = isp_hist[i].b;
+            hist_y[i] = isp_hist[i].y;
+        }
+    }
+
     return true;
 }
 
@@ -202,9 +220,14 @@ X3aStatisticsQueue::allocate_data (const VideoBufferInfo &buffer_info)
 
     stats = (XCam3AStats *) xcam_malloc0 (
                 sizeof (XCam3AStats) +
+                sizeof (XCamHistogram) * stats_info.histogram_bins +
+                sizeof (uint32_t) * stats_info.histogram_bins +
                 sizeof (XCamGridStat) * stats_info.aligned_width * stats_info.aligned_height);
     XCAM_ASSERT (isp_stats && stats);
     stats->info = stats_info;
+    stats->hist_rgb = (XCamHistogram *) (stats->stats +
+                                         stats_info.aligned_width * stats_info.aligned_height);
+    stats->hist_y = (uint32_t *) (stats->hist_rgb + stats_info.histogram_bins);
 
     return new X3aIspStatsData (isp_stats, stats);
 }
