@@ -204,14 +204,14 @@ inline void stats_3a_calculate (
         float4 tmp_data;
         int out_index = mad24(g_id_y / STATS_3A_GRID_SIZE,  g_size_x / STATS_3A_GRID_SIZE, g_id_x / STATS_3A_GRID_SIZE);
         tmp_data = input[shared_pos (l_id_x + SHARED_GRID_X_OFFSET, l_id_y + SHARED_GRID_Y_OFFSET)];
-        stats_output[out_index].avg_gr = convert_uint(tmp_data.x * 255.0f);
-        stats_output[out_index].avg_r = convert_uint(tmp_data.y * 255.0f);
-        stats_output[out_index].avg_b = convert_uint(tmp_data.z * 255.0f);
-        stats_output[out_index].avg_gb = convert_uint(tmp_data.w * 255.0f);
+        stats_output[out_index].avg_gr = convert_uchar_sat(tmp_data.x * 255.0f);
+        stats_output[out_index].avg_r = convert_uchar_sat(tmp_data.y * 255.0f);
+        stats_output[out_index].avg_b = convert_uchar_sat(tmp_data.z * 255.0f);
+        stats_output[out_index].avg_gb = convert_uchar_sat(tmp_data.w * 255.0f);
         stats_output[out_index].valid_wb_count = STATS_3A_GRID_SIZE * STATS_3A_GRID_SIZE;
         stats_output[out_index].avg_y =
-            convert_uint(((tmp_data.x * wb_config->gr_gain + tmp_data.w * wb_config->gb_gain) * 0.294f +
-                          tmp_data.y * wb_config->r_gain * 0.299f + tmp_data.z * wb_config->b_gain * 0.114f) * 255.0f);
+            convert_uchar_sat(((tmp_data.x * wb_config->gr_gain + tmp_data.w * wb_config->gb_gain) * 0.2935f +
+                               tmp_data.y * wb_config->r_gain * 0.299f + tmp_data.z * wb_config->b_gain * 0.114f) * 255.0f);
         stats_output[out_index].f_value1 = 0;
         stats_output[out_index].f_value2 = 0;
     }
