@@ -64,7 +64,7 @@ CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> 
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLContext> context = get_context ();
-#define XCAM_CL_MAX_ARGS 10
+#define XCAM_CL_MAX_ARGS 256
     CLArgument args[XCAM_CL_MAX_ARGS];
     uint32_t arg_count = XCAM_CL_MAX_ARGS;
     CLWorkSize work_size;

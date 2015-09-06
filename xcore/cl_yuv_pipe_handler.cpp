@@ -36,6 +36,12 @@ namespace XCam {
 CLYuvPipeImageKernel::CLYuvPipeImageKernel (SmartPtr<CLContext> &context)
     : CLImageKernel (context, "kernel_yuv_pipe")
     , _vertical_offset (0)
+    , _gain_rgb (0.0)
+    , _thr_r (0.064)  // set high initial threshold to get strong denoise effect
+    , _thr_g (0.045)
+    , _thr_b (0.073)
+    , _framecount (2)
+    , _enable_tnr_rgb (0)
 {
     memcpy(_macc_table, default_macc, sizeof(float)*XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE);
     memcpy(_rgbtoyuv_matrix, default_matrix, sizeof(float)*XCAM_COLOR_MATRIX_SIZE);
@@ -57,6 +63,26 @@ CLYuvPipeImageKernel::set_matrix (const XCam3aResultColorMatrix &matrix)
     return true;
 }
 
+bool
+CLYuvPipeImageKernel::set_tnr_config (const XCam3aResultTemporalNoiseReduction& config)
+{
+    _gain_rgb = (float)config.gain;
+    _thr_r  = (float)config.threshold[0];
+    _thr_g  = (float)config.threshold[1];
+    _thr_b  = (float)config.threshold[2];
+    XCAM_LOG_DEBUG ("set YUV-Pipe tnr rgb config: _gain(%f), _thr_r(%f), _thr_g(%f), _thr_b(%f)",
+                    _gain_rgb, _thr_r, _thr_g, _thr_b);
+
+    return true;
+}
+
+bool
+CLYuvPipeImageKernel::set_tnr_enable (bool enable)
+{
+    _enable_tnr_rgb = (enable ? 1 : 0);
+    return true;
+}
+
 XCamReturn
 CLYuvPipeImageKernel::prepare_arguments (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
@@ -65,7 +91,6 @@ CLYuvPipeImageKernel::prepare_arguments (
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info = output->get_video_info ();
-
 
     _image_in = new CLVaImage (context, input);
     _image_out = new CLVaImage (context, output);
@@ -76,6 +101,14 @@ CLYuvPipeImageKernel::prepare_arguments (
         context, sizeof(float)*XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_macc_table);
 
+    if (_image_in_list.size () < 4) {
+        while (_image_in_list.size () < 4) {
+            _image_in_list.push_back (_image_in);
+        }
+    } else {
+        _image_in_list.pop_front ();
+        _image_in_list.push_back (_image_in);
+    }
 
     _vertical_offset = video_info.aligned_height;
 
@@ -87,18 +120,35 @@ CLYuvPipeImageKernel::prepare_arguments (
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     //set args;
-    args[0].arg_adress = &_image_in->get_mem_id ();
+    args[0].arg_adress = &_image_out->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_vertical_offset;
-    args[2].arg_size = sizeof (_vertical_offset);
-    args[3].arg_adress = &_matrix_buffer->get_mem_id();
+    args[1].arg_adress = &_vertical_offset;
+    args[1].arg_size = sizeof (_vertical_offset);
+    args[2].arg_adress = &_matrix_buffer->get_mem_id();
+    args[2].arg_size = sizeof (cl_mem);
+    args[3].arg_adress = &_macc_table_buffer->get_mem_id();
     args[3].arg_size = sizeof (cl_mem);
-    args[4].arg_adress = &_macc_table_buffer->get_mem_id();
-    args[4].arg_size = sizeof (cl_mem);
+    args[4].arg_adress = &_framecount;
+    args[4].arg_size = sizeof (_framecount);
+    args[5].arg_adress = &_gain_rgb;
+    args[5].arg_size = sizeof (_gain_rgb);
+    args[6].arg_adress = &_thr_r;
+    args[6].arg_size = sizeof (_thr_r);
+    args[7].arg_adress = &_thr_g;
+    args[7].arg_size = sizeof (_thr_g);
+    args[8].arg_adress = &_thr_b;
+    args[8].arg_size = sizeof (_thr_b);
+    args[9].arg_adress = &_enable_tnr_rgb;
+    args[9].arg_size = sizeof (_enable_tnr_rgb);
 
-    arg_count = 5;
+    uint8_t index = 0;
+    for (std::list<SmartPtr<CLImage>>::iterator it = _image_in_list.begin (); it != _image_in_list.end (); it++) {
+        args[10 + index].arg_adress = &(*it)->get_mem_id ();
+        args[10 + index].arg_size = sizeof (cl_mem);
+        index++;
+    }
+
+    arg_count = 10 + index;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = video_info.width / 2 ;
@@ -162,6 +212,24 @@ CLYuvPipeImageHandler::set_yuv_pipe_kernel(SmartPtr<CLYuvPipeImageKernel> &kerne
     add_kernel (image_kernel);
     _yuv_pipe_kernel = kernel;
     return true;
+}
+
+bool
+CLYuvPipeImageHandler::set_tnr_config (const XCam3aResultTemporalNoiseReduction& config)
+{
+    if (!_yuv_pipe_kernel->is_valid ()) {
+        XCAM_LOG_ERROR ("set config error, invalid YUV-Pipe kernel !");
+    }
+
+    _yuv_pipe_kernel->set_tnr_config (config);
+
+    return true;
+}
+
+bool
+CLYuvPipeImageHandler::set_tnr_enable (bool enable)
+{
+    return _yuv_pipe_kernel->set_tnr_enable (enable);
 }
 
 SmartPtr<CLImageHandler>
