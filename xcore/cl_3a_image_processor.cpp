@@ -330,7 +330,7 @@ CL3aImageProcessor::create_handlers ()
     }
 #endif
     _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE * 2);
     add_handler (image_handler);
 
 #else
@@ -453,7 +453,6 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create rgb pipe handler failed");
     _rgb_pipe->set_kernels_enable (get_profile () >= AdvancedPipelineProfile);
     add_handler (image_handler);
-#else
     /* Temporal Noise Reduction (RGB domain) */
     image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_RGB);
     _tnr_rgb = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
@@ -464,6 +463,7 @@ CL3aImageProcessor::create_handlers ()
         "CL3aImageProcessor create tnr handler failed");
     _tnr_rgb->set_mode (CL_TNR_TYPE_RGB & _tnr_mode);
     add_handler (image_handler);
+#else
 
     /* simple noise reduction */
     image_handler = create_cl_snr_image_handler (context);
@@ -497,9 +497,7 @@ CL3aImageProcessor::create_handlers ()
         _yuv_pipe.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create macc handler failed");
-    if (get_profile () >= AdvancedPipelineProfile) {
-        _yuv_pipe->set_tnr_enable (1);
-    }
+    _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_RGB);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 #else
@@ -571,6 +569,12 @@ bool
 CL3aImageProcessor::set_profile (const CL3aImageProcessor::PipelineProfile value)
 {
     _pipeline_profile = value;
+
+    if (value >= AdvancedPipelineProfile)
+        _tnr_mode |= CL_TNR_TYPE_RGB;
+
+    if (value >= ExtremePipelineProfile)
+        _snr_mode |= XCAM_DENOISE_TYPE_BNR;
 
     STREAM_LOCK;
     if (_rgb_pipe.ptr ())
