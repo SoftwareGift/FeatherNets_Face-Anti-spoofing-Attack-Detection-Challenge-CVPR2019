@@ -167,6 +167,9 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
     case V4L2_PIX_FMT_SRGGB12:
         size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 2;
         break;
+    case XCAM_PIX_FMT_RGBA64:
+        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 2 * 4;
+        break;
     default:
         XCAM_LOG_ERROR (
             "unknown v4l2 format(%s) in buffer handle",
@@ -283,6 +286,8 @@ void print_help (const char *bin_name)
             "\t -h            help\n"
 #if HAVE_LIBCL
             "CL features:\n"
+            "\t --capture capture_stage      specify the capture stage of image\n"
+            "\t               capture_stage select from [bayer, tonemapping], default is [tonemapping]\n"
             "\t --hdr         specify hdr type, default is hdr off\n"
             "\t               select from [rgb, lab]\n"
             "\t --tnr         specify temporal noise reduction type, default is tnr off\n"
@@ -330,6 +335,7 @@ int main (int argc, char *argv[])
     uint8_t tnr_level = 0;
     bool dpc_type = false;
     CL3aImageProcessor::PipelineProfile pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
+    CL3aImageProcessor::CaptureStage capture_stage = CL3aImageProcessor::TonemappingStage;
 #endif
     bool have_cl_processor = false;
     bool need_display = false;
@@ -357,6 +363,7 @@ int main (int argc, char *argv[])
         {"enable-tonemapping", no_argument, NULL, 'M'},
         {"usb", required_argument, NULL, 'U'},
         {"sync", no_argument, NULL, 'Y'},
+        {"capture", required_argument, NULL, 'C'},
         {"pipeline", required_argument, NULL, 'P'},
         {0, 0, 0, 0},
     };
@@ -519,6 +526,11 @@ int main (int argc, char *argv[])
             }
             break;
         }
+        case 'C': {
+            if (!strcmp (optarg, "bayer"))
+                capture_stage = CL3aImageProcessor::BasicbayerStage;
+            break;
+        }
 #endif
         case 'h':
             print_help (bin_name);
@@ -642,6 +654,7 @@ int main (int argc, char *argv[])
         cl_processor->set_hdr (hdr_type);
         cl_processor->set_denoise (denoise_type);
         cl_processor->set_tonemapping(tonemapping_type);
+        cl_processor->set_capture_stage (capture_stage);
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }

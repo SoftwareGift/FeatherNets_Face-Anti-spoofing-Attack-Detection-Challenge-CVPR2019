@@ -63,6 +63,11 @@ public:
         ExtremePipelineProfile,
     };
 
+    enum CaptureStage {
+        BasicbayerStage,
+        TonemappingStage,
+    };
+
 public:
     explicit CL3aImageProcessor ();
     virtual ~CL3aImageProcessor ();
@@ -71,6 +76,7 @@ public:
     void set_stats_callback (const SmartPtr<StatsCallback> &callback);
 
     bool set_output_format (uint32_t fourcc);
+    bool set_capture_stage (CaptureStage capture_stage);
 
     virtual bool set_hdr (uint32_t mode);
     virtual bool set_denoise (uint32_t mode);
@@ -99,7 +105,7 @@ private:
     uint32_t                           _output_fourcc;
     OutSampleType                      _out_smaple_type;
     PipelineProfile                    _pipeline_profile;
-
+    CaptureStage                       _capture_stage;
     SmartPtr<StatsCallback>            _stats_callback;
 
     SmartPtr<CLBlcImageHandler>         _black_level;
