@@ -473,6 +473,7 @@ int main (int argc, char *argv[])
         }
         case 'I': {
             denoise_type |= XCAM_DENOISE_TYPE_BILATERAL;
+            denoise_type |= XCAM_DENOISE_TYPE_BIYUV;
             break;
         }
         case 'S': {

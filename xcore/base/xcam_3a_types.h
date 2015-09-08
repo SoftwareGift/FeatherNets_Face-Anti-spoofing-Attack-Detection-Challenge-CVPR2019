@@ -151,6 +151,7 @@ typedef enum {
     XCAM_DENOISE_TYPE_EE        = (1UL << 2), // luminance noise reduction and edge enhancement
     XCAM_DENOISE_TYPE_BNR       = (1UL << 3), // bayer noise reduction
     XCAM_DENOISE_TYPE_ANR       = (1UL << 4), // advanced bayer noise reduction
+    XCAM_DENOISE_TYPE_BIYUV     = (1UL << 5), // bilateral on yuv noise reduction
 } XCamDenoiseType;
 
 XCAM_END_DECLARE

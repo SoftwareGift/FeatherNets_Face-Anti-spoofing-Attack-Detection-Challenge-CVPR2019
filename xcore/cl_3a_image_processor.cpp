@@ -37,6 +37,7 @@
 #include "cl_yuv_pipe_handler.h"
 #include "cl_rgb_pipe_handler.h"
 #include "cl_tonemapping_handler.h"
+#include "cl_biyuv_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 
@@ -564,6 +565,21 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
+
+
+    /* biyuv */
+    image_handler = create_cl_biyuv_image_handler (context);
+    _biyuv = image_handler.dynamic_cast_ptr<CLBiyuvImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _biyuv.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create biyuv handler failed");
+    _biyuv->set_kernels_enable (XCAM_DENOISE_TYPE_BIYUV & _snr_mode);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
 
     if (_out_smaple_type == OutSampleRGB) {
         image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
