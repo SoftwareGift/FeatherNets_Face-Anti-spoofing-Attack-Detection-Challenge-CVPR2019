@@ -62,7 +62,7 @@ AtomispDevice::pre_set_format (struct v4l2_format &format)
     subdev_fmt.format.width = format.fmt.pix.width;
     subdev_fmt.format.height = format.fmt.pix.height;
     subdev_fmt.format.field = V4L2_FIELD_NONE;
-    if (format.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB12) {
+    if (format.fmt.pix.pixelformat == V4L2_PIX_FMT_SGRBG12) {
         subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB12_1X12;
     } else {
         subdev_fmt.format.code = V4L2_MBUS_FMT_SRGGB10_1X10;
