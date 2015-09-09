@@ -349,6 +349,7 @@ int main (int argc, char *argv[])
     bool    have_usbcam = 0;
     char*   usb_device_name = NULL;
     bool sync_mode = false;
+    int frame_rate;
 
     const char *short_opts = "sca:n:m:f:d:b:pi:e:h";
     const struct option long_opts[] = {
@@ -602,10 +603,14 @@ int main (int argc, char *argv[])
     //device->set_mem_type (V4L2_MEMORY_DMABUF);
     device->set_mem_type (v4l2_mem_type);
     device->set_buffer_count (8);
-    if (pixel_format == V4L2_PIX_FMT_SRGGB12)
-        device->set_framerate (30, 1);
-    else
-        device->set_framerate (25, 1);
+    if (pixel_format == V4L2_PIX_FMT_SGRBG12) {
+        frame_rate = 30;
+        device->set_framerate (frame_rate, 1);
+    }
+    else {
+        frame_rate = 25;
+        device->set_framerate (frame_rate, 1);
+    }
     ret = device->open ();
     CHECK (ret, "device(%s) open failed", device->get_device_name());
     ret = device->set_format (1920, 1080, pixel_format, V4L2_FIELD_NONE, 1920 * 2);
@@ -669,6 +674,15 @@ int main (int argc, char *argv[])
 
     ret = device_manager->start ();
     CHECK (ret, "device manager start failed");
+
+    // hard code exposure range and max gain for imx185 WDR
+    if (pixel_format == V4L2_PIX_FMT_SGRBG12) {
+        if (frame_rate == 30)
+            analyzer->set_ae_exposure_time_range (80 * 1110 * 1000 / 37125, 1120 * 1110 * 1000 / 37125);
+        else
+            analyzer->set_ae_exposure_time_range (80 * 1125 * 1000 / 37125, 1120 * 1125 * 1000 / 37125);
+        analyzer->set_ae_max_analog_gain (3.98); // 12dB
+    }
 
     // wait for interruption
     {
