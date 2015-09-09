@@ -145,7 +145,7 @@ print_help (const char *bin_name)
             "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
-            "\t              select from [NV12, BA10, RGBA]\n"
+            "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
             "\t -i input     specify input file path\n"
             "\t -o output    specify output file path\n"
             "\t -p count     specify cl kernel loop count\n"
@@ -153,6 +153,7 @@ print_help (const char *bin_name)
             "\t              select from [rgbatonv12, rgbatolab, rgba64torgba, yuyvtorgba, nv12torgba]\n"
             "\t -d hdr_type  specify hdr type, default:rgb\n"
             "\t              select from [rgb, lab]\n"
+            "\t -b           enable bayer-nr, default: disable\n"
             "\t -h           help\n"
             , bin_name);
 }
@@ -176,8 +177,9 @@ int main (int argc, char *argv[])
     int opt = 0;
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
     CLHdrType hdr_type = CL_HDR_TYPE_RGB;
+    bool enable_bnr = false;
 
-    while ((opt =  getopt(argc, argv, "f:i:o:t:p:c:d:g:h")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:i:o:t:p:c:d:g:bh")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
@@ -276,6 +278,10 @@ int main (int argc, char *argv[])
                 hdr_type = CL_HDR_TYPE_LAB;
             else
                 print_help (bin_name);
+            break;
+
+        case 'b':
+            enable_bnr = true;
             break;
 
         case 'h':
@@ -417,7 +423,8 @@ int main (int argc, char *argv[])
         image_handler = create_cl_bayer_pipe_image_handler (context);
         SmartPtr<CLBayerPipeImageHandler> bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();
         XCAM_ASSERT (bayer_pipe.ptr ());
-        //bayer_pipe->set_output_format (output_format);
+        bayer_pipe->set_output_format (output_format);
+        bayer_pipe->enable_denoise (enable_bnr);
         break;
     }
     case TestHandlerYuvPipe: {
