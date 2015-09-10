@@ -201,23 +201,46 @@ xcam_configure_3a (XCam3AContext *context, uint32_t width, uint32_t height, doub
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     struct atomisp_sensor_mode_data sensor_mode_data;
 
-    sensor_mode_data.coarse_integration_time_min = 1;
-    sensor_mode_data.coarse_integration_time_max_margin = 1;
-    sensor_mode_data.fine_integration_time_min = 0;
-    sensor_mode_data.fine_integration_time_max_margin = 0;
-    sensor_mode_data.fine_integration_time_def = 0;
-    sensor_mode_data.frame_length_lines = 1125;
-    sensor_mode_data.line_length_pck = 1320;
-    sensor_mode_data.read_mode = 0;
-    sensor_mode_data.vt_pix_clk_freq_mhz = 37125000;
-    sensor_mode_data.crop_horizontal_start = 0;
-    sensor_mode_data.crop_vertical_start = 0;
-    sensor_mode_data.crop_horizontal_end = 1920;
-    sensor_mode_data.crop_vertical_end = 1080;
-    sensor_mode_data.output_width = 1920;
-    sensor_mode_data.output_height = 1080;
-    sensor_mode_data.binning_factor_x = 1;
-    sensor_mode_data.binning_factor_y = 1;
+    switch ((int)framerate) {
+    case 30:
+        sensor_mode_data.coarse_integration_time_min = 1;
+        sensor_mode_data.coarse_integration_time_max_margin = 1;
+        sensor_mode_data.fine_integration_time_min = 0;
+        sensor_mode_data.fine_integration_time_max_margin = 0;
+        sensor_mode_data.fine_integration_time_def = 0;
+        sensor_mode_data.frame_length_lines = 1125;
+        sensor_mode_data.line_length_pck = 1100;
+        sensor_mode_data.read_mode = 0;
+        sensor_mode_data.vt_pix_clk_freq_mhz = 37125000;
+        sensor_mode_data.crop_horizontal_start = 0;
+        sensor_mode_data.crop_vertical_start = 0;
+        sensor_mode_data.crop_horizontal_end = 1920;
+        sensor_mode_data.crop_vertical_end = 1080;
+        sensor_mode_data.output_width = 1920;
+        sensor_mode_data.output_height = 1080;
+        sensor_mode_data.binning_factor_x = 1;
+        sensor_mode_data.binning_factor_y = 1;
+        break;
+    default:
+        sensor_mode_data.coarse_integration_time_min = 1;
+        sensor_mode_data.coarse_integration_time_max_margin = 1;
+        sensor_mode_data.fine_integration_time_min = 0;
+        sensor_mode_data.fine_integration_time_max_margin = 0;
+        sensor_mode_data.fine_integration_time_def = 0;
+        sensor_mode_data.frame_length_lines = 1125;
+        sensor_mode_data.line_length_pck = 1320;
+        sensor_mode_data.read_mode = 0;
+        sensor_mode_data.vt_pix_clk_freq_mhz = 37125000;
+        sensor_mode_data.crop_horizontal_start = 0;
+        sensor_mode_data.crop_vertical_start = 0;
+        sensor_mode_data.crop_horizontal_end = 1920;
+        sensor_mode_data.crop_vertical_end = 1080;
+        sensor_mode_data.output_width = 1920;
+        sensor_mode_data.output_height = 1080;
+        sensor_mode_data.binning_factor_x = 1;
+        sensor_mode_data.binning_factor_y = 1;
+        break;
+    }
 
     XCAM_ASSERT (aiq_context);
     XCAM_FAIL_RETURN (
