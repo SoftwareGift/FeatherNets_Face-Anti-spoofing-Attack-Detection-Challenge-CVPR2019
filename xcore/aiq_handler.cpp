@@ -497,6 +497,16 @@ bool AiqAeHandler::ensure_ae_manual ()
         (_sensor_descriptor.line_periods_per_field - _sensor_descriptor.coarse_integration_time_max_margin)
         * _sensor_descriptor.pixel_periods_per_line
         / _sensor_descriptor.pixel_clock_freq_mhz;
+
+    uint64_t exp_min_us = 0, exp_max_us = 0;
+    get_exposure_time_range_unlock (exp_min_us, exp_max_us);
+    if (exp_min_us && (int64_t)exp_min_us > _input.manual_limits->manual_exposure_time_min) {
+        _input.manual_limits->manual_exposure_time_min = exp_min_us;
+    }
+    if (exp_max_us && (int64_t)exp_max_us < _input.manual_limits->manual_exposure_time_max) {
+        _input.manual_limits->manual_exposure_time_max = exp_max_us;
+    }
+
     _input.manual_limits->manual_frame_time_us_min = -1;
     _input.manual_limits->manual_frame_time_us_max = 1000000 / _aiq_compositor->get_framerate ();
     _input.manual_limits->manual_iso_min = -1;
