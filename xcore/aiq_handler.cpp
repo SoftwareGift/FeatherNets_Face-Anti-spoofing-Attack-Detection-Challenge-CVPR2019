@@ -498,7 +498,7 @@ bool AiqAeHandler::ensure_ae_manual ()
         * _sensor_descriptor.pixel_periods_per_line
         / _sensor_descriptor.pixel_clock_freq_mhz;
     _input.manual_limits->manual_frame_time_us_min = -1;
-    _input.manual_limits->manual_frame_time_us_max = 1000000 / this->get_framerate_unlock ();
+    _input.manual_limits->manual_frame_time_us_max = 1000000 / _aiq_compositor->get_framerate ();
     _input.manual_limits->manual_iso_min = -1;
     _input.manual_limits->manual_iso_max = -1;
 

@@ -73,7 +73,6 @@ public:
     bool set_aperture (double fn);
     bool set_max_analog_gain (double max_gain);
     bool set_exposure_time_range (int64_t min_time_in_us, int64_t max_time_in_us);
-    bool set_framerate (double framerate);
 
     bool update_parameters (const XCamAeParam &params);
 
@@ -131,10 +130,6 @@ protected:
 
     double get_max_analog_gain_unlock () const {
         return _params.max_analog_gain;
-    }
-
-    double get_framerate_unlock () const {
-        return _params.framerate;
     }
 
 private:

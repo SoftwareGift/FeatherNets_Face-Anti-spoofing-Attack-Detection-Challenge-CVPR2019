@@ -245,16 +245,6 @@ bool AeHandler::set_exposure_time_range (int64_t min_time_in_us, int64_t max_tim
 }
 
 bool
-AeHandler::set_framerate (double framerate)
-{
-    AnalyzerHandler::HandlerLock lock(this);
-    _params.framerate = framerate;
-
-    XCAM_LOG_DEBUG ("ae set framerate: %.03f", framerate);
-    return true;
-}
-
-bool
 AeHandler::update_parameters (const XCamAeParam &params)
 {
     {

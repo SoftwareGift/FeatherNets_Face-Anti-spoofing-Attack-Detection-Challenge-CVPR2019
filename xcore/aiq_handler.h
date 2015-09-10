@@ -254,7 +254,10 @@ public:
         out_height = _height;
     }
     void set_framerate (double framerate) {
-        _ae_handler->set_framerate (framerate);
+        _framerate = framerate;
+    }
+    double get_framerate () {
+        return _framerate;
     }
     bool open (ia_binary_data &cpf);
     void close ();
@@ -307,7 +310,7 @@ private:
 
     uint32_t                   _width;
     uint32_t                   _height;
-
+    double                     _framerate;
 };
 
 };
