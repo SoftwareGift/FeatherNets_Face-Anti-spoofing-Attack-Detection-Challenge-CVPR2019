@@ -386,6 +386,23 @@ CLContext::insert_kernel (SmartPtr<CLKernel> &kernel)
 #endif
 
 cl_mem
+CLContext::create_va_buffer (uint32_t bo_name)
+{
+    cl_mem mem_id = NULL;
+    cl_int errcode = CL_SUCCESS;
+    if (!is_valid())
+        return NULL;
+
+    mem_id = clCreateBufferFromLibvaIntel (_context_id, bo_name, &errcode);
+    XCAM_FAIL_RETURN(
+        WARNING,
+        errcode == CL_SUCCESS,
+        NULL,
+        "create cl memory from va image failed");
+    return mem_id;
+}
+
+cl_mem
 CLContext::create_va_image (const cl_libva_image &image_info)
 {
     cl_mem mem_id = NULL;

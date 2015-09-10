@@ -47,6 +47,7 @@ class CLContext {
     friend class CLKernel;
     friend class CLMemory;
     friend class CLBuffer;
+    friend class CLVaBuffer;
     friend class CLVaImage;
     friend class CLImage2D;
     friend class CLImage2DArray;
@@ -99,6 +100,7 @@ private:
     SmartPtr<CLCommandQueue> get_default_cmd_queue ();
 
     //Memory, Image
+    cl_mem create_va_buffer (uint32_t bo_name);
     cl_mem create_va_image (const cl_libva_image &image_info);
     cl_mem create_image (
         cl_mem_flags flags, const cl_image_format& format,

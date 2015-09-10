@@ -82,6 +82,9 @@ private:
 class CLBuffer
     : public CLMemory
 {
+protected:
+    explicit CLBuffer (SmartPtr<CLContext> &context);
+
 public:
     explicit CLBuffer (
         SmartPtr<CLContext> &context, uint32_t size,
@@ -108,6 +111,24 @@ private:
     cl_mem_flags    _flags;
     uint32_t        _size;
 };
+
+class CLVaBuffer
+    : public CLBuffer
+{
+public:
+    explicit CLVaBuffer (
+        SmartPtr<CLContext> &context,
+        SmartPtr<DrmBoBuffer> &bo);
+
+private:
+    bool init_va_buffer (SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo);
+
+    XCAM_DEAD_COPY (CLVaBuffer);
+
+private:
+    SmartPtr<DrmBoBuffer>   _bo;
+};
+
 
 class CLImage
     : public CLMemory

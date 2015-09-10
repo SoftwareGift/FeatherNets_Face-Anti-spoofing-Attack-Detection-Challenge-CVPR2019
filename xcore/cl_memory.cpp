@@ -106,6 +106,11 @@ bool CLMemory::get_cl_mem_info (
     return true;
 }
 
+CLBuffer::CLBuffer (SmartPtr<CLContext> &context)
+    : CLMemory (context)
+{
+}
+
 CLBuffer::CLBuffer (
     SmartPtr<CLContext> &context, uint32_t size,
     cl_mem_flags  flags, void *host_ptr)
@@ -163,6 +168,36 @@ CLBuffer::enqueue_write (
         return XCAM_RETURN_ERROR_PARAM;
 
     return context->enqueue_write_buffer (mem_id, ptr, offset, size, true, event_waits, event_out);
+}
+
+CLVaBuffer::CLVaBuffer (
+    SmartPtr<CLContext> &context,
+    SmartPtr<DrmBoBuffer> &bo)
+    : CLBuffer (context)
+    , _bo (bo)
+{
+    init_va_buffer (context, bo);
+}
+
+bool
+CLVaBuffer::init_va_buffer (SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo)
+{
+    cl_mem mem_id = NULL;
+    uint32_t bo_name = 0;
+
+    if (drm_intel_bo_flink (bo->get_bo (), &bo_name) != 0) {
+        XCAM_LOG_WARNING ("CLVaBuffer get bo flick failed");
+        return false;
+    }
+
+    mem_id = context->create_va_buffer (bo_name);
+    if (mem_id == NULL) {
+        XCAM_LOG_WARNING ("CLVaBuffer create va buffer failed");
+        return false;
+    }
+
+    set_mem_id (mem_id);
+    return true;
 }
 
 CLImage::CLImage (SmartPtr<CLContext> &context)
