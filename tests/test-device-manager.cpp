@@ -300,7 +300,7 @@ void print_help (const char *bin_name)
             "\t --enable-dpc  enable defect pixel correction\n"
             "\t --enable-tonemapping  enable tonemapping\n"
             "\t --pipeline    pipe mode\n"
-            "\t               select from [basic, advance], default is [basic]\n"
+            "\t               select from [basic, advance, extreme], default is [basic]\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
 #endif
             , bin_name
@@ -520,6 +520,8 @@ int main (int argc, char *argv[])
                 pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
             else if (!strcasecmp (optarg, "advance"))
                 pipeline_mode = CL3aImageProcessor::AdvancedPipelineProfile;
+            else if (!strcasecmp (optarg, "extreme"))
+                pipeline_mode = CL3aImageProcessor::ExtremePipelineProfile;
             else {
                 print_help (bin_name);
                 return -1;

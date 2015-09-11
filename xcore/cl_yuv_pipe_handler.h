@@ -36,8 +36,9 @@ public:
     explicit CLYuvPipeImageKernel (SmartPtr<CLContext> &context);
     bool set_macc (const XCam3aResultMaccMatrix &macc);
     bool set_matrix (const XCam3aResultColorMatrix &matrix);
-    bool set_tnr_config (const XCam3aResultTemporalNoiseReduction& config);
-    bool set_tnr_enable (bool enable);
+    bool set_tnr_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_tnr_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_tnr_enable (bool enable_tnr_rgb, bool enable_tnr_yuv);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -55,11 +56,17 @@ private:
     uint32_t            _vertical_offset;
     CLImagePtrList      _image_in_list;
     float               _gain_rgb;
+    float               _gain_yuv;
     float               _thr_r;
     float               _thr_g;
     float               _thr_b;
+    float               _thr_y;
+    float               _thr_uv;
     uint32_t            _framecount;
     uint32_t            _enable_tnr_rgb;
+    uint32_t            _enable_tnr_yuv;
+    uint32_t            _enable_tnr_yuv_state;
+    SmartPtr<CLImage> _image_out_prev;
 };
 
 class CLYuvPipeImageHandler
@@ -70,8 +77,9 @@ public:
     bool set_yuv_pipe_kernel(SmartPtr<CLYuvPipeImageKernel> &kernel);
     bool set_macc_table (const XCam3aResultMaccMatrix &macc);
     bool set_rgbtoyuv_matrix (const XCam3aResultColorMatrix &matrix);
-    bool set_tnr_config (const XCam3aResultTemporalNoiseReduction& config);
-    bool set_tnr_enable (bool enable);
+    bool set_tnr_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_tnr_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_tnr_enable (bool enable_tnr_rgb, bool enable_tnr_yuv);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (

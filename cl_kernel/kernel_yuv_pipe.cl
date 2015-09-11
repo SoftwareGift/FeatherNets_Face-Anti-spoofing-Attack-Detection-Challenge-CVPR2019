@@ -37,7 +37,7 @@ __inline void cl_macc(float *in, __global float *table)
     (*(in + 1)) = vo + 0.5;
 }
 
-__inline void cl_tnr(float4 *in, __read_only image2d_t inputFrame1, __read_only image2d_t inputFrame2, __read_only image2d_t inputFrame3, uint count, int x, int y, float tnr_gain, float thr_r, float thr_g, float thr_b)
+__inline void cl_tnr_rgb(float4 *in, __read_only image2d_t inputFrame1, __read_only image2d_t inputFrame2, __read_only image2d_t inputFrame3, uint count, int x, int y, float rgb_gain, float thr_r, float thr_g, float thr_b)
 {
 
     float4 in1[4], in2[4], in3[4];
@@ -141,7 +141,40 @@ __inline void cl_tnr(float4 *in, __read_only image2d_t inputFrame1, __read_only 
     in[3] = out[3];
 }
 
-__kernel void kernel_yuv_pipe (__write_only image2d_t output, uint vertical_offset, __global float *matrix, __global float *table, uint count, float tnr_gain, float thr_r, float thr_g, float thr_b, uint tnr_enable, __read_only image2d_t inputFrame0, __read_only image2d_t inputFrame1, __read_only image2d_t inputFrame2, __read_only image2d_t inputFrame3)
+__inline void cl_tnr_yuv(float *in, __read_only image2d_t inputFramePre, int x, int y, float gain_yuv, float thr_y, float thr_uv, uint vertical_offset)
+{
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+    float4 in_prev[6];
+    in_prev[0] = read_imagef(inputFramePre, sampler, (int2)(2 * x, 2 * y));
+    in_prev[1] = read_imagef(inputFramePre, sampler, (int2)(2 * x + 1, 2 * y));
+    in_prev[2] = read_imagef(inputFramePre, sampler, (int2)(2 * x, 2 * y + 1));
+    in_prev[3] = read_imagef(inputFramePre, sampler, (int2)(2 * x + 1, 2 * y + 1));
+
+    in_prev[4] = read_imagef(inputFramePre, sampler, (int2)(2 * x, y + vertical_offset));
+    in_prev[5] = read_imagef(inputFramePre, sampler, (int2)(2 * x + 1, y + vertical_offset));
+
+    float diff_Y = 0.25 * (fabs(in[0] - in_prev[0].x) + fabs(in[1] - in_prev[1].x) + fabs(in[2] - in_prev[2].x) + fabs(in[3] - in_prev[3].x));
+
+    float coeff_Y = (diff_Y < thr_y) ? gain_yuv : 1.0;
+
+    float out[6];
+    in[0] =  in_prev[0].x + (in[0] - in_prev[0].x) * coeff_Y;
+    in[1] =  in_prev[1].x + (in[1] - in_prev[1].x) * coeff_Y;
+    in[2] =  in_prev[2].x + (in[2] - in_prev[2].x) * coeff_Y;
+    in[3] =  in_prev[3].x + (in[3] - in_prev[3].x) * coeff_Y;
+
+    float diff_U = fabs(in[4] -  in_prev[4].x);
+    float diff_V = fabs(in[5] -  in_prev[5].x);
+
+    float coeff_U = (diff_U < thr_uv) ? gain_yuv : 1.0;
+
+    float coeff_V = (diff_V < thr_uv) ? gain_yuv : 1.0;
+
+    in[4] =  in_prev[4].x + (in[4] - in_prev[4].x) * coeff_U;
+    in[5] =  in_prev[5].x + (in[5] - in_prev[5].x) * coeff_V;
+}
+
+__kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2d_t inputFramePre, uint vertical_offset, __global float *matrix, __global float *table, uint count, float rgb_gain, float thr_r, float thr_g, float thr_b, float yuv_gain, float thr_y, float thr_uv, uint tnr_rgb_enable, uint tnr_yuv_enable, __read_only image2d_t inputFrame0, __read_only image2d_t inputFrame1, __read_only image2d_t inputFrame2, __read_only image2d_t inputFrame3)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
@@ -154,11 +187,18 @@ __kernel void kernel_yuv_pipe (__write_only image2d_t output, uint vertical_offs
     in[1] = read_imagef(inputFrame0, sampler, (int2)(2 * x + 1, 2 * y));
     in[2] = read_imagef(inputFrame0, sampler, (int2)(2 * x, 2 * y + 1));
     in[3] = read_imagef(inputFrame0, sampler, (int2)(2 * x + 1, 2 * y + 1));
-    if (tnr_enable) {
-        cl_tnr (&in[0], inputFrame1, inputFrame2, inputFrame3, count, x, y, tnr_gain, thr_r, thr_g, thr_b);
+
+    if (tnr_rgb_enable) {
+        cl_tnr_rgb (&in[0], inputFrame1, inputFrame2, inputFrame3, count, x, y, rgb_gain, thr_r, thr_g, thr_b);
     }
+
     cl_csc_rgbatonv12(&in[0], &out[0], matrix);
     cl_macc(&out[4], table);
+
+    if (tnr_yuv_enable) {
+        cl_tnr_yuv (&out[0], inputFramePre, x, y, yuv_gain, thr_y, thr_uv, vertical_offset);
+    }
+
 
     write_imagef(output, (int2)(2 * x, 2 * y), (float4)out[0]);
     write_imagef(output, (int2)(2 * x + 1, 2 * y), (float4)out[1]);
