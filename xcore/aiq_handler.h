@@ -124,10 +124,13 @@ private:
 
     void adjust_ae_speed (
         ia_aiq_exposure_sensor_parameters &cur_res,
+        ia_aiq_exposure_parameters &cur_aiq_exp,
         const ia_aiq_exposure_sensor_parameters &last_res, double ae_speed);
-    void adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res);
+    void adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res,
+                               ia_aiq_exposure_parameters &cur_aiq_exp);
     bool manual_control_result (
         ia_aiq_exposure_sensor_parameters &cur_res,
+        ia_aiq_exposure_parameters &cur_aiq_exp,
         const ia_aiq_exposure_sensor_parameters &last_res);
 
     SmartPtr<X3aResult> pop_result ();

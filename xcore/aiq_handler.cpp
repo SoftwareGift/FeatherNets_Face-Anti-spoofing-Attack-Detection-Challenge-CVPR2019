@@ -283,12 +283,18 @@ _mutiplier_to_imx185_sensor_gain_code (double mutiplier)
 }
 
 static uint32_t
-_time_to_coarse_line (ia_aiq_exposure_sensor_descriptor *desc, uint32_t time_us)
+_time_to_coarse_line (const ia_aiq_exposure_sensor_descriptor *desc, uint32_t time_us)
 {
     float value =  time_us * desc->pixel_clock_freq_mhz;
 
     value = (value + desc->pixel_periods_per_line / 2) / desc->pixel_periods_per_line;
     return (uint32_t)(value);
+}
+
+static uint32_t
+_coarse_line_to_time (const ia_aiq_exposure_sensor_descriptor *desc, uint32_t coarse_line)
+{
+    return coarse_line * desc->pixel_periods_per_line / desc->pixel_clock_freq_mhz;
 }
 
 AiqAeHandler::AiqAeResult::AiqAeResult()
@@ -583,11 +589,14 @@ AiqAeHandler::analyze (X3aResultList &output)
                 last_sensor_res->analog_gain_code_global !=  cur_sensor_result->analog_gain_code_global ||
                 last_sensor_res->digital_gain_global !=  cur_sensor_result->digital_gain_global) {
             ia_aiq_exposure_sensor_parameters cur_cp_res = *cur_sensor_result;
-            if (!manual_control_result (cur_cp_res, *last_sensor_res)) {
+            ia_aiq_exposure_parameters cur_aiq_exp = *ae_result->exposures[0].exposure;
+            if (!manual_control_result (cur_cp_res, cur_aiq_exp, *last_sensor_res)) {
                 XCAM_LOG_WARNING ("manual control AE result failed");
             }
             _result.copy (ae_result);
             _result.sensor_exp_param = cur_cp_res;
+            _result.aiq_exp_param = cur_aiq_exp;
+
             need_apply = true;
         }
     }
@@ -604,10 +613,11 @@ AiqAeHandler::analyze (X3aResultList &output)
 bool
 AiqAeHandler::manual_control_result (
     ia_aiq_exposure_sensor_parameters &cur_res,
+    ia_aiq_exposure_parameters &cur_aiq_exp,
     const ia_aiq_exposure_sensor_parameters &last_res)
 {
-    adjust_ae_speed (cur_res, last_res, this->get_speed_unlock());
-    adjust_ae_limitation (cur_res);
+    adjust_ae_speed (cur_res, cur_aiq_exp, last_res, this->get_speed_unlock());
+    adjust_ae_limitation (cur_res, cur_aiq_exp);
 
     return true;
 }
@@ -615,6 +625,7 @@ AiqAeHandler::manual_control_result (
 void
 AiqAeHandler::adjust_ae_speed (
     ia_aiq_exposure_sensor_parameters &cur_res,
+    ia_aiq_exposure_parameters &cur_aiq_exp,
     const ia_aiq_exposure_sensor_parameters &last_res,
     double ae_speed)
 {
@@ -641,10 +652,14 @@ AiqAeHandler::adjust_ae_speed (
 
     cur_res.coarse_integration_time = tmp_res.coarse_integration_time;
     cur_res.analog_gain_code_global = tmp_res.analog_gain_code_global;
+    cur_aiq_exp.exposure_time_us = _coarse_line_to_time (&_sensor_descriptor,
+                                   cur_res.coarse_integration_time);
+    cur_aiq_exp.analog_gain = ret_gain;
 }
 
 void
-AiqAeHandler::adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res)
+AiqAeHandler::adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res,
+                                    ia_aiq_exposure_parameters &cur_aiq_exp)
 {
     ia_aiq_exposure_sensor_descriptor * desc = &_sensor_descriptor;
     uint64_t exposure_min = 0, exposure_max = 0;
@@ -661,6 +676,7 @@ AiqAeHandler::adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res)
     }
     if (cur_res.coarse_integration_time < min_coarse_value) {
         cur_res.coarse_integration_time = min_coarse_value;
+        cur_aiq_exp.exposure_time_us = _coarse_line_to_time (desc, min_coarse_value);
     }
 
     if (exposure_max) {
@@ -669,13 +685,16 @@ AiqAeHandler::adjust_ae_limitation (ia_aiq_exposure_sensor_parameters &cur_res)
     }
     if (cur_res.coarse_integration_time > max_coarse_value) {
         cur_res.coarse_integration_time = max_coarse_value;
+        cur_aiq_exp.exposure_time_us = _coarse_line_to_time (desc, max_coarse_value);
     }
 
     if (analog_max >= 1.0) {
         /* limit gains */
         double gain = _imx185_sensor_gain_code_to_mutiplier (cur_res.analog_gain_code_global);
-        if (gain > analog_max)
+        if (gain > analog_max) {
             cur_res.analog_gain_code_global = _mutiplier_to_imx185_sensor_gain_code (analog_max);
+            cur_aiq_exp.analog_gain = analog_max;
+        }
     }
 }
 
