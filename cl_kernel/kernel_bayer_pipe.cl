@@ -143,10 +143,14 @@ inline float4 simple_calculate (
     pw[index] = data.w;
 }
 
+#define MAX_DELTA_COFF 5.0f
+#define MIN_DELTA_COFF 1.0f
+#define DEFAULT_DELTA_COFF 4.0f
+
 inline float delta_coff (float delta)
 {
-    float coff = 3.0f - 10.0f * fabs(delta);
-    return fmax (0.3f, coff);
+    float coff = MAX_DELTA_COFF - 20.0f * fabs(delta);
+    return fmax (1.0f, coff);
 }
 
 inline float4
@@ -202,7 +206,7 @@ demosaic_denoise_x0y0_gr (__local float *in_x, __local float *in_y, __local floa
     float value;
     float coff[5];
 
-    coff[0] = delta_coff(0.0f);
+    coff[0] = DEFAULT_DELTA_COFF;
 
     value = (in_y[shared_pos(x - 1, y)] + in_y[shared_pos(x, y)]) * 0.5f;
     coff[1] = delta_coff(in_y[shared_pos(x - 1, y - 1)] - value);
@@ -253,7 +257,7 @@ demosaic_denoise_x1y0_r (__local float *in_x, __local float *in_y, __local float
     float value;
     float coff[5];
 
-    coff[0] = delta_coff(0.0f);
+    coff[0] = DEFAULT_DELTA_COFF;
 
     value = in_y[shared_pos(x, y)];
     coff[1] = delta_coff(in_y[shared_pos(x, y - 1)] - value);
@@ -305,7 +309,7 @@ demosaic_denoise_x0y1_b (__local float *in_x, __local float *in_y, __local float
     float value;
     float coff[5];
 
-    coff[0] = delta_coff(0.0f);
+    coff[0] = DEFAULT_DELTA_COFF;
 
     value = (in_y[shared_pos(x - 1, y)] + in_y[shared_pos(x, y)] +
              in_y[shared_pos(x - 1, y + 1)] + in_y[shared_pos(x, y + 1)]) * 0.25f;
@@ -356,7 +360,7 @@ demosaic_denoise_x1y1_gb (__local float *in_x, __local float *in_y, __local floa
     float value;
     float coff[5];
 
-    coff[0] = delta_coff(0.0f);
+    coff[0] = DEFAULT_DELTA_COFF;
 
     value = (in_y[shared_pos(x, y)] + in_y[shared_pos(x, y + 1)]) * 0.5f;
     coff[1] = delta_coff(in_y[shared_pos(x - 1, y)] - value);
