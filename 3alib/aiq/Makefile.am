@@ -15,7 +15,6 @@ plugindir="$(libdir)/xcam"
 
 libxcam_3a_aiq_la_SOURCES =                  \
 			   aiq_wrapper.cpp           \
-			   aiq3a_utils.cpp           \
 			   $(NULL)
 
 libxcam_3a_aiq_la_CXXFLAGS = -I$(top_builddir)/xcore    \
@@ -36,6 +35,3 @@ libxcam_3a_aiq_la_LDFLAGS =                          \
 			  $(NULL)
 
 libxcam_3a_aiq_la_LIBTOOLFLAGS = --tag=disable-static
-
-noinst_HEADERS = aiq3a_utils.h     \
-			   $(NULL)

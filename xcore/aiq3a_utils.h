@@ -29,7 +29,7 @@
 #include <base/xcam_3a_stats.h>
 #include <linux/atomisp.h>
 
-namespace XCamAiq3A {
+namespace XCam {
 bool translate_3a_stats (XCam3AStats *from, struct atomisp_3a_statistics *to);
 uint32_t translate_3a_results_to_xcam (XCam::X3aResultList &list,
                                        XCam3aResultHead *results[], uint32_t max_count);

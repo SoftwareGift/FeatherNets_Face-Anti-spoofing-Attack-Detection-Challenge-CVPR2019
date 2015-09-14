@@ -21,6 +21,9 @@
 #include "hybrid_analyzer.h"
 #include "isp_controller.h"
 #include "x3a_analyzer_aiq.h"
+#include "x3a_statistics_queue.h"
+#include "aiq3a_utils.h"
+#include <math.h>
 
 namespace XCam {
 HybridAnalyzer::HybridAnalyzer (XCam3ADescription *desc,
@@ -59,6 +62,34 @@ HybridAnalyzer::internal_deinit ()
 }
 
 XCamReturn
+HybridAnalyzer::setup_stats_pool (const XCam3AStats *stats)
+{
+    XCam3AStatsInfo stats_info = stats->info;
+    struct atomisp_grid_info grid_info;
+    grid_info.enable = 1;
+    grid_info.use_dmem = 0;
+    grid_info.has_histogram = 0;
+    grid_info.width = stats_info.width;
+    grid_info.height = stats_info.height;
+    grid_info.aligned_width = stats_info.aligned_width;
+    grid_info.aligned_height = stats_info.aligned_height;
+    grid_info.bqs_per_grid_cell = stats_info.grid_pixel_size >> 1;
+    grid_info.deci_factor_log2 = log2 (grid_info.bqs_per_grid_cell);
+    grid_info.elem_bit_depth = stats_info.bit_depth;
+
+    _stats_pool = new X3aStatisticsQueue;
+    XCAM_ASSERT (_stats_pool.ptr ());
+
+    _stats_pool->set_grid_info (grid_info);
+    if (!_stats_pool->reserve (6)) {
+        XCAM_LOG_WARNING ("setup_stats_pool failed to reserve stats buffer.");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 HybridAnalyzer::configure_3a ()
 {
     if (_analyzer_aiq->start () != XCAM_RETURN_NO_ERROR) {
@@ -74,6 +105,25 @@ HybridAnalyzer::pre_3a_analyze (SmartPtr<X3aStats> &stats)
     _analyzer_aiq->update_common_parameters (get_common_params ());
 
     return DynamicAnalyzer::pre_3a_analyze (stats);
+}
+
+SmartPtr<X3aIspStatistics>
+HybridAnalyzer::convert_to_isp_stats (SmartPtr<X3aStats>& stats)
+{
+    SmartPtr<X3aIspStatistics> isp_stats =
+        _stats_pool->get_buffer (_stats_pool).dynamic_cast_ptr<X3aIspStatistics> ();
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        isp_stats.ptr (),
+        NULL,
+        "get isp stats buffer failed");
+
+    struct atomisp_3a_statistics *to = isp_stats->get_isp_stats ();
+    XCam3AStats *from = stats->get_stats ();
+    translate_3a_stats (from, to);
+    isp_stats->set_timestamp (stats->get_timestamp ());
+    return isp_stats;
 }
 
 XCamReturn
@@ -108,9 +158,15 @@ HybridAnalyzer::post_3a_analyze (X3aResultList &results)
             break;
         }
     }
-
     results.clear ();
-    return _analyzer_aiq->push_3a_stats (stats);
+
+    SmartPtr<X3aIspStatistics> isp_stats = stats.dynamic_cast_ptr<X3aIspStatistics> ();
+    if (!isp_stats.ptr ()) {
+        if (!_stats_pool.ptr () && setup_stats_pool (stats->get_stats ()) != XCAM_RETURN_NO_ERROR)
+            return XCAM_RETURN_ERROR_MEM;
+        isp_stats = convert_to_isp_stats (stats);
+    }
+    return _analyzer_aiq->push_3a_stats (isp_stats);
 }
 
 XCamReturn
@@ -144,6 +200,19 @@ void
 HybridAnalyzer::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results)
 {
     XCAM_UNUSED (analyzer);
+
+    static XCam3aResultHead *res_heads[XCAM_3A_LIB_MAX_RESULT_COUNT];
+    xcam_mem_clear (res_heads);
+    XCAM_ASSERT (results.size () < XCAM_3A_LIB_MAX_RESULT_COUNT);
+
+    uint32_t result_count = translate_3a_results_to_xcam (results,
+                            res_heads, XCAM_3A_LIB_MAX_RESULT_COUNT);
+    convert_results (res_heads, result_count, results);
+    for (uint32_t i = 0; i < result_count; ++i) {
+        if (res_heads[i])
+            free_3a_result (res_heads[i]);
+    }
+
     notify_calculation_done (results);
 }
 

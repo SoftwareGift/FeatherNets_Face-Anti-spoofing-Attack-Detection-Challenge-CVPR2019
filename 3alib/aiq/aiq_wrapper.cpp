@@ -303,7 +303,7 @@ xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats, int64_t timestamp
     struct atomisp_3a_statistics *raw_stats = isp_stats->get_isp_stats ();
     XCAM_ASSERT (raw_stats);
 
-    XCamAiq3A::translate_3a_stats (stats, raw_stats);
+    translate_3a_stats (stats, raw_stats);
     isp_stats->set_timestamp (timestamp);
 
     ret = analyzer->push_3a_stats (isp_stats);
@@ -386,7 +386,7 @@ xcam_combine_analyze_results (XCam3AContext *context, XCam3aResultHead *results[
     XCAM_ASSERT (result_count < XCAM_3A_LIB_MAX_RESULT_COUNT);
 
     // result_count may changed
-    result_count = XCamAiq3A::translate_3a_results_to_xcam (aiq_results, res_array, XCAM_3A_LIB_MAX_RESULT_COUNT);
+    result_count = translate_3a_results_to_xcam (aiq_results, res_array, XCAM_3A_LIB_MAX_RESULT_COUNT);
 
     for (uint32_t i = 0; i < result_count; ++i) {
         results[i] = res_array[i];
@@ -402,7 +402,7 @@ xcam_free_results (XCam3aResultHead *results[], uint32_t res_count)
 {
     for (uint32_t i = 0; i < res_count; ++i) {
         if (results[i])
-            XCamAiq3A::free_3a_result (results[i]);
+            free_3a_result (results[i]);
     }
 }
 

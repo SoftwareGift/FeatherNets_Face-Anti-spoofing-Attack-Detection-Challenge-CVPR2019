@@ -26,6 +26,8 @@
 namespace XCam {
 class IspController;
 class X3aAnalyzerAiq;
+class X3aStatisticsQueue;
+class X3aIspStatistics;
 
 class HybridAnalyzer
     : public DynamicAnalyzer
@@ -55,10 +57,13 @@ protected:
 
 private:
     XCAM_DEAD_COPY (HybridAnalyzer);
+    XCamReturn setup_stats_pool (const XCam3AStats *stats);
+    SmartPtr<X3aIspStatistics> convert_to_isp_stats (SmartPtr<X3aStats>& stats);
 
-    SmartPtr <IspController>       _isp;
+    SmartPtr<IspController>       _isp;
     const char                    *_cpf_path;
-    SmartPtr <X3aAnalyzerAiq>      _analyzer_aiq;
+    SmartPtr<X3aAnalyzerAiq>      _analyzer_aiq;
+    SmartPtr<X3aStatisticsQueue>  _stats_pool;
 };
 
 }

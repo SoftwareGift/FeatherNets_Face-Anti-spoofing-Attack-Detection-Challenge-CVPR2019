@@ -22,9 +22,7 @@
 #include "aiq3a_utils.h"
 #include "x3a_isp_config.h"
 
-using namespace XCam;
-
-namespace XCamAiq3A {
+namespace XCam {
 
 bool
 translate_3a_stats (XCam3AStats *from, struct atomisp_3a_statistics *to)
@@ -60,7 +58,7 @@ translate_3a_stats (XCam3AStats *from, struct atomisp_3a_statistics *to)
     return true;
 }
 
-void
+static void
 matrix_3x3_mutiply (double *dest, const double *src1, const double *src2)
 {
     dest[0] = src1[0] * src2[0] + src1[1] * src2[3] + src1[2] * src2[6];
@@ -76,7 +74,7 @@ matrix_3x3_mutiply (double *dest, const double *src1, const double *src2)
     dest[8] = src1[6] * src2[2] + src1[7] * src2[5] + src1[8] * src2[8];
 }
 
-uint32_t
+static uint32_t
 translate_atomisp_parameters (
     const struct atomisp_parameters &atomisp_params,
     XCam3aResultHead *results[], uint32_t max_count)

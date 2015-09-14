@@ -48,6 +48,7 @@ XCAM_CORE_CXXFLAGS +=        \
 endif
 
 xcam_sources =               \
+        aiq3a_utils.cpp          \
 	atomisp_device.cpp       \
 	analyzer_loader.cpp      \
 	buffer_pool.cpp          \

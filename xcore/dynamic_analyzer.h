@@ -64,9 +64,9 @@ protected:
     SmartPtr<X3aStats> get_cur_stats () const {
         return _cur_stats;
     }
+    XCamReturn convert_results (XCam3aResultHead *from[], uint32_t from_count, X3aResultList &to);
 
 private:
-    XCamReturn convert_results (XCam3aResultHead *from[], uint32_t from_count, X3aResultList &to);
     XCAM_DEAD_COPY (DynamicAnalyzer);
 
 private:
