@@ -56,7 +56,9 @@ CLKernel::destroy ()
 }
 
 XCamReturn
-CLKernel::load_from_source (const char *source, size_t length)
+CLKernel::load_from_source (
+    const char *source, size_t length,
+    uint8_t **program_binaries, size_t *binary_sizes)
 {
     cl_kernel new_kernel_id = NULL;
 
@@ -80,7 +82,8 @@ CLKernel::load_from_source (const char *source, size_t length)
         _context->generate_kernel_id (
             this,
             (const uint8_t *)source, length,
-            CLContext::KERNEL_BUILD_SOURCE);
+            CLContext::KERNEL_BUILD_SOURCE,
+            program_binaries, binary_sizes);
     XCAM_FAIL_RETURN(
         WARNING,
         new_kernel_id != NULL,

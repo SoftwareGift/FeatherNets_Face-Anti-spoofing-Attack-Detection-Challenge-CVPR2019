@@ -96,6 +96,11 @@ XCAM_CORE_CXXFLAGS +=        \
 	-I$(top_srcdir)/clx_kernel \
 	$(NULL)
 
+XCAM_CORE_CXXFLAGS +=        \
+       $(LIBCL_CFLAGS)            \
+        -I$(top_srcdir)/clx_bin \
+       $(NULL)
+
 XCAM_CORE_LIBS +=            \
 	$(LIBCL_LIBS)            \
 	$(NULL)

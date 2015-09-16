@@ -46,6 +46,9 @@ private:
 SmartPtr<CLImageHandler>
 create_cl_demo_image_handler (SmartPtr<CLContext> &context);
 
+SmartPtr<CLImageHandler>
+create_cl_binary_demo_image_handler (SmartPtr<CLContext> &context);
+
 };
 
 #endif //XCAM_CL_DEMO_HANLDER_H

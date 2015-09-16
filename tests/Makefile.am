@@ -1,7 +1,7 @@
 noinst_PROGRAMS = test-device-manager test-poll-thread
 
 if HAVE_LIBCL
-noinst_PROGRAMS += test-cl-image
+noinst_PROGRAMS += test-cl-image test-binary-kernel
 endif
 
 tests_cxxflags = $(XCAM_CXXFLAGS)
@@ -47,4 +47,14 @@ test_cl_image_CXXFLAGS =    \
 test_cl_image_LDADD =       \
 	$(top_builddir)/xcore/libxcam_core.la \
 	$(NULL)
+
+test_binary_kernel_SOURCES = test-binary-kernel.cpp
+test_binary_kernel_CXXFLAGS =    \
+       $(tests_cxxflags)          \
+       -I$(top_builddir)/xcore    \
+       $(NULL)
+
+test_binary_kernel_LDADD =       \
+       $(top_builddir)/xcore/libxcam_core.la \
+       $(NULL)
 endif

@@ -290,7 +290,8 @@ cl_kernel
 CLContext::generate_kernel_id (
     CLKernel *kernel,
     const uint8_t *source, size_t length,
-    CLContext::KernelBuildType type)
+    CLContext::KernelBuildType type,
+    uint8_t **program_binaries, size_t *binary_sizes)
 {
     struct CLProgram {
         cl_program id;
@@ -344,6 +345,20 @@ CLContext::generate_kernel_id (
         clGetProgramBuildInfo (program.id, device_id, CL_PROGRAM_BUILD_LOG, sizeof (error_log) - 1, error_log, NULL);
         XCAM_LOG_WARNING ("CL build program failed on %s, build log:%s", name, error_log);
         return NULL;
+    }
+
+    if (program_binaries != NULL && binary_sizes != NULL) {
+        error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARY_SIZES, sizeof (size_t) * 1, binary_sizes, NULL);
+        if (error_code != CL_SUCCESS) {
+            XCAM_LOG_WARNING ("CL query binary sizes failed on %s", name);
+        }
+
+        *program_binaries = (uint8_t *) xcam_malloc0 (sizeof (uint8_t) * (*binary_sizes));
+
+        error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARIES, sizeof (uint8_t *) * 1, program_binaries, NULL);
+        if (error_code != CL_SUCCESS) {
+            XCAM_LOG_WARNING ("CL query program binaries failed on %s", name);
+        }
     }
 
     kernel_id = clCreateKernel (program.id, name, &error_code);

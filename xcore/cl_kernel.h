@@ -58,7 +58,10 @@ public:
     explicit CLKernel (SmartPtr<CLContext> &context, const char *name);
     virtual ~CLKernel ();
 
-    XCamReturn load_from_source (const char *source, size_t length = 0);
+    XCamReturn load_from_source (
+        const char *source, size_t length = 0,
+        uint8_t **program_binaries = NULL,
+        size_t *binary_sizes = NULL);
     XCamReturn load_from_binary (const uint8_t *binary, size_t length);
     cl_kernel get_kernel_id () {
         return _kernel_id;
