@@ -488,6 +488,7 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create snr handler failed");
     _snr->set_kernels_enable (XCAM_DENOISE_TYPE_SIMPLE & _snr_mode);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 #endif
 
