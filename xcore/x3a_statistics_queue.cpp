@@ -37,6 +37,8 @@ X3aIspStatsData::~X3aIspStatsData ()
     if (_isp_data) {
         if (_isp_data->data)
             xcam_free (_isp_data->data);
+        if (_isp_data->rgby_data)
+            xcam_free (_isp_data->rgby_data);
         xcam_free (_isp_data);
     }
 }
@@ -164,6 +166,7 @@ X3aStatisticsQueue::set_grid_info (const struct atomisp_grid_info &info)
     stats_info.aligned_height = info.aligned_height;
     stats_info.grid_pixel_size = info.bqs_per_grid_cell * 2;
     stats_info.bit_depth = 8;
+    stats_info.histogram_bins = 256;
 
     set_stats_info (stats_info);
 }
@@ -183,6 +186,15 @@ X3aStatisticsQueue::alloc_isp_statsictics ()
     XCAM_ASSERT (stats->data);
     if (!stats || !stats->data)
         return NULL;
+
+    if (_grid_info.has_histogram) {
+        // TODO: atom isp hard code histogram to 256 bins
+        stats->rgby_data =
+            (struct atomisp_3a_rgby_output*)xcam_malloc0 (256 * sizeof(*stats->rgby_data));
+        XCAM_ASSERT (stats->rgby_data);
+        if (!stats->rgby_data)
+            return NULL;
+    }
 
     stats->grid_info = _grid_info;
     return stats;
