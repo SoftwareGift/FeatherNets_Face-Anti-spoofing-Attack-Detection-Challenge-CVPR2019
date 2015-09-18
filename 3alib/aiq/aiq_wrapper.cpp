@@ -243,9 +243,10 @@ xcam_configure_3a (XCam3AContext *context, uint32_t width, uint32_t height, doub
     }
 
     XCAM_ASSERT (aiq_context);
+    const char *path_cpf = getenv ("AIQ_CPF_PATH");
     XCAM_FAIL_RETURN (
         WARNING,
-        aiq_context->setup_analyzer (sensor_mode_data, DEFAULT_AIQ_CPF_FILE),
+        aiq_context->setup_analyzer (sensor_mode_data, path_cpf == NULL ? DEFAULT_AIQ_CPF_FILE : path_cpf),
         XCAM_RETURN_ERROR_UNKNOWN,
         "setup aiq 3a analyzer failed");
 
