@@ -115,6 +115,7 @@ inline float4 simple_calculate (
     __local float4 *stats_cache,
     CLBLCConfig *blc_config,
     CLWBConfig *wb_config,
+    uint enable_gamma,
     __global float *gamma_table)
 {
     float4 data;
@@ -135,7 +136,8 @@ inline float4 simple_calculate (
     stats_cache[index] = data;
 
     wb (&data, wb_config);
-    gamma_correct (&data, gamma_table);
+    if (enable_gamma)
+        gamma_correct (&data, gamma_table);
 
     px[index] = data.x;
     py[index] = data.y;
@@ -490,6 +492,7 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
                                  CLBLCConfig blc_config,
                                  CLWBConfig wb_config,
                                  uint has_denoise,
+                                 uint enable_gamma,
                                  __global float * gamma_table,
                                  __global XCamGridStat * stats_output)
 {
@@ -520,6 +523,7 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
                           stats_cache,
                           &blc_config,
                           &wb_config,
+                          enable_gamma,
                           gamma_table);
     }
     barrier(CLK_LOCAL_MEM_FENCE);

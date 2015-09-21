@@ -639,6 +639,8 @@ CL3aImageProcessor::set_gamma (bool enable)
 
     if (_gamma.ptr ())
         return _gamma->set_kernels_enable (enable);
+    if (_bayer_pipe.ptr ())
+        _bayer_pipe->enable_gamma (enable);
 
     return true;
 }

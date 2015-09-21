@@ -98,6 +98,7 @@ public:
     bool set_wb (const XCam3aResultWhiteBalance &wb);
     bool set_gamma_table (const XCam3aResultGammaTable &gamma);
     bool enable_denoise (bool enable);
+    bool enable_gamma (bool enable);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -115,6 +116,7 @@ private:
     CLBLCConfig               _blc_config;
     CLWBConfig                _wb_config;
     uint32_t                  _enable_denoise;
+    uint32_t                  _enable_gamma;
     float                     _gamma_table[XCAM_GAMMA_TABLE_SIZE + 1];
     SmartPtr<CLBuffer>        _gamma_table_buffer;
     SmartPtr<CL3AStatsCalculatorContext>  _3a_stats_context;
@@ -142,6 +144,7 @@ public:
     bool set_wb_config (const XCam3aResultWhiteBalance &wb);
     bool set_gamma_table (const XCam3aResultGammaTable &gamma);
     bool enable_denoise (bool enable);
+    bool enable_gamma (bool enable);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (

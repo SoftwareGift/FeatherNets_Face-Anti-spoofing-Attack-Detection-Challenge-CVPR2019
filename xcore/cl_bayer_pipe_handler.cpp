@@ -220,6 +220,7 @@ CLBayerPipeImageKernel::CLBayerPipeImageKernel (
     SmartPtr<CLBayerPipeImageHandler> &handler)
     : CLImageKernel (context, "kernel_bayer_pipe")
     , _enable_denoise (0)
+    , _enable_gamma (1)
     , _handler (handler)
 {
     _blc_config.level_gr = XCAM_CL_BLC_DEFAULT_LEVEL;
@@ -278,6 +279,13 @@ CLBayerPipeImageKernel::enable_denoise (bool enable)
     return true;
 }
 
+bool
+CLBayerPipeImageKernel::enable_gamma (bool enable)
+{
+    _enable_gamma = (enable ? 1 : 0);
+    return true;
+}
+
 XCamReturn
 CLBayerPipeImageKernel::prepare_arguments (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
@@ -326,12 +334,15 @@ CLBayerPipeImageKernel::prepare_arguments (
     args[4].arg_adress = &_enable_denoise;
     args[4].arg_size = sizeof (_enable_denoise);
 
-    args[5].arg_adress = &_gamma_table_buffer->get_mem_id ();
-    args[5].arg_size = sizeof (cl_mem);
+    args[5].arg_adress = &_enable_gamma;
+    args[5].arg_size = sizeof (_enable_gamma);
 
-    args[6].arg_adress = &_stats_cl_buffer->get_mem_id ();
+    args[6].arg_adress = &_gamma_table_buffer->get_mem_id ();
     args[6].arg_size = sizeof (cl_mem);
-    arg_count = 7;
+
+    args[7].arg_adress = &_stats_cl_buffer->get_mem_id ();
+    args[7].arg_size = sizeof (cl_mem);
+    arg_count = 8;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = XCAM_ALIGN_UP(out_video_info.width, 16) / WORK_ITEM_X_SIZE;
@@ -432,6 +443,12 @@ bool
 CLBayerPipeImageHandler::enable_denoise (bool enable)
 {
     return _bayer_kernel->enable_denoise (enable);
+}
+
+bool
+CLBayerPipeImageHandler::enable_gamma (bool enable)
+{
+    return _bayer_kernel->enable_gamma (enable);
 }
 
 XCamReturn
