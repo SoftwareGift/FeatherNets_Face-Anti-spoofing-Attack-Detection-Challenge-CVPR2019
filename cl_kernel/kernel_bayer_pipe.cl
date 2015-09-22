@@ -459,12 +459,8 @@ inline void stats_3a_calculate (
     for (; count > 0; count /= 2) {
         if ((l_id_x % STATS_3A_GRID_SIZE) + (l_id_y % STATS_3A_GRID_SIZE)* STATS_3A_GRID_SIZE < count) {
             int index1 = shared_pos (l_id_x + SHARED_GRID_X_OFFSET, l_id_y + SHARED_GRID_Y_OFFSET);
-            int index2 = shared_pos (l_id_x + SHARED_GRID_X_OFFSET + count % STATS_3A_GRID_SIZE,
-                                     l_id_y + SHARED_GRID_Y_OFFSET + count / STATS_3A_GRID_SIZE);
-            //input[index1].x = (input[index1].x + input[index2].x) / 2.0f;
-            //input[index1].y = (input[index1].y + input[index2].y) / 2.0f;
-            //input[index1].z = (input[index1].z + input[index2].z) / 2.0f;
-            //input[index1].w = (input[index1].w + input[index2].w) / 2.0f;
+            int index2 = shared_pos (SHARED_GRID_X_OFFSET + ((l_id_x + count) % STATS_3A_GRID_SIZE),
+                                     SHARED_GRID_Y_OFFSET + l_id_y + (l_id_x + count) / STATS_3A_GRID_SIZE);
             input[index1] = (input[index1] + input[index2]) / 2.0f;
         }
         barrier(CLK_LOCAL_MEM_FENCE);
