@@ -343,6 +343,7 @@ CL3aImageProcessor::create_handlers ()
     }
 #endif
     _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);
+    _bayer_pipe->enable_gamma (_enable_gamma);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE * 2);
     add_handler (image_handler);
     if(_capture_stage == BasicbayerStage)
