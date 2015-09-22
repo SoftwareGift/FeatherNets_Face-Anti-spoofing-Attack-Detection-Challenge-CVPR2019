@@ -51,9 +51,13 @@ xcam_sources =               \
         aiq3a_utils.cpp          \
 	atomisp_device.cpp       \
 	analyzer_loader.cpp      \
+	x3a_analyzer_loader.cpp   \
+	smart_analyzer_loader.cpp \
 	buffer_pool.cpp          \
 	device_manager.cpp       \
-        dynamic_analyzer.cpp     \
+	dynamic_analyzer.cpp     \
+	smart_analyzer.cpp       \
+	smart_analysis_handler.cpp \
 	handler_interface.cpp    \
 	image_processor.cpp      \
 	isp_controller.cpp       \
@@ -65,6 +69,7 @@ xcam_sources =               \
 	v4l2_buffer_proxy.cpp    \
 	v4l2_device.cpp          \
 	video_buffer.cpp         \
+	xcam_analyzer.cpp        \
 	x3a_analyzer.cpp         \
 	x3a_analyzer_manager.cpp \
 	x3a_analyzer_simple.cpp  \
@@ -74,6 +79,7 @@ xcam_sources =               \
 	x3a_result.cpp           \
 	x3a_result_factory.cpp   \
 	x3a_statistics_queue.cpp \
+	scaled_buffer_pool.cpp   \
 	xcam_common.cpp          \
 	xcam_thread.cpp          \
 	x3a_analyze_tuner.cpp \
@@ -87,7 +93,7 @@ xcam_sources +=              \
 	xcam_cpf_reader.c        \
 	aiq_handler.cpp          \
 	x3a_analyzer_aiq.cpp     \
-        hybrid_analyzer.cpp      \
+	hybrid_analyzer.cpp      \
 	$(NULL)
 endif
 
@@ -138,6 +144,7 @@ xcam_sources +=              \
 	cl_rgb_pipe_handler.cpp       \
 	cl_tonemapping_handler.cpp	\
 	cl_biyuv_handler.cpp	 \
+	cl_image_scaler.cpp   \
 	$(NULL)
 endif
 
@@ -182,6 +189,7 @@ nobase_libxcam_coreinclude_HEADERS =  \
 	base/xcam_params.h         \
 	base/xcam_common.h         \
 	base/xcam_defs.h           \
+	base/xcam_smart_description.h \
 	device_manager.h           \
 	handler_interface.h        \
 	image_processor.h          \
@@ -190,6 +198,7 @@ nobase_libxcam_coreinclude_HEADERS =  \
 	v4l2_buffer_proxy.h        \
 	v4l2_device.h              \
 	video_buffer.h             \
+	xcam_analyzer.h            \
 	x3a_analyzer.h             \
 	x3a_analyzer_manager.h     \
 	x3a_event.h                \

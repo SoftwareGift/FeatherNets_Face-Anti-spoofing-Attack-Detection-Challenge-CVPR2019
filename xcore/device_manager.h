@@ -26,6 +26,7 @@
 #include "v4l2_device.h"
 #include "v4l2_buffer_proxy.h"
 #include "x3a_analyzer.h"
+#include "smart_analyzer.h"
 #include "x3a_image_process_center.h"
 #include "image_processor.h"
 #include "x3a_statistics_queue.h"
@@ -74,7 +75,8 @@ public:
     bool set_capture_device (SmartPtr<V4l2Device> device);
     bool set_event_device (SmartPtr<V4l2SubDevice> device);
     bool set_isp_controller (SmartPtr<IspController> controller);
-    bool set_analyzer (SmartPtr<X3aAnalyzer> analyzer);
+    bool set_3a_analyzer (SmartPtr<X3aAnalyzer> analyzer);
+    bool set_smart_analyzer (SmartPtr<SmartAnalyzer> analyzer);
     bool add_image_processor (SmartPtr<ImageProcessor> processor);
 
     SmartPtr<V4l2Device>& get_capture_device () {
@@ -107,10 +109,11 @@ protected:
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg);
     virtual XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats);
     virtual XCamReturn dvs_stats_ready ();
+    virtual XCamReturn scaled_image_ready (const SmartPtr<ScaledVideoBuffer> &buffer);
 
     //virtual functions derived from AnalyzerCallback
-    virtual void x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results);
-    virtual void x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp, const char *msg);
+    virtual void x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results);
+    virtual void x3a_calculation_failed (XAnalyzer *analyzer, int64_t timestamp, const char *msg);
 
     //virtual functions derived from ImageProcessCallback
     virtual void process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf);
@@ -139,6 +142,9 @@ protected:
     SmartPtr<MessageThread>          _msg_thread;
 
     bool                             _is_running;
+
+    /* smart analysis */
+    SmartPtr<SmartAnalyzer>         _smart_analyzer;
 };
 
 };

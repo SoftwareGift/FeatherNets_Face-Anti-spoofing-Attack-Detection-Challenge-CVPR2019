@@ -19,22 +19,17 @@
  */
 
 #include "analyzer_loader.h"
-#include "dynamic_analyzer.h"
-#include "handler_interface.h"
-#include "hybrid_analyzer.h"
-#include "isp_controller.h"
-#include "x3a_result_factory.h"
-#include "x3a_statistics_queue.h"
 #include <dlfcn.h>
 
 namespace XCam {
 
-AnalyzerLoader::AnalyzerLoader (const char *lib_path)
-    : _path (NULL)
-    , _handle (NULL)
+AnalyzerLoader::AnalyzerLoader (const char *lib_path, const char *symbol)
+    : _handle (NULL)
 {
     XCAM_ASSERT (lib_path);
     _path = strdup (lib_path);
+    XCAM_ASSERT (symbol);
+    _symbol = strdup (symbol);
 }
 
 AnalyzerLoader::~AnalyzerLoader ()
@@ -42,118 +37,64 @@ AnalyzerLoader::~AnalyzerLoader ()
     close_handle ();
     if (_path)
         xcam_free (_path);
+    if (_symbol)
+        xcam_free (_symbol);
 }
 
-XCam3ADescription *
-AnalyzerLoader::load_analyzer (SmartPtr<AnalyzerLoader> &self)
+void *
+AnalyzerLoader::load_library (const char *lib_path)
 {
-    XCam3ADescription *desc = NULL;
-    const char *symbol = XCAM_3A_LIB_DESCRIPTION;
+    void *desc = NULL;
 
-    XCAM_ASSERT (self.ptr () == this);
-
-    if (!open_handle ()) {
-        XCAM_LOG_WARNING ("open dynamic lib:%s failed", XCAM_STR (_path));
+    void *handle = open_handle (lib_path);
+    //XCAM_ASSERT (handle);
+    if (!handle) {
+        XCAM_LOG_WARNING ("open dynamic lib:%s failed", XCAM_STR (lib_path));
         return NULL;
     }
-
-    desc = get_symbol (symbol);
+    desc = load_symbol (handle);
     if (!desc) {
-        XCAM_LOG_WARNING ("get symbol(%s) from lib:%s failed", symbol, XCAM_STR (_path));
+        XCAM_LOG_WARNING ("get symbol(%s) from lib:%s failed", _symbol, XCAM_STR (lib_path));
         close_handle ();
         return NULL;
     }
 
-    XCAM_LOG_DEBUG ("got symbols(%s) from lib(%s)", symbol, XCAM_STR (_path));
+    XCAM_LOG_DEBUG ("got symbols(%s) from lib(%s)", _symbol, XCAM_STR (lib_path));
     return desc;
 }
 
-SmartPtr<X3aAnalyzer>
-AnalyzerLoader::load_dynamic_analyzer (SmartPtr<AnalyzerLoader> &self)
-{
-    SmartPtr<X3aAnalyzer> analyzer;
-    XCam3ADescription *desc = load_analyzer (self);
-
-    analyzer = new DynamicAnalyzer (desc, self);
-    if (!analyzer.ptr ()) {
-        XCAM_LOG_WARNING ("create DynamicAnalyzer from lib:%s failed", XCAM_STR (_path));
-        close_handle ();
-        return NULL;
-    }
-
-    XCAM_LOG_INFO ("analyzer(%s) created from 3a lib(%s)", XCAM_STR (analyzer->get_name()), XCAM_STR (_path));
-    return analyzer;
-}
-
-SmartPtr<X3aAnalyzer>
-AnalyzerLoader::load_hybrid_analyzer (SmartPtr<AnalyzerLoader> &self,
-                                      SmartPtr<IspController> &isp,
-                                      const char *cpf_path)
-{
-    SmartPtr<X3aAnalyzer> analyzer;
-    XCam3ADescription *desc = load_analyzer (self);
-
-    analyzer = new HybridAnalyzer (desc, self, isp, cpf_path);
-    if (!analyzer.ptr ()) {
-        XCAM_LOG_WARNING ("create HybridAnalyzer from lib:%s failed", XCAM_STR (_path));
-        close_handle ();
-        return NULL;
-    }
-
-    XCAM_LOG_INFO ("analyzer(%s) created from 3a lib(%s)", XCAM_STR (analyzer->get_name()), XCAM_STR (_path));
-    return analyzer;
-}
-
-bool
-AnalyzerLoader::open_handle ()
+void*
+AnalyzerLoader::open_handle (const char *lib_path)
 {
     void *handle = NULL;
 
     if (_handle != NULL)
-        return true;
+        return _handle;
 
-    handle = dlopen (_path, RTLD_LAZY);
+    handle = dlopen (lib_path, RTLD_LAZY);
     if (!handle) {
         XCAM_LOG_DEBUG (
-            "open user-defined 3a lib(%s) failed, reason:%s",
-            XCAM_STR (_path), dlerror ());
-        return false;
+            "open user-defined lib(%s) failed, reason:%s",
+            XCAM_STR (lib_path), dlerror ());
+        return NULL;
     }
     _handle = handle;
-    return true;
+    return handle;
 }
 
-XCam3ADescription *
-AnalyzerLoader::get_symbol (const char *symbol)
+void *
+AnalyzerLoader::get_symbol (void* handle)
 {
-    XCam3ADescription *desc = NULL;
+    void *desc = NULL;
 
-    XCAM_ASSERT (_handle);
-    XCAM_ASSERT (symbol);
-    desc = (XCam3ADescription *)dlsym (_handle, symbol);
+    XCAM_ASSERT (handle);
+    XCAM_ASSERT (_symbol);
+    desc = (void *)dlsym (handle, _symbol);
     if (!desc) {
-        XCAM_LOG_DEBUG ("get symbol(%s) failed from lib(%s), reason:%s", symbol, XCAM_STR (_path), dlerror ());
-        return NULL;
-    }
-    if (desc->version < XCAM_VERSION) {
-        XCAM_LOG_DEBUG ("get symbol(%s) failed. version is:0x%04x, but expect:0x%04x",
-                        symbol, desc->version, XCAM_VERSION);
-        return NULL;
-    }
-    if (desc->size < sizeof (XCam3ADescription)) {
-        XCAM_LOG_DEBUG ("get symbol(%s) failed, XCam3ADescription size is:%d, but expect:%d",
-                        symbol, desc->size, sizeof (XCam3ADescription));
+        XCAM_LOG_DEBUG ("get symbol(%s) failed from lib(%s), reason:%s", _symbol, XCAM_STR (_path), dlerror ());
         return NULL;
     }
 
-    if (!desc->create_context || !desc->destroy_context ||
-            !desc->configure_3a || !desc->set_3a_stats ||
-            !desc->analyze_awb || !desc->analyze_ae ||
-            !desc->analyze_af || !desc->combine_analyze_results ||
-            !desc->free_results) {
-        XCAM_LOG_DEBUG ("some functions in symbol(%s) not set from lib(%s)", symbol, XCAM_STR (_path));
-        return NULL;
-    }
     return desc;
 }
 

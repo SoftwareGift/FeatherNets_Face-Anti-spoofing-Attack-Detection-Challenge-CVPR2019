@@ -89,6 +89,7 @@ SensorDescriptor::exposure_code_to_gain (
     int32_t analog_code, int32_t digital_code,
     double &analog_gain, double &digital_gain)
 {
+    XCAM_UNUSED (digital_code);
     double db = analog_code * 48.0 / 160.0;
     analog_gain = pow (10.0, db / 20.0);
     digital_gain = 1.0;

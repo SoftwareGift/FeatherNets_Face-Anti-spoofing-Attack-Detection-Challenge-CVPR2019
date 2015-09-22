@@ -22,37 +22,33 @@
 #define XCAM_ANALYZER_LOADER_H
 
 #include <base/xcam_common.h>
-#include <base/xcam_3a_description.h>
-#include "xcam_utils.h"
-#include "x3a_analyzer.h"
 
 namespace XCam {
-class IspController;
-class HybridAnalyzer;
 
 class AnalyzerLoader
 {
 public:
-    AnalyzerLoader (const char *lib_path);
-    ~AnalyzerLoader ();
+    AnalyzerLoader (const char *lib_path, const char *symbol);
+    virtual ~AnalyzerLoader ();
 
-    SmartPtr<X3aAnalyzer> load_dynamic_analyzer (SmartPtr<AnalyzerLoader> &self);
-    SmartPtr<X3aAnalyzer> load_hybrid_analyzer (SmartPtr<AnalyzerLoader> &self,
-            SmartPtr<IspController> &isp,
-            const char *cpf_path);
+protected:
+    void *load_library (const char *lib_path);
+    void *get_symbol (void* handle);
+    virtual void *load_symbol (void* handle) = 0;
+    bool close_handle ();
+    const char * get_lib_path () const {
+        return _path;
+    }
 
 private:
-    bool open_handle ();
-    XCam3ADescription *get_symbol (const char *symbol);
-    bool close_handle ();
-    void convert_results (XCam3aResultHead *from, uint32_t num_of_from, X3aResultList &to);
-    XCam3ADescription *load_analyzer (SmartPtr<AnalyzerLoader> &self);
+    void *open_handle (const char *lib_path);
 
     XCAM_DEAD_COPY(AnalyzerLoader);
 
 private:
-    char         *_path;
-    void         *_handle;
+    void *_handle;
+    char *_symbol;
+    char *_path;
 };
 
 };

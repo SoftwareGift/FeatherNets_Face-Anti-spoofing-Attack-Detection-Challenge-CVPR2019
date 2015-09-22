@@ -28,6 +28,7 @@
 
 XCAM_BEGIN_DECLARE
 
+#define XCAM_3A_MAX_RESULT_COUNT 256
 #define xcam_3a_result_type(result)  (((XCam3aResultHead*)result)->type)
 
 typedef enum _ImageProcessType {

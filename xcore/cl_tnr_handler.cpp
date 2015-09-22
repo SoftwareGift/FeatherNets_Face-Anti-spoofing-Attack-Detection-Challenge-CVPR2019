@@ -646,6 +646,7 @@ CLTnrImageHandler::set_mode (uint32_t mode)
 {
     if (!_tnr_kernel->is_valid ()) {
         XCAM_LOG_ERROR ("set mode error, invalid TNR kernel !");
+        return false;
     }
 
     _tnr_kernel->set_enable (mode & (CL_TNR_TYPE_YUV | CL_TNR_TYPE_RGB));
@@ -657,6 +658,7 @@ CLTnrImageHandler::set_framecount (uint8_t count)
 {
     if (!_tnr_kernel->is_valid ()) {
         XCAM_LOG_ERROR ("set framecount error, invalid TNR kernel !");
+        return false;
     }
 
     _tnr_kernel->set_framecount (count);
@@ -670,6 +672,7 @@ CLTnrImageHandler::set_rgb_config (const XCam3aResultTemporalNoiseReduction& con
 {
     if (!_tnr_kernel->is_valid ()) {
         XCAM_LOG_ERROR ("set threshold error, invalid TNR kernel !");
+        return false;
     }
 
     _tnr_kernel->set_rgb_config (config);
@@ -683,6 +686,7 @@ CLTnrImageHandler::set_yuv_config (const XCam3aResultTemporalNoiseReduction& con
 {
     if (!_tnr_kernel->is_valid ()) {
         XCAM_LOG_ERROR ("set threshold error, invalid TNR kernel !");
+        return false;
     }
 
     _tnr_kernel->set_yuv_config (config);

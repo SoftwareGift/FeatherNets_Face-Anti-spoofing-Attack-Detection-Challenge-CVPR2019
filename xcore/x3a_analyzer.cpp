@@ -18,152 +18,27 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
+#include "xcam_analyzer.h"
 #include "x3a_analyzer.h"
-#include "xcam_thread.h"
-#include "safe_list.h"
 #include "x3a_stats_pool.h"
 
 namespace XCam {
 
-class AnalyzerThread
-    : public Thread
-{
-public:
-    AnalyzerThread (X3aAnalyzer *analyzer);
-    ~AnalyzerThread ();
-
-    void triger_stop() {
-        _3a_stats_queue.pause_pop ();
-    }
-    bool push_stats (const SmartPtr<X3aStats> &stats);
-
-protected:
-    virtual bool started ();
-    virtual void stopped () {
-        _3a_stats_queue.clear ();
-    }
-    virtual bool loop ();
-
-private:
-    X3aAnalyzer               *_analyzer;
-    SafeList<X3aStats>         _3a_stats_queue;
-};
-
-AnalyzerThread::AnalyzerThread (X3aAnalyzer *analyzer)
-    : Thread ("AnalyzerThread")
-    , _analyzer (analyzer)
-{}
-
-AnalyzerThread::~AnalyzerThread ()
-{
-    _3a_stats_queue.clear ();
-}
-
-bool
-AnalyzerThread::push_stats (const SmartPtr<X3aStats> &stats)
-{
-    _3a_stats_queue.push (stats);
-    return true;
-}
-
-bool
-AnalyzerThread::started ()
-{
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    XCAM_ASSERT (_analyzer);
-    ret = _analyzer->configure_3a ();
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        _analyzer->notify_calculation_failed (NULL, 0, "configure 3a failed");
-        XCAM_LOG_WARNING ("analyzer(%s) configure 3a failed", XCAM_STR(_analyzer->get_name()));
-        return false;
-    }
-
-    return true;
-}
-
-bool
-AnalyzerThread::loop ()
-{
-    const static int32_t timeout = -1;
-    SmartPtr<X3aStats> latest_stats;
-    SmartPtr<X3aStats> stats = _3a_stats_queue.pop (timeout);
-    if (!stats.ptr()) {
-        XCAM_LOG_DEBUG ("analyzer thread got empty stats, stop thread");
-        return false;
-    }
-    //while ((latest_stats = _3a_stats_queue.pop (0)).ptr ()) {
-    //    stats = latest_stats;
-    //    XCAM_LOG_WARNING ("lost 3a stats since 3a analyzer too slow");
-    //}
-
-    XCamReturn ret = _analyzer->analyze_3a_statistics (stats);
-    if (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS)
-        return true;
-
-    XCAM_LOG_DEBUG ("analyzer(%s) failed to analyze 3a stats", XCAM_STR(_analyzer->get_name()));
-    return false;
-}
-
-void
-AnalyzerCallback::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results)
-{
-    XCAM_UNUSED (analyzer);
-
-    for (X3aResultList::iterator i_res = results.begin();
-            i_res != results.end(); ++i_res) {
-        SmartPtr<X3aResult> res = *i_res;
-        if (res.ptr() == NULL) continue;
-        XCAM_LOG_DEBUG (
-            "calculated 3a result(type:%d, timestamp:" XCAM_TIMESTAMP_FORMAT ")",
-            res->get_type (), XCAM_TIMESTAMP_ARGS (res->get_timestamp ()));
-    }
-}
-
-void
-AnalyzerCallback::x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp, const char *msg)
-{
-    XCAM_UNUSED (analyzer);
-
-    XCAM_LOG_WARNING (
-        "Calculate 3a result failed, ts(" XCAM_TIMESTAMP_FORMAT "), msg:%s",
-        XCAM_TIMESTAMP_ARGS (timestamp), XCAM_STR (msg));
-}
-
 X3aAnalyzer::X3aAnalyzer (const char *name)
-    : _name (NULL)
-    , _sync (false)
-    , _started (false)
-    , _width (0)
-    , _height (0)
-    , _framerate (30.0)
+    : XAnalyzer (name)
     , _ae_handler (NULL)
     , _awb_handler (NULL)
     , _af_handler (NULL)
     , _common_handler (NULL)
-    , _callback (NULL)
 {
-    if (name)
-        _name = strdup (name);
-    _3a_analyzer_thread  = new AnalyzerThread (this);
 }
 
 X3aAnalyzer::~X3aAnalyzer()
 {
-    if (_name)
-        xcam_free (_name);
-}
-
-bool
-X3aAnalyzer::set_results_callback (AnalyzerCallback *callback)
-{
-    XCAM_ASSERT (!_callback);
-    _callback = callback;
-    return true;
 }
 
 XCamReturn
-X3aAnalyzer::prepare_handlers ()
+X3aAnalyzer::create_handlers ()
 {
     SmartPtr<AeHandler> ae_handler;
     SmartPtr<AwbHandler> awb_handler;
@@ -173,9 +48,6 @@ X3aAnalyzer::prepare_handlers ()
     if (_ae_handler.ptr() && _awb_handler.ptr() &&
             _af_handler.ptr() && _common_handler.ptr())
         return XCAM_RETURN_NO_ERROR;
-
-    XCAM_ASSERT (!_ae_handler.ptr() || !_awb_handler.ptr() ||
-                 !_af_handler.ptr() || !_common_handler.ptr());
 
     ae_handler = create_ae_handler ();
     awb_handler = create_awb_handler ();
@@ -196,120 +68,36 @@ X3aAnalyzer::prepare_handlers ()
 }
 
 XCamReturn
-X3aAnalyzer::init (uint32_t width, uint32_t height, double framerate)
+X3aAnalyzer::release_handlers ()
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    if (!_ae_handler.ptr() || !_awb_handler.ptr() ||
-            !_af_handler.ptr() || !_common_handler.ptr()) {
-        XCAM_LOG_WARNING (
-            "analyzer:%s init failed, <prepare_handlers> need called first",
-            XCAM_STR(get_name ()));
-        return XCAM_RETURN_ERROR_PARAM;
-    }
-
-    XCAM_ASSERT (!_width && !_height);
-    _width = width;
-    _height = height;
-    _framerate = framerate;
-
-    ret = internal_init (width, height, _framerate);
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_WARNING ("analyzer init failed");
-        deinit ();
-        return ret;
-    }
-
-    XCAM_LOG_INFO (
-        "Analyzer(%s) initialized(w:%d, h:%d).",
-        XCAM_STR(get_name()), _width, _height);
-    return XCAM_RETURN_NO_ERROR;
-}
-
-XCamReturn
-X3aAnalyzer::deinit ()
-{
-    internal_deinit();
-
     _ae_handler.release ();
     _awb_handler.release ();
     _af_handler.release ();
     _common_handler.release ();
 
-    _width = 0;
-    _height = 0;
-
-    XCAM_LOG_INFO ("Analyzer(%s) deinited.", XCAM_STR(get_name()));
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
-X3aAnalyzer::set_sync_mode (bool sync)
+X3aAnalyzer::configure ()
 {
-    if (_started) {
-        XCAM_LOG_ERROR ("can't set_sync_mode after analyzer started");
-        return XCAM_RETURN_ERROR_PARAM;
-    }
-    _sync = sync;
-    return XCAM_RETURN_NO_ERROR;
+    return configure_3a ();
 }
 
 XCamReturn
-X3aAnalyzer::start ()
+X3aAnalyzer::analyze (SmartPtr<BufferProxy> &buffer)
 {
-    if (_sync) {
-        XCamReturn ret = configure_3a ();
-        if (ret != XCAM_RETURN_NO_ERROR) {
-            XCAM_LOG_ERROR ("analyzer failed to start in sync mode");
-            stop ();
-            return ret;
-        }
-    } else {
-        if (_3a_analyzer_thread->start () == false) {
-            XCAM_LOG_WARNING ("analyzer thread start failed");
-            stop ();
-            return XCAM_RETURN_ERROR_THREAD;
-        }
-    }
+    SmartPtr<X3aStats> stats = buffer.dynamic_cast_ptr<X3aStats> ();
 
-    _started = true;
-    XCAM_LOG_INFO ("Analyzer(%s) started in %s mode.", XCAM_STR(get_name()),
-                   _sync ? "sync" : "async");
-    return XCAM_RETURN_NO_ERROR;
-}
-
-XCamReturn
-X3aAnalyzer::stop ()
-{
-    if (!_sync) {
-        _3a_analyzer_thread->triger_stop ();
-        _3a_analyzer_thread->stop ();
-    }
-
-    _started = false;
-    XCAM_LOG_INFO ("Analyzer(%s) stopped.", XCAM_STR(get_name()));
-    return XCAM_RETURN_NO_ERROR;
+    return analyze_3a_statistics (stats);
 }
 
 XCamReturn
 X3aAnalyzer::push_3a_stats (const SmartPtr<X3aStats> &stats)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    if (_sync) {
-        SmartPtr<X3aStats> statistics = stats;
-        ret = analyze_3a_statistics (statistics);
-    }
-    else {
-        if (!_3a_analyzer_thread->is_running())
-            return XCAM_RETURN_ERROR_THREAD;
-
-        if (!_3a_analyzer_thread->push_stats (stats))
-            return XCAM_RETURN_ERROR_THREAD;
-    }
-
-    return ret;
+    return XAnalyzer::push_buffer (stats);
 }
+
 
 XCamReturn
 X3aAnalyzer::analyze_3a_statistics (SmartPtr<X3aStats> &stats)
@@ -365,39 +153,6 @@ X3aAnalyzer::analyze_3a_statistics (SmartPtr<X3aStats> &stats)
     }
 
     return ret;
-}
-
-void
-X3aAnalyzer::set_results_timestamp (X3aResultList &results, int64_t timestamp)
-{
-    if (results.empty ())
-        return;
-
-    X3aResultList::iterator i_results = results.begin ();
-    for (; i_results != results.end ();  ++i_results)
-    {
-        (*i_results)->set_timestamp(timestamp);
-    }
-}
-
-void
-X3aAnalyzer::notify_calculation_failed (AnalyzerHandler *handler, int64_t timestamp, const char *msg)
-{
-    XCAM_UNUSED (handler);
-
-    if (_callback)
-        _callback->x3a_calculation_failed (this, timestamp, msg);
-    XCAM_LOG_DEBUG (
-        "calculation failed on ts:" XCAM_TIMESTAMP_FORMAT ", reason:%s",
-        XCAM_TIMESTAMP_ARGS (timestamp), XCAM_STR (msg));
-}
-
-void
-X3aAnalyzer::notify_calculation_done (X3aResultList &results)
-{
-    XCAM_ASSERT (!results.empty ());
-    if (_callback)
-        _callback->x3a_calculation_done (this, results);
 }
 
 /* AWB */

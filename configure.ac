@@ -70,6 +70,11 @@ AC_ARG_ENABLE([3alib],
                    [enable 3A lib build, @<:@default=no@:>@]),
     [], [enable_3alib="no"])
 
+AC_ARG_ENABLE([smartlib],
+    AS_HELP_STRING([--enable-smartlib],
+                   [enable smart analysis lib build, @<:@default=no@:>@]),
+    [], [enable_smartlib="no"])
+
 # Check for Doxygen
 if test "$enable_docs" = "yes"; then
     AC_CHECK_TOOL([DOXYGEN], [doxygen], [no])
@@ -116,6 +121,13 @@ if test "$enable_3alib" = "yes"; then
     ENABLE_3ALIB=1
 fi
 AM_CONDITIONAL([ENABLE_3ALIB], [test "$ENABLE_3ALIB" -eq 1])
+
+# check smart analysis lib build
+ENABLE_SMART_LIB=0
+if test "$enable_smartlib" = "yes"; then
+    ENABLE_SMART_LIB=1
+fi
+AM_CONDITIONAL([ENABLE_SMART_LIB], [test "$ENABLE_SMART_LIB" -eq 1])
 
 # check atomisp headers
 USE_LOCAL_ATOMISP=0
@@ -196,6 +208,7 @@ AC_CONFIG_FILES([Makefile
                  3alib/Makefile
                  3alib/aiq/Makefile
                  3alib/hybrid/Makefile
+                 smartlib/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc
@@ -218,4 +231,5 @@ echo "
      use local atomisp          : $use_local_atomisp
      have opencl lib            : $have_libcl
      enable 3a lib              : $enable_3alib
+     enable smart analysis lib  : $enable_smartlib
 "

@@ -24,7 +24,7 @@
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
 #endif
-#include "analyzer_loader.h"
+#include "x3a_analyzer_loader.h"
 
 #include <sys/types.h>
 #include <dirent.h>
@@ -103,7 +103,9 @@ X3aAnalyzerManager::load_analyzer_from_binary (const char *path)
     XCAM_ASSERT (path);
 
     _loader.release ();
-    _loader = new AnalyzerLoader (path);
+    _loader = new X3aAnalyzerLoader (path);
+
+    SmartPtr<AnalyzerLoader> loader = _loader.dynamic_cast_ptr<AnalyzerLoader> ();
     analyzer = _loader->load_dynamic_analyzer (_loader);
 
     if (analyzer.ptr ())

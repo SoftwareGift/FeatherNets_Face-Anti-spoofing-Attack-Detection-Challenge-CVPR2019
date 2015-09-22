@@ -28,6 +28,7 @@
 namespace XCam {
 
 class X3aStats;
+class ScaledVideoBuffer;
 
 class StatsCallback {
 public:
@@ -35,6 +36,7 @@ public:
     virtual ~StatsCallback() {}
     virtual XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats) = 0;
     virtual XCamReturn dvs_stats_ready () = 0;
+    virtual XCamReturn scaled_image_ready (const SmartPtr<ScaledVideoBuffer> &buffer) = 0;
 
 private:
     XCAM_DEAD_COPY (StatsCallback);

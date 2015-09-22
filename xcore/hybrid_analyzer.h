@@ -35,7 +35,7 @@ class HybridAnalyzer
 {
 public:
     explicit HybridAnalyzer (XCam3ADescription *desc,
-                             SmartPtr<AnalyzerLoader> &loader,
+                             SmartPtr<X3aAnalyzerLoader> &loader,
                              SmartPtr<IspController> &isp,
                              const char *cpf_path);
     ~HybridAnalyzer ();
@@ -44,8 +44,8 @@ public:
     virtual XCamReturn analyze_awb (XCamAwbParam &param);
     virtual XCamReturn analyze_af (XCamAfParam &param);
 
-    virtual void x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results);
-    virtual void x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp, const char *msg);
+    virtual void x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results);
+    virtual void x3a_calculation_failed (XAnalyzer *analyzer, int64_t timestamp, const char *msg);
 
 protected:
     virtual XCamReturn internal_init (uint32_t width, uint32_t height, double framerate);

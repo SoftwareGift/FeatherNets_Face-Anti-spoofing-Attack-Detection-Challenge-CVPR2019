@@ -38,8 +38,10 @@
 #include "cl_rgb_pipe_handler.h"
 #include "cl_tonemapping_handler.h"
 #include "cl_biyuv_handler.h"
+#include "cl_image_scaler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
+#define XCAM_CL_3A_IMAGE_SCALER_FACTOR 0.5
 
 namespace XCam {
 
@@ -581,6 +583,19 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
+    /* image scaler */
+    image_handler = create_cl_image_scaler_handler (context, V4L2_PIX_FMT_NV12);
+    _scaler = image_handler.dynamic_cast_ptr<CLImageScaler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _scaler.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create scaler handler failed");
+    _scaler->set_scaler_factor (XCAM_CL_3A_IMAGE_SCALER_FACTOR);
+    _scaler->set_buffer_callback (_stats_callback);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_kernels_enable (false);
+    add_handler (image_handler);
 
     if (_out_smaple_type == OutSampleRGB) {
         image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);

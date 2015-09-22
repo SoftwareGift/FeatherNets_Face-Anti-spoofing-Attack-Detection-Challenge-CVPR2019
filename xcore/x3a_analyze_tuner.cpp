@@ -1,5 +1,5 @@
 /*
- * x3a_ciq_tuning_adaptor.cpp - x3a Common IQ tuning adaptor
+ * x3a_analyze_tuner.cpp - x3a analyzer Common IQ tuning adaptor
  *
  *  Copyright (c) 2014-2015 Intel Corporation
  *
@@ -43,7 +43,7 @@ X3aAnalyzeTuner::~X3aAnalyzeTuner ()
 }
 
 XCamReturn
-X3aAnalyzeTuner::create_handlers ()
+X3aAnalyzeTuner::create_tuning_handlers ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
@@ -148,7 +148,7 @@ X3aAnalyzeTuner::internal_init (uint32_t width, uint32_t height, double framerat
     _aiq_analyzer->init (width, height, framerate);
 
     if (XCAM_RETURN_NO_ERROR == ret) {
-        ret = create_handlers ();
+        ret = create_tuning_handlers ();
     }
     return ret;
 }
@@ -208,7 +208,7 @@ X3aAnalyzeTuner::post_3a_analyze (X3aResultList &results)
 }
 
 void
-X3aAnalyzeTuner::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results)
+X3aAnalyzeTuner::x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results)
 {
     XCAM_UNUSED (analyzer);
     _results.clear ();

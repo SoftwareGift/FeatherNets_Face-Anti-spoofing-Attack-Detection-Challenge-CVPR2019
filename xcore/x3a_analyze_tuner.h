@@ -21,7 +21,6 @@
 #ifndef XCAM_3A_ANALYZE_TUNER_H
 #define XCAM_3A_ANALYZE_TUNER_H
 
-#include "xcam_utils.h"
 #include <linux/atomisp.h>
 
 namespace XCam {
@@ -61,12 +60,12 @@ protected:
     virtual XCamReturn post_3a_analyze (X3aResultList &results);
 
     // derive from AnalyzerCallback
-    virtual void x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results);
+    virtual void x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results);
 
 private:
     XCAM_DEAD_COPY (X3aAnalyzeTuner);
 
-    XCamReturn create_handlers ();
+    XCamReturn create_tuning_handlers ();
     bool add_handler (SmartPtr<X3aCiqTuningHandler> &handler);
 
 protected:

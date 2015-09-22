@@ -35,7 +35,6 @@
 XCAM_BEGIN_DECLARE
 
 #define XCAM_3A_LIB_DESCRIPTION "xcam_3a_desciption"
-#define XCAM_3A_LIB_MAX_RESULT_COUNT 256
 
 typedef struct _XCam3AContext XCam3AContext;
 
@@ -52,7 +51,7 @@ typedef struct _XCam3ADescription {
     XCamReturn (*analyze_ae)               (XCam3AContext *context, XCamAeParam *params);
     XCamReturn (*analyze_af)               (XCam3AContext *context, XCamAfParam *params);
 
-    /* res_count should equal to or less than XCAM_3A_LIB_MAX_RESULT_COUNT*/
+    /* res_count should equal to or less than XCAM_3A_MAX_RESULT_COUNT*/
     XCamReturn (*combine_analyze_results)  (XCam3AContext *context, XCam3aResultHead *results[], uint32_t *res_count);
     void       (*free_results)             (XCam3aResultHead *results[], uint32_t res_count);
 } XCam3ADescription;

@@ -47,6 +47,7 @@ class CLYuvPipeImageHandler;
 class CLRgbPipeImageHandler;
 class CLTonemappingImageHandler;
 class CLBiyuvImageHandler;
+class CLImageScaler;
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -126,6 +127,7 @@ private:
     SmartPtr<CLEeImageHandler>          _ee;
     SmartPtr<CLDpcImageHandler>         _dpc;
     SmartPtr<CLBiyuvImageHandler>       _biyuv;
+    SmartPtr<CLImageScaler>             _scaler;
 
     // simple 3a bayer pipeline
     SmartPtr<CLBayerPipeImageHandler>  _bayer_pipe;

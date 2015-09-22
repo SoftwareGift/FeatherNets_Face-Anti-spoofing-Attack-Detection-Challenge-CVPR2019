@@ -22,42 +22,22 @@
 #define XCAM_3A_ANALYZER_H
 
 #include "xcam_utils.h"
+#include "xcam_analyzer.h"
 #include "handler_interface.h"
 
 namespace XCam {
 
-class X3aAnalyzer;
 class X3aStats;
-
-class AnalyzerCallback {
-public:
-    explicit AnalyzerCallback () {}
-    virtual ~AnalyzerCallback () {}
-    virtual void x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results);
-    virtual void x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp, const char *msg);
-
-private:
-    XCAM_DEAD_COPY (AnalyzerCallback);
-};
-
 class AnalyzerThread;
+class BufferProxy;
 
-class X3aAnalyzer {
+class X3aAnalyzer
+    : public XAnalyzer
+{
     friend class AnalyzerThread;
 public:
     explicit X3aAnalyzer (const char *name = NULL);
     virtual ~X3aAnalyzer ();
-
-    bool set_results_callback (AnalyzerCallback *callback);
-
-    XCamReturn prepare_handlers ();
-    // prepare_handlers must called before init
-    XCamReturn init (uint32_t width, uint32_t height, double framerate);
-    XCamReturn deinit ();
-    // set_sync_mode must be called before start
-    XCamReturn set_sync_mode (bool sync);
-    XCamReturn start ();
-    XCamReturn stop ();
 
     /* analyze 3A statistics */
     XCamReturn push_3a_stats (const SmartPtr<X3aStats> &stats);
@@ -111,20 +91,6 @@ public:
     bool update_af_parameters (const XCamAfParam &params);
     bool update_common_parameters (const XCamCommonParam &params);
 
-    uint32_t get_width () const {
-        return _width;
-    }
-    uint32_t get_height () const {
-        return _height;
-    }
-
-    double get_framerate () const {
-        return _framerate;
-    }
-    const char * get_name () const {
-        return _name;
-    }
-
     SmartPtr<AeHandler> get_ae_handler () {
         return _ae_handler;
     }
@@ -140,6 +106,11 @@ public:
 
 protected:
     /* virtual function list */
+    virtual XCamReturn create_handlers ();
+    virtual XCamReturn release_handlers ();
+    virtual XCamReturn configure ();
+    virtual XCamReturn analyze (SmartPtr<BufferProxy> &buffer);
+
     virtual SmartPtr<AeHandler> create_ae_handler () = 0;
     virtual SmartPtr<AwbHandler> create_awb_handler () = 0;
     virtual SmartPtr<AfHandler> create_af_handler () = 0;
@@ -154,13 +125,8 @@ protected:
     // @param[out]  results,   new 3a results merged into \c results
     virtual XCamReturn post_3a_analyze (X3aResultList &results) = 0;
 
-protected:
-    void notify_calculation_done (X3aResultList &results);
-    void notify_calculation_failed (AnalyzerHandler *handler, int64_t timestamp, const char *msg);
-
 private:
     XCamReturn analyze_3a_statistics (SmartPtr<X3aStats> &stats);
-    void set_results_timestamp (X3aResultList &results, int64_t timestamp);
 
     XCAM_DEAD_COPY (X3aAnalyzer);
 
@@ -168,21 +134,10 @@ protected:
     double                   _brightness_level_param;
 
 private:
-    char                    *_name;
-    bool                     _sync;
-    bool                     _started;
-    uint32_t                 _width;
-    uint32_t                 _height;
-    double                   _framerate;
-
     SmartPtr<AeHandler>      _ae_handler;
     SmartPtr<AwbHandler>     _awb_handler;
     SmartPtr<AfHandler>      _af_handler;
     SmartPtr<CommonHandler>  _common_handler;
-
-    SmartPtr<AnalyzerThread> _3a_analyzer_thread;
-    AnalyzerCallback        *_callback;
-
 };
 
 }

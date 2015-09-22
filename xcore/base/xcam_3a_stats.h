@@ -67,6 +67,26 @@ typedef struct _XCam3AStats {
     XCamGridStat stats[0];
 } XCam3AStats;
 
+#define XCAM_VIDEO_MAX_COMPONENTS 4
+typedef struct _XCamVideoBufferInfo {
+    uint32_t format;
+    uint32_t color_bits;
+    uint32_t width;
+    uint32_t height;
+    uint32_t aligned_width;
+    uint32_t aligned_height;
+    uint32_t size;
+    uint32_t components;
+    uint32_t strides [XCAM_VIDEO_MAX_COMPONENTS];
+    uint32_t offsets [XCAM_VIDEO_MAX_COMPONENTS];
+} XCamVideoBufferInfo;
+
+typedef struct _XCamVideoBuffer {
+    XCamVideoBufferInfo info;
+    int64_t timestamp;
+    uint8_t *data;
+} XCamVideoBuffer;
+
 XCAM_END_DECLARE
 
 #endif //C_XCAM_3A_STATS_H

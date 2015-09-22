@@ -95,6 +95,10 @@ typedef struct _XCamCommonParam {
     XCamColorEffect            color_effect;
 } XCamCommonParam;
 
+typedef struct _XCamSmartAnalysisParam {
+
+} XCamSmartAnalysisParam;
+
 XCAM_END_DECLARE
 
 #endif //C_XCAM_PARAMS_H

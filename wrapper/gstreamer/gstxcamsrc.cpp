@@ -38,7 +38,9 @@
 #include "gstxcamsrc.h"
 #include "gstxcaminterface.h"
 #include "gstxcambufferpool.h"
-#include "analyzer_loader.h"
+#include "x3a_analyzer_loader.h"
+#include "smart_analyzer_loader.h"
+#include "smart_analysis_handler.h"
 
 #include <signal.h>
 
@@ -50,6 +52,7 @@ using namespace GstXCam;
 #define DEFAULT_EVENT_DEVICE    "/dev/v4l-subdev6"
 #define DEFAULT_CPF_FILE_NAME   "/etc/atomisp/imx185.cpf"
 #define DEFAULT_DYNAMIC_3A_LIB  "/usr/lib/xcam/libxcam_3a_aiq.so"
+#define DEFAULT_SMART_ANALYSIS_LIB_DIR "/usr/lib/xcam/smartlib"
 
 #define V4L2_CAPTURE_MODE_STILL 0x2000
 #define V4L2_CAPTURE_MODE_VIDEO 0x4000
@@ -643,6 +646,7 @@ gst_xcam_src_start (GstBaseSrc *src)
     GstXCamSrc *xcamsrc = GST_XCAM_SRC (src);
     SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
     SmartPtr<X3aAnalyzer> analyzer;
+    SmartPtr<SmartAnalyzer> smart_analyzer;
     SmartPtr<ImageProcessor> isp_processor;
 #if HAVE_LIBCL
     SmartPtr<CL3aImageProcessor> cl_processor;
@@ -712,17 +716,38 @@ gst_xcam_src_start (GstBaseSrc *src)
 #endif
     case DYNAMIC_ANALYZER: {
         XCAM_LOG_INFO ("dynamic 3a library: %s", xcamsrc->path_to_3alib);
-        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (xcamsrc->path_to_3alib);
+        SmartPtr<X3aAnalyzerLoader> loader = new X3aAnalyzerLoader (xcamsrc->path_to_3alib);
+
         analyzer = loader->load_dynamic_analyzer (loader);
         if (!analyzer.ptr ()) {
             XCAM_LOG_ERROR ("load dynamic analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
             return FALSE;
         }
+
+        // Create smart analyzer from dynamic libraries
+        AnalyzerLoaderList loader_list = SmartAnalyzerLoader::create_analyzer_loader (DEFAULT_SMART_ANALYSIS_LIB_DIR);
+        if (!loader_list.empty () ) {
+            smart_analyzer = new SmartAnalyzer ();
+            if (!smart_analyzer.ptr ()) {
+                XCAM_LOG_INFO ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
+                break;
+            }
+        }
+
+        SmartPtr<SmartAnalysisHandler> smart_handler;
+        AnalyzerLoaderList::iterator i_loader = loader_list.begin ();
+        for (; i_loader != loader_list.end ();  ++i_loader)
+        {
+            smart_handler = (*i_loader)->load_smart_handler(*i_loader);
+            if (smart_handler.ptr ()) {
+                smart_analyzer->add_handler (smart_handler);
+            }
+        }
         break;
     }
     case HYBRID_ANALYZER: {
         XCAM_LOG_INFO ("hybrid 3a library: %s", xcamsrc->path_to_3alib);
-        SmartPtr<AnalyzerLoader> loader = new AnalyzerLoader (xcamsrc->path_to_3alib);
+        SmartPtr<X3aAnalyzerLoader> loader = new X3aAnalyzerLoader (xcamsrc->path_to_3alib);
         analyzer = loader->load_hybrid_analyzer (loader, isp_controller, xcamsrc->path_to_cpf);
         if (!analyzer.ptr ()) {
             XCAM_LOG_ERROR ("load hybrid analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
@@ -739,7 +764,15 @@ gst_xcam_src_start (GstBaseSrc *src)
         XCAM_LOG_ERROR ("analyzer(%s) prepare handlers failed", analyzer->get_name ());
         return FALSE;
     }
-    device_manager->set_analyzer (analyzer);
+    device_manager->set_3a_analyzer (analyzer);
+
+    if (smart_analyzer.ptr ()) {
+        if (smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_INFO ("analyzer(%s) prepare handlers failed", smart_analyzer->get_name ());
+            return TRUE;
+        }
+        device_manager->set_smart_analyzer (smart_analyzer);
+    }
 
     return TRUE;
 }

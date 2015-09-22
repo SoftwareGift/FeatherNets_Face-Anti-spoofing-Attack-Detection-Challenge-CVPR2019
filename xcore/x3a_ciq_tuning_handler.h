@@ -21,8 +21,7 @@
 #ifndef XCAM_3A_CIQ_TUNING_HANDLER_H
 #define XCAM_3A_CIQ_TUNING_HANDLER_H
 
-#include "xcam_utils.h"
-#include "x3a_analyzer.h"
+#include "handler_interface.h"
 
 namespace XCam {
 

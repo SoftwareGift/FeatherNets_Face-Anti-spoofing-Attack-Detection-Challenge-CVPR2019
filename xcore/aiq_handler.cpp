@@ -778,13 +778,13 @@ AiqAeHandler::set_RGBS_weight_grid (ia_aiq_rgbs_grid **out_rgbs_grid)
 
         if ((_params.window_list[win_index].weight <= 0) ||
                 (_params.window_list[win_index].x_start < 0) ||
-                (_params.window_list[win_index].x_end > image_width) ||
+                ((uint32_t)_params.window_list[win_index].x_end > image_width) ||
                 (_params.window_list[win_index].y_start < 0) ||
-                (_params.window_list[win_index].y_end > image_height) ||
+                ((uint32_t)_params.window_list[win_index].y_end > image_height) ||
                 (_params.window_list[win_index].x_start >= _params.window_list[win_index].x_end) ||
                 (_params.window_list[win_index].y_start >= _params.window_list[win_index].y_end) ||
-                (_params.window_list[win_index].x_end - _params.window_list[win_index].x_start > image_width) ||
-                (_params.window_list[win_index].y_end - _params.window_list[win_index].y_start > image_height)) {
+                ((uint32_t)_params.window_list[win_index].x_end - (uint32_t)_params.window_list[win_index].x_start > image_width) ||
+                ((uint32_t)_params.window_list[win_index].y_end - (uint32_t)_params.window_list[win_index].y_start > image_height)) {
             XCAM_LOG_DEBUG ("skip window index = %d ", win_index);
             continue;
         }
@@ -812,7 +812,7 @@ AiqAeHandler::set_RGBS_weight_grid (ia_aiq_rgbs_grid **out_rgbs_grid)
             }
         }
     }
-    XCAM_LOG_DEBUG ("sum of weighing factor = %d ", weight_sum);
+    XCAM_LOG_DEBUG ("sum of weighing factor = %lld ", weight_sum);
 
     rgbs_grid_index = (weighted_window.x_start + (hor_pixels_per_grid >> 1)) / hor_pixels_per_grid +
                       (weighted_window.y_start + (vert_pixels_per_gird >> 1)) / vert_pixels_per_gird * rgbs_grid_width;
@@ -867,13 +867,13 @@ AiqAeHandler::set_hist_weight_grid (ia_aiq_hist_weight_grid **out_weight_grid)
         if ((_params.window_list[win_index].weight <= 0) ||
                 (_params.window_list[win_index].weight > 15) ||
                 (_params.window_list[win_index].x_start < 0) ||
-                (_params.window_list[win_index].x_end > image_width) ||
+                ((uint32_t)_params.window_list[win_index].x_end > image_width) ||
                 (_params.window_list[win_index].y_start < 0) ||
-                (_params.window_list[win_index].y_end > image_height) ||
+                ((uint32_t)_params.window_list[win_index].y_end > image_height) ||
                 (_params.window_list[win_index].x_start >= _params.window_list[win_index].x_end) ||
                 (_params.window_list[win_index].y_start >= _params.window_list[win_index].y_end) ||
-                (_params.window_list[win_index].x_end - _params.window_list[win_index].x_start > image_width) ||
-                (_params.window_list[win_index].y_end - _params.window_list[win_index].y_start > image_height)) {
+                ((uint32_t)_params.window_list[win_index].x_end - (uint32_t)_params.window_list[win_index].x_start > image_width) ||
+                ((uint32_t)_params.window_list[win_index].y_end - (uint32_t)_params.window_list[win_index].y_start > image_height)) {
             XCAM_LOG_DEBUG ("skip window index = %d ", win_index);
             continue;
         }

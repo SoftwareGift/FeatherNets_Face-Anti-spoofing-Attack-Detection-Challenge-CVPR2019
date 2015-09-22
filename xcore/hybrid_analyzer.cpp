@@ -27,7 +27,7 @@
 
 namespace XCam {
 HybridAnalyzer::HybridAnalyzer (XCam3ADescription *desc,
-                                SmartPtr<AnalyzerLoader> &loader,
+                                SmartPtr<X3aAnalyzerLoader> &loader,
                                 SmartPtr<IspController> &isp,
                                 const char *cpf_path)
     : DynamicAnalyzer (desc, loader, "HybridAnalyzer"),
@@ -197,16 +197,16 @@ HybridAnalyzer::analyze_af (XCamAfParam &param)
 }
 
 void
-HybridAnalyzer::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results)
+HybridAnalyzer::x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results)
 {
     XCAM_UNUSED (analyzer);
 
-    static XCam3aResultHead *res_heads[XCAM_3A_LIB_MAX_RESULT_COUNT];
+    static XCam3aResultHead *res_heads[XCAM_3A_MAX_RESULT_COUNT];
     xcam_mem_clear (res_heads);
-    XCAM_ASSERT (results.size () < XCAM_3A_LIB_MAX_RESULT_COUNT);
+    XCAM_ASSERT (results.size () < XCAM_3A_MAX_RESULT_COUNT);
 
     uint32_t result_count = translate_3a_results_to_xcam (results,
-                            res_heads, XCAM_3A_LIB_MAX_RESULT_COUNT);
+                            res_heads, XCAM_3A_MAX_RESULT_COUNT);
     convert_results (res_heads, result_count, results);
     for (uint32_t i = 0; i < result_count; ++i) {
         if (res_heads[i])
@@ -222,7 +222,7 @@ HybridAnalyzer::~HybridAnalyzer ()
 }
 
 void
-HybridAnalyzer::x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp, const char *msg)
+HybridAnalyzer::x3a_calculation_failed (XAnalyzer *analyzer, int64_t timestamp, const char *msg)
 {
     XCAM_UNUSED (analyzer);
     notify_calculation_failed (NULL, timestamp, msg);

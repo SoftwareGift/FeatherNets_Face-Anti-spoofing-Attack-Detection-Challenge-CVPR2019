@@ -49,7 +49,7 @@ public:
     uint32_t get_results (X3aResultList &results);
 
     // derive from AnalyzerCallback
-    virtual void x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results);
+    virtual void x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results);
     void update_brightness_result(XCamCommonParam *params);
 
 private:
@@ -127,7 +127,7 @@ XCam3AAiqContext::get_stats_buffer ()
 
 
 void
-XCam3AAiqContext::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results)
+XCam3AAiqContext::x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results)
 {
     XCAM_UNUSED (analyzer);
     SmartLock  locker (_result_mutex);
@@ -377,17 +377,17 @@ xcam_combine_analyze_results (XCam3AContext *context, XCam3aResultHead *results[
 
     if (!result_count) {
         *res_count = 0;
-        XCAM_LOG_DEBUG ("aiq wrapper comible with no result out");
+        XCAM_LOG_DEBUG ("aiq wrapper combine with no result out");
         return XCAM_RETURN_NO_ERROR;
     }
 
     // mark as static
-    static XCam3aResultHead *res_array[XCAM_3A_LIB_MAX_RESULT_COUNT];
+    static XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
     xcam_mem_clear (res_array);
-    XCAM_ASSERT (result_count < XCAM_3A_LIB_MAX_RESULT_COUNT);
+    XCAM_ASSERT (result_count < XCAM_3A_MAX_RESULT_COUNT);
 
     // result_count may changed
-    result_count = translate_3a_results_to_xcam (aiq_results, res_array, XCAM_3A_LIB_MAX_RESULT_COUNT);
+    result_count = translate_3a_results_to_xcam (aiq_results, res_array, XCAM_3A_MAX_RESULT_COUNT);
 
     for (uint32_t i = 0; i < result_count; ++i) {
         results[i] = res_array[i];

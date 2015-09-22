@@ -26,7 +26,7 @@
 
 namespace XCam {
 
-class AnalyzerLoader;
+class X3aAnalyzerLoader;
 
 class X3aAnalyzerManager
 {
@@ -50,7 +50,7 @@ private:
     static SmartPtr<X3aAnalyzerManager> _instance;
     static Mutex                        _mutex;
 
-    SmartPtr<AnalyzerLoader>            _loader;
+    SmartPtr<X3aAnalyzerLoader>         _loader;
 };
 };
 #endif //XCAM_3A_ANALYZER_MANAGER_H

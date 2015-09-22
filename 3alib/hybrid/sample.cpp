@@ -146,7 +146,7 @@ xcam_combine_analyze_results (XCam3AContext *context, XCam3aResultHead *results[
     XCAM_UNUSED (context);
 
     uint32_t result_count = 2;
-    static XCam3aResultHead *res_array[XCAM_3A_LIB_MAX_RESULT_COUNT];
+    static XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
     xcam_mem_clear (res_array);
 
     for (uint32_t i = 0; i < result_count; ++i) {

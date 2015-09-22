@@ -18,7 +18,6 @@
  * Author: Zong Wei <wei.zong@intel.com>
  */
 
-#include "xcam_utils.h"
 #include "x3a_analyzer.h"
 #include "x3a_ciq_tuning_handler.h"
 #include "x3a_ciq_tnr_tuning_handler.h"

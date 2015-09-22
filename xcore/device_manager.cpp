@@ -28,6 +28,7 @@
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
 #endif
+#include "scaled_buffer_pool.h"
 
 #define XCAM_FAILED_STOP(exp, msg, ...)                 \
     if ((exp) != XCAM_RETURN_NO_ERROR) {                \
@@ -125,13 +126,25 @@ DeviceManager::set_isp_controller (SmartPtr<IspController> controller)
 }
 
 bool
-DeviceManager::set_analyzer (SmartPtr<X3aAnalyzer> analyzer)
+DeviceManager::set_3a_analyzer (SmartPtr<X3aAnalyzer> analyzer)
 {
     if (is_running())
         return false;
 
     XCAM_ASSERT (analyzer.ptr () && !_3a_analyzer.ptr ());
     _3a_analyzer = analyzer;
+
+    return true;
+}
+
+bool
+DeviceManager::set_smart_analyzer (SmartPtr<SmartAnalyzer> analyzer)
+{
+    if (is_running())
+        return false;
+
+    XCAM_ASSERT (analyzer.ptr () && !_smart_analyzer.ptr ());
+    _smart_analyzer = analyzer;
 
     return true;
 }
@@ -198,6 +211,19 @@ DeviceManager::start ()
 
         XCAM_FAILED_STOP (ret = _3a_analyzer->start (), "start analyzer failed");
 
+        if (_smart_analyzer.ptr()) {
+            if (_smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
+                XCAM_LOG_INFO ("prepare smart analyzer handler failed");
+            }
+            //_smart_analyzer->set_results_callback (this);
+            if (_smart_analyzer->init (width, height, framerate) != XCAM_RETURN_NO_ERROR) {
+                XCAM_LOG_INFO ("initialize smart analyzer failed");
+            }
+            if (_smart_analyzer->start () != XCAM_RETURN_NO_ERROR) {
+                XCAM_LOG_INFO ("start smart analyzer failed");
+            }
+        }
+
         // Initialize and start image processors
         if (!_3a_process_center->has_processors()) {
             // default processor
@@ -240,6 +266,10 @@ DeviceManager::stop ()
         _3a_analyzer->stop ();
         _3a_analyzer->deinit ();
     }
+    if (_smart_analyzer.ptr()) {
+        _smart_analyzer->stop ();
+        _smart_analyzer->deinit ();
+    }
 
     if (_3a_process_center.ptr())
         _3a_process_center->stop ();
@@ -279,6 +309,25 @@ DeviceManager::dvs_stats_ready ()
 }
 
 XCamReturn
+DeviceManager::scaled_image_ready (const SmartPtr<ScaledVideoBuffer> &buffer)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    if (!_smart_analyzer.ptr()) {
+        return XCAM_RETURN_NO_ERROR;
+    }
+
+    SmartPtr<BufferProxy> data = buffer;
+    ret = _smart_analyzer->push_buffer (data);
+    XCAM_FAIL_RETURN (ERROR,
+                      ret == XCAM_RETURN_NO_ERROR,
+                      ret,
+                      "push frame buffer failed");
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+
+XCamReturn
 DeviceManager::poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf)
 {
     if (_has_3a) {
@@ -297,7 +346,7 @@ DeviceManager::poll_buffer_failed (int64_t timestamp, const char *msg)
 }
 
 void
-DeviceManager::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &results)
+DeviceManager::x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results)
 {
     XCamReturn ret = _3a_process_center->put_3a_results (results);
     if (ret != XCAM_RETURN_NO_ERROR && ret != XCAM_RETURN_BYPASS) {
@@ -308,7 +357,7 @@ DeviceManager::x3a_calculation_done (X3aAnalyzer *analyzer, X3aResultList &resul
 }
 
 void
-DeviceManager::x3a_calculation_failed (X3aAnalyzer *analyzer, int64_t timestamp, const char *msg)
+DeviceManager::x3a_calculation_failed (XAnalyzer *analyzer, int64_t timestamp, const char *msg)
 {
     AnalyzerCallback::x3a_calculation_failed (analyzer, timestamp, msg);
 }

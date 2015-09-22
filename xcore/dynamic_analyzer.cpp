@@ -22,7 +22,7 @@
 
 namespace XCam {
 
-DynamicAnalyzer::DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<AnalyzerLoader> &loader, const char *name)
+DynamicAnalyzer::DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<X3aAnalyzerLoader> &loader, const char *name)
     : X3aAnalyzer (name)
     , _desc (desc)
     , _context (NULL)
@@ -169,7 +169,7 @@ XCamReturn
 DynamicAnalyzer::post_3a_analyze (X3aResultList &results)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    XCam3aResultHead *res_array[XCAM_3A_LIB_MAX_RESULT_COUNT];
+    XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
     uint32_t res_count = 0;
 
     xcam_mem_clear (res_array);

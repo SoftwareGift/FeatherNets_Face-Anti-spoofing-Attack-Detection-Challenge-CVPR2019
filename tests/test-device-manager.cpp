@@ -36,7 +36,7 @@
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #endif
-#include "analyzer_loader.h"
+#include "x3a_analyzer_loader.h"
 #include <base/xcam_3a_types.h>
 #include <unistd.h>
 #include <signal.h>
@@ -315,7 +315,7 @@ int main (int argc, char *argv[])
     SmartPtr<V4l2SubDevice> event_device;
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
-    SmartPtr<AnalyzerLoader> loader;
+    SmartPtr<X3aAnalyzerLoader> loader;
     const char *path_of_3a;
     SmartPtr<ImageProcessor> isp_processor;
 #if HAVE_LIBCL
@@ -577,7 +577,7 @@ int main (int argc, char *argv[])
         break;
     case AnalyzerTypeHybrid: {
         path_of_3a = DEFAULT_HYBRID_3A_LIB;
-        loader = new AnalyzerLoader (path_of_3a);
+        loader = new X3aAnalyzerLoader (path_of_3a);
         analyzer = loader->load_hybrid_analyzer (loader, isp_controller, DEFAULT_CPF_FILE);
         CHECK_EXP (analyzer.ptr (), "load hybrid 3a lib(%s) failed", path_of_3a);
         break;
@@ -585,7 +585,7 @@ int main (int argc, char *argv[])
 #endif
     case AnalyzerTypeDynamic: {
         path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
-        loader = new AnalyzerLoader (path_of_3a);
+        loader = new X3aAnalyzerLoader (path_of_3a);
         analyzer = loader->load_dynamic_analyzer (loader);
         CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
         break;
@@ -639,7 +639,7 @@ int main (int argc, char *argv[])
     device_manager->set_capture_device (device);
     device_manager->set_isp_controller (isp_controller);
     if (analyzer.ptr())
-        device_manager->set_analyzer (analyzer);
+        device_manager->set_3a_analyzer (analyzer);
 
     if (have_cl_processor)
         isp_processor = new IspExposureImageProcessor (isp_controller);

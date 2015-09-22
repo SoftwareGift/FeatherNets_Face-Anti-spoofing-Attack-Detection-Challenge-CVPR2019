@@ -1,5 +1,5 @@
 /*
- * aiq3a_util.h - aiq 3a utility:
+ * aiq3a_utils.h - aiq 3a utility:
  *
  *  Copyright (c) 2015 Intel Corporation
  *

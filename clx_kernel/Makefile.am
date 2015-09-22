@@ -25,6 +25,7 @@ clx_kernel_sources = \
 	kernel_yuv_pipe.clx           \
 	kernel_tonemapping.clx        \
 	kernel_biyuv.clx              \
+	kernel_image_scaler.clx       \
 	$(NULL)
 
 cl_quote_sh = \
