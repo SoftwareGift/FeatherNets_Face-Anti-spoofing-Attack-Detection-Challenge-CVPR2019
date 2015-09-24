@@ -34,17 +34,29 @@ private:
 
 public:
     Mutex () {
-        pthread_mutex_init (&_mutex, NULL);
+        int error_num = pthread_mutex_init (&_mutex, NULL);
+        if (error_num != 0) {
+            XCAM_LOG_WARNING ("Mutex init failed %d: %s", error_num, strerror(error_num));
+        }
     }
     virtual ~Mutex () {
-        pthread_mutex_destroy (&_mutex);
+        int error_num = pthread_mutex_destroy (&_mutex);
+        if (error_num != 0) {
+            XCAM_LOG_WARNING ("Mutex destroy failed %d: %s", error_num, strerror(error_num));
+        }
     }
 
     void lock() {
-        pthread_mutex_lock (&_mutex);
+        int error_num = pthread_mutex_lock (&_mutex);
+        if (error_num != 0) {
+            XCAM_LOG_WARNING ("Mutex lock failed %d: %s", error_num, strerror(error_num));
+        }
     }
     void unlock() {
-        pthread_mutex_unlock (&_mutex);
+        int error_num = pthread_mutex_unlock (&_mutex);
+        if (error_num != 0) {
+            XCAM_LOG_WARNING ("Mutex unlock failed %d: %s", error_num, strerror(error_num));
+        }
     }
 
 private:
