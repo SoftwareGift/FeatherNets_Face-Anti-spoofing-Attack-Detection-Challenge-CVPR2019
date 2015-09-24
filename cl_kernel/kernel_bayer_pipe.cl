@@ -454,14 +454,18 @@ inline void stats_3a_calculate (
 
     int l_id_x = get_local_id(0);
     int l_id_y = get_local_id(1);
-    int count = STATS_3A_GRID_SIZE * STATS_3A_GRID_SIZE / 2;
+    int count = STATS_3A_GRID_SIZE * STATS_3A_GRID_SIZE / 4;
 
-    for (; count > 0; count /= 2) {
+    for (; count > 0; count /= 4) {
         if ((l_id_x % STATS_3A_GRID_SIZE) + (l_id_y % STATS_3A_GRID_SIZE)* STATS_3A_GRID_SIZE < count) {
             int index1 = shared_pos (l_id_x + SHARED_GRID_X_OFFSET, l_id_y + SHARED_GRID_Y_OFFSET);
             int index2 = shared_pos (SHARED_GRID_X_OFFSET + ((l_id_x + count) % STATS_3A_GRID_SIZE),
                                      SHARED_GRID_Y_OFFSET + l_id_y + (l_id_x + count) / STATS_3A_GRID_SIZE);
-            input[index1] = (input[index1] + input[index2]) / 2.0f;
+            int index3 = shared_pos (SHARED_GRID_X_OFFSET + ((l_id_x + count * 2) % STATS_3A_GRID_SIZE),
+                                     SHARED_GRID_Y_OFFSET + l_id_y + (l_id_x + count * 2) / STATS_3A_GRID_SIZE);
+            int index4 = shared_pos (SHARED_GRID_X_OFFSET + ((l_id_x + count * 3) % STATS_3A_GRID_SIZE),
+                                     SHARED_GRID_Y_OFFSET + l_id_y + (l_id_x + count * 3) / STATS_3A_GRID_SIZE);
+            input[index1] = (input[index1] + input[index2] + input[index3] + input[index4]) / 4.0f;
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
