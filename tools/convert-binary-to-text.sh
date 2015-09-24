@@ -7,7 +7,7 @@ BINARY_FILE=$1
 TEXT_FILE=$2
 
 if [ $# -ne 2 ]; then
-    echo "Usage: $0 <binary_file> <text_file>\n"
+    echo "Usage: $0 <binary_file> <text_file>"
     exit 1
 fi
 
