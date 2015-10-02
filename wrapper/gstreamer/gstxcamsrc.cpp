@@ -43,6 +43,7 @@
 #include "smart_analysis_handler.h"
 
 #include <signal.h>
+#include <uvc_device.h>
 
 using namespace XCam;
 using namespace GstXCam;
@@ -61,6 +62,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_SENSOR             0
 #define DEFAULT_PROP_MEM_MODE           V4L2_MEMORY_DMABUF
 #define DEFAULT_PROP_ENABLE_3A          TRUE
+#define DEFAULT_PROP_ENABLE_USB         FALSE
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_PIXELFORMAT        V4L2_PIX_FMT_NV12 //420 instead of 0
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
@@ -217,7 +219,8 @@ enum {
     PROP_PIPE_PROFLE,
     PROP_CPF,
     PROP_3A_LIB,
-    PROP_INPUT_FMT
+    PROP_INPUT_FMT,
+    PROP_ENABLE_USB
 };
 
 static void gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface);
@@ -318,6 +321,11 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                               DEFAULT_PROP_ENABLE_3A, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
+        gobject_class, PROP_ENABLE_USB,
+        g_param_spec_boolean ("enable-usb", "enable usbcam", "Enable USB camera",
+                              DEFAULT_PROP_ENABLE_USB, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
         gobject_class, PROP_MEM_MODE,
         g_param_spec_enum ("io-mode", "memory mode", "Memory mode",
                            GST_TYPE_XCAM_SRC_MEM_MODE, DEFAULT_PROP_MEM_MODE,
@@ -406,6 +414,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->path_to_cpf = strdup(DEFAULT_CPF_FILE_NAME);
     xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
+    xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
     xcamsrc->time_offset_ready = FALSE;
     xcamsrc->time_offset = -1;
     xcamsrc->buf_mark = 0;
@@ -414,9 +423,20 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->field = DEFAULT_PROP_FIELD;
 
     xcamsrc->in_format = 0;
-    xcamsrc->out_format = DEFAULT_PROP_PIXELFORMAT;
+    if (xcamsrc->enable_usb) {
+        xcamsrc->out_format = GST_VIDEO_FORMAT_YUY2;
+    }
+    else {
+        xcamsrc->out_format = DEFAULT_PROP_PIXELFORMAT;
+    }
+
     gst_video_info_init (&xcamsrc->gst_video_info);
-    gst_video_info_set_format (&xcamsrc->gst_video_info, GST_VIDEO_FORMAT_NV12, DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT);
+    if (xcamsrc->enable_usb) {
+        gst_video_info_set_format (&xcamsrc->gst_video_info, GST_VIDEO_FORMAT_YUY2, DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT);
+    }
+    else {
+        gst_video_info_set_format (&xcamsrc->gst_video_info, GST_VIDEO_FORMAT_NV12, DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT);
+    }
 
     XCAM_CONSTRUCTOR (xcamsrc->xcam_video_info, VideoBufferInfo);
     xcamsrc->xcam_video_info.init (DEFAULT_PROP_PIXELFORMAT, DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT);
@@ -458,6 +478,10 @@ gst_xcam_src_get_property (
         break;
     case PROP_ENABLE_3A:
         g_value_set_boolean (value, src->enable_3a);
+        break;
+
+    case PROP_ENABLE_USB:
+        g_value_set_boolean (value, src->enable_usb);
         break;
 
     case PROP_MEM_MODE:
@@ -524,6 +548,10 @@ gst_xcam_src_set_property (
         break;
     case PROP_ENABLE_3A:
         src->enable_3a = g_value_get_boolean (value);
+        break;
+
+    case PROP_ENABLE_USB:
+        src->enable_usb = g_value_get_boolean (value);
         break;
 
     case PROP_MEM_MODE:
@@ -643,6 +671,7 @@ gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface)
 static gboolean
 gst_xcam_src_start (GstBaseSrc *src)
 {
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     GstXCamSrc *xcamsrc = GST_XCAM_SRC (src);
     SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
     SmartPtr<X3aAnalyzer> analyzer;
@@ -668,11 +697,17 @@ gst_xcam_src_start (GstBaseSrc *src)
     if (xcamsrc->in_format == 0) {
         if (xcamsrc->image_processor_type == CL_IMAGE_PROCESSOR)
             xcamsrc->in_format = V4L2_PIX_FMT_SGRBG10;
+        else if (xcamsrc->enable_usb)
+            xcamsrc->in_format = V4L2_PIX_FMT_YUYV;
         else
             xcamsrc->in_format = V4L2_PIX_FMT_NV12;
     }
 
-    capture_device = new AtomispDevice (xcamsrc->device);
+    if (!xcamsrc->enable_usb) {
+        capture_device = new AtomispDevice (xcamsrc->device);
+    } else {
+        capture_device = new UVCDevice (xcamsrc->device);
+    }
     capture_device->set_sensor_id (xcamsrc->sensor_id);
     capture_device->set_capture_mode (xcamsrc->capture_mode);
     capture_device->set_mem_type (xcamsrc->mem_type);
@@ -680,11 +715,14 @@ gst_xcam_src_start (GstBaseSrc *src)
     capture_device->open ();
     device_manager->set_capture_device (capture_device);
 
-    event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
-    event_device->open ();
-    event_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
-    //event_device->subscribe_event (V4L2_EVENT_FRAME_SYNC);
-    device_manager->set_event_device (event_device);
+    if (!xcamsrc->enable_usb) { // USB camera does not use the v4l2 subdevice
+        event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
+        ret = event_device->open ();
+        if (ret == XCAM_RETURN_NO_ERROR) {
+            event_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
+            device_manager->set_event_device (event_device);
+        }
+    }
 
     isp_controller = new IspController (capture_device);
     device_manager->set_isp_controller (isp_controller);
@@ -780,13 +818,19 @@ gst_xcam_src_start (GstBaseSrc *src)
 static gboolean
 gst_xcam_src_stop (GstBaseSrc *src)
 {
+    SmartPtr<V4l2SubDevice> event_device;
     GstXCamSrc *xcamsrc = GST_XCAM_SRC_CAST (src);
     SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
     XCAM_ASSERT (device_manager.ptr ());
 
     device_manager->stop();
     device_manager->get_capture_device()->close ();
-    device_manager->get_event_device()->close ();
+
+    event_device = device_manager->get_event_device();
+    // For USB camera case, the event_device ptr will be NULL
+    if (event_device.ptr())
+        event_device->close ();
+
     device_manager->pause_dequeue ();
     return TRUE;
 }
@@ -855,7 +899,9 @@ gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps)
     GstVideoInfo info;
 
     gst_video_info_from_caps (&info, caps);
-    XCAM_ASSERT (GST_VIDEO_INFO_FORMAT (&info) == GST_VIDEO_FORMAT_NV12);
+    XCAM_ASSERT ((GST_VIDEO_INFO_FORMAT (&info) == GST_VIDEO_FORMAT_NV12) ||
+                 (GST_VIDEO_INFO_FORMAT (&info) == GST_VIDEO_FORMAT_YUY2));
+
     out_format = translate_format_to_xcam (GST_VIDEO_INFO_FORMAT (&info));
     if (!out_format) {
         GST_WARNING ("format doesn't support:%s", GST_VIDEO_INFO_NAME (&info));
@@ -895,6 +941,10 @@ gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps)
         GST_VIDEO_INFO_PLANE_OFFSET (&xcamsrc->gst_video_info, n) = offset;
         if (out_format == V4L2_PIX_FMT_NV12) {
             GST_VIDEO_INFO_PLANE_STRIDE (&xcamsrc->gst_video_info, n) = format.fmt.pix.bytesperline * 2 / 3;
+        }
+        else if (format.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
+            // for 4:2:2 format, stride is widthx2
+            GST_VIDEO_INFO_PLANE_STRIDE (&xcamsrc->gst_video_info, n) = format.fmt.pix.bytesperline;
         }
         else {
             GST_VIDEO_INFO_PLANE_STRIDE (&xcamsrc->gst_video_info, n) = format.fmt.pix.bytesperline / 2;

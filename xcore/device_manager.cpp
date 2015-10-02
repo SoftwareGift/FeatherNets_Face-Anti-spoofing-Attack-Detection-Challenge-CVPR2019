@@ -274,7 +274,9 @@ DeviceManager::stop ()
     if (_3a_process_center.ptr())
         _3a_process_center->stop ();
 
-    _subdevice->stop ();
+    if (_subdevice.ptr ())
+        _subdevice->stop ();
+
     _device->stop ();
 
     _isp_controller.release ();
