@@ -299,6 +299,7 @@ void print_help (const char *bin_name)
             "\t --enable-bnr  enable bayer noise reduction\n"
             "\t --enable-dpc  enable defect pixel correction\n"
             "\t --enable-tonemapping  enable tonemapping\n"
+            "\t --enable-wdr  enable wdr\n"
             "\t --pipeline    pipe mode\n"
             "\t               select from [basic, advance, extreme], default is [basic]\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
@@ -345,6 +346,7 @@ int main (int argc, char *argv[])
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
     bool tonemapping_type = false;
+    bool wdr_type = false;
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
     char*   usb_device_name = NULL;
@@ -362,6 +364,7 @@ int main (int argc, char *argv[])
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-dpc", no_argument, NULL, 'D'},
         {"enable-tonemapping", no_argument, NULL, 'M'},
+        {"enable-wdr", no_argument, NULL, 'W'},
         {"usb", required_argument, NULL, 'U'},
         {"sync", no_argument, NULL, 'Y'},
         {"capture", required_argument, NULL, 'C'},
@@ -517,6 +520,10 @@ int main (int argc, char *argv[])
             tonemapping_type = true;
             break;
         }
+        case 'W': {
+            wdr_type = true;
+            break;
+        }
         case 'P': {
             if (!strcasecmp (optarg, "basic"))
                 pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
@@ -662,6 +669,7 @@ int main (int argc, char *argv[])
         cl_processor->set_hdr (hdr_type);
         cl_processor->set_denoise (denoise_type);
         cl_processor->set_tonemapping(tonemapping_type);
+        cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
         cl_processor->set_capture_stage (capture_stage);
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
@@ -677,11 +685,11 @@ int main (int argc, char *argv[])
     CHECK (ret, "device manager start failed");
 
     // hard code exposure range and max gain for imx185 WDR
-    if (pixel_format == V4L2_PIX_FMT_SGRBG12) {
+    if (wdr_type) {
         if (frame_rate == 30)
             analyzer->set_ae_exposure_time_range (80 * 1110 * 1000 / 37125, 1120 * 1110 * 1000 / 37125);
         else
-            analyzer->set_ae_exposure_time_range (80 * 1125 * 1000 / 37125, 1120 * 1125 * 1000 / 37125);
+            analyzer->set_ae_exposure_time_range (80 * 1320 * 1000 / 37125, 1120 * 1320 * 1000 / 37125);
         analyzer->set_ae_max_analog_gain (3.98); // 12dB
     }
 
