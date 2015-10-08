@@ -59,6 +59,7 @@ private:
     uint32_t _interval;
     uint32_t _frame_save;
     uint32_t _frame_count;
+    uint32_t _skip_frame_count;
 
 };
 
@@ -68,6 +69,7 @@ FrameSaver::FrameSaver (bool save, uint32_t interval, uint32_t count)
     , _interval (interval)
     , _frame_save (count)
     , _frame_count (0)
+    , _skip_frame_count (300)
 {
 }
 
@@ -83,7 +85,10 @@ FrameSaver::save_frame (XCamVideoBuffer *buffer)
     if ((_frame_count++ % _interval) != 0)
         return;
 
-    if (_frame_count > (_frame_save * _interval)) {
+    if (_frame_count < _skip_frame_count)
+        return;
+
+    if (_frame_count > (_frame_save * _interval + _skip_frame_count)) {
         return;
     }
 
@@ -148,12 +153,13 @@ private:
 };
 
 SampleHandler::SampleHandler (const char *name)
+    : _callback (NULL)
 {
     if (name)
         _name = strdup (name);
 
     if (!_frameSaver.ptr ()) {
-        _frameSaver = new FrameSaver (true, 20, 10);
+        _frameSaver = new FrameSaver (true, 2, 16);
     }
 }
 

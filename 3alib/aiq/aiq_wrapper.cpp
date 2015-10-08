@@ -80,8 +80,13 @@ bool
 XCam3AAiqContext::setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_data, const char *cpf)
 {
     XCAM_ASSERT (!_analyzer.ptr ());
-    _analyzer = new X3aAnalyzeTuner (sensor_mode_data, cpf);
+    SmartPtr<X3aAnalyzer> aiq_analyzer = new X3aAnalyzerAiq (sensor_mode_data, cpf);
+    XCAM_ASSERT (aiq_analyzer.ptr ());
+
+    _analyzer = new X3aAnalyzeTuner ();
     XCAM_ASSERT (_analyzer.ptr ());
+
+    _analyzer->set_analyzer (aiq_analyzer);
     _analyzer->set_results_callback (this);
     return true;
 }

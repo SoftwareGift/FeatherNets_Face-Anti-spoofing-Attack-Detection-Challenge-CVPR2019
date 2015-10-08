@@ -26,7 +26,7 @@
 namespace XCam {
 
 class X3aCiqTuningHandler;
-class X3aAnalyzerAiq;
+class X3aAnalyzer;
 
 class X3aAnalyzeTuner
     : public X3aAnalyzer
@@ -35,11 +35,11 @@ class X3aAnalyzeTuner
     typedef std::list<SmartPtr<X3aCiqTuningHandler>> X3aCiqTuningHandlerList;
 
 public:
-    explicit X3aAnalyzeTuner (struct atomisp_sensor_mode_data &sensor_data, const char *cpf_path);
+    explicit X3aAnalyzeTuner ();
     virtual ~X3aAnalyzeTuner ();
 
     void enable_handler ();
-    void set_3a_analyzer (SmartPtr<X3aAnalyzerAiq> &analyzer);
+    void set_analyzer (SmartPtr<X3aAnalyzer> &analyzer);
 
     XCamReturn analyze_ae (XCamAeParam &param);
     XCamReturn analyze_awb (XCamAwbParam &param);
@@ -71,7 +71,7 @@ private:
 protected:
 
 private:
-    SmartPtr<X3aAnalyzerAiq> _aiq_analyzer;
+    SmartPtr<X3aAnalyzer> _analyzer;
     X3aCiqTuningHandlerList _handlers;
     SmartPtr<X3aStats> _stats;
     X3aResultList _results;
