@@ -172,6 +172,9 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             _bayer_pipe->set_wb_config (wb_res->get_standard_result ());
             _bayer_pipe->set_3a_result (result);
         }
+        if (_tonemapping.ptr ()) {
+            _tonemapping->set_wb_config (wb_res->get_standard_result ());
+        }
         break;
     }
 

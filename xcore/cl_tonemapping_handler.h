@@ -23,6 +23,9 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
+#include "cl_wb_handler.h"
+#include "x3a_stats_pool.h"
+
 
 namespace XCam {
 
@@ -32,7 +35,7 @@ class CLTonemappingImageKernel
 public:
     explicit CLTonemappingImageKernel (SmartPtr<CLContext> &context,
                                        const char *name);
-    void set_initial_color_bits(uint32_t color_bits);
+    bool set_wb (const XCam3aResultWhiteBalance &wb);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -42,7 +45,10 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLTonemappingImageKernel);
-    uint32_t _initial_color_bits;// color bits from ISP
+    CLWBConfig                _wb_config;
+    float                     _tm_gamma;
+
+    SmartPtr<CLBuffer>        _stats_buffer;
 };
 
 class CLTonemappingImageHandler
@@ -51,7 +57,7 @@ class CLTonemappingImageHandler
 public:
     explicit CLTonemappingImageHandler (const char *name);
     bool set_tonemapping_kernel(SmartPtr<CLTonemappingImageKernel> &kernel);
-    void set_initial_color_bits(uint32_t color_bits);
+    bool set_wb_config (const XCam3aResultWhiteBalance &wb);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (

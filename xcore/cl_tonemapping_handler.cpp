@@ -24,15 +24,23 @@ namespace XCam {
 
 CLTonemappingImageKernel::CLTonemappingImageKernel (SmartPtr<CLContext> &context,
         const char *name)
-    : CLImageKernel (context, name),
-      _initial_color_bits (12)
+    : CLImageKernel (context, name)
+    , _tm_gamma(2.0f);
 {
+    _wb_config.r_gain = 1.0;
+    _wb_config.gr_gain = 1.0;
+    _wb_config.gb_gain = 1.0;
+    _wb_config.b_gain = 1.0;
 }
 
-void
-CLTonemappingImageKernel::set_initial_color_bits(uint32_t color_bits)
+bool
+CLTonemappingImageKernel::set_wb (const XCam3aResultWhiteBalance &wb)
 {
-    _initial_color_bits = color_bits;
+    _wb_config.r_gain = (float)wb.r_gain;
+    _wb_config.gr_gain = (float)wb.gr_gain;
+    _wb_config.gb_gain = (float)wb.gb_gain;
+    _wb_config.b_gain = (float)wb.b_gain;
+    return true;
 }
 
 
@@ -54,23 +62,31 @@ CLTonemappingImageKernel::prepare_arguments (
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
-    //XCAM_LOG_INFO ("IN tonemapping color bits = %d\n",_initial_color_bits);
+    SmartPtr<X3aStats> stats = input->find_3a_stats ();
+    XCam3AStats *stats_ptr = stats->get_stats ();
+    _stats_buffer = new CLBuffer(
+        context, stats_ptr->info.aligned_width * stats_ptr->info.aligned_height * sizeof (XCamGridStat),
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &(stats_ptr->stats));
 
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_initial_color_bits;
-    args[2].arg_size = sizeof (_initial_color_bits);
-    arg_count = 3;
+    args[2].arg_adress = &_stats_buffer->get_mem_id ();
+    args[2].arg_size = sizeof (cl_mem);
+    args[3].arg_adress = &_wb_config;
+    args[3].arg_size = sizeof (_wb_config);
+    args[4].arg_adress = &_tm_gamma;
+    args[4].arg_size = sizeof (float);
+    arg_count = 5;
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = out_info.width;
-    work_size.global[1] = out_info.height;
-    work_size.local[0] = 8;
-    work_size.local[1] = 4;
+    work_size.global[1] = stats_ptr->info.aligned_height * 16;
+    work_size.local[0] = 16;
+    work_size.local[1] = 16;
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -90,10 +106,10 @@ CLTonemappingImageHandler::set_tonemapping_kernel(SmartPtr<CLTonemappingImageKer
     return true;
 }
 
-void
-CLTonemappingImageHandler::set_initial_color_bits(uint32_t color_bits)
+bool
+CLTonemappingImageHandler::set_wb_config (const XCam3aResultWhiteBalance &wb)
 {
-    _tonemapping_kernel->set_initial_color_bits(color_bits);
+    return _tonemapping_kernel->set_wb (wb);
 }
 
 
