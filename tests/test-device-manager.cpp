@@ -618,6 +618,10 @@ int main (int argc, char *argv[])
     else {
         frame_rate = 25;
         device->set_framerate (frame_rate, 1);
+        if(tonemapping_type == true) {
+            XCAM_LOG_WARNING("Tonemapping is only applicable under BA12 format. Disable tonemapping automatically.");
+            tonemapping_type = false;
+        }
     }
     ret = device->open ();
     CHECK (ret, "device(%s) open failed", device->get_device_name());
