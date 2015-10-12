@@ -153,9 +153,12 @@ __inline void cl_tnr_yuv(float *in, __read_only image2d_t inputFramePre, int x, 
     in_prev[4] = read_imagef(inputFramePre, sampler, (int2)(2 * x, y + vertical_offset));
     in_prev[5] = read_imagef(inputFramePre, sampler, (int2)(2 * x + 1, y + vertical_offset));
 
+    float diff_max = 0.8;
+
     float diff_Y = 0.25 * (fabs(in[0] - in_prev[0].x) + fabs(in[1] - in_prev[1].x) + fabs(in[2] - in_prev[2].x) + fabs(in[3] - in_prev[3].x));
 
-    float coeff_Y = (diff_Y < thr_y) ? gain_yuv : 1.0;
+    float coeff_Y = (diff_Y < thr_y) ? gain_yuv : (diff_Y * (1 - gain_yuv) + diff_max * gain_yuv - thr_y) / (diff_max - thr_y);
+    coeff_Y = (coeff_Y < 1.0) ? coeff_Y : 1.0;
 
     float out[6];
     in[0] =  in_prev[0].x + (in[0] - in_prev[0].x) * coeff_Y;
@@ -166,9 +169,10 @@ __inline void cl_tnr_yuv(float *in, __read_only image2d_t inputFramePre, int x, 
     float diff_U = fabs(in[4] -  in_prev[4].x);
     float diff_V = fabs(in[5] -  in_prev[5].x);
 
-    float coeff_U = (diff_U < thr_uv) ? gain_yuv : 1.0;
-
-    float coeff_V = (diff_V < thr_uv) ? gain_yuv : 1.0;
+    float coeff_U = (diff_U < thr_uv) ? gain_yuv : (diff_U * (1 - gain_yuv) + diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv);
+    float coeff_V = (diff_V < thr_uv) ? gain_yuv : (diff_V * (1 - gain_yuv) + diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv);
+    coeff_U = (coeff_U < 1.0) ? coeff_U : 1.0;
+    coeff_V = (coeff_V < 1.0) ? coeff_V : 1.0;
 
     in[4] =  in_prev[4].x + (in[4] - in_prev[4].x) * coeff_U;
     in[5] =  in_prev[5].x + (in[5] - in_prev[5].x) * coeff_V;

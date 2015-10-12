@@ -518,7 +518,7 @@ CL3aImageProcessor::create_handlers ()
         WARNING,
         _yuv_pipe.ptr (),
         XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create macc handler failed");
+        "CL3aImageProcessor create yuv pipe handler failed");
     _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_RGB, _tnr_mode & CL_TNR_TYPE_YUV);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
@@ -622,11 +622,10 @@ CL3aImageProcessor::set_profile (const CL3aImageProcessor::PipelineProfile value
     _pipeline_profile = value;
 
     if (value >= AdvancedPipelineProfile)
-        _tnr_mode |= CL_TNR_TYPE_RGB;
+        _tnr_mode |= CL_TNR_TYPE_YUV;
 
     if (value >= ExtremePipelineProfile) {
         _snr_mode |= XCAM_DENOISE_TYPE_BNR;
-        _tnr_mode |= CL_TNR_TYPE_YUV;
     }
     STREAM_LOCK;
     if (_yuv_pipe.ptr ())

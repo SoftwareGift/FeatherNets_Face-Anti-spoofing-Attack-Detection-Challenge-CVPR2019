@@ -1,8 +1,8 @@
 /*
  * function: kernel_tnr_yuv
  *     Temporal Noise Reduction
+ * inputFrame:      image2d_t as read only
  * inputFrame0:      image2d_t as read only
- * inputFrame1:      image2d_t as read only
  * outputFrame:      image2d_t as write only
  * vertical_offset:  vertical offset from y to uv
  * gain:             Blending ratio of previous and current frame
@@ -32,15 +32,18 @@ __kernel void kernel_tnr_yuv(__read_only image2d_t inputFrame, __read_only image
     float4 pixel_U = read_imagef(inputFrame, sampler, (int2)(2 * x, y + vertical_offset));
     float4 pixel_V = read_imagef(inputFrame, sampler, (int2)(2 * x + 1, y + vertical_offset));
 
+    float diff_max = 0.8;
+
     float diff_Y = 0.25 * (fabs(pixel_Y1.x - pixel_t0_Y1.x) + fabs(pixel_Y2.x - pixel_t0_Y2.x) + fabs(pixel_Y3.x - pixel_t0_Y3.x) + fabs(pixel_Y4.x - pixel_t0_Y4.x));
 
-    float coeff_Y = 1.0;
-    if (diff_Y < thr_y) coeff_Y = gain;
+    float coeff_Y = (diff_Y < thr_y) ? gain : (diff_Y * (1 - gain) + diff_max * gain - thr_y) / (diff_max - thr_y);
+    coeff_Y = (coeff_Y < 1.0) ? coeff_Y : 1.0;
 
     float4 pixel_outY1;
     float4 pixel_outY2;
     float4 pixel_outY3;
     float4 pixel_outY4;
+    // X'(K) = (1 - gain) * X'(k-1) + gain * X(k)
     pixel_outY1.x = pixel_t0_Y1.x + (pixel_Y1.x - pixel_t0_Y1.x) * coeff_Y;
     pixel_outY2.x = pixel_t0_Y2.x + (pixel_Y2.x - pixel_t0_Y2.x) * coeff_Y;
     pixel_outY3.x = pixel_t0_Y3.x + (pixel_Y3.x - pixel_t0_Y3.x) * coeff_Y;
@@ -49,11 +52,10 @@ __kernel void kernel_tnr_yuv(__read_only image2d_t inputFrame, __read_only image
     float diff_U = fabs(pixel_U.x - pixel_t0_U.x);
     float diff_V = fabs(pixel_V.x - pixel_t0_V.x);
 
-    float coeff_U = 1.0;
-    if (diff_U < thr_uv) coeff_U = gain;
-
-    float coeff_V = 1.0;
-    if (diff_V < thr_uv) coeff_V = gain;
+    float coeff_U = (diff_U < thr_uv) ? gain : (diff_U * (1 - gain) + diff_max * gain - thr_uv) / (diff_max - thr_uv);
+    float coeff_V = (diff_V < thr_uv) ? gain : (diff_V * (1 - gain) + diff_max * gain - thr_uv) / (diff_max - thr_uv);
+    coeff_U = (coeff_U < 1.0) ? coeff_U : 1.0;
+    coeff_V = (coeff_V < 1.0) ? coeff_V : 1.0;
 
     float4 pixel_outU;
     float4 pixel_outV;

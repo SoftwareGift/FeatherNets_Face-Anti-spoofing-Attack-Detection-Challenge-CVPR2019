@@ -36,11 +36,11 @@ typedef struct _X3aCiqTnrTuningStaticData {
 } X3aCiqTnrTuningStaticData;
 
 const X3aCiqTnrTuningStaticData imx185_tuning[X3A_CIQ_GAIN_STEPS] = {
-    {1.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-    {16.98, 0.5, 0.0081, 0.0145, 1.0, 0.0253, 0.0158, 0.0168},
-    {49.55, 0.5, 0.0138, 0.0260, 1.0, 0.0434, 0.0274, 0.0317},
-    {92.26, 0.5, 0.0196, 0.0359, 1.0, 0.0602, 0.0377, 0.0445},
-    {X3A_CIQ_GAIN_MAX, 0.5, 0.0360, 0.0664, 1.0, 0.0994, 0.0696, 0.0924},
+    {1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+    {16.98, 0.8, 0.0081, 0.00725, 1.0, 0.0253, 0.0158, 0.0168},
+    {49.55, 0.5, 0.0146, 0.0128, 1.0, 0.0434, 0.0274, 0.0317},
+    {139.63, 0.3, 0.0247, 0.0253, 1.0, 0.0602, 0.0377, 0.0445},
+    {X3A_CIQ_GAIN_MAX, 0.2, 0.0358, 0.0329, 1.0, 0.0994, 0.0696, 0.0924},
 };
 
 X3aCiqTnrTuningHandler::X3aCiqTnrTuningHandler ()
@@ -66,9 +66,10 @@ X3aCiqTnrTuningHandler::analyze (X3aResultList &output)
     SmartPtr<X3aTemporalNoiseReduction> rgb_result = new X3aTemporalNoiseReduction (XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB);
     SmartPtr<X3aTemporalNoiseReduction> yuv_result = new X3aTemporalNoiseReduction (XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV);
 
+    int64_t et = get_current_exposure_time ();
     double analog_gain = get_current_analog_gain ();
     double max_analog_gain = get_max_analog_gain ();
-    XCAM_LOG_DEBUG ("get current AG = (%f), max AG = (%f)", analog_gain, max_analog_gain);
+    XCAM_LOG_DEBUG ("get current AG = (%f), max AG = (%f), et = (%lld)", analog_gain, max_analog_gain, et);
 
     uint8_t i_curr = 0;
     uint8_t i_prev = 0;

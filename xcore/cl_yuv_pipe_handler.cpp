@@ -130,7 +130,7 @@ CLYuvPipeImageKernel::prepare_arguments (
     _vertical_offset = video_info.aligned_height;
 
     if (!_image_out_prev.ptr ()) {
-        _image_out_prev = _image_out;
+        _image_out_prev = _image_in;
         _enable_tnr_yuv_state = _enable_tnr_yuv;
         _enable_tnr_yuv = 0;
     }
