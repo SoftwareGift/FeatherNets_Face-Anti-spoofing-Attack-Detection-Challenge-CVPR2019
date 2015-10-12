@@ -25,7 +25,7 @@ namespace XCam {
 CLTonemappingImageKernel::CLTonemappingImageKernel (SmartPtr<CLContext> &context,
         const char *name)
     : CLImageKernel (context, name)
-    , _tm_gamma(2.0f);
+    , _tm_gamma(2.0f)
 {
     _wb_config.r_gain = 1.0;
     _wb_config.gr_gain = 1.0;
