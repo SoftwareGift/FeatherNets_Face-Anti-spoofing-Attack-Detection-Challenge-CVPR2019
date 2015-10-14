@@ -280,6 +280,7 @@ static gboolean gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode);
 static gboolean gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint32 mode);
 static gboolean gst_xcam_src_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable);
 static gboolean gst_xcam_src_set_dpc_mode(GstXCam3A * xcam3a, gboolean enable);
+static gboolean gst_xcam_src_set_tonemapping_mode(GstXCam3A * xcam3a, gboolean enable);
 
 static gboolean gst_xcam_src_plugin_init (GstPlugin * xcamsrc);
 
@@ -666,6 +667,7 @@ gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface)
     iface->set_denoise_mode = gst_xcam_src_set_denoise_mode;
     iface->set_gamma_mode = gst_xcam_src_set_gamma_mode;
     iface->set_dpc_mode = gst_xcam_src_set_dpc_mode;
+    iface->set_tonemapping_mode = gst_xcam_src_set_tonemapping_mode;
 }
 
 static gboolean
@@ -879,7 +881,7 @@ translate_format_to_xcam (GstVideoFormat format)
     case GST_VIDEO_FORMAT_Y42B:
         return V4L2_PIX_FMT_YUV422P;
 
-        //RGB
+    //RGB
     case GST_VIDEO_FORMAT_RGBx:
         return V4L2_PIX_FMT_RGB32;
     case GST_VIDEO_FORMAT_BGRx:
@@ -1358,6 +1360,21 @@ gst_xcam_src_set_dpc_mode (GstXCam3A *xcam3a, gboolean enable)
     SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
     if (cl_image_processor.ptr ())
         return cl_image_processor->set_dpc (enable);
+    else
+#endif
+        return false;
+}
+
+static gboolean
+gst_xcam_src_set_tonemapping_mode (GstXCam3A *xcam3a, gboolean enable)
+{
+    GST_XCAM_INTERFACE_HEADER (xcam3a, src, device_manager, analyzer);
+    XCAM_UNUSED (analyzer);
+
+#if HAVE_LIBCL
+    SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
+    if (cl_image_processor.ptr ())
+        return cl_image_processor->set_tonemapping (enable);
     else
 #endif
         return false;

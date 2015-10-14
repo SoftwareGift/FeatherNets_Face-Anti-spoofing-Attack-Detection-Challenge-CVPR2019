@@ -90,4 +90,5 @@ gst_xcam_3a_iface_init (GstXCam3AInterface * iface)
     iface->set_denoise_mode = NULL;
     iface->set_gamma_mode = NULL;
     iface->set_dpc_mode = NULL;
+    iface->set_tonemapping_mode = NULL;
 }
