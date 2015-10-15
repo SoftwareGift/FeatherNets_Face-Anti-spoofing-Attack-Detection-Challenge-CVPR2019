@@ -313,10 +313,10 @@ PollThread::poll_buffer_loop ()
     XCAM_ASSERT (buf.ptr());
     XCAM_ASSERT (_poll_callback);
 
-    SmartPtr<V4l2BufferProxy> buf_proxy = new V4l2BufferProxy (buf, _capture_dev);
+    SmartPtr<VideoBuffer> video_buf = new V4l2BufferProxy (buf, _capture_dev);
 
     if (_poll_callback)
-        return _poll_callback->poll_buffer_ready (buf_proxy);
+        return _poll_callback->poll_buffer_ready (video_buf);
 
     return ret;
 }

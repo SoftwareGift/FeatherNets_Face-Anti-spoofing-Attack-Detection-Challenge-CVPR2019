@@ -159,6 +159,17 @@ DeviceManager::add_image_processor (SmartPtr<ImageProcessor> processor)
     return _3a_process_center->insert_processor (processor);
 }
 
+bool
+DeviceManager::set_poll_thread (SmartPtr<PollThread> thread)
+{
+    if (is_running ())
+        return false;
+
+    XCAM_ASSERT (thread.ptr () && !_poll_thread.ptr ());
+    _poll_thread = thread;
+    return true;
+}
+
 XCamReturn
 DeviceManager::start ()
 {
@@ -238,7 +249,7 @@ DeviceManager::start ()
     }
 
     //Initialize and start poll thread
-    _poll_thread = new PollThread;
+    XCAM_ASSERT (_poll_thread.ptr ());
     _poll_thread->set_capture_device (_device);
     if (_subdevice.ptr ())
         _poll_thread->set_event_device (_subdevice);
@@ -330,11 +341,10 @@ DeviceManager::scaled_image_ready (const SmartPtr<ScaledVideoBuffer> &buffer)
 
 
 XCamReturn
-DeviceManager::poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf)
+DeviceManager::poll_buffer_ready (SmartPtr<VideoBuffer> &buf)
 {
     if (_has_3a) {
-        SmartPtr<VideoBuffer> video_buf = buf;
-        if (_3a_process_center->put_buffer (video_buf) == false)
+        if (_3a_process_center->put_buffer (buf) == false)
             return XCAM_RETURN_ERROR_UNKNOWN;
     }
     return XCAM_RETURN_NO_ERROR;

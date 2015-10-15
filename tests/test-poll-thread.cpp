@@ -58,7 +58,7 @@ public:
     ~PollCB() {
         close_file ();
     };
-    XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf);
+    XCamReturn poll_buffer_ready (SmartPtr<VideoBuffer> &buf);
     XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg)
     {
         XCAM_UNUSED(timestamp);
@@ -89,7 +89,7 @@ private:
 };
 
 XCamReturn
-PollCB::poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf) {
+PollCB::poll_buffer_ready (SmartPtr<VideoBuffer> &buf) {
 
     SmartPtr<VideoBuffer> base = buf;
     XCAM_LOG_DEBUG("%s", __FUNCTION__);

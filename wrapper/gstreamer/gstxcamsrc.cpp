@@ -41,6 +41,9 @@
 #include "x3a_analyzer_loader.h"
 #include "smart_analyzer_loader.h"
 #include "smart_analysis_handler.h"
+#include "poll_thread.h"
+#include "fake_poll_thread.h"
+#include "fake_v4l2_device.h"
 
 #include <signal.h>
 #include <uvc_device.h>
@@ -220,7 +223,8 @@ enum {
     PROP_CPF,
     PROP_3A_LIB,
     PROP_INPUT_FMT,
-    PROP_ENABLE_USB
+    PROP_ENABLE_USB,
+    PROP_FAKE_INPUT
 };
 
 static void gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface);
@@ -378,6 +382,11 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
         g_param_spec_string ("input-format", "input format", "Input pixel format",
                              NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+    g_object_class_install_property (
+        gobject_class, PROP_FAKE_INPUT,
+        g_param_spec_string ("fake-input", "fake input", "Use the specified raw file as fake input instead of live camera",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Source",
                                           "Source/Base",
@@ -416,6 +425,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
+    xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
     xcamsrc->time_offset = -1;
     xcamsrc->buf_mark = 0;
@@ -518,6 +528,9 @@ gst_xcam_src_get_property (
         g_value_set_string (value, xcam_fourcc_to_string (src->in_format));
         break;
     }
+    case PROP_FAKE_INPUT:
+        g_value_set_string (value, src->path_to_fake);
+        break;
 
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -620,6 +633,15 @@ gst_xcam_src_set_property (
             GST_ERROR_OBJECT (src, "Invalid input format: not fourcc");
         break;
     }
+    case PROP_FAKE_INPUT: {
+        const char * raw_path = g_value_get_string (value);
+        if (src->path_to_fake)
+            xcam_free (src->path_to_fake);
+        src->path_to_fake = NULL;
+        if (raw_path)
+            src->path_to_fake = strdup (raw_path);
+        break;
+    }
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -685,6 +707,7 @@ gst_xcam_src_start (GstBaseSrc *src)
     SmartPtr<V4l2Device> capture_device;
     SmartPtr<V4l2SubDevice> event_device;
     SmartPtr<IspController> isp_controller;
+    SmartPtr<PollThread> poll_thread;
 
     // Check device
     if (xcamsrc->device == NULL) {
@@ -705,7 +728,9 @@ gst_xcam_src_start (GstBaseSrc *src)
             xcamsrc->in_format = V4L2_PIX_FMT_NV12;
     }
 
-    if (!xcamsrc->enable_usb) {
+    if (xcamsrc->path_to_fake) {
+        capture_device = new FakeV4l2Device ();
+    } else if (!xcamsrc->enable_usb) {
         capture_device = new AtomispDevice (xcamsrc->device);
     } else {
         capture_device = new UVCDevice (xcamsrc->device);
@@ -717,7 +742,7 @@ gst_xcam_src_start (GstBaseSrc *src)
     capture_device->open ();
     device_manager->set_capture_device (capture_device);
 
-    if (!xcamsrc->enable_usb) { // USB camera does not use the v4l2 subdevice
+    if (!xcamsrc->enable_usb && !xcamsrc->path_to_fake) {
         event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
         ret = event_device->open ();
         if (ret == XCAM_RETURN_NO_ERROR) {
@@ -814,6 +839,11 @@ gst_xcam_src_start (GstBaseSrc *src)
         device_manager->set_smart_analyzer (smart_analyzer);
     }
 
+    if (xcamsrc->path_to_fake)
+        poll_thread = new FakePollThread (xcamsrc->path_to_fake);
+    else
+        poll_thread = new PollThread ();
+    device_manager->set_poll_thread (poll_thread);
     return TRUE;
 }
 
@@ -881,7 +911,7 @@ translate_format_to_xcam (GstVideoFormat format)
     case GST_VIDEO_FORMAT_Y42B:
         return V4L2_PIX_FMT_YUV422P;
 
-    //RGB
+        //RGB
     case GST_VIDEO_FORMAT_RGBx:
         return V4L2_PIX_FMT_RGB32;
     case GST_VIDEO_FORMAT_BGRx:

@@ -78,6 +78,7 @@ public:
     bool set_3a_analyzer (SmartPtr<X3aAnalyzer> analyzer);
     bool set_smart_analyzer (SmartPtr<SmartAnalyzer> analyzer);
     bool add_image_processor (SmartPtr<ImageProcessor> processor);
+    bool set_poll_thread (SmartPtr<PollThread> thread);
 
     SmartPtr<V4l2Device>& get_capture_device () {
         return _device;
@@ -105,7 +106,7 @@ protected:
 
 protected:
     //virtual functions derived from PollCallback
-    virtual XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf);
+    virtual XCamReturn poll_buffer_ready (SmartPtr<VideoBuffer> &buf);
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg);
     virtual XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats);
     virtual XCamReturn dvs_stats_ready ();

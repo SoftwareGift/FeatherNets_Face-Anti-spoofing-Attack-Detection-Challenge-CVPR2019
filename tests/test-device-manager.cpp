@@ -21,6 +21,7 @@
 #include "device_manager.h"
 #include "atomisp_device.h"
 #include "uvc_device.h"
+#include "fake_v4l2_device.h"
 #include "isp_controller.h"
 #include "isp_image_processor.h"
 #include "x3a_analyzer_simple.h"
@@ -37,6 +38,8 @@
 #include "drm_display.h"
 #endif
 #include "x3a_analyzer_loader.h"
+#include "poll_thread.h"
+#include "fake_poll_thread.h"
 #include <base/xcam_3a_types.h>
 #include <unistd.h>
 #include <signal.h>
@@ -285,6 +288,7 @@ void print_help (const char *bin_name)
             "\t -e display_mode    preview mode\n"
             "\t                select from [primary, overlay], default is [primary]\n"
             "\t --sync        set analyzer in sync mode\n"
+            "\t -r raw_input  specify the path of raw image as fake source instead of live camera\n"
             "\t -h            help\n"
 #if HAVE_LIBCL
             "CL features:\n"
@@ -353,8 +357,9 @@ int main (int argc, char *argv[])
     char*   usb_device_name = NULL;
     bool sync_mode = false;
     int frame_rate;
+    char *path_to_fake = NULL;
 
-    const char *short_opts = "sca:n:m:f:d:b:pi:e:h";
+    const char *short_opts = "sca:n:m:f:d:b:pi:e:r:h";
     const struct option long_opts[] = {
         {"hdr", required_argument, NULL, 'H'},
         {"tnr", required_argument, NULL, 'T'},
@@ -543,6 +548,13 @@ int main (int argc, char *argv[])
             break;
         }
 #endif
+        case 'r': {
+            if (optarg) {
+                XCAM_LOG_INFO ("use raw image %s as input source", optarg);
+                path_to_fake = strdup(optarg);
+            }
+            break;
+        }
         case 'h':
             print_help (bin_name);
             return 0;
@@ -558,7 +570,9 @@ int main (int argc, char *argv[])
         device_manager->set_display_mode (display_mode);
     }
     if (!device.ptr ())  {
-        if (have_usbcam) {
+        if (path_to_fake) {
+            device = new FakeV4l2Device ();
+        } else if (have_usbcam) {
             device = new UVCDevice (usb_device_name);
         } else {
             if (capture_mode == V4L2_CAPTURE_MODE_STILL)
@@ -685,6 +699,13 @@ int main (int argc, char *argv[])
     }
 #endif
 
+    SmartPtr<PollThread> poll_thread;
+    if (path_to_fake)
+        poll_thread = new FakePollThread (path_to_fake);
+    else
+        poll_thread = new PollThread ();
+    device_manager->set_poll_thread (poll_thread);
+
     ret = device_manager->start ();
     CHECK (ret, "device manager start failed");
 
@@ -708,6 +729,10 @@ int main (int argc, char *argv[])
     CHECK_CONTINUE (ret, "device manager stop failed");
     device->close ();
     event_device->close ();
+    if (usb_device_name)
+        free (usb_device_name);
+    if (path_to_fake)
+        free (path_to_fake);
 
     return 0;
 }

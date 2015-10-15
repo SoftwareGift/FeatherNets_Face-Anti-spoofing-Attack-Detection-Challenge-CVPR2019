@@ -105,7 +105,7 @@ public:
     XCamReturn queue_buffer (SmartPtr<V4l2Buffer> &buf);
 
     // use as less as possible
-    int io_control (int cmd, void *arg);
+    virtual int io_control (int cmd, void *arg);
 
 protected:
 

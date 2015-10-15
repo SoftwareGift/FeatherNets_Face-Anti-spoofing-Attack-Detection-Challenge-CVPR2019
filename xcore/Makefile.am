@@ -58,6 +58,7 @@ xcam_sources =               \
 	dynamic_analyzer.cpp     \
 	smart_analyzer.cpp       \
 	smart_analysis_handler.cpp \
+        fake_poll_thread.cpp \
 	handler_interface.cpp    \
 	image_processor.cpp      \
 	isp_controller.cpp       \

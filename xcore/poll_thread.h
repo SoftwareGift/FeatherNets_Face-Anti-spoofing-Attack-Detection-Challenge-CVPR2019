@@ -39,7 +39,7 @@ class PollCallback
 public:
     PollCallback () {}
     virtual ~PollCallback() {}
-    virtual XCamReturn poll_buffer_ready (SmartPtr<V4l2BufferProxy> &buf) = 0;
+    virtual XCamReturn poll_buffer_ready (SmartPtr<VideoBuffer> &buf) = 0;
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg) = 0;
 
 private:
@@ -57,9 +57,10 @@ class PollThread
 {
     friend class EventPollThread;
     friend class CapturePollThread;
+    friend class FakePollThread;
 public:
     explicit PollThread ();
-    ~PollThread ();
+    virtual ~PollThread ();
 
     bool set_capture_device (SmartPtr<V4l2Device> &dev);
     bool set_event_device (SmartPtr<V4l2SubDevice> &sub_dev);
@@ -72,13 +73,13 @@ public:
 
 protected:
     XCamReturn poll_subdev_event_loop ();
-    XCamReturn poll_buffer_loop ();
+    virtual XCamReturn poll_buffer_loop ();
 
     XCamReturn handle_events (struct v4l2_event &event);
     XCamReturn handle_3a_stats_event (struct v4l2_event &event);
 
 private:
-    XCamReturn init_3a_stats_pool ();
+    virtual XCamReturn init_3a_stats_pool ();
     XCamReturn capture_3a_stats (SmartPtr<X3aStats> &stats);
 
 
