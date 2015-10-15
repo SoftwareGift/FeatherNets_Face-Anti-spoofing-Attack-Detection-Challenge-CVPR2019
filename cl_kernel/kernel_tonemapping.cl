@@ -5,107 +5,120 @@
  * output:   image2d_t as write only
  */
 
-#define STATS_BLOCK_FACTOR 7
+#define WORK_ITEM_X_SIZE 8
+#define WORK_ITEM_Y_SIZE 8
 
-typedef struct
-{
-    float r_gain;
-    float gr_gain;
-    float gb_gain;
-    float b_gain;
-} CLWBConfig;
+#define SHARED_PIXEL_X_SIZE 10
+#define SHARED_PIXEL_Y_SIZE 10
 
-typedef struct _XCamGridStat {
-    unsigned int avg_y;
-
-    unsigned int avg_r;
-    unsigned int avg_gr;
-    unsigned int avg_gb;
-    unsigned int avg_b;
-    unsigned int valid_wb_count;
-
-    unsigned int f_value1;
-    unsigned int f_value2;
-} XCamGridStat;
-
-__kernel void kernel_tonemapping (
-    __read_only image2d_t input, __write_only image2d_t output,
-    __global XCamGridStat *stats_input,
-    CLWBConfig wb_config, float tm_gamma)
+__kernel void kernel_tonemapping (__read_only image2d_t input, __write_only image2d_t output, float y_max, float y_target)
 {
     int g_id_x = get_global_id (0);
     int g_id_y = get_global_id (1);
 
-    int g_size_x = get_global_size (0);
-    int g_size_y = get_global_size (1);
-
     int group_id_x = get_group_id(0);
     int group_id_y = get_group_id(1);
 
-    int group_size_x = get_num_groups(0);
-    int group_size_y = get_num_groups(1);
+    int local_id_x = get_local_id(0);
+    int local_id_y = get_local_id(1);
+
+    int g_size_x = get_global_size (0);
+    int g_size_y = get_global_size (1);
 
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
-    float4 data = read_imagef (input, sampler, (int2)(g_id_x, g_id_y));
+#if 1 // use SLM
+    __local float local_src_data[SHARED_PIXEL_X_SIZE * SHARED_PIXEL_Y_SIZE];
 
-    float4 local_avg = 0.0f;
+    int start_x = WORK_ITEM_X_SIZE * group_id_x - 1;
+    int start_y = WORK_ITEM_Y_SIZE * group_id_y - 1;
+    int local_index = local_id_y * WORK_ITEM_X_SIZE + local_id_x;
+    int offset_x = local_index % SHARED_PIXEL_X_SIZE;
+    int offset_y = local_index / SHARED_PIXEL_X_SIZE;
 
-    int index;
-#if 1
-    int x_start = g_id_x - 8;
-    int x_end = g_id_x + 8;
-    int y_start = g_id_y - 8;
-    int y_end = g_id_y + 8;
-    int x, y, index_x, index_y;
+    float4 data = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y));
+    local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
 
-    for(y = y_start; y <= y_end; y++)
+    if(local_index < SHARED_PIXEL_X_SIZE * SHARED_PIXEL_Y_SIZE - WORK_ITEM_X_SIZE * WORK_ITEM_Y_SIZE)
     {
-        for(x = x_start; x <= x_end; x++)
-        {
-            index_y = y > 0 ? y : 0;
-            index_y = index_y < g_size_y ? index_y : (g_size_y - 1);
-            index_x = x > 0 ? x : 0;
-            index_x = index_x < g_size_x ? index_x : (g_size_x - 1);
+        offset_x = (local_index + WORK_ITEM_X_SIZE * WORK_ITEM_Y_SIZE) % SHARED_PIXEL_X_SIZE;
+        offset_y = (local_index + WORK_ITEM_X_SIZE * WORK_ITEM_Y_SIZE) / SHARED_PIXEL_X_SIZE;
 
-            local_avg = local_avg + read_imagef (input, sampler, (int2)(index_x, index_y));
-        }
+        data = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y));
+        local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
     }
 
-    local_avg = local_avg / (17 * 17);
-#else
-    int x_start = group_id_x - STATS_BLOCK_FACTOR / 2;
-    int x_end = group_id_x + STATS_BLOCK_FACTOR / 2;
-    int y_start = group_id_y - STATS_BLOCK_FACTOR / 2;
-    int y_end = group_id_y + STATS_BLOCK_FACTOR / 2;
-    int x, y, index_x, index_y;
-    for(y = y_start; y <= y_end; y++)
-    {
-        for(x = x_start; x <= x_end; x++)
-        {
-            index_y = y > 0 ? y : 0;
-            index_y = index_y < group_size_y ? index_y : (group_size_y - 1);
-            index_x = x > 0 ? x : 0;
-            index_x = index_x < group_size_x ? index_x : (group_size_x - 1);
-            index = index_y * group_size_x + index_x;
-            local_avg.x = local_avg.x + stats_input[index].avg_r * wb_config.r_gain;
-            local_avg.y = local_avg.y +
-                          (stats_input[index].avg_gr * wb_config.gr_gain +
-                           stats_input[index].avg_gb * wb_config.gb_gain) * 0.5f;
-            local_avg.z = local_avg.z + stats_input[index].avg_b * wb_config.b_gain;
-            local_avg.w = 0.0f;
-        }
-    }
+    float4 src_data = read_imagef (input, sampler, (int2)(g_id_x, g_id_y));
+    float src_y_data = src_data.x * 255 * 0.299 + src_data.y * 255 * 0.587 + src_data.z * 255 * 0.114;
 
-    local_avg = local_avg / (STATS_BLOCK_FACTOR * STATS_BLOCK_FACTOR);
-    local_avg = local_avg / 255.0f;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    float gaussian_table[9] = {0.075f, 0.124f, 0.075f,
+                               0.124f, 0.204f, 0.124f,
+                               0.075f, 0.124f, 0.075f
+                              };
+    float src_ym_data = 0.0f;
+
+    src_ym_data += local_src_data[local_id_y * SHARED_PIXEL_X_SIZE + local_id_x] * gaussian_table[0];
+    src_ym_data += local_src_data[local_id_y * SHARED_PIXEL_X_SIZE + local_id_x + 1] * gaussian_table[1];
+    src_ym_data += local_src_data[local_id_y * SHARED_PIXEL_X_SIZE + local_id_x + 2] * gaussian_table[2];
+    src_ym_data += local_src_data[(local_id_y + 1) * SHARED_PIXEL_X_SIZE + local_id_x] * gaussian_table[3];
+    src_ym_data += local_src_data[(local_id_y + 1) * SHARED_PIXEL_X_SIZE + local_id_x + 1] * gaussian_table[4];
+    src_ym_data += local_src_data[(local_id_y + 1) * SHARED_PIXEL_X_SIZE + local_id_x + 2] * gaussian_table[5];
+    src_ym_data += local_src_data[(local_id_y + 2) * SHARED_PIXEL_X_SIZE + local_id_x] * gaussian_table[6];
+    src_ym_data += local_src_data[(local_id_y + 2) * SHARED_PIXEL_X_SIZE + local_id_x + 1] * gaussian_table[7];
+    src_ym_data += local_src_data[(local_id_y + 2) * SHARED_PIXEL_X_SIZE + local_id_x + 2] * gaussian_table[8];
+
+#else // use global memory
+    float4 src_data = read_imagef (input, sampler, (int2)(g_id_x, g_id_y));
+    float src_y_data = src_data.x * 255 * 0.299 + src_data.y * 255 * 0.587 + src_data.z * 255 * 0.114;
+
+    float gaussian_table[9] = {0.075f, 0.124f, 0.075f,
+                               0.124f, 0.204f, 0.124f,
+                               0.075f, 0.124f, 0.075f
+                              };
+    float src_ym_data = 0.0f;
+
+    float4 data = read_imagef (input, sampler, (int2)(g_id_x - 1, g_id_y - 1));
+    float y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[0];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x, g_id_y - 1));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[1];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x + 1, g_id_y - 1));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[2];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x - 1, g_id_y));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[3];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x, g_id_y));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[4];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x + 1, g_id_y));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[5];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x - 1, g_id_y + 1));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[6];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x, g_id_y + 1));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[7];
+
+    data = read_imagef (input, sampler, (int2)(g_id_x + 1, g_id_y + 1));
+    y_data = data.x * 255 * 0.299 + data.y * 255 * 0.587 + data.z * 255 * 0.114;
+    src_ym_data += y_data * gaussian_table[8];
+
 #endif
 
-    float4 gain = 2.0f;
-    float4 delta = data - local_avg;
+    float gain = (y_max + src_ym_data + y_target) / (src_y_data + src_ym_data + y_target);
+    src_data = src_data * gain;
 
-    local_avg = pow(local_avg, 1 / tm_gamma);
-    data = local_avg + gain * delta;
-
-    write_imagef(output, (int2)(g_id_x, g_id_y), data);
+    write_imagef(output, (int2)(g_id_x, g_id_y), src_data);
 }

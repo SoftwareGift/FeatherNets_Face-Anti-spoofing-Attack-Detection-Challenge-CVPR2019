@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Author: Yao Wang <yao.y.wang@intel.com>
+ * Author: Wu Junkai <junkai.wu@intel.com>
  */
 
 #ifndef XCAM_CL_TONEMAPPING_HANLDER_H
@@ -46,9 +46,8 @@ protected:
 private:
     XCAM_DEAD_COPY (CLTonemappingImageKernel);
     CLWBConfig                _wb_config;
-    float                     _tm_gamma;
-
-    SmartPtr<CLBuffer>        _stats_buffer;
+    float                     _y_max;
+    float                     _y_target;
 };
 
 class CLTonemappingImageHandler

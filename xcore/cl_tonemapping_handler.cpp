@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- *  Author: Yao Wang <yao.y.wang@intel.com>
+ *  Author: Wu Junkai <junkai.wu@intel.com>
  */
 #include "xcam_utils.h"
 #include "cl_tonemapping_handler.h"
@@ -25,7 +25,8 @@ namespace XCam {
 CLTonemappingImageKernel::CLTonemappingImageKernel (SmartPtr<CLContext> &context,
         const char *name)
     : CLImageKernel (context, name)
-    , _tm_gamma(2.0f)
+    , _y_max (0.0)
+    , _y_target (0.0)
 {
     _wb_config.r_gain = 1.0;
     _wb_config.gr_gain = 1.0;
@@ -64,29 +65,44 @@ CLTonemappingImageKernel::prepare_arguments (
 
     SmartPtr<X3aStats> stats = input->find_3a_stats ();
     XCam3AStats *stats_ptr = stats->get_stats ();
-    _stats_buffer = new CLBuffer(
-        context, stats_ptr->info.aligned_width * stats_ptr->info.aligned_height * sizeof (XCamGridStat),
-        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &(stats_ptr->stats));
+
+    int pixel_totalnum = stats_ptr->info.aligned_width * stats_ptr->info.aligned_height;
+    int pixel_num = 0;
+    int threshold = pixel_totalnum * 0.003f;
+    float y;
+
+    for(int i = 255; i >= 0; i--)
+    {
+        pixel_num += stats_ptr->hist_y[i];
+        if(pixel_num >= threshold)
+        {
+            y = i;
+            break;
+        }
+    }
+
+    if(y < 255) y = y + 1;
+    _y_target = 2048 / 256;
+    _y_max = 255 * (2 * y + _y_target) / y - y - _y_target;
 
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_stats_buffer->get_mem_id ();
-    args[2].arg_size = sizeof (cl_mem);
-    args[3].arg_adress = &_wb_config;
-    args[3].arg_size = sizeof (_wb_config);
-    args[4].arg_adress = &_tm_gamma;
-    args[4].arg_size = sizeof (float);
-    arg_count = 5;
+    args[2].arg_adress = &_y_max;
+    args[2].arg_size = sizeof (float);
+    args[3].arg_adress = &_y_target;
+    args[3].arg_size = sizeof (float);
+
+    arg_count = 4;
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = out_info.width;
-    work_size.global[1] = stats_ptr->info.aligned_height * 16;
-    work_size.local[0] = 16;
-    work_size.local[1] = 16;
+    work_size.global[1] = out_info.height;
+    work_size.local[0] = 8;
+    work_size.local[1] = 8;
 
     return XCAM_RETURN_NO_ERROR;
 }
