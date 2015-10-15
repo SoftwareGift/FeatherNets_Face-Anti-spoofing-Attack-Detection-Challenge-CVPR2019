@@ -298,7 +298,6 @@ void print_help (const char *bin_name)
             "\t --enable-ee   enable YEENR\n"
             "\t --enable-bnr  enable bayer noise reduction\n"
             "\t --enable-dpc  enable defect pixel correction\n"
-            "\t --enable-tonemapping  enable tonemapping\n"
             "\t --enable-wdr  enable wdr\n"
             "\t --pipeline    pipe mode\n"
             "\t               select from [basic, advance, extreme], default is [basic]\n"
@@ -363,7 +362,6 @@ int main (int argc, char *argv[])
         {"enable-ee", no_argument, NULL, 'E'},
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-dpc", no_argument, NULL, 'D'},
-        {"enable-tonemapping", no_argument, NULL, 'M'},
         {"enable-wdr", no_argument, NULL, 'W'},
         {"usb", required_argument, NULL, 'U'},
         {"sync", no_argument, NULL, 'Y'},
@@ -516,12 +514,10 @@ int main (int argc, char *argv[])
             tnr_level = atoi(optarg);
             break;
         }
-        case 'M': {
-            tonemapping_type = true;
-            break;
-        }
         case 'W': {
             wdr_type = true;
+            tonemapping_type = true;
+            pixel_format = V4L2_PIX_FMT_SGRBG12;
             break;
         }
         case 'P': {
