@@ -47,6 +47,8 @@
 
 using namespace XCam;
 
+#define IMX185_WDR_CPF "/etc/atomisp/imx185_wdr.cpf"
+
 static Mutex g_mutex;
 static Cond  g_cond;
 static bool  g_stop = false;
@@ -518,6 +520,8 @@ int main (int argc, char *argv[])
             wdr_type = true;
             tonemapping_type = true;
             pixel_format = V4L2_PIX_FMT_SGRBG12;
+
+            setenv ("AIQ_CPF_PATH", IMX185_WDR_CPF, 1);
             break;
         }
         case 'P': {
