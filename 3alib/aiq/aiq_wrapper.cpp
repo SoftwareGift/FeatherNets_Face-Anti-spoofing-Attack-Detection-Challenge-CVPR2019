@@ -194,8 +194,7 @@ static XCamReturn
 xcam_destroy_context (XCam3AContext *context)
 {
     XCam3AAiqContext *aiq_context = AIQ_CONTEXT_CAST (context);
-    if (aiq_context)
-        delete aiq_context;
+    delete aiq_context;
     return XCAM_RETURN_NO_ERROR;
 }
 

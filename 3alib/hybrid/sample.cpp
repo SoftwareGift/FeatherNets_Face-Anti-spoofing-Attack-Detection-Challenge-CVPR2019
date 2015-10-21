@@ -57,8 +57,7 @@ static XCamReturn
 xcam_destroy_context (XCam3AContext *context)
 {
     XCam3AHybridContext *ctx = CONTEXT_CAST (context);
-    if (ctx)
-        delete ctx;
+    delete ctx;
     return XCAM_RETURN_NO_ERROR;
 }
 

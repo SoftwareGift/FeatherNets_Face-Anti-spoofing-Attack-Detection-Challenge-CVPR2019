@@ -321,8 +321,7 @@ static XCamReturn
 xcam_destroy_context (XCamSmartAnalysisContext *context)
 {
     XCamSmartAnalyerContext *analysis_context = XSMART_ANALYSIS_CONTEXT_CAST (context);
-    if (analysis_context)
-        delete analysis_context;
+    delete analysis_context;
     return XCAM_RETURN_NO_ERROR;
 }
 
