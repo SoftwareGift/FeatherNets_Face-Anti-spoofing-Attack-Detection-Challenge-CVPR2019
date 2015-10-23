@@ -1,3 +1,17 @@
+2015/10/19: release libxcam version 0.3.0
+ * improved OCL pipeline on basic and advanced/extreme pipeline
+    - add new bayer noise-reduction into demosaic
+    - merged yuv-tnr into yuv-pipe kernel
+    - merged TNR-yuv and TNR-rgb together
+ * support WDR(wide dynamic range) feature
+ * add 3a analysis tuner framework for more features tunning, e.g TNR
+ * add hybrid 3a analysis framework
+    - support partial customized 3a algorith, e.g AWB/AE
+ * add smart analysis framework
+    - generate small scaled picture
+    - support customized to analyze small picture and feedback results
+    - support loading user-defined method on smart analysis
+
 2015/07/31: release libxcam version 0.2.1
  * improved OCL pipeline on basic 3a image processing
     - merged bayer kernels with blc, wb, gamma, demosaic and 3a stats.
