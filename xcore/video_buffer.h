@@ -59,6 +59,9 @@ namespace XCam {
 #define XCAM_PIX_FMT_RGBA64     v4l2_fourcc('w', 'R', 'G', 'a')
 #define XCAM_PIX_FMT_SGRBG16   v4l2_fourcc('w', 'B', 'A', '0')
 #define XCAM_PIX_FMT_LAB    v4l2_fourcc('h', 'L', 'a', 'b')
+#define XCAM_PIX_FMT_RGB48_planar     v4l2_fourcc('n', 'R', 'G', 0x48)
+#define XCAM_PIX_FMT_RGB24_planar     v4l2_fourcc('n', 'R', 'G', 0x24)
+
 
 #define XCAM_VIDEO_MAX_COMPONENTS 4
 
@@ -92,8 +95,6 @@ struct VideoBufferInfo {
         uint32_t aligned_width = 0, uint32_t aligned_height = 0, uint32_t size = 0);
 
     bool get_planar_info (
-        const uint32_t format,
-        const uint32_t  width, const uint32_t height,
         VideoBufferPlanarInfo &planar, const uint32_t index = 0) const;
 };
 

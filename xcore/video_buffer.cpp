@@ -177,6 +177,21 @@ VideoBufferInfo::init (
         this->offsets [0] = 0;
         image_size = this->strides [0] * aligned_height;
         break;
+
+    case XCAM_PIX_FMT_RGB48_planar:
+    case XCAM_PIX_FMT_RGB24_planar:
+        if (XCAM_PIX_FMT_RGB48_planar == format)
+            this->color_bits = 16;
+        else
+            this->color_bits = 8;
+        this->components = 3;
+        this->strides [0] = this->strides [1] = this->strides [2] = aligned_width * (this->color_bits / 8);
+        this->offsets [0] = 0;
+        this->offsets [1] = this->offsets [0] + this->strides [0] * aligned_height;
+        this->offsets [2] = this->offsets [1] + this->strides [1] * aligned_height;;
+        image_size = this->offsets [2] + this->strides [2] * aligned_height;
+        break;
+
     default:
         XCAM_LOG_WARNING ("VideoBufferInfo init failed, unsupported format:%s", xcam_fourcc_to_string (format));
         return false;
@@ -194,36 +209,26 @@ VideoBufferInfo::init (
 
 bool
 VideoBufferInfo::get_planar_info (
-    const uint32_t format,
-    const uint32_t  width, const uint32_t height,
     VideoBufferPlanarInfo &planar, const uint32_t index) const
 {
-    switch (format) {
-    case V4L2_PIX_FMT_SBGGR8:
-    case V4L2_PIX_FMT_SGBRG8:
-    case V4L2_PIX_FMT_SGRBG8:
-    case V4L2_PIX_FMT_SRGGB8:
-        XCAM_ASSERT (index <= 0);
-        planar.width = width;
-        planar.height = height;
-        planar.pixel_bytes = 1;
-        break;
+    planar.width = this->width;
+    planar.height = this->height;
+    planar.pixel_bytes = XCAM_ALIGN_UP (this->color_bits, 8) / 8;
 
+    switch (format) {
     case V4L2_PIX_FMT_NV12:
-        XCAM_ASSERT (index <= 2);
-        if (index == 0) {
-            planar.width = width;
-            planar.height = height;
-            planar.pixel_bytes = 1;
-        } else if (index == 1) {
-            planar.width = width;
-            planar.height = height / 2;
-            planar.pixel_bytes = 1;
+        XCAM_ASSERT (index <= 1);
+        if (index == 1) {
+            planar.height = this->height / 2;
         }
         break;
 
     case V4L2_PIX_FMT_YUYV:
     case V4L2_PIX_FMT_RGB565:
+    case V4L2_PIX_FMT_SBGGR8:
+    case V4L2_PIX_FMT_SGBRG8:
+    case V4L2_PIX_FMT_SGRBG8:
+    case V4L2_PIX_FMT_SRGGB8:
     case V4L2_PIX_FMT_SBGGR10:
     case V4L2_PIX_FMT_SGBRG10:
     case V4L2_PIX_FMT_SGRBG10:
@@ -235,15 +240,10 @@ VideoBufferInfo::get_planar_info (
     case V4L2_PIX_FMT_SBGGR16:
     case XCAM_PIX_FMT_SGRBG16:
         XCAM_ASSERT (index <= 0);
-        planar.width = width;
-        planar.height = height;
-        planar.pixel_bytes = 2;
         break;
 
     case V4L2_PIX_FMT_RGB24:
         XCAM_ASSERT (index <= 0);
-        planar.width = width;
-        planar.height = height;
         planar.pixel_bytes = 3;
         break;
 
@@ -255,31 +255,27 @@ VideoBufferInfo::get_planar_info (
     case V4L2_PIX_FMT_ARGB32:
     case V4L2_PIX_FMT_XRGB32:
         XCAM_ASSERT (index <= 0);
-        planar.width = width;
-        planar.height = height;
         planar.pixel_bytes = 4;
         break;
 
     case XCAM_PIX_FMT_RGB48:
         XCAM_ASSERT (index <= 0);
-        planar.width = width;
-        planar.height = height;
         planar.pixel_bytes = 3 * 2;
         break;
 
     case XCAM_PIX_FMT_RGBA64:
-        XCAM_ASSERT (index <= 0);
-        planar.width = width;
-        planar.height = height;
         planar.pixel_bytes = 4 * 2;
         break;
 
     case XCAM_PIX_FMT_LAB:
-        XCAM_ASSERT (index <= 0);
-        planar.width = width;
-        planar.height = height;
         planar.pixel_bytes = 3 * 4;
         break;
+
+    case XCAM_PIX_FMT_RGB48_planar:
+    case XCAM_PIX_FMT_RGB24_planar:
+        XCAM_ASSERT (index <= 2);
+        break;
+
     default:
         XCAM_LOG_WARNING ("VideoBufferInfo get_planar_info failed, unsupported format:%s", xcam_fourcc_to_string (format));
         return false;

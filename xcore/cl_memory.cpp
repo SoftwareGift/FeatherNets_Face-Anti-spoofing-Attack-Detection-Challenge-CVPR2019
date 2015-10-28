@@ -382,6 +382,18 @@ CLImage::video_info_2_cl_image_desc (
         image_desc.format.image_channel_data_type = CL_FLOAT;
         break;
 
+    case XCAM_PIX_FMT_RGB48_planar:
+    case XCAM_PIX_FMT_RGB24_planar:
+        image_desc.format.image_channel_order = CL_RGBA;
+        if (XCAM_PIX_FMT_RGB48_planar == video_info.format)
+            image_desc.format.image_channel_data_type = CL_UNORM_INT16;
+        else
+            image_desc.format.image_channel_data_type = CL_UNORM_INT8;
+        image_desc.width = video_info.aligned_width / 4;
+        image_desc.array_size = 3;
+        image_desc.slice_pitch = video_info.strides [0] * video_info.aligned_height;
+        break;
+
     default:
         XCAM_LOG_WARNING (
             "video_info to cl_image_info doesn't support format:%s",
@@ -459,6 +471,11 @@ CLVaImage::merge_multi_plane (
     switch (video_info.format) {
     case V4L2_PIX_FMT_NV12:
         cl_desc.height = video_info.aligned_height + video_info.height / 2;
+        break;
+
+    case XCAM_PIX_FMT_RGB48_planar:
+    case XCAM_PIX_FMT_RGB24_planar:
+        cl_desc.height = video_info.aligned_height * 3;
         break;
 
     default:
