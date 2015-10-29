@@ -175,6 +175,11 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
     case XCAM_PIX_FMT_RGBA64:
         size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 2 * 4;
         break;
+    case XCAM_PIX_FMT_RGB48_planar:
+    case XCAM_PIX_FMT_RGB24_planar:
+        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2)
+               * frame_info.components * XCAM_ALIGN_UP (frame_info.color_bits, 8) / 8;
+        break;
     default:
         XCAM_LOG_ERROR (
             "unknown v4l2 format(%s) in buffer handle",

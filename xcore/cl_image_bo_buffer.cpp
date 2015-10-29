@@ -140,8 +140,10 @@ CLBoBufferPool::fixate_video_info (VideoBufferInfo &info)
             need_reset_info = true;
     }
     if (need_reset_info) {
-        uint32_t aligned_width = desc.row_pitch / image->get_pixel_bytes ();
-        uint32_t aligned_height = 0;
+        VideoBufferPlanarInfo plane_info;
+        info.get_planar_info (plane_info, 0);
+        uint32_t aligned_width = desc.row_pitch / plane_info.pixel_bytes;
+        uint32_t aligned_height = info.aligned_height;
         if (info.components > 0)
             aligned_height = desc.slice_pitch / desc.row_pitch;
         info.init (info.format, info.width, info.height, aligned_width, aligned_height, desc.size);

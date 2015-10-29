@@ -113,6 +113,7 @@ private:
     XCAM_DEAD_COPY (CLBayerPipeImageKernel);
 
 private:
+    uint32_t                  _output_height;
     CLBLCConfig               _blc_config;
     CLWBConfig                _wb_config;
     uint32_t                  _enable_denoise;

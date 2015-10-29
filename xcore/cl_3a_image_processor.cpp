@@ -344,7 +344,7 @@ CL3aImageProcessor::create_handlers ()
     _bayer_pipe->set_stats_callback (_stats_callback);
 #if 0
     if (get_profile () >= AdvancedPipelineProfile) {
-        _bayer_pipe->set_output_format (V4L2_PIX_FMT_ABGR32);
+        _bayer_pipe->set_output_format (XCAM_PIX_FMT_RGB24_planar);
     }
 #endif
     _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);

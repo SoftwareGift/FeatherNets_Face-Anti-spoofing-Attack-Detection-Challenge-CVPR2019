@@ -22,11 +22,11 @@
 #include "xcam_utils.h"
 #include "cl_bayer_pipe_handler.h"
 
-#define SHARED_PIXEL_WIDTH 16
-#define SHARED_PIXEL_HEIGHT 16
+#define WORKGROUP_PIXEL_WIDTH 16
+#define WORKGROUP_PIXEL_HEIGHT 16
 
-#define WORK_ITEM_X_SIZE 2
-#define WORK_ITEM_Y_SIZE 2
+#define BAYER_LOCAL_X_SIZE 8
+#define BAYER_LOCAL_Y_SIZE 4
 
 namespace XCam {
 
@@ -303,6 +303,7 @@ CLBayerPipeImageKernel::prepare_arguments (
 
     _image_in = new CLVaImage (context, input);
     _image_out = new CLVaImage (context, output);
+    _output_height = out_video_info.aligned_height;
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
@@ -315,40 +316,56 @@ CLBayerPipeImageKernel::prepare_arguments (
 
     _gamma_table_buffer = new CLBuffer(
         context, sizeof(float) * (XCAM_GAMMA_TABLE_SIZE + 1),
-        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_gamma_table);
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_gamma_table);
 
     _stats_cl_buffer = _3a_stats_context->get_next_buffer ();
 
     //set args;
-    args[0].arg_adress = &_image_in->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
+    arg_count = 0;
+    args[arg_count].arg_adress = &_image_in->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
 
-    args[2].arg_adress = &_blc_config;
-    args[2].arg_size = sizeof (_blc_config);
+    args[arg_count].arg_adress = &_image_out->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
 
-    args[3].arg_adress = &_wb_config;
-    args[3].arg_size = sizeof (_wb_config);
 
-    args[4].arg_adress = &_enable_denoise;
-    args[4].arg_size = sizeof (_enable_denoise);
+    args[arg_count].arg_adress = &_output_height;
+    args[arg_count].arg_size = sizeof (_output_height);
+    ++arg_count;
 
-    args[5].arg_adress = &_enable_gamma;
-    args[5].arg_size = sizeof (_enable_gamma);
+    args[arg_count].arg_adress = &_blc_config;
+    args[arg_count].arg_size = sizeof (_blc_config);
+    ++arg_count;
 
-    args[6].arg_adress = &_gamma_table_buffer->get_mem_id ();
-    args[6].arg_size = sizeof (cl_mem);
+    args[arg_count].arg_adress = &_wb_config;
+    args[arg_count].arg_size = sizeof (_wb_config);
+    ++arg_count;
 
-    args[7].arg_adress = &_stats_cl_buffer->get_mem_id ();
-    args[7].arg_size = sizeof (cl_mem);
-    arg_count = 8;
+    args[arg_count].arg_adress = &_enable_denoise;
+    args[arg_count].arg_size = sizeof (_enable_denoise);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_enable_gamma;
+    args[arg_count].arg_size = sizeof (_enable_gamma);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_gamma_table_buffer->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_stats_cl_buffer->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = XCAM_ALIGN_UP(out_video_info.width, 16) / WORK_ITEM_X_SIZE;
-    work_size.global[1] = XCAM_ALIGN_UP(out_video_info.height, 16) / WORK_ITEM_Y_SIZE;
-    work_size.local[0] = SHARED_PIXEL_WIDTH / WORK_ITEM_X_SIZE;
-    work_size.local[1] = SHARED_PIXEL_HEIGHT / WORK_ITEM_Y_SIZE;
+    work_size.local[0] = BAYER_LOCAL_X_SIZE;
+    work_size.local[1] = BAYER_LOCAL_Y_SIZE;
+    work_size.global[0] = (XCAM_ALIGN_UP(out_video_info.width, WORKGROUP_PIXEL_WIDTH) / WORKGROUP_PIXEL_WIDTH) *
+                          work_size.local[0];
+    work_size.global[1] = (XCAM_ALIGN_UP(out_video_info.height, WORKGROUP_PIXEL_HEIGHT) / WORKGROUP_PIXEL_HEIGHT) *
+                          work_size.local[1];
 
     _output_buffer = output;
 
@@ -391,7 +408,7 @@ CLBayerPipeImageKernel::pre_stop ()
 
 CLBayerPipeImageHandler::CLBayerPipeImageHandler (const char *name)
     : CLImageHandler (name)
-    , _output_format (XCAM_PIX_FMT_RGBA64)
+    , _output_format (XCAM_PIX_FMT_RGB48_planar)
 {
 }
 
@@ -400,10 +417,7 @@ CLBayerPipeImageHandler::set_output_format (uint32_t fourcc)
 {
     XCAM_FAIL_RETURN (
         WARNING,
-        fourcc == XCAM_PIX_FMT_RGBA64 || fourcc == V4L2_PIX_FMT_RGB24 ||
-        fourcc == V4L2_PIX_FMT_XBGR32 || fourcc == V4L2_PIX_FMT_ABGR32 || V4L2_PIX_FMT_BGR32 ||
-        //fourcc == V4L2_PIX_FMT_RGB32 || fourcc == V4L2_PIX_FMT_ARGB32 || V4L2_PIX_FMT_XRGB32 ||
-        fourcc == V4L2_PIX_FMT_RGBA32,
+        XCAM_PIX_FMT_RGB48_planar == fourcc || XCAM_PIX_FMT_RGB24_planar == fourcc,
         false,
         "CL image handler(%s) doesn't support format(%s) settings",
         get_name (), xcam_fourcc_to_string (fourcc));
