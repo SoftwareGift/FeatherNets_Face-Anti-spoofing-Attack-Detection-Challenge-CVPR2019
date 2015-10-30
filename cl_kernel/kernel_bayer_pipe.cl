@@ -17,7 +17,7 @@
 
 #define PIXEL_PER_CELL 2
 
-#define SLM_CELL_X_OFFSET 1
+#define SLM_CELL_X_OFFSET 2
 #define SLM_CELL_Y_OFFSET 1
 
 // 8x8
@@ -116,31 +116,33 @@ inline void simple_calculate (
     __global float *gamma_table)
 {
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
-    float4 data;
-    int x0 = get_shared_pos_x (index) * PIXEL_PER_CELL + x_start;
+    float4 data1, data2, line1, line2;
+    int x0 = (get_shared_pos_x (index) * PIXEL_PER_CELL + x_start) / 4;
     int y0 = get_shared_pos_y (index) * PIXEL_PER_CELL + y_start;
-    //Gr
-    data.x = read_imagef (input, sampler, (int2)(x0, y0)).x;
-    //R
-    data.y = read_imagef (input, sampler, (int2)(x0 + 1, y0)).x;
-    //B
-    data.z = read_imagef (input, sampler, (int2)(x0, y0 + 1)).x;
-    //Gb
-    data.w = read_imagef (input, sampler, (int2)(x0 + 1, y0 + 1)).x;
 
-    blc (&data, blc_config, blc_multiplier);
+    line1 = read_imagef (input, sampler, (int2)(x0, y0));
+    line2 = read_imagef (input, sampler, (int2)(x0, y0 + 1));
+
+    data1 = (float4)(line1.s01, line2.s01);
+    data2 = (float4)(line1.s23, line2.s23);
+
+    blc (&data1, blc_config, blc_multiplier);
+    blc (&data2, blc_config, blc_multiplier);
 
     /* write back for 3a stats calculation R, G, B, Y */
-    stats_cache[index] = data;
+    (*(__local float8 *)(stats_cache + index)) = (float8)(data1, data2);
 
-    wb (&data, wb_config);
-    if (enable_gamma)
-        gamma_correct (&data, gamma_table);
+    wb (&data1, wb_config);
+    wb (&data2, wb_config);
+    if (enable_gamma) {
+        gamma_correct (&data1, gamma_table);
+        gamma_correct (&data2, gamma_table);
+    }
 
-    px[index] = data.x;
-    py[index] = data.y;
-    pz[index] = data.z;
-    pw[index] = data.w;
+    (*(__local float2 *)(px + index)) = (float2)(data1.x, data2.x);
+    (*(__local float2 *)(py + index)) = (float2)(data1.y, data2.y);
+    (*(__local float2 *)(pz + index)) = (float2)(data1.z, data2.z);
+    (*(__local float2 *)(pw + index)) = (float2)(data1.w, data2.w);
 }
 
 #define MAX_DELTA_COFF 5.0f
@@ -186,11 +188,11 @@ void demosaic_2_cell (
 
         out_data.s02 = (R_y[0].s01 + R_y[0].s12) * 0.5f;
         out_data.s13 = R_y[0].s12;
-        write_imagef (out, (int2)(out_x / 4, out_y), out_data);
+        write_imagef (out, (int2)(out_x, out_y), out_data);
 
         out_data.s02 = (R_y[0].s01 + R_y[0].s12 + R_y[1].s01 + R_y[1].s12) * 0.25f;
         out_data.s13 = (R_y[0].s12 + R_y[1].s12) * 0.5f;
-        write_imagef (out, (int2)(out_x / 4, out_y + 1), out_data);
+        write_imagef (out, (int2)(out_x, out_y + 1), out_data);
     }
 
     {
@@ -202,11 +204,11 @@ void demosaic_2_cell (
 
         out_data.s02 = (B_z[0].s01 + B_z[1].s01) * 0.5f;
         out_data.s13 = (B_z[0].s01 + B_z[0].s12 + B_z[1].s01 + B_z[1].s12) * 0.25f;
-        write_imagef (out, (int2)(out_x / 4, out_y + out_height * 2), out_data);
+        write_imagef (out, (int2)(out_x, out_y + out_height * 2), out_data);
 
         out_data.s02 = B_z[1].s01;
         out_data.s13 = (B_z[1].s01 + B_z[1].s12) * 0.5f;
-        write_imagef (out, (int2)(out_x / 4, out_y + 1 + out_height * 2), out_data);
+        write_imagef (out, (int2)(out_x, out_y + 1 + out_height * 2), out_data);
     }
 
     {
@@ -224,13 +226,13 @@ void demosaic_2_cell (
         out_data.s02 = (Gr_x[0].s01 * 4.0f + Gb_w[0].s01 +
                         Gb_w[0].s12 + Gb_w[1].s01 + Gb_w[1].s12) * 0.125f;
         out_data.s13 = (Gr_x[0].s01 + Gr_x[0].s12 + Gb_w[0].s12 + Gb_w[1].s12) * 0.25f;
-        write_imagef (out, (int2)(out_x / 4, out_y + out_height), out_data);
+        write_imagef (out, (int2)(out_x, out_y + out_height), out_data);
 
         out_data.s02 = (Gr_x[0].s01 + Gr_x[1].s01 + Gb_w[1].s01 + Gb_w[1].s12) * 0.25f;
 
         out_data.s13 = (Gb_w[1].s12 * 4.0f + Gr_x[0].s01 +
                         Gr_x[0].s12 + Gr_x[1].s01 + Gr_x[1].s12) * 0.125f;
-        write_imagef (out, (int2)(out_x / 4, out_y + 1 + out_height), out_data);
+        write_imagef (out, (int2)(out_x, out_y + 1 + out_height), out_data);
     }
 }
 
@@ -266,8 +268,8 @@ void demosaic_denoise_2_cell (
         value = (R_y[1].s12 + R_y[2].s12) * 0.5f;
         out_data[1].s13 = dot_denoise (value, R_y[1].s01, R_y[1].s23, R_y[2].s01, R_y[2].s23);
 
-        write_imagef (out, (int2)(out_x / 4, out_y), out_data[0]);
-        write_imagef (out, (int2)(out_x / 4, out_y + 1), out_data[1]);
+        write_imagef (out, (int2)(out_x, out_y), out_data[0]);
+        write_imagef (out, (int2)(out_x, out_y + 1), out_data[1]);
 
     }
 
@@ -294,8 +296,8 @@ void demosaic_denoise_2_cell (
         value = (B_z[1].s12 + B_z[1].s23) * 0.5f;
         out_data[1].s13 = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[2].s12, B_z[2].s23);
 
-        write_imagef (out, (int2)(out_x / 4, out_y + out_height * 2), out_data[0]);
-        write_imagef (out, (int2)(out_x / 4, out_y + 1 + out_height * 2), out_data[1]);
+        write_imagef (out, (int2)(out_x, out_y + out_height * 2), out_data[0]);
+        write_imagef (out, (int2)(out_x, out_y + 1 + out_height * 2), out_data[1]);
     }
 
     ///////////////////////////////////////G///////////////////////////////////
@@ -326,8 +328,8 @@ void demosaic_denoise_2_cell (
                                          Gr_x[0].s12 + Gr_x[1].s01 + Gr_x[1].s12)) * 0.125f;
         out_data[1].s13 = dot_denoise (value, Gr_x[0].s01, Gr_x[0].s12, Gr_x[1].s01, Gr_x[1].s12);
 
-        write_imagef (out, (int2)(out_x / 4, out_y + out_height), out_data[0]);
-        write_imagef (out, (int2)(out_x / 4, out_y + 1 + out_height), out_data[1]);
+        write_imagef (out, (int2)(out_x, out_y + out_height), out_data[0]);
+        write_imagef (out, (int2)(out_x, out_y + 1 + out_height), out_data[1]);
     }
 }
 
@@ -425,7 +427,8 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
     int y_start = get_group_id (1) * WORKGROUP_PIXEL_HEIGHT;
     int i = mad24 (l_id_y, l_size_x, l_id_x);
 
-    for (; i < SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE; i += l_size_x * l_size_y) {
+    i *= 2;
+    for (; i < SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE; i += (l_size_x * l_size_y) * 2) {
         simple_calculate (p1_x, p1_y, p1_z, p1_w, i,
                           input,
                           x_start - SLM_PIXEL_X_OFFSET, y_start - SLM_PIXEL_Y_OFFSET,
@@ -449,6 +452,6 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
         p1_x, p1_y, p1_z, p1_w,
         input_x + SLM_CELL_X_OFFSET, input_y + SLM_CELL_Y_OFFSET,
         output, output_height,
-        mad24 (input_x, PIXEL_PER_CELL, x_start), mad24 (input_y, PIXEL_PER_CELL, y_start), has_denoise);
+        mad24 (input_x, PIXEL_PER_CELL, x_start) / 4, mad24 (input_y, PIXEL_PER_CELL, y_start), has_denoise);
 }
 

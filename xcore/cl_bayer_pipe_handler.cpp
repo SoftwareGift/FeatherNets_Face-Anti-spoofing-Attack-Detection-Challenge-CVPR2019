@@ -301,7 +301,14 @@ CLBayerPipeImageKernel::prepare_arguments (
         return XCAM_RETURN_ERROR_MEM;
     }
 
-    _image_in = new CLVaImage (context, input);
+    CLImageDesc in_image_info;
+    in_image_info.format.image_channel_order = CL_RGBA;
+    in_image_info.format.image_channel_data_type = CL_UNORM_INT16; //CL_UNSIGNED_INT32;
+    in_image_info.width = in_video_info.width / 4;
+    in_image_info.height = in_video_info.height;
+    in_image_info.row_pitch = in_video_info.strides[0];
+
+    _image_in = new CLVaImage (context, input, in_image_info);
     _image_out = new CLVaImage (context, output);
     _output_height = out_video_info.aligned_height;
 
