@@ -83,6 +83,7 @@ CLTonemappingImageKernel::prepare_arguments (
 
     if(y < 255) y = y + 1;
     _y_target = 2048 / 256;
+    _y_target = _y_target * 256 / y;
     _y_max = 255 * (2 * y + _y_target) / y - y - _y_target;
 
     //set args;
