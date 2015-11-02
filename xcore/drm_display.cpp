@@ -25,6 +25,7 @@
 #include <drm_fourcc.h>
 
 #define DEFAULT_DRM_DEVICE "i915"
+#define DEFAULT_DRM_BUSID "PCI:00:02:00"
 #define DEFAULT_DRM_BATCH_SIZE 0x80000
 
 namespace XCam {
@@ -68,7 +69,7 @@ DrmDisplay::DrmDisplay(const char* module)
         _module = strdup (DEFAULT_DRM_DEVICE);
 
     //_fd = drmOpenRender (128);
-    _fd = drmOpen (_module, NULL);
+    _fd = drmOpen (_module, DEFAULT_DRM_BUSID);
     if (_fd < 0)
         XCAM_LOG_ERROR("failed to open drm device %s", _module);
 

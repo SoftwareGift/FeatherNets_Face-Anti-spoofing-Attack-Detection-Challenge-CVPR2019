@@ -103,7 +103,9 @@ private:
 
     //Memory, Image
     cl_mem create_va_buffer (uint32_t bo_name);
+    cl_mem import_dma_buffer (const cl_import_buffer_info_intel &import_info);
     cl_mem create_va_image (const cl_libva_image &image_info);
+    cl_mem import_dma_image (const cl_import_image_info_intel &image_info);
     cl_mem create_image (
         cl_mem_flags flags, const cl_image_format& format,
         const cl_image_desc &image_info, void *host_ptr = NULL);

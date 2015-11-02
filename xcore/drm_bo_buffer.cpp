@@ -77,11 +77,11 @@ DrmBoData::unmap ()
     drm_intel_bo_get_tiling (_bo, &tiling_mode, &swizzle_mode);
 
     if (tiling_mode != OCL_TILING_NONE) {
-        if (drm_intel_gem_bo_unmap_gtt (_bo) !=0)
+        if (drm_intel_gem_bo_unmap_gtt (_bo) != 0)
             return false;
     }
     else {
-        if (drm_intel_bo_unmap (_bo) !=0)
+        if (drm_intel_bo_unmap (_bo) != 0)
             return false;
     }
 
@@ -95,7 +95,7 @@ DrmBoData::get_fd ()
     if (_prime_fd == -1) {
         if (drm_intel_bo_gem_export_to_prime (_bo, &_prime_fd) < 0) {
             _prime_fd = -1;
-            XCAM_LOG_ERROR ("DrmBoData: failed to obtain prime fd");
+            XCAM_LOG_DEBUG ("DrmBoData: failed to obtain prime fd");
         }
     }
 

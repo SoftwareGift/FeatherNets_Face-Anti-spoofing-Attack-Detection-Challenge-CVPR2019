@@ -184,16 +184,22 @@ CLVaBuffer::init_va_buffer (SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> 
 {
     cl_mem mem_id = NULL;
     uint32_t bo_name = 0;
+    cl_import_buffer_info_intel import_buffer_info;
 
-    if (drm_intel_bo_flink (bo->get_bo (), &bo_name) != 0) {
-        XCAM_LOG_WARNING ("CLVaBuffer get bo flick failed");
-        return false;
+    xcam_mem_clear (import_buffer_info);
+    import_buffer_info.fd = bo->get_fd ();
+    import_buffer_info.size = bo->get_size ();
+    if (import_buffer_info.fd != -1) {
+        mem_id = context->import_dma_buffer (import_buffer_info);
     }
 
-    mem_id = context->create_va_buffer (bo_name);
     if (mem_id == NULL) {
-        XCAM_LOG_WARNING ("CLVaBuffer create va buffer failed");
-        return false;
+        drm_intel_bo_flink (bo->get_bo (), &bo_name);
+        mem_id = context->create_va_buffer (bo_name);
+        if (mem_id == NULL) {
+            XCAM_LOG_WARNING ("CLVaBuffer create va buffer failed");
+            return false;
+        }
     }
 
     set_mem_id (mem_id);
@@ -497,13 +503,17 @@ CLVaImage::init_va_image (
     cl_mem mem_id = 0;
     bool need_create = true;
     cl_libva_image va_image_info;
+    cl_import_image_info_intel import_image_info;
 
     xcam_mem_clear (va_image_info);
-    va_image_info.offset = offset;
-    va_image_info.width = cl_desc.width;
-    va_image_info.height = cl_desc.height;
-    va_image_info.fmt = cl_desc.format;
-    va_image_info.row_pitch = cl_desc.row_pitch;
+    xcam_mem_clear (import_image_info);
+    import_image_info.offset = va_image_info.offset = offset;
+    import_image_info.width = va_image_info.width = cl_desc.width;
+    import_image_info.height = va_image_info.height = cl_desc.height;
+    import_image_info.fmt = va_image_info.fmt = cl_desc.format;
+    import_image_info.row_pitch = va_image_info.row_pitch = cl_desc.row_pitch;
+    import_image_info.size = cl_desc.size;
+    import_image_info.type = CL_MEM_OBJECT_IMAGE2D;
 
     XCAM_ASSERT (bo.ptr ());
 
@@ -519,16 +529,19 @@ CLVaImage::init_va_image (
     }
 
     if (need_create) {
-        if (drm_intel_bo_flink (bo->get_bo (), &bo_name) != 0) {
-            XCAM_LOG_WARNING ("CLVaImage get bo flick failed");
-            return false;
-        }
+        import_image_info.fd = bo->get_fd();
+        if (import_image_info.fd != -1)
+            mem_id = context->import_dma_image (import_image_info);
 
-        va_image_info.bo_name = bo_name;
-        mem_id = context->create_va_image (va_image_info);
         if (mem_id == NULL) {
-            XCAM_LOG_WARNING ("create va image failed");
-            return false;
+            if (drm_intel_bo_flink (bo->get_bo (), &bo_name) == 0) {
+                va_image_info.bo_name = bo_name;
+                mem_id = context->create_va_image (va_image_info);
+            }
+            if (mem_id == NULL) {
+                XCAM_LOG_WARNING ("create va image failed");
+                return false;
+            }
         }
     } else {
         va_image_info.bo_name = uint32_t(-1);

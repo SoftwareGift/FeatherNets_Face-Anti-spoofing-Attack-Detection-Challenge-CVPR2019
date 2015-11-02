@@ -418,6 +418,24 @@ CLContext::create_va_buffer (uint32_t bo_name)
 }
 
 cl_mem
+CLContext::import_dma_buffer (const cl_import_buffer_info_intel &import_info)
+{
+    cl_mem mem_id = NULL;
+    cl_int errcode = CL_SUCCESS;
+    if (!is_valid())
+        return NULL;
+
+    mem_id = clCreateBufferFromFdINTEL (_context_id, &import_info, &errcode);
+    XCAM_FAIL_RETURN(
+        WARNING,
+        errcode == CL_SUCCESS,
+        NULL,
+        "import cl memory from dma buffer failed");
+
+    return mem_id;
+}
+
+cl_mem
 CLContext::create_va_image (const cl_libva_image &image_info)
 {
     cl_mem mem_id = NULL;
@@ -431,6 +449,24 @@ CLContext::create_va_image (const cl_libva_image &image_info)
         errcode == CL_SUCCESS,
         NULL,
         "create cl memory from va image failed");
+    return mem_id;
+}
+
+cl_mem
+CLContext::import_dma_image (const cl_import_image_info_intel &import_info)
+{
+    cl_mem mem_id = NULL;
+    cl_int errcode = CL_SUCCESS;
+    if (!is_valid())
+        return NULL;
+
+    mem_id = clCreateImageFromFdINTEL (_context_id, &import_info, &errcode);
+    XCAM_FAIL_RETURN(
+        WARNING,
+        errcode == CL_SUCCESS,
+        NULL,
+        "import cl memory from dma image failed");
+
     return mem_id;
 }
 
