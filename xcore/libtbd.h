@@ -16,7 +16,7 @@
 
 /*
  * \file libtbd.h
- * \brief Tagged Binary Data handling 
+ * \brief Tagged Binary Data handling
  */
 
 #ifndef __LIBTBD_H__
@@ -80,11 +80,11 @@ typedef struct
 #define CHTOU32(a,b,c,d) ((uint32_t)(a)|((uint32_t)(b)<<8)|((uint32_t)(c)<<16)|((uint32_t)(d)<<24))
 typedef enum
 {
-    tbd_tag_cpff = CHTOU32('C','P','F','F'),  /*!< CPF File */
-    tbd_tag_aiqb = CHTOU32('A','I','Q','B'),  /*!< AIQ configuration */
-    tbd_tag_aiqd = CHTOU32('A','I','Q','D'),  /*!< AIQ data */
-    tbd_tag_halb = CHTOU32('H','A','L','B'),  /*!< CameraHAL configuration */
-    tbd_tag_drvb = CHTOU32('D','R','V','B')   /*!< Sensor driver configuration */
+    tbd_tag_cpff = CHTOU32('C', 'P', 'F', 'F'), /*!< CPF File */
+    tbd_tag_aiqb = CHTOU32('A', 'I', 'Q', 'B'), /*!< AIQ configuration */
+    tbd_tag_aiqd = CHTOU32('A', 'I', 'Q', 'D'), /*!< AIQ data */
+    tbd_tag_halb = CHTOU32('H', 'A', 'L', 'B'), /*!< CameraHAL configuration */
+    tbd_tag_drvb = CHTOU32('D', 'R', 'V', 'B') /*!< Sensor driver configuration */
 } tbd_tag_t;
 
 /*!
@@ -132,9 +132,9 @@ typedef enum
  * @return                         Return code indicating possible errors
  */
 tbd_error_t tbd_create(void *a_data_ptr,
-    size_t a_data_size,
-    tbd_tag_t a_tag,
-    size_t *a_new_size);
+                       size_t a_data_size,
+                       tbd_tag_t a_tag,
+                       size_t *a_new_size);
 
 /*!
  * \brief Checks if Tagged Binary Data is valid. All tags are accepted.
@@ -146,7 +146,7 @@ tbd_error_t tbd_create(void *a_data_ptr,
  * @return                         Return code indicating possible errors
  */
 tbd_error_t tbd_validate_anytag(void *a_data_ptr,
-    size_t a_data_size);
+                                size_t a_data_size);
 
 /*!
  * \brief Checks if Tagged Binary Data is valid, and tagged properly.
@@ -160,8 +160,8 @@ tbd_error_t tbd_validate_anytag(void *a_data_ptr,
  * @return                         Return code indicating possible errors
  */
 tbd_error_t tbd_validate(void *a_data_ptr,
-    size_t a_data_size,
-    tbd_tag_t a_tag);
+                         size_t a_data_size,
+                         tbd_tag_t a_tag);
 
 /*!
  * \brief Finds a record of given kind from within the container.
@@ -177,10 +177,10 @@ tbd_error_t tbd_validate(void *a_data_ptr,
  * @return                         Return code indicating possible errors
  */
 tbd_error_t tbd_get_record(void *a_data_ptr,
-    tbd_class_t a_record_class,
-    tbd_format_t a_record_format,
-    void **a_record_data,
-    size_t *a_record_size);
+                           tbd_class_t a_record_class,
+                           tbd_format_t a_record_format,
+                           void **a_record_data,
+                           uint32_t *a_record_size);
 
 /*!
  * \brief Updates the Tagged Binary Data with the given record inserted.
@@ -202,12 +202,12 @@ tbd_error_t tbd_get_record(void *a_data_ptr,
  * @return                         Return code indicating possible errors
  */
 tbd_error_t tbd_insert_record(void *a_data_ptr,
-    size_t a_data_size,
-    tbd_class_t a_record_class,
-    tbd_format_t a_record_format,
-    void *a_record_data,
-    size_t a_record_size,
-    size_t *a_new_size);
+                              size_t a_data_size,
+                              tbd_class_t a_record_class,
+                              tbd_format_t a_record_format,
+                              void *a_record_data,
+                              size_t a_record_size,
+                              size_t *a_new_size);
 
 /*!
  * \brief Updates the Tagged Binary Data with the given record removed.
@@ -225,9 +225,9 @@ tbd_error_t tbd_insert_record(void *a_data_ptr,
  * @return                         Return code indicating possible errors
  */
 tbd_error_t tbd_remove_record(void *a_data_ptr,
-    tbd_class_t a_record_class,
-    tbd_format_t a_record_format,
-    size_t *a_new_size);
+                              tbd_class_t a_record_class,
+                              tbd_format_t a_record_format,
+                              size_t *a_new_size);
 
 /*!
  * \brief Writes all possible information about the Tagged Binary Data.
@@ -240,8 +240,8 @@ tbd_error_t tbd_remove_record(void *a_data_ptr,
  * @return                         Return code indicating possible errors
  */
 tbd_error_t tbd_infoprint(void *a_data_ptr,
-    size_t a_data_size,
-    FILE *a_outfile);
+                          size_t a_data_size,
+                          FILE *a_outfile);
 
 #ifdef __cplusplus
 }

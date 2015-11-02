@@ -74,7 +74,7 @@ uint32_t get_checksum(void *a_data_ptr, size_t a_data_size)
             checksum32 += *ptr32++;
             size32 -= 2;
         }
-        for (; size32 > 0; size32-=4) {
+        for (; size32 > 0; size32 -= 4) {
             checksum32 += *ptr32++;
             checksum32 += *ptr32++;
             checksum32 += *ptr32++;
@@ -207,7 +207,7 @@ tbd_error_t validate(void *a_data_ptr, size_t a_data_size)
  * return                         Return code indicating possible errors
  */
 tbd_error_t tbd_create(void *a_data_ptr, size_t a_data_size
-    , tbd_tag_t a_tag, size_t *a_new_size)
+                       , tbd_tag_t a_tag, size_t *a_new_size)
 {
     tbd_header_t *header_ptr;
 
@@ -284,7 +284,7 @@ tbd_error_t tbd_validate_anytag(void *a_data_ptr, size_t a_data_size)
  * return                         Return code indicating possible errors
  */
 tbd_error_t tbd_validate(void *a_data_ptr, size_t a_data_size
-    , tbd_tag_t a_tag)
+                         , tbd_tag_t a_tag)
 {
     tbd_header_t *header_ptr;
 
@@ -301,9 +301,9 @@ tbd_error_t tbd_validate(void *a_data_ptr, size_t a_data_size
     if (header_ptr->tag != a_tag) {
         /* See if we have wrong endianness or incorrect tag */
         uint32_t reverse_tag = ( (((a_tag) >> 24) & 0x000000FF)
-            | (((a_tag) >> 8) & 0x0000FF00)
-            | (((a_tag) << 8) & 0x00FF0000)
-            | (((a_tag) << 24) & 0xFF000000) );
+                                 | (((a_tag) >> 8) & 0x0000FF00)
+                                 | (((a_tag) << 8) & 0x00FF0000)
+                                 | (((a_tag) << 24) & 0xFF000000) );
 
         if (reverse_tag == header_ptr->tag) {
             MSG_ERR("LIBTBD ERROR: Wrong endianness of data!");
@@ -342,8 +342,8 @@ tbd_error_t tbd_validate(void *a_data_ptr, size_t a_data_size
  * return                         Return code indicating possible errors
  */
 tbd_error_t tbd_get_record(void *a_data_ptr
-    , tbd_class_t a_record_class, tbd_format_t a_record_format
-    , void **a_record_data, size_t *a_record_size)
+                           , tbd_class_t a_record_class, tbd_format_t a_record_format
+                           , void **a_record_data, uint32_t *a_record_size)
 {
     tbd_header_t *header_ptr;
     uint8_t *byte_ptr, *eof_ptr;
@@ -371,7 +371,7 @@ tbd_error_t tbd_get_record(void *a_data_ptr
         uint32_t record_size = record_ptr->size;
 
         if (((a_record_class == tbd_class_any) || (a_record_class == record_class))
-            && ((a_record_format == tbd_format_any) || (a_record_format == record_format))) {
+                && ((a_record_format == tbd_format_any) || (a_record_format == record_format))) {
 
             /* Match found */
             *a_record_data = record_ptr + 1;
@@ -410,9 +410,9 @@ tbd_error_t tbd_get_record(void *a_data_ptr
  * return                         Return code indicating possible errors
  */
 tbd_error_t tbd_insert_record(void *a_data_ptr, size_t a_data_size
-    , tbd_class_t a_record_class, tbd_format_t a_record_format
-    , void *a_record_data, size_t a_record_size
-    , size_t *a_new_size)
+                              , tbd_class_t a_record_class, tbd_format_t a_record_format
+                              , void *a_record_data, size_t a_record_size
+                              , size_t *a_new_size)
 {
     tbd_header_t *header_ptr;
     size_t new_size;
@@ -483,8 +483,8 @@ tbd_error_t tbd_insert_record(void *a_data_ptr, size_t a_data_size
  * return                         Return code indicating possible errors
  */
 tbd_error_t tbd_remove_record(void *a_data_ptr
-    , tbd_class_t a_record_class, tbd_format_t a_record_format
-    , size_t *a_new_size)
+                              , tbd_class_t a_record_class, tbd_format_t a_record_format
+                              , size_t *a_new_size)
 {
     tbd_header_t *header_ptr;
     uint8_t *byte_ptr, *eof_ptr;
@@ -513,7 +513,7 @@ tbd_error_t tbd_remove_record(void *a_data_ptr
         uint32_t record_size = record_ptr->size;
 
         if (((a_record_class == tbd_class_any) || (a_record_class == record_class))
-            && ((a_record_format == tbd_format_any) || (a_record_format == record_format))) {
+                && ((a_record_format == tbd_format_any) || (a_record_format == record_format))) {
 
             /* Match found, remove the record */
             memcpy(byte_ptr, byte_ptr + record_size, eof_ptr - (byte_ptr + record_size));
@@ -549,7 +549,7 @@ tbd_error_t tbd_remove_record(void *a_data_ptr
  * return                         Return code indicating possible errors
  */
 tbd_error_t tbd_infoprint(void *a_data_ptr, size_t a_data_size
-    , FILE *a_outfile)
+                          , FILE *a_outfile)
 {
     tbd_header_t *header_ptr;
     uint8_t *byte_ptr, *eof_ptr, record_format, record_packing;

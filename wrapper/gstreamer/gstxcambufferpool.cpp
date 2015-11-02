@@ -167,6 +167,7 @@ gst_xcam_buffer_pool_acquire_buffer (
     SmartPtr<MainDeviceManager> device_manager = pool->device_manager;
     SmartPtr<VideoBuffer> video_buf = device_manager->dequeue_buffer ();
     VideoBufferInfo video_info;
+    gsize offsets[XCAM_VIDEO_MAX_COMPONENTS];
 
     XCAM_UNUSED (params);
 
@@ -174,6 +175,9 @@ gst_xcam_buffer_pool_acquire_buffer (
         return GST_FLOW_ERROR;
 
     video_info = video_buf->get_video_info ();
+    for (int i = 0; i < XCAM_VIDEO_MAX_COMPONENTS; i++) {
+        offsets[i] = video_info.offsets[i];
+    }
 
     out_buf = gst_buffer_new ();
     meta = gst_buffer_add_xcam_buffer_meta (out_buf, video_buf);
@@ -205,7 +209,7 @@ gst_xcam_buffer_pool_acquire_buffer (
                 video_info.width,
                 video_info.height,
                 video_info.components,
-                video_info.offsets,
+                offsets,
                 (gint*)(video_info.strides));
         XCAM_ASSERT (video_meta);
         // TODO, consider map and unmap later

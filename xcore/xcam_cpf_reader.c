@@ -103,7 +103,7 @@ xcam_cpf_read (const char *cpf_file, XCamCpfBlob *aiq_cpf, XCamCpfBlob *hal_cpf)
     int32_t cpf_size;
 
     uint8_t *blob;
-    int32_t blob_size;
+    uint32_t blob_size;
 
     XCAM_FAIL_RETURN_VAL (cpf_file, FALSE);
     XCAM_FAIL_RETURN_VAL (aiq_cpf, FALSE);
@@ -122,7 +122,7 @@ xcam_cpf_read (const char *cpf_file, XCamCpfBlob *aiq_cpf, XCamCpfBlob *hal_cpf)
 
     /* fetch AIQ */
     if ( (tbd_get_record (cpf_buf, tbd_class_aiq, tbd_format_any,
-                          (void**)&blob, (size_t*)&blob_size) != tbd_err_none) ||
+                          (void**)&blob, &blob_size) != tbd_err_none) ||
             !blob || blob_size <= 0) {
         XCAM_LOG_ERROR ("CPF parse AIQ record failed.");
         goto free_buf;
