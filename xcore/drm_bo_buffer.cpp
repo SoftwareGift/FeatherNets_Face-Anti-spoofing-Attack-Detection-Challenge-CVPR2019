@@ -40,6 +40,8 @@ DrmBoData::~DrmBoData ()
     unmap ();
     if (_bo)
         drm_intel_bo_unreference (_bo);
+    if (_prime_fd != -1)
+        close (_prime_fd);
 }
 
 uint8_t *
@@ -95,7 +97,7 @@ DrmBoData::get_fd ()
     if (_prime_fd == -1) {
         if (drm_intel_bo_gem_export_to_prime (_bo, &_prime_fd) < 0) {
             _prime_fd = -1;
-            XCAM_LOG_DEBUG ("DrmBoData: failed to obtain prime fd");
+            XCAM_LOG_ERROR ("DrmBoData: failed to obtain prime fd: %s", strerror(errno));
         }
     }
 
