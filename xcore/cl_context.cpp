@@ -291,7 +291,8 @@ CLContext::generate_kernel_id (
     CLKernel *kernel,
     const uint8_t *source, size_t length,
     CLContext::KernelBuildType type,
-    uint8_t **program_binaries, size_t *binary_sizes)
+    uint8_t **gen_binary, size_t *binary_size,
+    const char *build_option)
 {
     struct CLProgram {
         cl_program id;
@@ -338,7 +339,7 @@ CLContext::generate_kernel_id (
         "cl create program failed with error_cod:%d", error_code);
     XCAM_ASSERT (program.id);
 
-    error_code = clBuildProgram (program.id, 1, &device_id, NULL, CLContext::program_pfn_notify, this);
+    error_code = clBuildProgram (program.id, 1, &device_id, build_option, CLContext::program_pfn_notify, this);
     if (error_code != CL_SUCCESS) {
         char error_log [XCAM_CL_MAX_STR_SIZE];
         xcam_mem_clear (error_log);
@@ -347,15 +348,15 @@ CLContext::generate_kernel_id (
         return NULL;
     }
 
-    if (program_binaries != NULL && binary_sizes != NULL) {
-        error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARY_SIZES, sizeof (size_t) * 1, binary_sizes, NULL);
+    if (gen_binary != NULL && binary_size != NULL) {
+        error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARY_SIZES, sizeof (size_t) * 1, binary_size, NULL);
         if (error_code != CL_SUCCESS) {
             XCAM_LOG_WARNING ("CL query binary sizes failed on %s", name);
         }
 
-        *program_binaries = (uint8_t *) xcam_malloc0 (sizeof (uint8_t) * (*binary_sizes));
+        *gen_binary = (uint8_t *) xcam_malloc0 (sizeof (uint8_t) * (*binary_size));
 
-        error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARIES, sizeof (uint8_t *) * 1, program_binaries, NULL);
+        error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARIES, sizeof (uint8_t *) * 1, gen_binary, NULL);
         if (error_code != CL_SUCCESS) {
             XCAM_LOG_WARNING ("CL query program binaries failed on %s", name);
         }

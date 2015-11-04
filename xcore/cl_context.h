@@ -82,8 +82,9 @@ private:
         const uint8_t *source,
         size_t length,
         KernelBuildType type,
-        uint8_t **program_binaries = NULL,
-        size_t *binary_sizes = NULL);
+        uint8_t **gen_binary,
+        size_t *binary_size,
+        const char *build_option);
     void destroy_kernel_id (cl_kernel &kernel_id);
     XCamReturn execute_kernel (
         CLKernel *kernel,

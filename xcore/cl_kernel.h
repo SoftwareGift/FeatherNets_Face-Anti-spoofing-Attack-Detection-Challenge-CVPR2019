@@ -60,8 +60,9 @@ public:
 
     XCamReturn load_from_source (
         const char *source, size_t length = 0,
-        uint8_t **program_binaries = NULL,
-        size_t *binary_sizes = NULL);
+        uint8_t **gen_binary = NULL,
+        size_t *binary_size = NULL,
+        const char *build_option = NULL);
     XCamReturn load_from_binary (const uint8_t *binary, size_t length);
     cl_kernel get_kernel_id () {
         return _kernel_id;
