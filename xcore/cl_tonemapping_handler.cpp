@@ -56,6 +56,9 @@ CLTonemappingImageKernel::prepare_arguments (
     _image_in = new CLVaImage (context, input);
     _image_out = new CLVaImage (context, output);
 
+    const VideoBufferInfo & in_video_info = input->get_video_info ();
+    _image_height = in_video_info.aligned_height;
+
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
         WARNING,
@@ -95,12 +98,14 @@ CLTonemappingImageKernel::prepare_arguments (
     args[2].arg_size = sizeof (float);
     args[3].arg_adress = &_y_target;
     args[3].arg_size = sizeof (float);
+    args[4].arg_adress = &_image_height;
+    args[4].arg_size = sizeof (int);
 
-    arg_count = 4;
+    arg_count = 5;
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = out_info.width;
+    work_size.global[0] = out_info.width / 4;
     work_size.global[1] = out_info.height;
     work_size.local[0] = 8;
     work_size.local[1] = 8;
@@ -110,7 +115,7 @@ CLTonemappingImageKernel::prepare_arguments (
 
 CLTonemappingImageHandler::CLTonemappingImageHandler (const char *name)
     : CLImageHandler (name)
-    , _output_format (V4L2_PIX_FMT_RGBA32)
+    , _output_format (XCAM_PIX_FMT_RGB48_planar)
 {
 }
 

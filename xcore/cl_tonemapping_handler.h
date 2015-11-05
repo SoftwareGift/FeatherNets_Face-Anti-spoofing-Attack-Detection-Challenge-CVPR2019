@@ -48,6 +48,7 @@ private:
     CLWBConfig                _wb_config;
     float                     _y_max;
     float                     _y_target;
+    int                       _image_height;
 };
 
 class CLTonemappingImageHandler
