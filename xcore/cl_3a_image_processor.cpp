@@ -259,10 +259,6 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             _rgb_pipe->set_tnr_config(tnr_res->get_standard_result ());
             _rgb_pipe->set_3a_result (result);
         }
-        if (_yuv_pipe.ptr ()) {
-            _yuv_pipe->set_tnr_rgb_config(tnr_res->get_standard_result ());
-            _yuv_pipe->set_3a_result (result);
-        }
 
         break;
     }
@@ -519,7 +515,7 @@ CL3aImageProcessor::create_handlers ()
         _yuv_pipe.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create yuv pipe handler failed");
-    _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_RGB, _tnr_mode & CL_TNR_TYPE_YUV);
+    _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_YUV);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 #else
@@ -629,7 +625,7 @@ CL3aImageProcessor::set_profile (const CL3aImageProcessor::PipelineProfile value
     }
     STREAM_LOCK;
     if (_yuv_pipe.ptr ())
-        _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_RGB, _tnr_mode & CL_TNR_TYPE_YUV);
+        _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_YUV);
 
     return true;
 }
@@ -741,7 +737,7 @@ CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
         _rgb_pipe->set_kernels_enable (mode & CL_TNR_TYPE_RGB);
 
     if (_yuv_pipe.ptr ())
-        _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_RGB, _tnr_mode & CL_TNR_TYPE_YUV);
+        _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_YUV);
 
     return ret;
 }

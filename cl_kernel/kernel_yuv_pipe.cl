@@ -12,203 +12,157 @@ unsigned int get_sector_id (float u, float v)
     return tg > 0 ? (u > 0 ? se : (se + 8)) : (u > 0 ? (so + 12) : (so + 4));
 }
 
-__inline void cl_csc_rgbatonv12(float4 *in, float *out, __global float *matrix)
+__inline void cl_csc_rgbatonv12(float8 *R, float8 *G, float8 *B, float8 *out, __global float *matrix)
 {
-    out[0] = matrix[0] * in[0].x + matrix[1] * in[0].y + matrix[2] * in[0].z;
-    out[1] = matrix[0] * in[1].x + matrix[1] * in[1].y + matrix[2] * in[1].z;
-    out[2] = matrix[0] * in[2].x + matrix[1] * in[2].y + matrix[2] * in[2].z;
-    out[3] = matrix[0] * in[3].x + matrix[1] * in[3].y + matrix[2] * in[3].z;
-    out[4] = matrix[3] * in[0].x + matrix[4] * in[0].y + matrix[5] * in[0].z;
-    out[5] = matrix[6] * in[0].x + matrix[7] * in[0].y + matrix[8] * in[0].z;
+    out[0] = mad(matrix[0], R[0], mad(matrix[1], G[0], matrix[2] * B[0]));
+    out[1] = mad(matrix[0], R[1], mad(matrix[1], G[1], matrix[2] * B[1]));
+
+    out[2].s0 = mad(matrix[3], R[0].s0, mad(matrix[4], G[0].s0, matrix[5] * B[0].s0));
+    out[2].s1 = mad(matrix[6], R[0].s0, mad(matrix[7], G[0].s0, matrix[8] * B[0].s0));
+    out[2].s2 = mad(matrix[3], R[0].s2, mad(matrix[4], G[0].s2, matrix[5] * B[0].s2));
+    out[2].s3 = mad(matrix[6], R[0].s2, mad(matrix[7], G[0].s2, matrix[8] * B[0].s2));
+    out[2].s4 = mad(matrix[3], R[0].s4, mad(matrix[4], G[0].s4, matrix[5] * B[0].s4));
+    out[2].s5 = mad(matrix[6], R[0].s4, mad(matrix[7], G[0].s4, matrix[8] * B[0].s4));
+    out[2].s6 = mad(matrix[3], R[0].s6, mad(matrix[4], G[0].s6, matrix[5] * B[0].s6));
+    out[2].s7 = mad(matrix[6], R[0].s6, mad(matrix[7], G[0].s6, matrix[8] * B[0].s6));
+
 }
 
-__inline void cl_macc(float *in, __global float *table)
+__inline void cl_macc(float8 *in, __global float *table)
 {
-    unsigned int table_id;
-    float ui, vi, uo, vo;
-    ui = (*in);
-    vi = (*(in + 1));
-    table_id = get_sector_id(ui, vi);
+    unsigned int table_id[4];
+    float8 out;
 
-    uo = ui * table[4 * table_id] + vi * table[4 * table_id + 1];
-    vo = ui * table[4 * table_id + 2] + vi * table[4 * table_id + 3];
+    table_id[0] = get_sector_id(in[0].s0, in[0].s1);
+    table_id[1] = get_sector_id(in[0].s2, in[0].s3);
+    table_id[2] = get_sector_id(in[0].s4, in[0].s5);
+    table_id[3] = get_sector_id(in[0].s6, in[0].s7);
 
-    (*in) = uo + 0.5;
-    (*(in + 1)) = vo + 0.5;
+    out.s0 = mad(in[0].s0, table[4 * table_id[0]], in[0].s1 * table[4 * table_id[0] + 1]) + 0.5;
+    out.s1 = mad(in[0].s0, table[4 * table_id[0] + 2], in[0].s1 * table[4 * table_id[0] + 3]) + 0.5;
+    out.s2 = mad(in[0].s2, table[4 * table_id[1]], in[0].s3 * table[4 * table_id[1] + 1]) + 0.5;
+    out.s3 = mad(in[0].s2, table[4 * table_id[1] + 2], in[0].s3 * table[4 * table_id[1] + 3]) + 0.5;
+    out.s4 = mad(in[0].s4, table[4 * table_id[0]], in[0].s5 * table[4 * table_id[0] + 1]) + 0.5;
+    out.s5 = mad(in[0].s4, table[4 * table_id[0] + 2], in[0].s5 * table[4 * table_id[0] + 3]) + 0.5;
+    out.s6 = mad(in[0].s6, table[4 * table_id[1]], in[0].s7 * table[4 * table_id[1] + 1]) + 0.5;
+    out.s7 = mad(in[0].s6, table[4 * table_id[1] + 2], in[0].s7 * table[4 * table_id[1] + 3]) + 0.5;
+
+    in[0] = out;
 }
 
-__inline void cl_tnr_rgb(float4 *in, __read_only image2d_t inputFrame1, __read_only image2d_t inputFrame2, __read_only image2d_t inputFrame3, uint count, int x, int y, float rgb_gain, float thr_r, float thr_g, float thr_b)
+__inline void cl_tnr_yuv(float8 *in, __global uchar8 *inputFramePre, int x, int y, float gain_yuv, float thr_y, float thr_uv, uint vertical_offset, uint x_offset)
 {
+    float8 in_prev[3];
 
-    float4 in1[4], in2[4], in3[4];
-    float4 var[4];
-    float4 out[4];
-    float gain[4];
-    int cond[4];
-
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-    in1[0] = read_imagef(inputFrame1, sampler, (int2)(2 * x, 2 * y));
-    in1[1] = read_imagef(inputFrame1, sampler, (int2)(2 * x + 1, 2 * y));
-    in1[2] = read_imagef(inputFrame1, sampler, (int2)(2 * x, 2 * y + 1));
-    in1[3] = read_imagef(inputFrame1, sampler, (int2)(2 * x + 1, 2 * y + 1));
-
-    if (count == 2)
-    {
-        // write follow code separate intead of using a 'for' circle to improve kernel performace.
-        var[0] = fabs(in[0] - in1[0]);
-        var[1] = fabs(in[1] - in1[1]);
-        var[2] = fabs(in[2] - in1[2]);
-        var[3] = fabs(in[3] - in1[3]);
-
-        cond[0] = (var[0].x + var[0].y + var[0].z) < (thr_r + thr_g + thr_b);
-        cond[1] = (var[1].x + var[1].y + var[1].z) < (thr_r + thr_g + thr_b);
-        cond[2] = (var[2].x + var[2].y + var[2].z) < (thr_r + thr_g + thr_b);
-        cond[3] = (var[3].x + var[3].y + var[3].z) < (thr_r + thr_g + thr_b);
-
-        gain[0] = cond[0] ? 1.0f : 0.0f;
-        gain[1] = cond[1] ? 1.0f : 0.0f;
-        gain[2] = cond[2] ? 1.0f : 0.0f;
-        gain[3] = cond[3] ? 1.0f : 0.0f;
-
-        out[0] = (gain[0] *  in[0] + in1[0]) / (1.0f + gain[0]);
-        out[1] = (gain[1] *  in[1] + in1[1]) / (1.0f + gain[1]);
-        out[2] = (gain[2] *  in[2] + in1[2]) / (1.0f + gain[2]);
-        out[3] = (gain[3] *  in[3] + in1[3]) / (1.0f + gain[3]);
-    }
-    else if(count == 3)
-    {
-        in2[0] = read_imagef(inputFrame2, sampler, (int2)(2 * x, 2 * y));
-        in2[1] = read_imagef(inputFrame2, sampler, (int2)(2 * x + 1, 2 * y));
-        in2[2] = read_imagef(inputFrame2, sampler, (int2)(2 * x, 2 * y + 1));
-        in2[3] = read_imagef(inputFrame2, sampler, (int2)(2 * x + 1, 2 * y + 1));
-
-        var[0] = (fabs(in[0] - in1[0]) + fabs(in1[0] - in2[0])) / 2.0;
-        var[1] = (fabs(in[1] - in1[1]) + fabs(in1[1] - in2[1])) / 2.0 ;
-        var[2] = (fabs(in[2] - in1[2]) + fabs(in1[2] - in2[2])) / 2.0;
-        var[3] = (fabs(in[3] - in1[3]) + fabs(in1[0] - in2[3])) / 2.0;
-
-        cond[0] = (var[0].x + var[0].y + var[0].z) < (thr_r + thr_g + thr_b);
-        cond[1] = (var[1].x + var[1].y + var[1].z) < (thr_r + thr_g + thr_b);
-        cond[2] = (var[2].x + var[2].y + var[2].z) < (thr_r + thr_g + thr_b);
-        cond[3] = (var[3].x + var[3].y + var[3].z) < (thr_r + thr_g + thr_b);
-
-        gain[0] = cond[0] ? 1.0f : 0.0f;
-        gain[1] = cond[1] ? 1.0f : 0.0f;
-        gain[2] = cond[2] ? 1.0f : 0.0f;
-        gain[3] = cond[3] ? 1.0f : 0.0f;
-
-        out[0] = (gain[0] *  in[0] + gain[0] * in1[0] + in2[0]) / (1.0f + 2 * gain[0]);
-        out[1] = (gain[1] *  in[1] + gain[1] * in1[1] + in2[1]) / (1.0f + 2 * gain[1]);
-        out[2] = (gain[2] *  in[2] + gain[2] * in1[2] + in2[2]) / (1.0f + 2 * gain[2]);
-        out[3] = (gain[3] *  in[3] + gain[3] * in1[3] + in2[3]) / (1.0f + 2 * gain[3]);
-    }
-    else if(count == 4)
-    {
-        in2[0] = read_imagef(inputFrame2, sampler, (int2)(2 * x, 2 * y));
-        in2[1] = read_imagef(inputFrame2, sampler, (int2)(2 * x + 1, 2 * y));
-        in2[2] = read_imagef(inputFrame2, sampler, (int2)(2 * x, 2 * y + 1));
-        in2[3] = read_imagef(inputFrame2, sampler, (int2)(2 * x + 1, 2 * y + 1));
-
-        in3[0] = read_imagef(inputFrame3, sampler, (int2)(2 * x, 2 * y));
-        in3[1] = read_imagef(inputFrame3, sampler, (int2)(2 * x + 1, 2 * y));
-        in3[2] = read_imagef(inputFrame3, sampler, (int2)(2 * x, 2 * y + 1));
-        in3[3] = read_imagef(inputFrame3, sampler, (int2)(2 * x + 1, 2 * y + 1));
-
-        var[0] = (fabs(in[0] - in1[0]) + fabs(in1[0] - in2[0]) + fabs(in2[0] - in3[0])) / 3.0;
-        var[1] = (fabs(in[1] - in1[1]) + fabs(in1[1] - in2[1]) + fabs(in2[1] - in3[1])) / 3.0 ;
-        var[2] = (fabs(in[2] - in1[2]) + fabs(in1[2] - in2[2]) + fabs(in2[2] - in3[2])) / 3.0;
-        var[3] = (fabs(in[3] - in1[3]) + fabs(in1[0] - in2[3]) + fabs(in2[3] - in3[3])) / 3.0;
-
-        cond[0] = (var[0].x + var[0].y + var[0].z) < (thr_r + thr_g + thr_b);
-        cond[1] = (var[1].x + var[1].y + var[1].z) < (thr_r + thr_g + thr_b);
-        cond[2] = (var[2].x + var[2].y + var[2].z) < (thr_r + thr_g + thr_b);
-        cond[3] = (var[3].x + var[3].y + var[3].z) < (thr_r + thr_g + thr_b);
-
-        gain[0] = cond[0] ? 1.0f : 0.0f;
-        gain[1] = cond[1] ? 1.0f : 0.0f;
-        gain[2] = cond[2] ? 1.0f : 0.0f;
-        gain[3] = cond[3] ? 1.0f : 0.0f;
-
-        out[0] = (gain[0] *  in[0] + gain[0] * in1[0] + gain[0] * in2[0] + in3[0]) / (1.0f + 3 * gain[0]);
-        out[1] = (gain[1] *  in[1] + gain[1] * in1[1] + gain[1] * in2[1] + in3[1]) / (1.0f + 3 * gain[1]);
-        out[2] = (gain[2] *  in[2] + gain[2] * in1[2] + gain[2] * in2[2] + in3[2]) / (1.0f + 3 * gain[2]);
-        out[3] = (gain[3] *  in[3] + gain[3] * in1[3] + gain[3] * in2[3] + in3[3]) / (1.0f + 3 * gain[3]);
-    }
-
-    in[0] = out[0];
-    in[1] = out[1];
-    in[2] = out[2];
-    in[3] = out[3];
-}
-
-__inline void cl_tnr_yuv(float *in, __read_only image2d_t inputFramePre, int x, int y, float gain_yuv, float thr_y, float thr_uv, uint vertical_offset)
-{
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-    float4 in_prev[6];
-    in_prev[0] = read_imagef(inputFramePre, sampler, (int2)(2 * x, 2 * y));
-    in_prev[1] = read_imagef(inputFramePre, sampler, (int2)(2 * x + 1, 2 * y));
-    in_prev[2] = read_imagef(inputFramePre, sampler, (int2)(2 * x, 2 * y + 1));
-    in_prev[3] = read_imagef(inputFramePre, sampler, (int2)(2 * x + 1, 2 * y + 1));
-
-    in_prev[4] = read_imagef(inputFramePre, sampler, (int2)(2 * x, y + vertical_offset));
-    in_prev[5] = read_imagef(inputFramePre, sampler, (int2)(2 * x + 1, y + vertical_offset));
+    in_prev[0] = convert_float8(inputFramePre[2 * y * x_offset + x]) / 255.0;
+    in_prev[1] = convert_float8(inputFramePre[(2 * y + 1) * x_offset + x]) / 255.0;
+    in_prev[2] = convert_float8(inputFramePre[(y + vertical_offset) * x_offset + x]) / 255.0;
 
     float diff_max = 0.8;
+    float diff_Y[4], coeff_Y[4];
 
-    float diff_Y = 0.25 * (fabs(in[0] - in_prev[0].x) + fabs(in[1] - in_prev[1].x) + fabs(in[2] - in_prev[2].x) + fabs(in[3] - in_prev[3].x));
+    diff_Y[0] = 0.25 * (fabs(in[0].s0 - in_prev[0].s0) + fabs(in[0].s1 - in_prev[0].s1) + fabs(in[1].s0 - in_prev[1].s0) + fabs(in[1].s1 - in_prev[1].s1));
+    diff_Y[1] = 0.25 * (fabs(in[0].s2 - in_prev[0].s2) + fabs(in[0].s3 - in_prev[0].s3) + fabs(in[1].s2 - in_prev[1].s2) + fabs(in[1].s3 - in_prev[1].s3));
+    diff_Y[2] = 0.25 * (fabs(in[0].s4 - in_prev[0].s4) + fabs(in[0].s5 - in_prev[0].s5) + fabs(in[1].s4 - in_prev[1].s4) + fabs(in[1].s5 - in_prev[1].s5));
+    diff_Y[3] = 0.25 * (fabs(in[0].s6 - in_prev[0].s6) + fabs(in[0].s7 - in_prev[0].s7) + fabs(in[1].s6 - in_prev[1].s6) + fabs(in[1].s7 - in_prev[1].s7));
 
-    float coeff_Y = (diff_Y < thr_y) ? gain_yuv : (diff_Y * (1 - gain_yuv) + diff_max * gain_yuv - thr_y) / (diff_max - thr_y);
-    coeff_Y = (coeff_Y < 1.0) ? coeff_Y : 1.0;
+    coeff_Y[0] = (diff_Y[0] < thr_y) ? gain_yuv : (mad(diff_Y[0], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
+    coeff_Y[1] = (diff_Y[1] < thr_y) ? gain_yuv : (mad(diff_Y[1], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
+    coeff_Y[2] = (diff_Y[2] < thr_y) ? gain_yuv : (mad(diff_Y[2], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
+    coeff_Y[3] = (diff_Y[3] < thr_y) ? gain_yuv : (mad(diff_Y[3], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
 
-    float out[6];
-    in[0] =  in_prev[0].x + (in[0] - in_prev[0].x) * coeff_Y;
-    in[1] =  in_prev[1].x + (in[1] - in_prev[1].x) * coeff_Y;
-    in[2] =  in_prev[2].x + (in[2] - in_prev[2].x) * coeff_Y;
-    in[3] =  in_prev[3].x + (in[3] - in_prev[3].x) * coeff_Y;
+    coeff_Y[0] = (coeff_Y[0] < 1.0) ? coeff_Y[0] : 1.0;
+    coeff_Y[1] = (coeff_Y[1] < 1.0) ? coeff_Y[1] : 1.0;
+    coeff_Y[2] = (coeff_Y[2] < 1.0) ? coeff_Y[2] : 1.0;
+    coeff_Y[3] = (coeff_Y[3] < 1.0) ? coeff_Y[3] : 1.0;
 
-    float diff_U = fabs(in[4] -  in_prev[4].x);
-    float diff_V = fabs(in[5] -  in_prev[5].x);
+    in[0].s01 = mad(in[0].s01 - in_prev[0].s01, coeff_Y[0], in_prev[0].s01);
+    in[1].s01 = mad(in[1].s01 - in_prev[1].s01, coeff_Y[0], in_prev[1].s01);
+    in[0].s23 = mad(in[0].s23 - in_prev[0].s23, coeff_Y[1], in_prev[0].s23);
+    in[1].s23 = mad(in[1].s23 - in_prev[1].s23, coeff_Y[1], in_prev[1].s23);
+    in[0].s45 = mad(in[0].s45 - in_prev[0].s45, coeff_Y[2], in_prev[0].s45);
+    in[1].s45 = mad(in[1].s45 - in_prev[1].s45, coeff_Y[2], in_prev[1].s45);
+    in[0].s67 = mad(in[0].s67 - in_prev[0].s67, coeff_Y[3], in_prev[0].s67);
+    in[1].s67 = mad(in[1].s67 - in_prev[1].s67, coeff_Y[3], in_prev[1].s67);
 
-    float coeff_U = (diff_U < thr_uv) ? gain_yuv : (diff_U * (1 - gain_yuv) + diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv);
-    float coeff_V = (diff_V < thr_uv) ? gain_yuv : (diff_V * (1 - gain_yuv) + diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv);
-    coeff_U = (coeff_U < 1.0) ? coeff_U : 1.0;
-    coeff_V = (coeff_V < 1.0) ? coeff_V : 1.0;
+    float diff_U[4], diff_V[4], coeff_U[4], coeff_V[4];
 
-    in[4] =  in_prev[4].x + (in[4] - in_prev[4].x) * coeff_U;
-    in[5] =  in_prev[5].x + (in[5] - in_prev[5].x) * coeff_V;
+    diff_U[0] = fabs(in[3].s0 - in_prev[3].s0);
+    diff_U[1] = fabs(in[3].s2 - in_prev[3].s2);
+    diff_U[2] = fabs(in[3].s4 - in_prev[3].s4);
+    diff_U[3] = fabs(in[3].s6 - in_prev[3].s6);
+
+    diff_V[0] = fabs(in[3].s1 - in_prev[3].s1);
+    diff_V[1] = fabs(in[3].s3 - in_prev[3].s3);
+    diff_V[2] = fabs(in[3].s5 - in_prev[3].s5);
+    diff_V[3] = fabs(in[3].s7 - in_prev[3].s7);
+
+    coeff_U[0] = (diff_U[0] < thr_uv) ? gain_yuv : (mad(diff_U[0], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+    coeff_U[1] = (diff_U[1] < thr_uv) ? gain_yuv : (mad(diff_U[1], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+    coeff_U[2] = (diff_U[2] < thr_uv) ? gain_yuv : (mad(diff_U[2], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+    coeff_U[3] = (diff_U[3] < thr_uv) ? gain_yuv : (mad(diff_U[3], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+
+    coeff_V[0] = (diff_V[0] < thr_uv) ? gain_yuv : (mad(diff_V[0], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+    coeff_V[1] = (diff_V[1] < thr_uv) ? gain_yuv : (mad(diff_V[1], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+    coeff_V[2] = (diff_V[2] < thr_uv) ? gain_yuv : (mad(diff_V[2], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+    coeff_V[3] = (diff_V[3] < thr_uv) ? gain_yuv : (mad(diff_V[3], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
+
+    coeff_U[0] = (coeff_U[0] < 1.0) ? coeff_U[0] : 1.0;
+    coeff_U[1] = (coeff_U[1] < 1.0) ? coeff_U[1] : 1.0;
+    coeff_U[2] = (coeff_U[2] < 1.0) ? coeff_U[2] : 1.0;
+    coeff_U[3] = (coeff_U[3] < 1.0) ? coeff_U[3] : 1.0;
+
+    coeff_V[0] = (coeff_V[0] < 1.0) ? coeff_V[0] : 1.0;
+    coeff_V[1] = (coeff_V[1] < 1.0) ? coeff_V[1] : 1.0;
+    coeff_V[2] = (coeff_V[2] < 1.0) ? coeff_V[2] : 1.0;
+    coeff_V[3] = (coeff_V[3] < 1.0) ? coeff_V[3] : 1.0;
+
+    in[3].s0 = mad(in[3].s0 - in_prev[3].s0, coeff_U[0], in_prev[3].s0);
+    in[3].s1 = mad(in[3].s1 - in_prev[3].s1, coeff_V[0], in_prev[3].s1);
+    in[3].s2 = mad(in[3].s2 - in_prev[3].s2, coeff_U[1], in_prev[3].s2);
+    in[3].s3 = mad(in[3].s3 - in_prev[3].s3, coeff_V[1], in_prev[3].s3);
+    in[3].s4 = mad(in[3].s4 - in_prev[3].s4, coeff_U[2], in_prev[3].s4);
+    in[3].s5 = mad(in[3].s5 - in_prev[3].s5, coeff_V[2], in_prev[3].s5);
+    in[3].s6 = mad(in[3].s6 - in_prev[3].s6, coeff_U[3], in_prev[3].s6);
+    in[3].s7 = mad(in[3].s7 - in_prev[3].s7, coeff_V[3], in_prev[3].s7);
+
 }
 
-__kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2d_t inputFramePre, uint vertical_offset, __global float *matrix, __global float *table, uint count, float rgb_gain, float thr_r, float thr_g, float thr_b, float yuv_gain, float thr_y, float thr_uv, uint tnr_rgb_enable, uint tnr_yuv_enable, __read_only image2d_t inputFrame0, __read_only image2d_t inputFrame1, __read_only image2d_t inputFrame2, __read_only image2d_t inputFrame3)
+__kernel void kernel_yuv_pipe (__global uchar8 *output, __global uchar8 *inputFramePre, uint vertical_offset, uint plannar_offset, __global float *matrix, __global float *table, float yuv_gain, float thr_y, float thr_uv, uint tnr_yuv_enable, __global ushort8 *inputFrame0)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+    int offsetX = get_global_size(0);
+    // x [0, 240]
+    // y [0, 540]
+    uint offsetE = 2 * y * offsetX + x;
+    uint offsetO = (2 * y + 1) * offsetX + x;
+    uint offsetUV = (y + vertical_offset) * offsetX + x;
+    uint offsetG = offsetX * plannar_offset;
+    uint offsetB = offsetX * plannar_offset * 2;
 
-    float4 in[4];
-    float out[6];
+    float8 inR[2], inG[2], inB[2];
+    float8 out[3];
 
-    in[0] = read_imagef(inputFrame0, sampler, (int2)(2 * x, 2 * y));
-    in[1] = read_imagef(inputFrame0, sampler, (int2)(2 * x + 1, 2 * y));
-    in[2] = read_imagef(inputFrame0, sampler, (int2)(2 * x, 2 * y + 1));
-    in[3] = read_imagef(inputFrame0, sampler, (int2)(2 * x + 1, 2 * y + 1));
+    inR[0] = convert_float8(inputFrame0[offsetE]) / 65535.0;
+    inR[1] = convert_float8(inputFrame0[offsetO]) / 65535.0;
 
-    if (tnr_rgb_enable) {
-        cl_tnr_rgb (&in[0], inputFrame1, inputFrame2, inputFrame3, count, x, y, rgb_gain, thr_r, thr_g, thr_b);
-    }
+    inG[0] = convert_float8(inputFrame0[offsetE + offsetG]) / 65535.0;
+    inG[1] = convert_float8(inputFrame0[offsetO + offsetG]) / 65535.0;
 
-    cl_csc_rgbatonv12(&in[0], &out[0], matrix);
-    cl_macc(&out[4], table);
+    inB[0] = convert_float8(inputFrame0[offsetE + offsetB]) / 65535.0;
+    inB[1] = convert_float8(inputFrame0[offsetO + offsetB]) / 65535.0;
+
+    cl_csc_rgbatonv12(&inR[0], &inG[0], &inB[0], &out[0], matrix);
+    cl_macc(&out[2], table);
 
     if (tnr_yuv_enable) {
-        cl_tnr_yuv (&out[0], inputFramePre, x, y, yuv_gain, thr_y, thr_uv, vertical_offset);
+        cl_tnr_yuv (&out[0], inputFramePre, x, y, yuv_gain, thr_y, thr_uv, vertical_offset, offsetX);
     }
 
+    output[offsetE] = convert_uchar8(out[0] * 255.0);
+    output[offsetO] = convert_uchar8(out[1] * 255.0);
+    output[offsetUV] = convert_uchar8(out[2] * 255.0);
 
-    write_imagef(output, (int2)(2 * x, 2 * y), (float4)out[0]);
-    write_imagef(output, (int2)(2 * x + 1, 2 * y), (float4)out[1]);
-    write_imagef(output, (int2)(2 * x, 2 * y + 1), (float4)out[2]);
-    write_imagef(output, (int2)(2 * x + 1, 2 * y + 1), (float4)out[3]);
-    write_imagef(output, (int2)(2 * x, y + vertical_offset), (float4)out[4]);
-    write_imagef(output, (int2)(2 * x + 1, y + vertical_offset), (float4)out[5]);
 }
 
