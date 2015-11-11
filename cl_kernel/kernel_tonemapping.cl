@@ -5,6 +5,12 @@
  * output:   image2d_t as write only
  */
 
+#define WORK_ITEM_X_SIZE 8
+#define WORK_ITEM_Y_SIZE 8
+
+#define SHARED_PIXEL_X_SIZE 10
+#define SHARED_PIXEL_Y_SIZE 10
+
 __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only image2d_t output, float y_max, float y_target, int image_height)
 {
     int g_id_x = get_global_id (0);
@@ -33,6 +39,70 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
                               };
     float4 src_ym_data = 0.0f;
 
+#if 1 // use SLM
+    __local float4 local_src_data[SHARED_PIXEL_X_SIZE * SHARED_PIXEL_Y_SIZE];
+
+    int start_x = WORK_ITEM_X_SIZE * group_id_x - 1;
+    int start_y = WORK_ITEM_Y_SIZE * group_id_y - 1;
+    int local_index = local_id_y * WORK_ITEM_X_SIZE + local_id_x;
+    int offset_x = local_index % SHARED_PIXEL_X_SIZE;
+    int offset_y = local_index / SHARED_PIXEL_X_SIZE;
+
+    float4 data_R = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y));
+    float4 data_G = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height));
+    float4 data_B = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height * 2));
+    local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data_R * 255 * 0.299 + data_G * 255 * 0.587 + data_B * 255 * 0.114;
+
+    if(local_index < SHARED_PIXEL_X_SIZE * SHARED_PIXEL_Y_SIZE - WORK_ITEM_X_SIZE * WORK_ITEM_Y_SIZE)
+    {
+        offset_x = (local_index + WORK_ITEM_X_SIZE * WORK_ITEM_Y_SIZE) % SHARED_PIXEL_X_SIZE;
+        offset_y = (local_index + WORK_ITEM_X_SIZE * WORK_ITEM_Y_SIZE) / SHARED_PIXEL_X_SIZE;
+
+        data_R = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y));
+        data_G = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height));
+        data_B = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height * 2));
+        local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data_R * 255 * 0.299 + data_G * 255 * 0.587 + data_B * 255 * 0.114;
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    float4 y_data;
+    float4 top_Y, bottom_Y;
+
+    top_Y = local_src_data[local_id_y * SHARED_PIXEL_X_SIZE + local_id_x + 1];
+    bottom_Y = local_src_data[(local_id_y + 2) * SHARED_PIXEL_X_SIZE + local_id_x + 1];
+
+    y_data.x = local_src_data[local_id_y * SHARED_PIXEL_X_SIZE + local_id_x].w;
+    y_data.yzw = top_Y.xyz;
+    src_ym_data += y_data * (float4)gaussian_table[0];
+
+    src_ym_data += top_Y * (float4)gaussian_table[1];
+
+    y_data.xyz = top_Y.yzw;
+    y_data.w = local_src_data[local_id_y * SHARED_PIXEL_X_SIZE + local_id_x + 2].x;
+    src_ym_data += y_data * (float4)gaussian_table[2];
+
+    y_data.x = local_src_data[(local_id_y + 1) * SHARED_PIXEL_X_SIZE + local_id_x].w;
+    y_data.yzw = src_y_data.xyz;
+    src_ym_data += y_data * (float4)gaussian_table[3];
+
+    src_ym_data += src_y_data * (float4)gaussian_table[4];
+
+    y_data.xyz = src_y_data.yzw;
+    y_data.w = local_src_data[(local_id_y + 1) * SHARED_PIXEL_X_SIZE + local_id_x + 2].x;
+    src_ym_data += y_data * (float4)gaussian_table[5];
+
+    y_data.x = local_src_data[(local_id_y + 2) * SHARED_PIXEL_X_SIZE + local_id_x].w;
+    y_data.yzw = bottom_Y.xyz;
+    src_ym_data += y_data * (float4)gaussian_table[6];
+
+    src_ym_data += bottom_Y * (float4)gaussian_table[7];
+
+    y_data.xyz = bottom_Y.yzw;
+    y_data.w = local_src_data[(local_id_y + 2) * SHARED_PIXEL_X_SIZE + local_id_x + 2].x;
+    src_ym_data += y_data * (float4)gaussian_table[8];
+
+#else // use global memory
     float4 data_R, data_G, data_B;
     float4 top_R, bottom_R, top_G, bottom_G, top_B, bottom_B;
     top_R = read_imagef (input, sampler, (int2)(g_id_x, g_id_y - 1));
@@ -70,7 +140,7 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
     data_R.yzw = src_data_R.xyz;
     data_G.x = read_imagef (input, sampler, (int2)(g_id_x - 1, g_id_y + image_height)).w;
     data_G.yzw = src_data_G.xyz;
-    data_B.x = read_imagef (input, sampler, (int2)(g_id_x - 1, g_id_y)).w;
+    data_B.x = read_imagef (input, sampler, (int2)(g_id_x - 1, g_id_y + image_height * 2)).w;
     data_B.yzw = src_data_B.xyz;
     y_data = data_R * 255 * 0.299 + data_G * 255 * 0.587 + data_B * 255 * 0.114;
     src_ym_data += y_data * (float4)gaussian_table[3];
@@ -110,6 +180,7 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
     data_B.w = read_imagef (input, sampler, (int2)(g_id_x + 1, g_id_y + image_height * 2 + 1)).x;
     y_data = data_R * 255 * 0.299 + data_G * 255 * 0.587 + data_B * 255 * 0.114;
     src_ym_data += y_data * (float4)gaussian_table[8];
+#endif
 
     float4 gain = ((float4)y_max + src_ym_data + (float4)y_target) / (src_y_data + src_ym_data + (float4)y_target);
     src_data_R = src_data_R * gain;
@@ -119,4 +190,5 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
     write_imagef(output, (int2)(g_id_x, g_id_y), src_data_R);
     write_imagef(output, (int2)(g_id_x, g_id_y + image_height), src_data_G);
     write_imagef(output, (int2)(g_id_x, g_id_y + image_height * 2), src_data_B);
+#endif
 }
