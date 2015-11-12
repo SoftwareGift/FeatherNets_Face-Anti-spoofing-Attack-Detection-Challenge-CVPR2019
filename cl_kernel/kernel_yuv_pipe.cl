@@ -4,14 +4,14 @@
  * output:   image2d_t as write only
  */
 
-#define USE_BUFFER_OBJECT 1
+//#define USE_BUFFER_OBJECT 0
 
 unsigned int get_sector_id (float u, float v)
 {
     u = fabs(u) > 0.00001f ? u : 0.00001f;
     float tg = v / u;
-    unsigned int se = tg > 1 ? (tg > 2 ? 3 : 2) : (tg > 0.5 ? 1 : 0);
-    unsigned int so = tg > -1 ? (tg > -0.5 ? 3 : 2) : (tg > -2 ? 1 : 0);
+    unsigned int se = tg > 1.f ? (tg > 2.f ? 3 : 2) : (tg > 0.5f ? 1 : 0);
+    unsigned int so = tg > -1.f ? (tg > -0.5f ? 3 : 2) : (tg > -2.f ? 1 : 0);
     return tg > 0 ? (u > 0 ? se : (se + 8)) : (u > 0 ? (so + 12) : (so + 4));
 }
 
@@ -41,14 +41,14 @@ __inline void cl_macc(float8 *in, __global float *table)
     table_id[2] = get_sector_id(in[0].s4, in[0].s5);
     table_id[3] = get_sector_id(in[0].s6, in[0].s7);
 
-    out.s0 = mad(in[0].s0, table[4 * table_id[0]], in[0].s1 * table[4 * table_id[0] + 1]) + 0.5;
-    out.s1 = mad(in[0].s0, table[4 * table_id[0] + 2], in[0].s1 * table[4 * table_id[0] + 3]) + 0.5;
-    out.s2 = mad(in[0].s2, table[4 * table_id[1]], in[0].s3 * table[4 * table_id[1] + 1]) + 0.5;
-    out.s3 = mad(in[0].s2, table[4 * table_id[1] + 2], in[0].s3 * table[4 * table_id[1] + 3]) + 0.5;
-    out.s4 = mad(in[0].s4, table[4 * table_id[0]], in[0].s5 * table[4 * table_id[0] + 1]) + 0.5;
-    out.s5 = mad(in[0].s4, table[4 * table_id[0] + 2], in[0].s5 * table[4 * table_id[0] + 3]) + 0.5;
-    out.s6 = mad(in[0].s6, table[4 * table_id[1]], in[0].s7 * table[4 * table_id[1] + 1]) + 0.5;
-    out.s7 = mad(in[0].s6, table[4 * table_id[1] + 2], in[0].s7 * table[4 * table_id[1] + 3]) + 0.5;
+    out.s0 = mad(in[0].s0, table[4 * table_id[0]], in[0].s1 * table[4 * table_id[0] + 1]) + 0.5f;
+    out.s1 = mad(in[0].s0, table[4 * table_id[0] + 2], in[0].s1 * table[4 * table_id[0] + 3]) + 0.5f;
+    out.s2 = mad(in[0].s2, table[4 * table_id[1]], in[0].s3 * table[4 * table_id[1] + 1]) + 0.5f;
+    out.s3 = mad(in[0].s2, table[4 * table_id[1] + 2], in[0].s3 * table[4 * table_id[1] + 3]) + 0.5f;
+    out.s4 = mad(in[0].s4, table[4 * table_id[0]], in[0].s5 * table[4 * table_id[0] + 1]) + 0.5f;
+    out.s5 = mad(in[0].s4, table[4 * table_id[0] + 2], in[0].s5 * table[4 * table_id[0] + 3]) + 0.5f;
+    out.s6 = mad(in[0].s6, table[4 * table_id[1]], in[0].s7 * table[4 * table_id[1] + 1]) + 0.5f;
+    out.s7 = mad(in[0].s6, table[4 * table_id[1] + 2], in[0].s7 * table[4 * table_id[1] + 3]) + 0.5f;
 
     in[0] = out;
 }
@@ -63,32 +63,32 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 
 #if USE_BUFFER_OBJECT
-    in_prev[0] = convert_float8(inputFramePre[2 * y * x_offset + x]) / 255.0;
-    in_prev[1] = convert_float8(inputFramePre[(2 * y + 1) * x_offset + x]) / 255.0;
-    in_prev[2] = convert_float8(inputFramePre[(y + vertical_offset) * x_offset + x]) / 255.0;
+    in_prev[0] = convert_float8(inputFramePre[2 * y * x_offset + x]) / 256.0f;
+    in_prev[1] = convert_float8(inputFramePre[(2 * y + 1) * x_offset + x]) / 256.0f;
+    in_prev[2] = convert_float8(inputFramePre[(y + vertical_offset) * x_offset + x]) / 256.0f;
 #else
-    in_prev[0] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y)))) / 255.0f;
-    in_prev[1] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + 1)))) / 255.0f;
-    in_prev[2] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + vertical_offset)))) / 255.0f;
+    in_prev[0] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y)))) / 256.0f;
+    in_prev[1] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + 1)))) / 256.0f;
+    in_prev[2] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + vertical_offset)))) / 256.0f;
 #endif
 
-    float diff_max = 0.8;
+    float diff_max = 0.8f;
     float diff_Y[4], coeff_Y[4];
 
-    diff_Y[0] = 0.25 * (fabs(in[0].s0 - in_prev[0].s0) + fabs(in[0].s1 - in_prev[0].s1) + fabs(in[1].s0 - in_prev[1].s0) + fabs(in[1].s1 - in_prev[1].s1));
-    diff_Y[1] = 0.25 * (fabs(in[0].s2 - in_prev[0].s2) + fabs(in[0].s3 - in_prev[0].s3) + fabs(in[1].s2 - in_prev[1].s2) + fabs(in[1].s3 - in_prev[1].s3));
-    diff_Y[2] = 0.25 * (fabs(in[0].s4 - in_prev[0].s4) + fabs(in[0].s5 - in_prev[0].s5) + fabs(in[1].s4 - in_prev[1].s4) + fabs(in[1].s5 - in_prev[1].s5));
-    diff_Y[3] = 0.25 * (fabs(in[0].s6 - in_prev[0].s6) + fabs(in[0].s7 - in_prev[0].s7) + fabs(in[1].s6 - in_prev[1].s6) + fabs(in[1].s7 - in_prev[1].s7));
+    diff_Y[0] = 0.25f * (fabs(in[0].s0 - in_prev[0].s0) + fabs(in[0].s1 - in_prev[0].s1) + fabs(in[1].s0 - in_prev[1].s0) + fabs(in[1].s1 - in_prev[1].s1));
+    diff_Y[1] = 0.25f * (fabs(in[0].s2 - in_prev[0].s2) + fabs(in[0].s3 - in_prev[0].s3) + fabs(in[1].s2 - in_prev[1].s2) + fabs(in[1].s3 - in_prev[1].s3));
+    diff_Y[2] = 0.25f * (fabs(in[0].s4 - in_prev[0].s4) + fabs(in[0].s5 - in_prev[0].s5) + fabs(in[1].s4 - in_prev[1].s4) + fabs(in[1].s5 - in_prev[1].s5));
+    diff_Y[3] = 0.25f * (fabs(in[0].s6 - in_prev[0].s6) + fabs(in[0].s7 - in_prev[0].s7) + fabs(in[1].s6 - in_prev[1].s6) + fabs(in[1].s7 - in_prev[1].s7));
 
     coeff_Y[0] = (diff_Y[0] < thr_y) ? gain_yuv : (mad(diff_Y[0], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
     coeff_Y[1] = (diff_Y[1] < thr_y) ? gain_yuv : (mad(diff_Y[1], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
     coeff_Y[2] = (diff_Y[2] < thr_y) ? gain_yuv : (mad(diff_Y[2], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
     coeff_Y[3] = (diff_Y[3] < thr_y) ? gain_yuv : (mad(diff_Y[3], 1 - gain_yuv, diff_max * gain_yuv - thr_y) / (diff_max - thr_y));
 
-    coeff_Y[0] = (coeff_Y[0] < 1.0) ? coeff_Y[0] : 1.0;
-    coeff_Y[1] = (coeff_Y[1] < 1.0) ? coeff_Y[1] : 1.0;
-    coeff_Y[2] = (coeff_Y[2] < 1.0) ? coeff_Y[2] : 1.0;
-    coeff_Y[3] = (coeff_Y[3] < 1.0) ? coeff_Y[3] : 1.0;
+    coeff_Y[0] = (coeff_Y[0] < 1.0f) ? coeff_Y[0] : 1.0f;
+    coeff_Y[1] = (coeff_Y[1] < 1.0f) ? coeff_Y[1] : 1.0f;
+    coeff_Y[2] = (coeff_Y[2] < 1.0f) ? coeff_Y[2] : 1.0f;
+    coeff_Y[3] = (coeff_Y[3] < 1.0f) ? coeff_Y[3] : 1.0f;
 
     in[0].s01 = mad(in[0].s01 - in_prev[0].s01, coeff_Y[0], in_prev[0].s01);
     in[1].s01 = mad(in[1].s01 - in_prev[1].s01, coeff_Y[0], in_prev[1].s01);
@@ -121,15 +121,15 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
     coeff_V[2] = (diff_V[2] < thr_uv) ? gain_yuv : (mad(diff_V[2], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
     coeff_V[3] = (diff_V[3] < thr_uv) ? gain_yuv : (mad(diff_V[3], 1 - gain_yuv, diff_max * gain_yuv - thr_uv) / (diff_max - thr_uv));
 
-    coeff_U[0] = (coeff_U[0] < 1.0) ? coeff_U[0] : 1.0;
-    coeff_U[1] = (coeff_U[1] < 1.0) ? coeff_U[1] : 1.0;
-    coeff_U[2] = (coeff_U[2] < 1.0) ? coeff_U[2] : 1.0;
-    coeff_U[3] = (coeff_U[3] < 1.0) ? coeff_U[3] : 1.0;
+    coeff_U[0] = (coeff_U[0] < 1.0f) ? coeff_U[0] : 1.0f;
+    coeff_U[1] = (coeff_U[1] < 1.0f) ? coeff_U[1] : 1.0f;
+    coeff_U[2] = (coeff_U[2] < 1.0f) ? coeff_U[2] : 1.0f;
+    coeff_U[3] = (coeff_U[3] < 1.0f) ? coeff_U[3] : 1.0f;
 
-    coeff_V[0] = (coeff_V[0] < 1.0) ? coeff_V[0] : 1.0;
-    coeff_V[1] = (coeff_V[1] < 1.0) ? coeff_V[1] : 1.0;
-    coeff_V[2] = (coeff_V[2] < 1.0) ? coeff_V[2] : 1.0;
-    coeff_V[3] = (coeff_V[3] < 1.0) ? coeff_V[3] : 1.0;
+    coeff_V[0] = (coeff_V[0] < 1.0f) ? coeff_V[0] : 1.0f;
+    coeff_V[1] = (coeff_V[1] < 1.0f) ? coeff_V[1] : 1.0f;
+    coeff_V[2] = (coeff_V[2] < 1.0f) ? coeff_V[2] : 1.0f;
+    coeff_V[3] = (coeff_V[3] < 1.0f) ? coeff_V[3] : 1.0f;
 
     in[3].s0 = mad(in[3].s0 - in_prev[3].s0, coeff_U[0], in_prev[3].s0);
     in[3].s1 = mad(in[3].s1 - in_prev[3].s1, coeff_V[0], in_prev[3].s1);
@@ -144,8 +144,10 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
 
 #if USE_BUFFER_OBJECT
 __kernel void kernel_yuv_pipe (__global uchar8 *output, __global uchar8 *inputFramePre, uint vertical_offset, uint plannar_offset, __global float *matrix, __global float *table, float yuv_gain, float thr_y, float thr_uv, uint tnr_yuv_enable, __global ushort8 *inputFrame0)
+
 #else
 __kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2d_t inputFramePre, uint vertical_offset, uint plannar_offset, __global float *matrix, __global float *table, float yuv_gain, float thr_y, float thr_uv, uint tnr_yuv_enable, __read_only image2d_t inputFrame0)
+
 #endif
 {
     int x = get_global_id (0);
@@ -164,19 +166,19 @@ __kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2
     float8 out[3];
 
 #if USE_BUFFER_OBJECT
-    inR[0] = convert_float8(inputFrame0[offsetE]) / 65535.0;
-    inR[1] = convert_float8(inputFrame0[offsetO]) / 65535.0;
-    inG[0] = convert_float8(inputFrame0[offsetE + offsetG]) / 65535.0;
-    inG[1] = convert_float8(inputFrame0[offsetO + offsetG]) / 65535.0;
-    inB[0] = convert_float8(inputFrame0[offsetE + offsetB]) / 65535.0;
-    inB[1] = convert_float8(inputFrame0[offsetO + offsetB]) / 65535.0;
+    inR[0] = convert_float8(inputFrame0[offsetE]) / 65536.0f;
+    inR[1] = convert_float8(inputFrame0[offsetO]) / 65536.0f;
+    inG[0] = convert_float8(inputFrame0[offsetE + offsetG]) / 65536.0f;
+    inG[1] = convert_float8(inputFrame0[offsetO + offsetG]) / 65536.0f;
+    inB[0] = convert_float8(inputFrame0[offsetE + offsetB]) / 65536.0f;
+    inB[1] = convert_float8(inputFrame0[offsetO + offsetB]) / 65536.0f;
 #else
-    inR[0] = convert_float8(as_short8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y)))) / 65535.0f;
-    inR[1] = convert_float8(as_short8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + 1)))) / 65535.0f;
-    inG[0] = convert_float8(as_short8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + plannar_offset)))) / 65535.0f;
-    inG[1] = convert_float8(as_short8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + 1 + plannar_offset)))) / 65535.0f;
-    inB[0] = convert_float8(as_short8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + plannar_offset * 2)))) / 65535.0f;
-    inB[1] = convert_float8(as_short8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + 1 + plannar_offset * 2)))) / 65535.0f;
+    inR[0] = convert_float8(as_ushort8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y)))) / 65536.0f;
+    inR[1] = convert_float8(as_ushort8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + 1)))) / 65536.0f;
+    inG[0] = convert_float8(as_ushort8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + plannar_offset)))) / 65536.0f;
+    inG[1] = convert_float8(as_ushort8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + 1 + plannar_offset)))) / 65536.0f;
+    inB[0] = convert_float8(as_ushort8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + plannar_offset * 2)))) / 65536.0f;
+    inB[1] = convert_float8(as_ushort8(read_imageui(inputFrame0, sampler, (int2)(x, 2 * y + 1 + plannar_offset * 2)))) / 65536.0f;
 #endif
 
     cl_csc_rgbatonv12(&inR[0], &inG[0], &inB[0], &out[0], matrix);
@@ -187,13 +189,13 @@ __kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2
     }
 
 #if USE_BUFFER_OBJECT
-    output[offsetE] = convert_uchar8(out[0] * 255.0);
-    output[offsetO] = convert_uchar8(out[1] * 255.0);
-    output[offsetUV] = convert_uchar8(out[2] * 255.0);
+    output[offsetE] = convert_uchar8(out[0] * 255.0f);
+    output[offsetO] = convert_uchar8(out[1] * 255.0f);
+    output[offsetUV] = convert_uchar8(out[2] * 255.0f);
 #else
-    write_imageui(output, (int2)(x, 2 * y), convert_uint4(as_ushort4(convert_uchar8_sat(out[0] * 255.0))));
-    write_imageui(output, (int2)(x, 2 * y + 1), convert_uint4(as_ushort4(convert_uchar8_sat(out[1] * 255.0))));
-    write_imageui(output, (int2)(x, y + vertical_offset), convert_uint4(as_ushort4(convert_uchar8_sat(out[2] * 255.0))));
+    write_imageui(output, (int2)(x, 2 * y), convert_uint4(as_ushort4(convert_uchar8_sat(out[0] * 255.0f))));
+    write_imageui(output, (int2)(x, 2 * y + 1), convert_uint4(as_ushort4(convert_uchar8_sat(out[1] * 255.0f))));
+    write_imageui(output, (int2)(x, y + vertical_offset), convert_uint4(as_ushort4(convert_uchar8_sat(out[2] * 255.0f))));
 #endif
 
 }

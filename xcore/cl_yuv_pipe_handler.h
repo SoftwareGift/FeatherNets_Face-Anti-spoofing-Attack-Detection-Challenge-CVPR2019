@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: Wangfei <feix.w.wang@intel.com>
+ * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
 #ifndef XCAM_CL_YUV_PIPE_HANLDER_H
@@ -30,7 +31,6 @@ namespace XCam {
 class CLYuvPipeImageKernel
     : public CLImageKernel
 {
-    typedef std::list<SmartPtr<CLVaBuffer>> CLVaBufferPtrList;
 
 public:
     explicit CLYuvPipeImageKernel (SmartPtr<CLContext> &context);
@@ -59,9 +59,9 @@ private:
     float               _thr_uv;
     uint32_t            _enable_tnr_yuv;
     uint32_t            _enable_tnr_yuv_state;
-    SmartPtr<CLVaBuffer> _image_in;
-    SmartPtr<CLVaBuffer> _image_out;
-    SmartPtr<CLVaBuffer> _image_out_prev;
+    SmartPtr<CLMemory>  _buffer_in;
+    SmartPtr<CLMemory>  _buffer_out;
+    SmartPtr<CLMemory>  _buffer_out_prev;
 };
 
 class CLYuvPipeImageHandler

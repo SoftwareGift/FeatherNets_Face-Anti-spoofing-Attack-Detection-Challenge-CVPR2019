@@ -16,9 +16,13 @@
  * limitations under the License.
  *
  * Author: Wangfei <feix.w.wang@intel.com>
+ * Author: Wind Yuan <feng.yuan@intel.com>
  */
 #include "xcam_utils.h"
 #include "cl_yuv_pipe_handler.h"
+
+#define USE_BUFFER_OBJECT 0
+
 float default_matrix[XCAM_COLOR_MATRIX_SIZE] = {0.299, 0.587, 0.114, -0.14713, -0.28886, 0.436, 0.615, -0.51499, -0.10001};
 float default_macc[XCAM_CHROMA_AXIS_SIZE*XCAM_CHROMA_MATRIX_SIZE] = {
     1.000000, 0.000000, 0.000000, 1.000000, 1.000000, 0.000000, 0.000000, 1.000000,
@@ -87,11 +91,30 @@ CLYuvPipeImageKernel::prepare_arguments (
     CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & video_info_in = output->get_video_info ();
-    const VideoBufferInfo & video_info = output->get_video_info ();
+    const VideoBufferInfo & video_info_in = input->get_video_info ();
+    const VideoBufferInfo & video_info_out = output->get_video_info ();
 
-    _image_in = new CLVaBuffer (context, input);
-    _image_out = new CLVaBuffer (context, output);
+#if !USE_BUFFER_OBJECT
+    CLImageDesc in_image_info;
+    in_image_info.format.image_channel_order = CL_RGBA;
+    in_image_info.format.image_channel_data_type = CL_UNSIGNED_INT32;
+    in_image_info.width = video_info_in.aligned_width / 8;
+    in_image_info.height = video_info_in.aligned_height * 3;
+    in_image_info.row_pitch = video_info_in.strides[0];
+
+    CLImageDesc out_image_info;
+    out_image_info.format.image_channel_order = CL_RGBA;
+    out_image_info.format.image_channel_data_type = CL_UNSIGNED_INT16;
+    out_image_info.width = video_info_out.width / 8;
+    out_image_info.height = video_info_out.aligned_height + (video_info_out.aligned_height / 2);
+    out_image_info.row_pitch = video_info_out.strides[0];
+
+    _buffer_in = new CLVaImage (context, input, in_image_info);
+    _buffer_out = new CLVaImage (context, output, out_image_info);
+#else
+    _buffer_in = new CLVaBuffer (context, input);
+    _buffer_out = new CLVaBuffer (context, output);
+#endif
     _matrix_buffer = new CLBuffer (
         context, sizeof(float)*XCAM_COLOR_MATRIX_SIZE,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_rgbtoyuv_matrix);
@@ -100,10 +123,10 @@ CLYuvPipeImageKernel::prepare_arguments (
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_macc_table);
 
     _plannar_offset = video_info_in.aligned_height;
-    _vertical_offset = video_info.aligned_height;
+    _vertical_offset = video_info_out.aligned_height;
 
-    if (!_image_out_prev.ptr ()) {
-        _image_out_prev = _image_in;
+    if (!_buffer_out_prev.ptr ()) {
+        _buffer_out_prev = _buffer_out;
         _enable_tnr_yuv_state = _enable_tnr_yuv;
         _enable_tnr_yuv = 0;
     }
@@ -111,17 +134,17 @@ CLYuvPipeImageKernel::prepare_arguments (
         if (_enable_tnr_yuv == 0)
             _enable_tnr_yuv = _enable_tnr_yuv_state;
     }
-    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
+    XCAM_ASSERT (_buffer_in->is_valid () && _buffer_out->is_valid ());
     XCAM_FAIL_RETURN (
         WARNING,
-        _image_in->is_valid () && _image_out->is_valid (),
+        _buffer_in->is_valid () && _buffer_out->is_valid (),
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     //set args;
-    args[0].arg_adress = &_image_out->get_mem_id ();
+    args[0].arg_adress = &_buffer_out->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out_prev->get_mem_id ();
+    args[1].arg_adress = &_buffer_out_prev->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
     args[2].arg_adress = &_vertical_offset;
     args[2].arg_size = sizeof (_vertical_offset);
@@ -139,14 +162,14 @@ CLYuvPipeImageKernel::prepare_arguments (
     args[8].arg_size = sizeof (_thr_uv);
     args[9].arg_adress = &_enable_tnr_yuv;
     args[9].arg_size = sizeof (_enable_tnr_yuv);
-    args[10].arg_adress = &_image_in->get_mem_id ();
+    args[10].arg_adress = &_buffer_in->get_mem_id ();
     args[10].arg_size = sizeof (cl_mem);
 
     arg_count = 11;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = video_info.width / 8 ;
-    work_size.global[1] = video_info.aligned_height / 2 ;
+    work_size.global[0] = video_info_out.width / 8 ;
+    work_size.global[1] = video_info_out.aligned_height / 2 ;
     work_size.local[0] = 8;
     work_size.local[1] = 4;
 
@@ -156,11 +179,11 @@ CLYuvPipeImageKernel::prepare_arguments (
 XCamReturn
 CLYuvPipeImageKernel::post_execute ()
 {
-    if (_image_out->is_valid ()) {
-        _image_out_prev = _image_out;
+    if (_buffer_out->is_valid ()) {
+        _buffer_out_prev = _buffer_out;
     }
-    _image_in.release ();
-    _image_out.release ();
+    _buffer_in.release ();
+    _buffer_out.release ();
     _matrix_buffer.release ();
     _macc_table_buffer.release ();
 
@@ -241,7 +264,10 @@ create_cl_yuv_pipe_image_handler (SmartPtr<CLContext> &context)
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_yuv_pipe)
 #include "kernel_yuv_pipe.clx"
         XCAM_CL_KERNEL_FUNC_END;
-        ret = yuv_pipe_kernel->load_from_source (kernel_yuv_pipe_body, strlen (kernel_yuv_pipe_body));
+        ret = yuv_pipe_kernel->load_from_source (
+                  kernel_yuv_pipe_body, strlen (kernel_yuv_pipe_body),
+                  NULL, NULL,
+                  USE_BUFFER_OBJECT ? "-DUSE_BUFFER_OBJECT=1" : "-DUSE_BUFFER_OBJECT=0");
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,
