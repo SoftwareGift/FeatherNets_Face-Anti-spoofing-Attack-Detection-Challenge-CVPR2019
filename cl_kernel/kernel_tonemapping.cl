@@ -31,7 +31,7 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
     float4 src_data_G = read_imagef (input, sampler, (int2)(g_id_x, g_id_y + image_height));
     float4 src_data_B = read_imagef (input, sampler, (int2)(g_id_x, g_id_y + image_height * 2));
 
-    float4 src_y_data = src_data_R * 255 * 0.299 + src_data_G * 255 * 0.587 + src_data_B * 255 * 0.114;
+    float4 src_y_data = src_data_R * 255.f * 0.299f + src_data_G * 255.f * 0.587f + src_data_B * 255.f * 0.114f;
 
     float gaussian_table[9] = {0.075f, 0.124f, 0.075f,
                                0.124f, 0.204f, 0.124f,
@@ -51,7 +51,7 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
     float4 data_R = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y));
     float4 data_G = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height));
     float4 data_B = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height * 2));
-    local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data_R * 255 * 0.299 + data_G * 255 * 0.587 + data_B * 255 * 0.114;
+    local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data_R * 255.f * 0.299f + data_G * 255.f * 0.587f + data_B * 255.f * 0.114f;
 
     if(local_index < SHARED_PIXEL_X_SIZE * SHARED_PIXEL_Y_SIZE - WORK_ITEM_X_SIZE * WORK_ITEM_Y_SIZE)
     {
@@ -61,7 +61,7 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
         data_R = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y));
         data_G = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height));
         data_B = read_imagef (input, sampler, (int2)(start_x + offset_x, start_y + offset_y + image_height * 2));
-        local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data_R * 255 * 0.299 + data_G * 255 * 0.587 + data_B * 255 * 0.114;
+        local_src_data[offset_y * SHARED_PIXEL_X_SIZE + offset_x] = data_R * 255.f * 0.299f + data_G * 255.f * 0.587f + data_B * 255.f * 0.114f;
     }
 
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -190,5 +190,4 @@ __kernel void kernel_tonemapping (__read_only image2d_t input, __write_only imag
     write_imagef(output, (int2)(g_id_x, g_id_y), src_data_R);
     write_imagef(output, (int2)(g_id_x, g_id_y + image_height), src_data_G);
     write_imagef(output, (int2)(g_id_x, g_id_y + image_height * 2), src_data_B);
-#endif
 }
