@@ -67,9 +67,9 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
     in_prev[1] = convert_float8(inputFramePre[(2 * y + 1) * x_offset + x]) / 256.0f;
     in_prev[2] = convert_float8(inputFramePre[(y + vertical_offset) * x_offset + x]) / 256.0f;
 #else
-    in_prev[0] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y)))) / 256.0f;
-    in_prev[1] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + 1)))) / 256.0f;
-    in_prev[2] = convert_float8(as_ushort8(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + vertical_offset)))) / 256.0f;
+    in_prev[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y))))) / 256.0f;
+    in_prev[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + 1))))) / 256.0f;
+    in_prev[2] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + vertical_offset))))) / 256.0f;
 #endif
 
     float diff_max = 0.8f;
