@@ -35,6 +35,8 @@ public:
     explicit FakePollThread (const char *raw_path);
     ~FakePollThread ();
 
+    virtual XCamReturn stop ();
+
 protected:
     virtual XCamReturn poll_buffer_loop ();
 

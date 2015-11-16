@@ -41,6 +41,16 @@ FakePollThread::~FakePollThread ()
 }
 
 XCamReturn
+FakePollThread::stop ()
+{
+    if (_buf_pool.ptr ())
+        _buf_pool->stop ();
+
+    PollThread::stop ();
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 FakePollThread::read_buf (SmartPtr<DrmBoBuffer> &buf)
 {
     uint8_t *dst = buf->map ();

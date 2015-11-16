@@ -69,7 +69,7 @@ public:
     bool set_stats_callback (StatsCallback *callback);
 
     XCamReturn start();
-    XCamReturn stop ();
+    virtual XCamReturn stop ();
 
 protected:
     XCamReturn poll_subdev_event_loop ();
