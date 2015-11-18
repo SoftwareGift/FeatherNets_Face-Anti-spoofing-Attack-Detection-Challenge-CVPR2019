@@ -360,6 +360,8 @@ inline void stats_3a_calculate (
     int g_size_x = get_global_size (0);
     int g_size_y = get_global_size (1);
 
+    int group_id_y = get_group_id(1);
+
     int l_id_x = get_local_id(0);
     int l_id_y = get_local_id(1);
     int count = STATS_3A_GRID_SIZE * STATS_3A_GRID_SIZE / 4;
@@ -380,7 +382,7 @@ inline void stats_3a_calculate (
 
     if (l_id_x % STATS_3A_GRID_SIZE == 0 && l_id_y % STATS_3A_GRID_SIZE == 0) {
         float4 tmp_data;
-        int out_index = mad24(g_id_y / STATS_3A_GRID_SIZE,  g_size_x / STATS_3A_GRID_SIZE, g_id_x / STATS_3A_GRID_SIZE);
+        int out_index = mad24(group_id_y, g_size_x / STATS_3A_GRID_SIZE, g_id_x / STATS_3A_GRID_SIZE);
         tmp_data = input[shared_pos (l_id_x + SLM_CELL_X_OFFSET, l_id_y + SLM_CELL_Y_OFFSET)];
         stats_output[out_index].avg_gr = convert_uchar_sat(tmp_data.x * 255.0f);
         stats_output[out_index].avg_r = convert_uchar_sat(tmp_data.y * 255.0f);
