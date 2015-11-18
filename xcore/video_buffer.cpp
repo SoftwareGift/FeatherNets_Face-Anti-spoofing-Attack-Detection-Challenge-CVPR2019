@@ -51,6 +51,7 @@ VideoBufferInfo::init (
     uint32_t size)
 {
     uint32_t image_size = 0;
+    uint32_t i = 0;
 
     XCAM_ASSERT (!aligned_width  || aligned_width >= width);
     XCAM_ASSERT (!aligned_height  || aligned_height >= height);
@@ -188,8 +189,25 @@ VideoBufferInfo::init (
         this->strides [0] = this->strides [1] = this->strides [2] = aligned_width * (this->color_bits / 8);
         this->offsets [0] = 0;
         this->offsets [1] = this->offsets [0] + this->strides [0] * aligned_height;
-        this->offsets [2] = this->offsets [1] + this->strides [1] * aligned_height;;
+        this->offsets [2] = this->offsets [1] + this->strides [1] * aligned_height;
         image_size = this->offsets [2] + this->strides [2] * aligned_height;
+        break;
+
+    case XCAM_PIX_FMT_SGRBG16_planar:
+    case XCAM_PIX_FMT_SGRBG8_planar:
+        if (XCAM_PIX_FMT_SGRBG16_planar == format)
+            this->color_bits = 16;
+        else
+            this->color_bits = 8;
+        this->components = 4;
+        for (i = 0; i < this->components; ++i) {
+            this->strides [i] = aligned_width * (this->color_bits / 8);
+        }
+        this->offsets [0] = 0;
+        for (i = 1; i < this->components; ++i) {
+            this->offsets [i] = this->offsets [i - 1] + this->strides [i - 1] * aligned_height;
+        }
+        image_size = this->offsets [this->components - 1] + this->strides [this->components - 1] * aligned_height;
         break;
 
     default:
@@ -274,6 +292,11 @@ VideoBufferInfo::get_planar_info (
     case XCAM_PIX_FMT_RGB48_planar:
     case XCAM_PIX_FMT_RGB24_planar:
         XCAM_ASSERT (index <= 2);
+        break;
+
+    case XCAM_PIX_FMT_SGRBG16_planar:
+    case XCAM_PIX_FMT_SGRBG8_planar:
+        XCAM_ASSERT (index <= 3);
         break;
 
     default:
