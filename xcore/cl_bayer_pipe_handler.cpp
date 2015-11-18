@@ -28,6 +28,16 @@
 #define BAYER_LOCAL_X_SIZE 8
 #define BAYER_LOCAL_Y_SIZE 4
 
+float guass_2_0_table[XCAM_GUASS_TABLE_SIZE] = {
+    3.978874, 3.966789, 3.930753, 3.871418, 3.789852, 3.687501, 3.566151, 3.427876, 3.274977, 3.109920,
+    2.935268, 2.753622, 2.567547, 2.379525, 2.191896, 2.006815, 1.826218, 1.651792, 1.484965, 1.326889,
+    1.178449, 1.040267, 0.912718, 0.795950, 0.689911, 0.594371, 0.508957, 0.433173, 0.366437, 0.308103,
+    0.257483, 0.213875, 0.176575, 0.144896, 0.118179, 0.095804, 0.077194, 0.061822, 0.049210, 0.038934,
+    0.030617, 0.023930, 0.018591, 0.014355, 0.011017, 0.008404, 0.006372, 0.004802, 0.003597, 0.002678,
+    0.001981, 0.001457, 0.001065, 0.000774, 0.000559, 0.000401, 0.000286, 0.000203, 0.000143, 0.000100,
+    0.000070, 0.000048, 0.000033, 0.000023
+};
+
 namespace XCam {
 
 CL3AStatsCalculatorContext::CL3AStatsCalculatorContext (const SmartPtr<CLContext> &context)
@@ -240,6 +250,9 @@ CLBayerPipeImageKernel::CLBayerPipeImageKernel (
 
     _3a_stats_context = new CL3AStatsCalculatorContext (context);
     XCAM_ASSERT (_3a_stats_context.ptr ());
+
+    memcpy(_guass_table, guass_2_0_table, sizeof(float)*XCAM_GUASS_TABLE_SIZE);
+
 }
 
 bool
@@ -327,6 +340,11 @@ CLBayerPipeImageKernel::prepare_arguments (
 
     _stats_cl_buffer = _3a_stats_context->get_next_buffer ();
 
+    _guass_table_buffer = new CLBuffer(
+        context, sizeof(float) * 64,
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_guass_table);
+
+
     //set args;
     arg_count = 0;
     args[arg_count].arg_adress = &_image_in->get_mem_id ();
@@ -366,6 +384,10 @@ CLBayerPipeImageKernel::prepare_arguments (
     args[arg_count].arg_size = sizeof (cl_mem);
     ++arg_count;
 
+    args[arg_count].arg_adress = &_guass_table_buffer->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = BAYER_LOCAL_X_SIZE;
     work_size.local[1] = BAYER_LOCAL_Y_SIZE;
@@ -388,7 +410,7 @@ CLBayerPipeImageKernel::post_execute ()
     _image_in.release ();
     _image_out.release ();
     _gamma_table_buffer.release ();
-
+    _guass_table_buffer.release ();
 
     stats_3a = _3a_stats_context->copy_stats_out (_stats_cl_buffer);
     if (!stats_3a.ptr ()) {

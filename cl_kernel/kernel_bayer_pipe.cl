@@ -149,20 +149,23 @@ inline void simple_calculate (
 #define MIN_DELTA_COFF 1.0f
 #define DEFAULT_DELTA_COFF 4.0f
 
-inline float2 delta_coff (float2 delta)
+inline float2 delta_coff (float2 in, __local float *table)
 {
-    float2 coff = mad (fabs(delta), - 20.0f, MAX_DELTA_COFF);
-    return fmax (1.0f, coff);
+    float2 out;
+    out.x = table[(int)(fabs(in.x * 64.0f))];
+    out.y = table[(int)(fabs(in.y * 64.0f))];
+
+    return out;
 }
 
-inline float2 dot_denoise (float2 value, float2 in1, float2 in2, float2 in3, float2 in4)
+inline float2 dot_denoise (float2 value, float2 in1, float2 in2, float2 in3, float2 in4, __local float *table)
 {
     float2 coff0, coff1, coff2, coff3, coff4, coff5;
-    coff0 = DEFAULT_DELTA_COFF;
-    coff1 = delta_coff (in1 - value);
-    coff2 = delta_coff (in2 - value);
-    coff3 = delta_coff (in3 - value);
-    coff4 = delta_coff (in4 - value);
+    coff0 = delta_coff (0.0, table);
+    coff1 = delta_coff (in1 - value, table);
+    coff2 = delta_coff (in2 - value, table);
+    coff3 = delta_coff (in3 - value, table);
+    coff4 = delta_coff (in4 - value, table);
     //(in1 * coff1 + in2 * coff2 + in3 * coff3 + in4 * coff4 + value * coff0)
     float2 sum1 = (mad (in1, coff1,
                         mad (in2, coff2,
@@ -239,7 +242,7 @@ void demosaic_2_cell (
 void demosaic_denoise_2_cell (
     __local float *x_data_in, __local float *y_data_in, __local float *z_data_in, __local float *w_data_in,
     int in_x, int in_y,
-    __write_only image2d_t out, uint out_height, int out_x, int out_y)
+    __write_only image2d_t out, uint out_height, int out_x, int out_y, __local float *table)
 {
     float4 out_data[2];
     float2 value;
@@ -256,17 +259,17 @@ void demosaic_denoise_2_cell (
         R_y[2] = *(__local float4*)(y_data_in + index);
 
         value = (R_y[1].s01 + R_y[1].s12) * 0.5f;
-        out_data[0].s02 = dot_denoise (value, R_y[0].s01, R_y[0].s12, R_y[2].s01, R_y[2].s12);
+        out_data[0].s02 = dot_denoise (value, R_y[0].s01, R_y[0].s12, R_y[2].s01, R_y[2].s12, table);
 
         value = R_y[1].s12;
-        out_data[0].s13 = dot_denoise (value, R_y[0].s12, R_y[1].s01, R_y[1].s23, R_y[2].s12);
+        out_data[0].s13 = dot_denoise (value, R_y[0].s12, R_y[1].s01, R_y[1].s23, R_y[2].s12, table);
 
         value = (R_y[1].s01 + R_y[1].s12 +
                  R_y[2].s01 + R_y[2].s12) * 0.25f;
-        out_data[1].s02 = dot_denoise (value, R_y[1].s01, R_y[1].s12, R_y[2].s01, R_y[2].s12);
+        out_data[1].s02 = dot_denoise (value, R_y[1].s01, R_y[1].s12, R_y[2].s01, R_y[2].s12, table);
 
         value = (R_y[1].s12 + R_y[2].s12) * 0.5f;
-        out_data[1].s13 = dot_denoise (value, R_y[1].s01, R_y[1].s23, R_y[2].s01, R_y[2].s23);
+        out_data[1].s13 = dot_denoise (value, R_y[1].s01, R_y[1].s23, R_y[2].s01, R_y[2].s23, table);
 
         write_imagef (out, (int2)(out_x, out_y), out_data[0]);
         write_imagef (out, (int2)(out_x, out_y + 1), out_data[1]);
@@ -284,17 +287,17 @@ void demosaic_denoise_2_cell (
         B_z[2] = *(__local float4*)(z_data_in + index);
 
         value = (B_z[0].s12 + B_z[1].s12) * 0.5f;
-        out_data[0].s02 = dot_denoise (value, B_z[0].s01, B_z[0].s23, B_z[1].s01, B_z[1].s23);
+        out_data[0].s02 = dot_denoise (value, B_z[0].s01, B_z[0].s23, B_z[1].s01, B_z[1].s23, table);
 
         value = (B_z[0].s12 + B_z[0].s23 +
                  B_z[1].s12 + B_z[1].s23) * 0.25f;
-        out_data[0].s13 = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[1].s12, B_z[1].s23);
+        out_data[0].s13 = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[1].s12, B_z[1].s23, table);
 
         value = B_z[1].s12;
-        out_data[1].s02 = dot_denoise (value, B_z[0].s12, B_z[1].s01, B_z[1].s23, B_z[2].s12);
+        out_data[1].s02 = dot_denoise (value, B_z[0].s12, B_z[1].s01, B_z[1].s23, B_z[2].s12, table);
 
         value = (B_z[1].s12 + B_z[1].s23) * 0.5f;
-        out_data[1].s13 = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[2].s12, B_z[2].s23);
+        out_data[1].s13 = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[2].s12, B_z[2].s23, table);
 
         write_imagef (out, (int2)(out_x, out_y + out_height * 2), out_data[0]);
         write_imagef (out, (int2)(out_x, out_y + 1 + out_height * 2), out_data[1]);
@@ -315,18 +318,18 @@ void demosaic_denoise_2_cell (
 
         value = mad (Gr_x[0].s01, 4.0f,  (Gb_w[0].s01 +
                                           Gb_w[0].s12 + Gb_w[1].s01 + Gb_w[1].s12)) * 0.125f;
-        out_data[0].s02 = dot_denoise (value, Gb_w[0].s01, Gb_w[0].s12, Gb_w[1].s01, Gb_w[1].s12);
+        out_data[0].s02 = dot_denoise (value, Gb_w[0].s01, Gb_w[0].s12, Gb_w[1].s01, Gb_w[1].s12, table);
         value = (Gr_x[0].s01 + Gr_x[0].s12 +
                  Gb_w[0].s12 + Gb_w[1].s12) * 0.25f;
-        out_data[0].s13 = dot_denoise(value, Gr_x[0].s01, Gr_x[0].s12, Gb_w[0].s12, Gb_w[1].s12);
+        out_data[0].s13 = dot_denoise(value, Gr_x[0].s01, Gr_x[0].s12, Gb_w[0].s12, Gb_w[1].s12, table);
 
         value = (Gr_x[0].s01 + Gr_x[1].s01 +
                  Gb_w[1].s01 + Gb_w[1].s12) * 0.25f;
-        out_data[1].s02 = dot_denoise (value, Gr_x[0].s01, Gr_x[1].s01, Gb_w[1].s01, Gb_w[1].s12);
+        out_data[1].s02 = dot_denoise (value, Gr_x[0].s01, Gr_x[1].s01, Gb_w[1].s01, Gb_w[1].s12, table);
 
         value = mad (Gb_w[1].s12, 4.0f, (Gr_x[0].s01 +
                                          Gr_x[0].s12 + Gr_x[1].s01 + Gr_x[1].s12)) * 0.125f;
-        out_data[1].s13 = dot_denoise (value, Gr_x[0].s01, Gr_x[0].s12, Gr_x[1].s01, Gr_x[1].s12);
+        out_data[1].s13 = dot_denoise (value, Gr_x[0].s01, Gr_x[0].s12, Gr_x[1].s01, Gr_x[1].s12, table);
 
         write_imagef (out, (int2)(out_x, out_y + out_height), out_data[0]);
         write_imagef (out, (int2)(out_x, out_y + 1 + out_height), out_data[1]);
@@ -337,12 +340,12 @@ void shared_demosaic (
     __local float *x_data_in, __local float *y_data_in, __local float *z_data_in, __local float *w_data_in,
     int in_x, int in_y,
     __write_only image2d_t out, uint output_height, int out_x, int out_y,
-    uint has_denoise)
+    uint has_denoise, __local float *table)
 {
     if (has_denoise) {
         demosaic_denoise_2_cell (
             x_data_in, y_data_in, z_data_in, w_data_in, in_x, in_y,
-            out, output_height, out_x, out_y);
+            out, output_height, out_x, out_y, table);
     } else {
         demosaic_2_cell (
             x_data_in, y_data_in, z_data_in, w_data_in, in_x, in_y,
@@ -406,7 +409,8 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
                                  uint has_denoise,
                                  uint enable_gamma,
                                  __global float * gamma_table,
-                                 __global XCamGridStat * stats_output)
+                                 __global XCamGridStat * stats_output,
+                                 __global float * guass_table)
 {
     int g_id_x = get_global_id (0);
     int g_id_y = get_global_id (1);
@@ -421,6 +425,7 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
     __local float p1_x[SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE], p1_y[SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE], p1_z[SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE], p1_w[SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE];
     __local float4 p2[SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE];
     __local float4 *stats_cache = p2;
+    __local float SLM_delta_coef_table[64];
 
     float blc_multiplier = (float)(1 << (16 - blc_config.color_bits));
 
@@ -428,6 +433,7 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
     int x_start = get_group_id (0) * WORKGROUP_PIXEL_WIDTH;
     int y_start = get_group_id (1) * WORKGROUP_PIXEL_HEIGHT;
     int i = mad24 (l_id_y, l_size_x, l_id_x);
+    int j = i;
 
     i *= 2;
     for (; i < SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE; i += (l_size_x * l_size_y) * 2) {
@@ -441,6 +447,9 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
                           enable_gamma,
                           gamma_table);
     }
+    for(; j < 64; j += l_size_x * l_size_y)
+        SLM_delta_coef_table[j] = guass_table[j];
+
     barrier(CLK_LOCAL_MEM_FENCE);
 
     stats_3a_calculate (stats_cache, stats_output, &wb_config);
@@ -454,6 +463,6 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
         p1_x, p1_y, p1_z, p1_w,
         input_x + SLM_CELL_X_OFFSET, input_y + SLM_CELL_Y_OFFSET,
         output, output_height,
-        mad24 (input_x, PIXEL_PER_CELL, x_start) / 4, mad24 (input_y, PIXEL_PER_CELL, y_start), has_denoise);
+        mad24 (input_x, PIXEL_PER_CELL, x_start) / 4, mad24 (input_y, PIXEL_PER_CELL, y_start), has_denoise, SLM_delta_coef_table);
 }
 

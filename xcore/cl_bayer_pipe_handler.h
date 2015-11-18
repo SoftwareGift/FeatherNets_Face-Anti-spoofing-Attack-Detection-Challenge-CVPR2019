@@ -32,6 +32,8 @@
 #include "cl_context.h"
 #include "cl_3a_stats_calculator.h"
 
+#define XCAM_GUASS_TABLE_SIZE 64
+
 namespace XCam {
 
 #if 0
@@ -119,7 +121,9 @@ private:
     uint32_t                  _enable_denoise;
     uint32_t                  _enable_gamma;
     float                     _gamma_table[XCAM_GAMMA_TABLE_SIZE + 1];
+    float                     _guass_table[XCAM_GUASS_TABLE_SIZE];
     SmartPtr<CLBuffer>        _gamma_table_buffer;
+    SmartPtr<CLBuffer>        _guass_table_buffer;
     SmartPtr<CL3AStatsCalculatorContext>  _3a_stats_context;
     SmartPtr<CLBuffer>        _stats_cl_buffer;
 
