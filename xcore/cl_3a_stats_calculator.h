@@ -26,8 +26,7 @@
 #include "cl_memory.h"
 #include "x3a_stats_pool.h"
 #include "stats_callback_interface.h"
-
-#define XCAM_CL_3A_STATS_BUFFER_COUNT 6
+#include "cl_3a_stats_context.h"
 
 namespace XCam {
 

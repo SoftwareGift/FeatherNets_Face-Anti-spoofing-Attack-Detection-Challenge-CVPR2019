@@ -42,6 +42,7 @@ class CLTnrImageHandler;
 class CLEeImageHandler;
 class CLDpcImageHandler;
 class CLBnrImageHandler;
+class CLBayerBasicImageHandler;
 class CLBayerPipeImageHandler;
 class CLYuvPipeImageHandler;
 class CLRgbPipeImageHandler;
@@ -130,6 +131,7 @@ private:
     SmartPtr<CLImageScaler>             _scaler;
 
     // simple 3a bayer pipeline
+    SmartPtr<CLBayerBasicImageHandler> _bayer_basic_pipe;
     SmartPtr<CLBayerPipeImageHandler>  _bayer_pipe;
     SmartPtr<CLYuvPipeImageHandler>    _yuv_pipe;
     SmartPtr<CLRgbPipeImageHandler>    _rgb_pipe;

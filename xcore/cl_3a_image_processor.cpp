@@ -39,6 +39,7 @@
 #include "cl_tonemapping_handler.h"
 #include "cl_biyuv_handler.h"
 #include "cl_image_scaler.h"
+#include "cl_bayer_basic_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 #define XCAM_CL_3A_IMAGE_SCALER_FACTOR 0.5
@@ -168,9 +169,9 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             _wb->set_wb_config (wb_res->get_standard_result ());
             _wb->set_3a_result (result);
         }
-        if (_bayer_pipe.ptr ()) {
-            _bayer_pipe->set_wb_config (wb_res->get_standard_result ());
-            _bayer_pipe->set_3a_result (result);
+        if (_bayer_basic_pipe.ptr ()) {
+            _bayer_basic_pipe->set_wb_config (wb_res->get_standard_result ());
+            _bayer_basic_pipe->set_3a_result (result);
         }
         if (_tonemapping.ptr ()) {
             _tonemapping->set_wb_config (wb_res->get_standard_result ());
@@ -185,9 +186,9 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             _black_level->set_blc_config (bl_res->get_standard_result ());
             _black_level->set_3a_result (result);
         }
-        if (_bayer_pipe.ptr ()) {
-            _bayer_pipe->set_blc_config (bl_res->get_standard_result ());
-            _bayer_pipe->set_3a_result (result);
+        if (_bayer_basic_pipe.ptr ()) {
+            _bayer_basic_pipe->set_blc_config (bl_res->get_standard_result ());
+            _bayer_basic_pipe->set_3a_result (result);
         }
         break;
     }
@@ -241,9 +242,9 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             _gamma->set_gamma_table (gamma_res->get_standard_result ());
             _gamma->set_3a_result (result);
         }
-        if (_bayer_pipe.ptr ()) {
-            _bayer_pipe->set_gamma_table (gamma_res->get_standard_result ());
-            _bayer_pipe->set_3a_result (result);
+        if (_bayer_basic_pipe.ptr ()) {
+            _bayer_basic_pipe->set_gamma_table (gamma_res->get_standard_result ());
+            _bayer_basic_pipe->set_3a_result (result);
         }
         break;
     }
@@ -330,6 +331,19 @@ CL3aImageProcessor::create_handlers ()
 
 #if 1
     /* bayer pipeline */
+    image_handler = create_cl_bayer_basic_image_handler (context, _enable_gamma);
+    _bayer_basic_pipe = image_handler.dynamic_cast_ptr<CLBayerBasicImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _bayer_basic_pipe.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create bayer basic pipe handler failed");
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    _bayer_basic_pipe->set_stats_callback (_stats_callback);
+    add_handler (image_handler);
+    //if(_capture_stage == BasicbayerStage)
+    //    return XCAM_RETURN_NO_ERROR;
+
     image_handler = create_cl_bayer_pipe_image_handler (context);
     _bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();
     XCAM_FAIL_RETURN (
@@ -337,15 +351,14 @@ CL3aImageProcessor::create_handlers ()
         image_handler.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create bayer pipe handler failed");
-    _bayer_pipe->set_stats_callback (_stats_callback);
 #if 0
     if (get_profile () >= AdvancedPipelineProfile) {
         _bayer_pipe->set_output_format (XCAM_PIX_FMT_RGB24_planar);
     }
 #endif
     _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);
-    _bayer_pipe->enable_gamma (_enable_gamma);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE * 2);
+    //image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     add_handler (image_handler);
     if(_capture_stage == BasicbayerStage)
         return XCAM_RETURN_NO_ERROR;
@@ -653,8 +666,6 @@ CL3aImageProcessor::set_gamma (bool enable)
 
     if (_gamma.ptr ())
         return _gamma->set_kernels_enable (enable);
-    if (_bayer_pipe.ptr ())
-        _bayer_pipe->enable_gamma (enable);
 
     return true;
 }

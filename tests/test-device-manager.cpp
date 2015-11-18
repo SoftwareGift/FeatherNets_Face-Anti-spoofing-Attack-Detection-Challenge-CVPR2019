@@ -177,8 +177,13 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
         break;
     case XCAM_PIX_FMT_RGB48_planar:
     case XCAM_PIX_FMT_RGB24_planar:
-        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2)
+        size = XCAM_ALIGN_UP(frame_info.aligned_width, 2) * XCAM_ALIGN_UP(frame_info.aligned_height, 2)
                * frame_info.components * XCAM_ALIGN_UP (frame_info.color_bits, 8) / 8;
+        break;
+    case XCAM_PIX_FMT_SGRBG16_planar:
+        size = XCAM_ALIGN_UP(frame_info.aligned_width, 2) * XCAM_ALIGN_UP(frame_info.aligned_height, 2)
+               * frame_info.components * XCAM_ALIGN_UP (frame_info.color_bits, 8) / 8;
+        XCAM_ASSERT (size <= frame_info.size);
         break;
     default:
         XCAM_LOG_ERROR (
