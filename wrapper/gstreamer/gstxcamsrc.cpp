@@ -66,6 +66,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_MEM_MODE           V4L2_MEMORY_DMABUF
 #define DEFAULT_PROP_ENABLE_3A          TRUE
 #define DEFAULT_PROP_ENABLE_USB         FALSE
+#define DEFAULT_PROP_ENABLE_WDR         FALSE
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_PIXELFORMAT        V4L2_PIX_FMT_NV12 //420 instead of 0
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
@@ -224,6 +225,7 @@ enum {
     PROP_3A_LIB,
     PROP_INPUT_FMT,
     PROP_ENABLE_USB,
+    PROP_ENABLE_WDR,
     PROP_FAKE_INPUT
 };
 
@@ -331,6 +333,11 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                               DEFAULT_PROP_ENABLE_USB, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
+        gobject_class, PROP_ENABLE_WDR,
+        g_param_spec_boolean ("enable-wdr", "enable wdr", "Enable WDR",
+                              DEFAULT_PROP_ENABLE_WDR, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
         gobject_class, PROP_MEM_MODE,
         g_param_spec_enum ("io-mode", "memory mode", "Memory mode",
                            GST_TYPE_XCAM_SRC_MEM_MODE, DEFAULT_PROP_MEM_MODE,
@@ -425,6 +432,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
+    xcamsrc->enable_wdr = DEFAULT_PROP_ENABLE_WDR;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
     xcamsrc->time_offset = -1;
@@ -493,6 +501,10 @@ gst_xcam_src_get_property (
 
     case PROP_ENABLE_USB:
         g_value_set_boolean (value, src->enable_usb);
+        break;
+
+    case PROP_ENABLE_WDR:
+        g_value_set_boolean (value, src->enable_wdr);
         break;
 
     case PROP_MEM_MODE:
@@ -566,6 +578,10 @@ gst_xcam_src_set_property (
 
     case PROP_ENABLE_USB:
         src->enable_usb = g_value_get_boolean (value);
+        break;
+
+    case PROP_ENABLE_WDR:
+        src->enable_wdr = g_value_get_boolean (value);
         break;
 
     case PROP_MEM_MODE:
@@ -762,6 +778,12 @@ gst_xcam_src_start (GstBaseSrc *src)
         device_manager->add_image_processor (isp_processor);
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback (device_manager);
+        if(xcamsrc->enable_wdr)
+        {
+            cl_processor->set_tonemapping(true);
+            cl_processor->set_gamma (false);
+            xcamsrc->in_format = V4L2_PIX_FMT_SGRBG12;
+        }
         cl_processor->set_profile ((CL3aImageProcessor::PipelineProfile)xcamsrc->cl_pipe_profile);
         device_manager->add_image_processor (cl_processor);
         device_manager->set_cl_image_processor (cl_processor);

@@ -76,6 +76,7 @@ struct _GstXCamSrc
     char                        *path_to_3alib;
     gboolean                     enable_3a;
     gboolean                     enable_usb;
+    gboolean                     enable_wdr;
     char                        *path_to_fake;
 
     gboolean                     time_offset_ready;
