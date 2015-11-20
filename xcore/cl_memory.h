@@ -60,11 +60,21 @@ public:
     int32_t export_fd ();
     void release_fd ();
 
+    XCamReturn enqueue_unmap (
+        void *ptr,
+        CLEventList &events_wait = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+
 protected:
     void set_mem_id (cl_mem &id, bool need_destroy = true) {
         _mem_id = id;
         _mem_need_destroy = need_destroy;
     }
+
+    void set_mapped_ptr (void *ptr) {
+        _mapped_ptr = ptr;
+    }
+
     SmartPtr<CLContext> &get_context () {
         return _context;
     }
@@ -77,6 +87,7 @@ private:
     cl_mem                _mem_id;
     int32_t               _mem_fd;
     bool                  _mem_need_destroy;
+    void                 *_mapped_ptr;
 };
 
 class CLBuffer
@@ -97,6 +108,11 @@ public:
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
     XCamReturn enqueue_write (
         void *ptr, uint32_t offset, uint32_t size,
+        CLEventList &event_waits = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+    XCamReturn enqueue_map (
+        void *&ptr, uint32_t offset, uint32_t size,
+        cl_map_flags map_flags = CL_MEM_READ_WRITE,
         CLEventList &event_waits = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 

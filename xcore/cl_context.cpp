@@ -598,6 +598,86 @@ CLContext::enqueue_write_buffer (
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+CLContext::enqueue_map_buffer (
+    cl_mem buf_id, void *&ptr,
+    uint32_t offset, uint32_t size,
+    bool block,
+    cl_map_flags map_flags,
+    CLEventList &events_wait,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLCommandQueue> cmd_queue;
+    cl_command_queue cmd_queue_id = NULL;
+    cl_event *event_out_id = NULL;
+    cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
+    uint32_t num_of_events_wait = 0;
+    cl_int errcode = CL_SUCCESS;
+    void *out_ptr = NULL;
+
+    cmd_queue = get_default_cmd_queue ();
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
+    num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
+    if (event_out.ptr ())
+        event_out_id = &event_out->get_event_id ();
+
+    XCAM_ASSERT (_context_id);
+    XCAM_ASSERT (cmd_queue_id);
+    out_ptr = clEnqueueMapBuffer (
+                  cmd_queue_id, buf_id,
+                  (block ? CL_BLOCKING : CL_NON_BLOCKING),
+                  map_flags,
+                  offset, size,
+                  num_of_events_wait, (num_of_events_wait ? events_id_wait : NULL),
+                  event_out_id,
+                  &errcode);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        out_ptr && errcode == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "cl enqueue map buffer failed with error_code:%d", errcode);
+
+    ptr = out_ptr;
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLContext::enqueue_unmap (
+    cl_mem mem_id,
+    void *ptr,
+    CLEventList &events_wait,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLCommandQueue> cmd_queue;
+    cl_command_queue cmd_queue_id = NULL;
+    cl_event *event_out_id = NULL;
+    cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
+    uint32_t num_of_events_wait = 0;
+    cl_int errcode = CL_SUCCESS;
+
+    cmd_queue = get_default_cmd_queue ();
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
+    num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
+    if (event_out.ptr ())
+        event_out_id = &event_out->get_event_id ();
+
+    XCAM_ASSERT (_context_id);
+    XCAM_ASSERT (cmd_queue_id);
+    errcode = clEnqueueUnmapMemObject (
+                  cmd_queue_id, mem_id, ptr,
+                  num_of_events_wait, (num_of_events_wait ? events_id_wait : NULL),
+                  event_out_id);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        errcode == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "cl enqueue unmap buffer failed with error_code:%d", errcode);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 int32_t
 CLContext::export_mem_fd (cl_mem mem_id)
 {

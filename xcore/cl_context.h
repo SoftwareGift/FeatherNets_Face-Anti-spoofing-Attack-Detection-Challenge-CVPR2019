@@ -128,6 +128,20 @@ private:
         CLEventList &events_wait = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
+    XCamReturn enqueue_map_buffer (
+        cl_mem buf_id, void *&ptr,
+        uint32_t offset, uint32_t size,
+        bool block = true,
+        cl_map_flags map_flags = CL_MEM_READ_WRITE,
+        CLEventList &events_wait = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+
+    XCamReturn enqueue_unmap (
+        cl_mem mem_id,
+        void *ptr,
+        CLEventList &events_wait = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+
     int32_t export_mem_fd (cl_mem mem_id);
 
     // return valid event count

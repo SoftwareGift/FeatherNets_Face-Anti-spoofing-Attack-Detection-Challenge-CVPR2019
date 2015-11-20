@@ -55,6 +55,7 @@ CLMemory::CLMemory (SmartPtr<CLContext> &context)
     , _mem_id (NULL)
     , _mem_fd (-1)
     , _mem_need_destroy (true)
+    , _mapped_ptr (NULL)
 {
     XCAM_ASSERT (context.ptr () && context->is_valid ());
 }
@@ -62,6 +63,9 @@ CLMemory::CLMemory (SmartPtr<CLContext> &context)
 CLMemory::~CLMemory ()
 {
     release_fd ();
+
+    if (_mapped_ptr)
+        enqueue_unmap (_mapped_ptr);
 
     if (_mem_id && _mem_need_destroy) {
         _context->destroy_mem (_mem_id);
@@ -86,6 +90,26 @@ CLMemory::release_fd ()
 
     close (_mem_fd);
     _mem_fd = -1;
+}
+
+XCamReturn
+CLMemory::enqueue_unmap (
+    void *ptr,
+    CLEventList &event_waits,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLContext> context = get_context ();
+    cl_mem mem_id = get_mem_id ();
+
+    XCAM_ASSERT (is_valid ());
+    if (!is_valid ())
+        return XCAM_RETURN_ERROR_PARAM;
+
+    XCAM_ASSERT (ptr == _mapped_ptr);
+    if (ptr == _mapped_ptr)
+        _mapped_ptr = NULL;
+
+    return context->enqueue_unmap (mem_id, ptr, event_waits, event_out);
 }
 
 bool CLMemory::get_cl_mem_info (
@@ -168,6 +192,32 @@ CLBuffer::enqueue_write (
         return XCAM_RETURN_ERROR_PARAM;
 
     return context->enqueue_write_buffer (mem_id, ptr, offset, size, true, event_waits, event_out);
+}
+
+XCamReturn
+CLBuffer::enqueue_map (
+    void *&ptr, uint32_t offset, uint32_t size,
+    cl_map_flags map_flags,
+    CLEventList &event_waits,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLContext> context = get_context ();
+    cl_mem mem_id = get_mem_id ();
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    XCAM_ASSERT (is_valid ());
+    if (!is_valid ())
+        return XCAM_RETURN_ERROR_PARAM;
+
+    ret = context->enqueue_map_buffer (mem_id, ptr, offset, size, true, map_flags, event_waits, event_out);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "enqueue_map failed ");
+
+    set_mapped_ptr (ptr);
+    return ret;
 }
 
 CLVaBuffer::CLVaBuffer (
