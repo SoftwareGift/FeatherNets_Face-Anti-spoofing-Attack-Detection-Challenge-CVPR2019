@@ -783,6 +783,7 @@ gst_xcam_src_start (GstBaseSrc *src)
             cl_processor->set_tonemapping(true);
             cl_processor->set_gamma (false);
             xcamsrc->in_format = V4L2_PIX_FMT_SGRBG12;
+            setenv ("AIQ_CPF_PATH", "/etc/atomisp/imx185_wdr.cpf", 1);
         }
         cl_processor->set_profile ((CL3aImageProcessor::PipelineProfile)xcamsrc->cl_pipe_profile);
         device_manager->add_image_processor (cl_processor);
