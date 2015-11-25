@@ -10,8 +10,8 @@
  */
 
 
-#define WORKGROUP_PIXEL_WIDTH 16
-#define WORKGROUP_PIXEL_HEIGHT 16
+#define WORKGROUP_CELL_WIDTH 8
+#define WORKGROUP_CELL_HEIGHT 8
 
 #define DEMOSAIC_X_CELL_PER_WORKITEM 2
 
@@ -21,15 +21,12 @@
 #define SLM_CELL_Y_OFFSET 1
 
 // 8x8
-#define SLM_CELL_X_VALID_SIZE (WORKGROUP_PIXEL_WIDTH/PIXEL_PER_CELL)
-#define SLM_CELL_Y_VALID_SIZE (WORKGROUP_PIXEL_HEIGHT/PIXEL_PER_CELL)
+#define SLM_CELL_X_VALID_SIZE WORKGROUP_CELL_WIDTH
+#define SLM_CELL_Y_VALID_SIZE WORKGROUP_CELL_HEIGHT
 
 // 10x10
 #define SLM_CELL_X_SIZE (SLM_CELL_X_VALID_SIZE + SLM_CELL_X_OFFSET * 2)
 #define SLM_CELL_Y_SIZE (SLM_CELL_Y_VALID_SIZE + SLM_CELL_Y_OFFSET * 2)
-
-#define SLM_PIXEL_X_OFFSET (SLM_CELL_X_OFFSET * PIXEL_PER_CELL)
-#define SLM_PIXEL_Y_OFFSET (SLM_CELL_Y_OFFSET * PIXEL_PER_CELL)
 
 #define GUASS_DELTA_S_1      1.031739f
 #define GUASS_DELTA_S_1_5    1.072799f
@@ -66,8 +63,8 @@ inline void grbg_slm_load (
 {
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
     float4 data1, data2, line1, line2;
-    int x0 = (get_shared_pos_x (index) + x_start / 2) / 4;
-    int y0 = get_shared_pos_y (index) + y_start / 2;
+    int x0 = (get_shared_pos_x (index) + x_start) / 4;
+    int y0 = get_shared_pos_y (index) + y_start;
     int2 pos = (int2)(x0, y0);
     float4 gr, r, b, gb;
 
@@ -341,8 +338,8 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
     __local float SLM_delta_coef_table[64];
 
     int out_x_start, out_y_start;
-    int x_start = get_group_id (0) * WORKGROUP_PIXEL_WIDTH;
-    int y_start = get_group_id (1) * WORKGROUP_PIXEL_HEIGHT;
+    int x_start = get_group_id (0) * WORKGROUP_CELL_WIDTH;
+    int y_start = get_group_id (1) * WORKGROUP_CELL_HEIGHT;
     int i = mad24 (l_id_y, l_size_x, l_id_x);
     int j = i;
 
@@ -350,7 +347,7 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
     for (; i < SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE; i += (l_size_x * l_size_y) * 4) {
         grbg_slm_load (p1_x, p1_y, p1_z, p1_w, i,
                        input,
-                       x_start - SLM_PIXEL_X_OFFSET, y_start - SLM_PIXEL_Y_OFFSET);
+                       x_start - SLM_CELL_X_OFFSET, y_start - SLM_CELL_Y_OFFSET);
     }
     for(; j < 64; j += l_size_x * l_size_y)
         SLM_delta_coef_table[j] = bnr_table[j];
@@ -366,6 +363,6 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
         p1_x, p1_y, p1_z, p1_w,
         input_x + SLM_CELL_X_OFFSET, input_y + SLM_CELL_Y_OFFSET,
         output, output_height,
-        mad24 (input_x, PIXEL_PER_CELL, x_start) / 4, mad24 (input_y, PIXEL_PER_CELL, y_start), has_denoise, SLM_delta_coef_table, ee_config);
+        (input_x + x_start) * PIXEL_PER_CELL / 4, (input_y + y_start) * PIXEL_PER_CELL, has_denoise, SLM_delta_coef_table, ee_config);
 }
 

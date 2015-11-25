@@ -113,8 +113,6 @@ protected:
         VideoBufferInfo &output);
 
 private:
-    XCamReturn post_stats (const SmartPtr<X3aStats> &stats);
-
     XCAM_DEAD_COPY (CLBayerPipeImageHandler);
 
 private:
