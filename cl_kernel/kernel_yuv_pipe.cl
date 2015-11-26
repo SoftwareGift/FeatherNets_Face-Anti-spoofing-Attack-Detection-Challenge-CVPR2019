@@ -69,7 +69,7 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
 #else
     in_prev[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y))))) / 256.0f;
     in_prev[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + 1))))) / 256.0f;
-    in_prev[2] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + vertical_offset))))) / 256.0f;
+    in_prev[2] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, y + vertical_offset))))) / 256.0f;
 #endif
 
     float diff_max = 0.8f;
@@ -131,14 +131,14 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
     coeff_V[2] = (coeff_V[2] < 1.0f) ? coeff_V[2] : 1.0f;
     coeff_V[3] = (coeff_V[3] < 1.0f) ? coeff_V[3] : 1.0f;
 
-    in[3].s0 = mad(in[3].s0 - in_prev[3].s0, coeff_U[0], in_prev[3].s0);
-    in[3].s1 = mad(in[3].s1 - in_prev[3].s1, coeff_V[0], in_prev[3].s1);
-    in[3].s2 = mad(in[3].s2 - in_prev[3].s2, coeff_U[1], in_prev[3].s2);
-    in[3].s3 = mad(in[3].s3 - in_prev[3].s3, coeff_V[1], in_prev[3].s3);
-    in[3].s4 = mad(in[3].s4 - in_prev[3].s4, coeff_U[2], in_prev[3].s4);
-    in[3].s5 = mad(in[3].s5 - in_prev[3].s5, coeff_V[2], in_prev[3].s5);
-    in[3].s6 = mad(in[3].s6 - in_prev[3].s6, coeff_U[3], in_prev[3].s6);
-    in[3].s7 = mad(in[3].s7 - in_prev[3].s7, coeff_V[3], in_prev[3].s7);
+    in[2].s0 = mad(in[2].s0 - in_prev[2].s0, coeff_U[0], in_prev[2].s0);
+    in[2].s1 = mad(in[2].s1 - in_prev[2].s1, coeff_V[0], in_prev[2].s1);
+    in[2].s2 = mad(in[2].s2 - in_prev[2].s2, coeff_U[1], in_prev[2].s2);
+    in[2].s3 = mad(in[2].s3 - in_prev[2].s3, coeff_V[1], in_prev[2].s3);
+    in[2].s4 = mad(in[2].s4 - in_prev[2].s4, coeff_U[2], in_prev[2].s4);
+    in[2].s5 = mad(in[2].s5 - in_prev[2].s5, coeff_V[2], in_prev[2].s5);
+    in[2].s6 = mad(in[2].s6 - in_prev[2].s6, coeff_U[3], in_prev[2].s6);
+    in[2].s7 = mad(in[2].s7 - in_prev[2].s7, coeff_V[3], in_prev[2].s7);
 
 }
 
