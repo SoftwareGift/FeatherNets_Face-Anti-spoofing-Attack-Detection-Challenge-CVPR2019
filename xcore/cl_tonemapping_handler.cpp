@@ -124,7 +124,7 @@ CLTonemappingImageKernel::prepare_arguments (
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = out_info.width;
-    work_size.global[1] = out_info.height / 3;
+    work_size.global[1] = out_info.height / 4;
     work_size.local[0] = 8;
     work_size.local[1] = 8;
 
@@ -133,7 +133,7 @@ CLTonemappingImageKernel::prepare_arguments (
 
 CLTonemappingImageHandler::CLTonemappingImageHandler (const char *name)
     : CLImageHandler (name)
-    , _output_format (XCAM_PIX_FMT_RGB48_planar)
+    , _output_format (XCAM_PIX_FMT_SGRBG16_planar)
 {
 }
 

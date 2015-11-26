@@ -344,6 +344,18 @@ CL3aImageProcessor::create_handlers ()
     //if(_capture_stage == BasicbayerStage)
     //    return XCAM_RETURN_NO_ERROR;
 
+    /* tone mapping*/
+    image_handler = create_cl_tonemapping_image_handler (context);
+    _tonemapping = image_handler.dynamic_cast_ptr<CLTonemappingImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _tonemapping.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create tonemapping handler failed");
+    _tonemapping->set_kernels_enable (_enable_tonemapping);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
     image_handler = create_cl_bayer_pipe_image_handler (context);
     _bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();
     XCAM_FAIL_RETURN (
@@ -507,18 +519,6 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 #endif
-
-    /* tone mapping*/
-    image_handler = create_cl_tonemapping_image_handler (context);
-    _tonemapping = image_handler.dynamic_cast_ptr<CLTonemappingImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _tonemapping.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create tonemapping handler failed");
-    _tonemapping->set_kernels_enable (_enable_tonemapping);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
 
 #if 1
     image_handler = create_cl_yuv_pipe_image_handler (context);
