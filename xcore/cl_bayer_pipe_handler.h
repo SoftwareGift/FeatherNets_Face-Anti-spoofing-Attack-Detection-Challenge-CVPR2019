@@ -27,12 +27,13 @@
 #include "cl_image_handler.h"
 #include "cl_blc_handler.h"
 #include "cl_wb_handler.h"
+#include "cl_ee_handler.h"
 #include "stats_callback_interface.h"
 #include "x3a_stats_pool.h"
 #include "cl_context.h"
 #include "cl_3a_stats_calculator.h"
 
-#define XCAM_GUASS_TABLE_SIZE 64
+#define XCAM_BNR_TABLE_SIZE 64
 
 namespace XCam {
 
@@ -67,6 +68,8 @@ public:
         SmartPtr<CLBayerPipeImageHandler> &handler);
 
     bool enable_denoise (bool enable);
+    bool set_ee (const XCam3aResultEdgeEnhancement &ee);
+    bool set_bnr (const XCam3aResultBayerNoiseReduction &bnr);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -83,8 +86,9 @@ private:
     uint32_t                  _input_height;
     uint32_t                  _output_height;
     uint32_t                  _enable_denoise;
-    float                     _guass_table[XCAM_GUASS_TABLE_SIZE];
-    SmartPtr<CLBuffer>        _guass_table_buffer;
+    float                     _bnr_table[XCAM_BNR_TABLE_SIZE];
+    SmartPtr<CLBuffer>        _bnr_table_buffer;
+    CLEeConfig                _ee_config;
 
     SmartPtr<CLBayerPipeImageHandler>     _handler;
 };
@@ -97,7 +101,9 @@ class CLBayerPipeImageHandler
 public:
     explicit CLBayerPipeImageHandler (const char *name);
     bool set_bayer_kernel (SmartPtr<CLBayerPipeImageKernel> &kernel);
-
+    bool set_ee_config (const XCam3aResultEdgeEnhancement &ee);
+    bool set_bnr_config (const XCam3aResultBayerNoiseReduction &bnr);
+    ;
     bool set_output_format (uint32_t fourcc);
     bool enable_denoise (bool enable);
 

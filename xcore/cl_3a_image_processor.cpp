@@ -127,6 +127,7 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_BRIGHTNESS:
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB:
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
+    case XCAM_3A_RESULT_EDGE_ENHANCEMENT:
         return true;
 
     default:
@@ -281,25 +282,28 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_EDGE_ENHANCEMENT: {
         SmartPtr<X3aEdgeEnhancementResult> ee_ee_res = result.dynamic_cast_ptr<X3aEdgeEnhancementResult> ();
         XCAM_ASSERT (ee_ee_res.ptr ());
-        if (!_ee.ptr())
-            break;
-        _ee->set_ee_config_ee (ee_ee_res->get_standard_result ());
-        SmartPtr<X3aNoiseReductionResult> ee_nr_res = result.dynamic_cast_ptr<X3aNoiseReductionResult> ();
-        XCAM_ASSERT (ee_nr_res.ptr ());
-        if (!_ee.ptr())
-            break;
-        _ee->set_ee_config_nr (ee_nr_res->get_standard_result ());
-        _ee->set_3a_result (result);
+        if (_bayer_pipe.ptr()) {
+            _bayer_pipe->set_ee_config (ee_ee_res->get_standard_result ());
+            _bayer_pipe->set_3a_result (result);
+        }
+        if (_ee.ptr()) {
+            _ee->set_ee_config_ee (ee_ee_res->get_standard_result ());
+            _ee->set_3a_result (result);
+        }
         break;
     }
 
     case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION: {
         SmartPtr<X3aBayerNoiseReduction> bnr_res = result.dynamic_cast_ptr<X3aBayerNoiseReduction> ();
         XCAM_ASSERT (bnr_res.ptr ());
-        if (!_bnr.ptr())
-            break;
-        _bnr->set_bnr_config (bnr_res->get_standard_result ());
-        _bnr->set_3a_result (result);
+        if (_bayer_pipe.ptr()) {
+            _bayer_pipe->set_bnr_config (bnr_res->get_standard_result ());
+            _bayer_pipe->set_3a_result (result);
+        }
+        if (_bnr.ptr()) {
+            _bnr->set_bnr_config (bnr_res->get_standard_result ());
+            _bnr->set_3a_result (result);
+        }
         break;
     }
 

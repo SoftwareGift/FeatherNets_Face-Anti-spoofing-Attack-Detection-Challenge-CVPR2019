@@ -28,14 +28,16 @@
 #define BAYER_LOCAL_X_SIZE 8
 #define BAYER_LOCAL_Y_SIZE 4
 
-float guass_2_0_table[XCAM_GUASS_TABLE_SIZE] = {
-    3.978874, 3.966789, 3.930753, 3.871418, 3.789852, 3.687501, 3.566151, 3.427876, 3.274977, 3.109920,
-    2.935268, 2.753622, 2.567547, 2.379525, 2.191896, 2.006815, 1.826218, 1.651792, 1.484965, 1.326889,
-    1.178449, 1.040267, 0.912718, 0.795950, 0.689911, 0.594371, 0.508957, 0.433173, 0.366437, 0.308103,
-    0.257483, 0.213875, 0.176575, 0.144896, 0.118179, 0.095804, 0.077194, 0.061822, 0.049210, 0.038934,
-    0.030617, 0.023930, 0.018591, 0.014355, 0.011017, 0.008404, 0.006372, 0.004802, 0.003597, 0.002678,
-    0.001981, 0.001457, 0.001065, 0.000774, 0.000559, 0.000401, 0.000286, 0.000203, 0.000143, 0.000100,
-    0.000070, 0.000048, 0.000033, 0.000023
+float table[XCAM_BNR_TABLE_SIZE] = {
+    63.661991, 60.628166, 52.366924, 41.023067, 29.146584, 18.781729, 10.976704,
+    6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000,
+    6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000,
+    6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000,
+    6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000,
+    6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000,
+    6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000,
+    6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000, 6.000000,
+    6.000000
 };
 
 namespace XCam {
@@ -49,13 +51,31 @@ CLBayerPipeImageKernel::CLBayerPipeImageKernel (
     , _enable_denoise (0)
     , _handler (handler)
 {
-    memcpy(_guass_table, guass_2_0_table, sizeof(float)*XCAM_GUASS_TABLE_SIZE);
+    memcpy(_bnr_table, table, sizeof(float)*XCAM_BNR_TABLE_SIZE);
+    _ee_config.ee_gain = 0.8;
+    _ee_config.ee_threshold = 0.025;
 }
 
 bool
 CLBayerPipeImageKernel::enable_denoise (bool enable)
 {
     _enable_denoise = (enable ? 1 : 0);
+    return true;
+}
+
+bool
+CLBayerPipeImageKernel::set_ee (const XCam3aResultEdgeEnhancement &ee)
+{
+    _ee_config.ee_gain = (float)ee.gain;
+    _ee_config.ee_threshold = (float)ee.threshold;
+    return true;
+}
+
+bool
+CLBayerPipeImageKernel::set_bnr (const XCam3aResultBayerNoiseReduction &bnr)
+{
+    for(int i = 0; i < XCAM_BNR_TABLE_SIZE; i++)
+        _bnr_table[i] = (float)bnr.table[i];
     return true;
 }
 
@@ -88,9 +108,9 @@ CLBayerPipeImageKernel::prepare_arguments (
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
-    _guass_table_buffer = new CLBuffer(
-        context, sizeof(float) * 64,
-        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_guass_table);
+    _bnr_table_buffer = new CLBuffer(
+        context, sizeof(float) * XCAM_BNR_TABLE_SIZE,
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_bnr_table);
 
     //set args;
     arg_count = 0;
@@ -110,12 +130,16 @@ CLBayerPipeImageKernel::prepare_arguments (
     args[arg_count].arg_size = sizeof (_output_height);
     ++arg_count;
 
-    args[arg_count].arg_adress = &_guass_table_buffer->get_mem_id ();
+    args[arg_count].arg_adress = &_bnr_table_buffer->get_mem_id ();
     args[arg_count].arg_size = sizeof (cl_mem);
     ++arg_count;
 
     args[arg_count].arg_adress = &_enable_denoise;
     args[arg_count].arg_size = sizeof (_enable_denoise);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_ee_config;
+    args[arg_count].arg_size = sizeof (_ee_config);
     ++arg_count;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
@@ -135,7 +159,7 @@ CLBayerPipeImageKernel::post_execute ()
 {
     _image_in.release ();
     _image_out.release ();
-    _guass_table_buffer.release ();
+    _bnr_table_buffer.release ();
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -173,6 +197,19 @@ bool
 CLBayerPipeImageHandler::enable_denoise (bool enable)
 {
     return _bayer_kernel->enable_denoise (enable);
+}
+
+bool
+CLBayerPipeImageHandler::set_ee_config (const XCam3aResultEdgeEnhancement &ee)
+{
+    _bayer_kernel->set_ee (ee);
+    return true;
+}
+bool
+CLBayerPipeImageHandler::set_bnr_config (const XCam3aResultBayerNoiseReduction &bnr)
+{
+    _bayer_kernel->set_bnr (bnr);
+    return true;
 }
 
 XCamReturn

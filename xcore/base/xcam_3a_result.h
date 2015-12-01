@@ -84,6 +84,7 @@ typedef enum _XCam3aResultType {
 #define XCAM_GAMMA_TABLE_SIZE 256
 #define XCAM_CHROMA_AXIS_SIZE 16
 #define XCAM_CHROMA_MATRIX_SIZE 4
+#define XCAM_BNR_TABLE_SIZE 64
 
 typedef struct _XCam3aResultHead {
     XCam3aResultType      type;
@@ -173,6 +174,7 @@ typedef struct _XCam3aResultBayerNoiseReduction {
     /* data */
     double           bnr_gain;
     double           direction;
+    double           table[XCAM_BNR_TABLE_SIZE];
 } XCam3aResultBayerNoiseReduction;
 
 typedef struct _XCam3aResultEdgeEnhancement {

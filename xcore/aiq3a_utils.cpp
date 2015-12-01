@@ -260,6 +260,29 @@ translate_3a_results_to_xcam (X3aResultList &list,
             results[result_count++] = (XCam3aResultHead*)new_tnr;
             break;
         }
+        case XCAM_3A_RESULT_EDGE_ENHANCEMENT:
+        {
+            SmartPtr<X3aEdgeEnhancementResult> xcam_ee =
+                isp_result.dynamic_cast_ptr<X3aEdgeEnhancementResult> ();
+            const XCam3aResultEdgeEnhancement &ee = xcam_ee->get_standard_result();
+            XCam3aResultEdgeEnhancement *new_ee = xcam_malloc0_type(XCam3aResultEdgeEnhancement);
+            XCAM_ASSERT (new_ee);
+            *new_ee = ee;
+            results[result_count++] = (XCam3aResultHead*)new_ee;
+            break;
+        }
+        case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
+        {
+            SmartPtr<X3aBayerNoiseReduction> xcam_bnr =
+                isp_result.dynamic_cast_ptr<X3aBayerNoiseReduction> ();
+            const XCam3aResultBayerNoiseReduction &bnr = xcam_bnr->get_standard_result();
+            XCam3aResultBayerNoiseReduction *new_bnr = xcam_malloc0_type(XCam3aResultBayerNoiseReduction);
+            XCAM_ASSERT (new_bnr);
+            *new_bnr = bnr;
+            results[result_count++] = (XCam3aResultHead*)new_bnr;
+            break;
+        }
+
         default: {
             XCAM_LOG_WARNING ("unknow type(%d) in translation", isp_result->get_type());
             break;

@@ -86,6 +86,7 @@ xcam_sources =               \
 	x3a_analyze_tuner.cpp \
 	x3a_ciq_tuning_handler.cpp \
 	x3a_ciq_tnr_tuning_handler.cpp \
+	x3a_ciq_bnr_ee_tuning_handler.cpp \
 	$(NULL)
 
 if ENABLE_IA_AIQ

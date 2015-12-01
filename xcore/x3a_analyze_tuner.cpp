@@ -24,6 +24,7 @@
 #include "x3a_analyze_tuner.h"
 #include "x3a_ciq_tuning_handler.h"
 #include "x3a_ciq_tnr_tuning_handler.h"
+#include "x3a_ciq_bnr_ee_tuning_handler.h"
 
 namespace XCam {
 
@@ -56,11 +57,20 @@ X3aAnalyzeTuner::create_tuning_handlers ()
     SmartPtr<AwbHandler> awb_handler = _analyzer->get_awb_handler();
 
     SmartPtr<X3aCiqTuningHandler> tuning_handler = new X3aCiqTnrTuningHandler ();
+    SmartPtr<X3aCiqTuningHandler> bnr_ee_tuning_handler = new X3aCiqBnrEeTuningHandler ();
 
     if (tuning_handler.ptr ()) {
         tuning_handler->set_ae_handler (ae_handler);
         tuning_handler->set_awb_handler (awb_handler);
         add_handler (tuning_handler);
+    } else {
+        ret = XCAM_RETURN_ERROR_PARAM;
+    }
+
+    if (bnr_ee_tuning_handler.ptr ()) {
+        bnr_ee_tuning_handler->set_ae_handler (ae_handler);
+        bnr_ee_tuning_handler->set_awb_handler (awb_handler);
+        add_handler (bnr_ee_tuning_handler);
     } else {
         ret = XCAM_RETURN_ERROR_PARAM;
     }
