@@ -110,20 +110,16 @@ inline float2 dot_denoise (float2 value, float2 in1, float2 in2, float2 in3, flo
 
 inline float2 dot_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 in4, float2 out, CLEeConfig ee_config, float2 *egain)
 {
-    float2 eH = value  - in1 * 0.5f - in3 * 0.5f;
-    float2 eV = value  - in2 * 0.5f - in4 * 0.5f;
-    float2 ee;
+    float2 eH = mad(in1, -0.5f, value);
+    eH = mad(in3, -0.5f, eH);
+    float2 eV = mad(in2, -0.5f, value);
+    eV = mad(in4, -0.5f, eV);
 
-    eH.x = eH.x > ee_config.ee_threshold ? eH.x : 0.0f;
-    eH.y = eH.y > ee_config.ee_threshold ? eH.y : 0.0f;
+    eH = fmax(eH, eV);
 
-    eV.x = eV.x > ee_config.ee_threshold ? eV.x : 0.0f;
-    eV.y = eV.y > ee_config.ee_threshold ? eV.y : 0.0f;
+    eH = eH > ee_config.ee_threshold ? eH : 0.0f;
 
-    ee.x = fmax(eH.x, eV.x);
-    ee.y = fmax(eH.y, eV.y);
-
-    egain[0] = mad(ee, ee_config.ee_gain, out) / out;
+    egain[0] = mad(eH, ee_config.ee_gain, out) / out;
 
     return out * egain[0];
 }
