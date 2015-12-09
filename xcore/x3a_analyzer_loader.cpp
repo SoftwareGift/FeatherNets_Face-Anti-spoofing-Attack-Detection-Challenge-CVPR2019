@@ -63,9 +63,12 @@ X3aAnalyzerLoader::load_hybrid_analyzer (SmartPtr<X3aAnalyzerLoader> &self,
     XCAM_ASSERT (self.ptr () == this);
 
     SmartPtr<X3aAnalyzer> analyzer;
-    XCam3ADescription *desc = (XCam3ADescription*)load_library (get_lib_path ());
 
+#if HAVE_IA_AIQ
+    XCam3ADescription *desc = (XCam3ADescription*)load_library (get_lib_path ());
     analyzer = new HybridAnalyzer (desc, self, isp, cpf_path);
+#endif
+
     if (!analyzer.ptr ()) {
         XCAM_LOG_WARNING ("create HybridAnalyzer from lib failed");
         close_handle ();
