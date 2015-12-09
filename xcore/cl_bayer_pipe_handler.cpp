@@ -22,11 +22,11 @@
 #include "xcam_utils.h"
 #include "cl_bayer_pipe_handler.h"
 
-#define WORKGROUP_PIXEL_WIDTH 16
-#define WORKGROUP_PIXEL_HEIGHT 16
+#define WORKGROUP_PIXEL_WIDTH 128
+#define WORKGROUP_PIXEL_HEIGHT 8
 
-#define BAYER_LOCAL_X_SIZE 8
-#define BAYER_LOCAL_Y_SIZE 4
+#define BAYER_LOCAL_X_SIZE 64
+#define BAYER_LOCAL_Y_SIZE 2
 
 float table[XCAM_BNR_TABLE_SIZE] = {
     63.661991, 60.628166, 52.366924, 41.023067, 29.146584, 18.781729, 10.976704,
