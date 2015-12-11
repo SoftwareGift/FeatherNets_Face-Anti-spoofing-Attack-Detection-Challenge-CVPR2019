@@ -100,10 +100,18 @@ CLTonemappingImageKernel::prepare_arguments (
 
     y_average = cumulative_value / pixel_totalnum;
 
-    if (y_saturated < 255) y_saturated = y_saturated + 1;
+    if (y_saturated < 255) {
+        y_saturated = y_saturated + 1;
+    }
 
-    _y_target =  (256 / y_saturated) * (y_medium + y_average) / 2;
-    if (_y_target < 8) _y_target = 8;
+    _y_target =  (255 / y_saturated) * (1.5 * y_medium + 0.5 * y_average) / 2;
+
+    if (_y_target < 4) {
+        _y_target = 4;
+    }
+    if ((_y_target > y_saturated) || (y_saturated < 4)) {
+        _y_target = y_saturated;
+    }
 
     _y_max = 255 * (2 * y_saturated + _y_target) / y_saturated - y_saturated - _y_target;
 
