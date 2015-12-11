@@ -28,27 +28,15 @@
 
 namespace XCam {
 
-class CLBayer2RGBImageHandler;
 class CLCscImageHandler;
-class CLGammaImageHandler;
-class CL3AStatsCalculator;
-class CLWbImageHandler;
-class CLMaccImageHandler;
-class CLHdrImageHandler;
-class CLDenoiseImageHandler;
-class CLSnrImageHandler;
-class CLBlcImageHandler;
-class CLTnrImageHandler;
 class CLEeImageHandler;
-class CLDpcImageHandler;
-class CLBnrImageHandler;
 class CLBayerBasicImageHandler;
 class CLBayerPipeImageHandler;
 class CLYuvPipeImageHandler;
-class CLRgbPipeImageHandler;
 class CLTonemappingImageHandler;
-class CLBiyuvImageHandler;
 class CLImageScaler;
+
+#define ENABLE_YEENR_HANDLER 0
 
 class CL3aImageProcessor
     : public CLImageProcessor
@@ -105,44 +93,30 @@ private:
     XCAM_DEAD_COPY (CL3aImageProcessor);
 
 private:
-    uint32_t                           _output_fourcc;
-    OutSampleType                      _out_smaple_type;
-    PipelineProfile                    _pipeline_profile;
-    CaptureStage                       _capture_stage;
-    SmartPtr<StatsCallback>            _stats_callback;
-
-    SmartPtr<CLBlcImageHandler>         _black_level;
-    SmartPtr<CLBayer2RGBImageHandler>   _demosaic;
-    SmartPtr<CLHdrImageHandler>         _hdr;
+    uint32_t                            _output_fourcc;
+    OutSampleType                       _out_smaple_type;
+    PipelineProfile                     _pipeline_profile;
+    CaptureStage                        _capture_stage;
+    SmartPtr<StatsCallback>             _stats_callback;
     SmartPtr<CLCscImageHandler>         _csc;
-    SmartPtr<CLGammaImageHandler>       _gamma;
-    SmartPtr<CL3AStatsCalculator>       _x3a_stats_calculator;
-    SmartPtr<CLWbImageHandler>          _wb;
-    SmartPtr<CLMaccImageHandler>        _macc;
-    SmartPtr<CLTnrImageHandler>         _tnr_rgb;
-    SmartPtr<CLTnrImageHandler>         _tnr_yuv;
-    SmartPtr<CLSnrImageHandler>         _snr;
     SmartPtr<CLTonemappingImageHandler> _tonemapping;
-    SmartPtr<CLBnrImageHandler>         _bnr;
-    SmartPtr<CLDenoiseImageHandler>     _binr;
-    SmartPtr<CLEeImageHandler>          _ee;
-    SmartPtr<CLDpcImageHandler>         _dpc;
-    SmartPtr<CLBiyuvImageHandler>       _biyuv;
     SmartPtr<CLImageScaler>             _scaler;
+#if ENABLE_YEENR_HANDLER
+    SmartPtr<CLEeImageHandler>          _ee;
+#endif
 
     // simple 3a bayer pipeline
-    SmartPtr<CLBayerBasicImageHandler> _bayer_basic_pipe;
-    SmartPtr<CLBayerPipeImageHandler>  _bayer_pipe;
-    SmartPtr<CLYuvPipeImageHandler>    _yuv_pipe;
-    SmartPtr<CLRgbPipeImageHandler>    _rgb_pipe;
+    SmartPtr<CLBayerBasicImageHandler>  _bayer_basic_pipe;
+    SmartPtr<CLBayerPipeImageHandler>   _bayer_pipe;
+    SmartPtr<CLYuvPipeImageHandler>     _yuv_pipe;
 
-    uint32_t                           _hdr_mode;
-    uint32_t                           _tnr_mode;
-    bool                               _enable_gamma;
-    bool                               _enable_tonemapping;
-    bool                               _enable_macc;
-    bool                               _enable_dpc;
-    uint32_t                           _snr_mode; // spatial nr mode
+    uint32_t                            _hdr_mode;
+    uint32_t                            _tnr_mode;
+    bool                                _enable_gamma;
+    bool                                _enable_tonemapping;
+    bool                                _enable_macc;
+    bool                                _enable_dpc;
+    uint32_t                            _snr_mode; // spatial nr mode
 };
 
 };

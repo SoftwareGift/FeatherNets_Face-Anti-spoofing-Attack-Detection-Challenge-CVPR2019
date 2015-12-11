@@ -19,25 +19,15 @@
  */
 #include "cl_3a_image_processor.h"
 #include "cl_context.h"
-#include "cl_blc_handler.h"
-#include "cl_demosaic_handler.h"
 #include "cl_csc_handler.h"
-#include "cl_hdr_handler.h"
-#include "cl_denoise_handler.h"
-#include "cl_gamma_handler.h"
 #include "cl_3a_stats_calculator.h"
-#include "cl_wb_handler.h"
-#include "cl_snr_handler.h"
-#include "cl_macc_handler.h"
-#include "cl_tnr_handler.h"
-#include "cl_ee_handler.h"
-#include "cl_dpc_handler.h"
-#include "cl_bnr_handler.h"
 #include "cl_bayer_pipe_handler.h"
 #include "cl_yuv_pipe_handler.h"
-#include "cl_rgb_pipe_handler.h"
+#if ENABLE_YEENR_HANDLER
+#include "cl_ee_handler.h"
+#endif
+#include "cl_tnr_handler.h"
 #include "cl_tonemapping_handler.h"
-#include "cl_biyuv_handler.h"
 #include "cl_image_scaler.h"
 #include "cl_bayer_basic_handler.h"
 
@@ -166,10 +156,6 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_WHITE_BALANCE: {
         SmartPtr<X3aWhiteBalanceResult> wb_res = result.dynamic_cast_ptr<X3aWhiteBalanceResult> ();
         XCAM_ASSERT (wb_res.ptr ());
-        if (_wb.ptr ()) {
-            _wb->set_wb_config (wb_res->get_standard_result ());
-            _wb->set_3a_result (result);
-        }
         if (_bayer_basic_pipe.ptr ()) {
             _bayer_basic_pipe->set_wb_config (wb_res->get_standard_result ());
             _bayer_basic_pipe->set_3a_result (result);
@@ -183,10 +169,6 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_BLACK_LEVEL: {
         SmartPtr<X3aBlackLevelResult> bl_res = result.dynamic_cast_ptr<X3aBlackLevelResult> ();
         XCAM_ASSERT (bl_res.ptr ());
-        if (_black_level.ptr ()) {
-            _black_level->set_blc_config (bl_res->get_standard_result ());
-            _black_level->set_3a_result (result);
-        }
         if (_bayer_basic_pipe.ptr ()) {
             _bayer_basic_pipe->set_blc_config (bl_res->get_standard_result ());
             _bayer_basic_pipe->set_3a_result (result);
@@ -197,10 +179,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_DEFECT_PIXEL_CORRECTION: {
         SmartPtr<X3aDefectPixelResult> def_res = result.dynamic_cast_ptr<X3aDefectPixelResult> ();
         XCAM_ASSERT (def_res.ptr ());
-        if (_dpc.ptr ()) {
-            _dpc->set_dpc_config (def_res->get_standard_result ());
-            _dpc->set_3a_result (result);
-        }
+        XCAM_UNUSED (def_res);
         break;
     }
 
@@ -221,10 +200,6 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_MACC: {
         SmartPtr<X3aMaccMatrixResult> macc_res = result.dynamic_cast_ptr<X3aMaccMatrixResult> ();
         XCAM_ASSERT (macc_res.ptr ());
-        if (_macc.ptr()) {
-            _macc->set_macc_table (macc_res->get_standard_result ());
-            _macc->set_3a_result (result);
-        }
         if (_yuv_pipe.ptr()) {
             _yuv_pipe->set_macc_table (macc_res->get_standard_result ());
             _yuv_pipe->set_3a_result (result);
@@ -239,10 +214,6 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_Y_GAMMA: {
         SmartPtr<X3aGammaTableResult> gamma_res = result.dynamic_cast_ptr<X3aGammaTableResult> ();
         XCAM_ASSERT (gamma_res.ptr ());
-        if (_gamma.ptr()) {
-            _gamma->set_gamma_table (gamma_res->get_standard_result ());
-            _gamma->set_3a_result (result);
-        }
         if (_bayer_basic_pipe.ptr ()) {
             _bayer_basic_pipe->set_gamma_table (gamma_res->get_standard_result ());
             _bayer_basic_pipe->set_3a_result (result);
@@ -253,14 +224,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB: {
         SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
         XCAM_ASSERT (tnr_res.ptr ());
-        if (_tnr_rgb.ptr()) {
-            _tnr_rgb->set_rgb_config (tnr_res->get_standard_result ());
-            _tnr_rgb->set_3a_result (result);
-        }
-        if (_rgb_pipe.ptr ()) {
-            _rgb_pipe->set_tnr_config(tnr_res->get_standard_result ());
-            _rgb_pipe->set_3a_result (result);
-        }
+        XCAM_UNUSED (tnr_res);
 
         break;
     }
@@ -268,10 +232,6 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV: {
         SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
         XCAM_ASSERT (tnr_res.ptr ());
-        if (_tnr_yuv.ptr()) {
-            _tnr_yuv->set_yuv_config (tnr_res->get_standard_result ());
-            _tnr_yuv->set_3a_result (result);
-        }
         if (_yuv_pipe.ptr ()) {
             _yuv_pipe->set_tnr_yuv_config(tnr_res->get_standard_result ());
             _yuv_pipe->set_3a_result (result);
@@ -286,10 +246,12 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             _bayer_pipe->set_ee_config (ee_ee_res->get_standard_result ());
             _bayer_pipe->set_3a_result (result);
         }
+#if ENABLE_YEENR_HANDLER
         if (_ee.ptr()) {
             _ee->set_ee_config_ee (ee_ee_res->get_standard_result ());
             _ee->set_3a_result (result);
         }
+#endif
         break;
     }
 
@@ -300,21 +262,15 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             _bayer_pipe->set_bnr_config (bnr_res->get_standard_result ());
             _bayer_pipe->set_3a_result (result);
         }
-        if (_bnr.ptr()) {
-            _bnr->set_bnr_config (bnr_res->get_standard_result ());
-            _bnr->set_3a_result (result);
-        }
+
         break;
     }
 
     case XCAM_3A_RESULT_BRIGHTNESS: {
         SmartPtr<X3aBrightnessResult> brightness_res = result.dynamic_cast_ptr<X3aBrightnessResult> ();
         XCAM_ASSERT (brightness_res.ptr ());
-        if (!_gamma.ptr())
-            break;
         float brightness_level = ((XCam3aResultBrightness)brightness_res->get_standard_result()).brightness_level;
-        _gamma->set_manual_brightness(brightness_level);
-        _gamma->set_3a_result (result);
+        XCAM_UNUSED (brightness_level);
         break;
     }
     default:
@@ -333,7 +289,6 @@ CL3aImageProcessor::create_handlers ()
 
     XCAM_ASSERT (context.ptr ());
 
-#if 1
     /* bayer pipeline */
     image_handler = create_cl_bayer_basic_image_handler (context, _enable_gamma);
     _bayer_basic_pipe = image_handler.dynamic_cast_ptr<CLBayerBasicImageHandler> ();
@@ -345,10 +300,8 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     _bayer_basic_pipe->set_stats_callback (_stats_callback);
     add_handler (image_handler);
-    //if(_capture_stage == BasicbayerStage)
-    //    return XCAM_RETURN_NO_ERROR;
 
-    /* tone mapping*/
+    /* tone mapping */
     image_handler = create_cl_tonemapping_image_handler (context);
     _tonemapping = image_handler.dynamic_cast_ptr<CLTonemappingImageHandler> ();
     XCAM_FAIL_RETURN (
@@ -360,6 +313,7 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
+    /* bayer pipe */
     image_handler = create_cl_bayer_pipe_image_handler (context);
     _bayer_pipe = image_handler.dynamic_cast_ptr<CLBayerPipeImageHandler> ();
     XCAM_FAIL_RETURN (
@@ -367,11 +321,7 @@ CL3aImageProcessor::create_handlers ()
         image_handler.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create bayer pipe handler failed");
-#if 0
-    if (get_profile () >= AdvancedPipelineProfile) {
-        _bayer_pipe->set_output_format (XCAM_PIX_FMT_RGB24_planar);
-    }
-#endif
+
     _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE * 2);
     //image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
@@ -379,152 +329,6 @@ CL3aImageProcessor::create_handlers ()
     if(_capture_stage == BasicbayerStage)
         return XCAM_RETURN_NO_ERROR;
 
-#else
-    /* black leve as first */
-    image_handler = create_cl_blc_image_handler (context);
-    _black_level = image_handler.dynamic_cast_ptr<CLBlcImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        image_handler.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create blc handler failed");
-    add_handler (image_handler);
-
-    image_handler = create_cl_dpc_image_handler (context);
-    _dpc = image_handler.dynamic_cast_ptr<CLDpcImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        image_handler.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create dpc handler failed");
-    _dpc->set_kernels_enable(_enable_dpc);
-    add_handler (image_handler);
-
-    image_handler = create_cl_bnr_image_handler (context);
-    _bnr = image_handler.dynamic_cast_ptr<CLBnrImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _bnr.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create bnr handler failed");
-    _bnr->set_kernels_enable (XCAM_DENOISE_TYPE_BNR & _snr_mode);
-    add_handler (image_handler);
-
-    image_handler = create_cl_3a_stats_image_handler (context);
-    _x3a_stats_calculator = image_handler.dynamic_cast_ptr<CL3AStatsCalculator> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _x3a_stats_calculator.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create 3a stats calculator failed");
-    _x3a_stats_calculator->set_stats_callback (_stats_callback);
-    add_handler (image_handler);
-
-    image_handler = create_cl_wb_image_handler (context);
-    _wb = image_handler.dynamic_cast_ptr<CLWbImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _wb.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create whitebalance handler failed");
-    add_handler (image_handler);
-
-    /* gamma */
-    image_handler = create_cl_gamma_image_handler (context);
-    _gamma = image_handler.dynamic_cast_ptr<CLGammaImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _gamma.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create gamma handler failed");
-    _gamma->set_kernels_enable (_enable_gamma);
-    add_handler (image_handler);
-
-    /* hdr */
-    image_handler = create_cl_hdr_image_handler (context, CL_HDR_DISABLE);
-    _hdr = image_handler.dynamic_cast_ptr<CLHdrImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _hdr.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create hdr handler failed");
-    if(_hdr_mode == CL_HDR_TYPE_RGB)
-        _hdr->set_mode (_hdr_mode);
-    add_handler (image_handler);
-
-    /* demosaic */
-    image_handler = create_cl_demosaic_image_handler (context);
-    _demosaic = image_handler.dynamic_cast_ptr<CLBayer2RGBImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _demosaic.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create demosaic handler failed");
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
-#endif
-
-    /* hdr-lab*/
-    image_handler = create_cl_hdr_image_handler (context, CL_HDR_DISABLE);
-    _hdr = image_handler.dynamic_cast_ptr<CLHdrImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _hdr.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create hdr handler failed");
-    if(_hdr_mode == CL_HDR_TYPE_LAB)
-        _hdr->set_mode (_hdr_mode);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
-
-    /* bilateral noise reduction */
-    image_handler = create_cl_denoise_image_handler (context);
-    _binr = image_handler.dynamic_cast_ptr<CLDenoiseImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _binr.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create denoise handler failed");
-    _binr->set_kernels_enable (XCAM_DENOISE_TYPE_BILATERAL & _snr_mode);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
-
-#if 0
-    image_handler = create_cl_rgb_pipe_image_handler (context);
-    _rgb_pipe = image_handler.dynamic_cast_ptr<CLRgbPipeImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _rgb_pipe.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create rgb pipe handler failed");
-    _rgb_pipe->set_kernels_enable (get_profile () >= AdvancedPipelineProfile);
-    add_handler (image_handler);
-    /* Temporal Noise Reduction (RGB domain) */
-    image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_RGB);
-    _tnr_rgb = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _tnr_rgb.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create tnr handler failed");
-    _tnr_rgb->set_mode (CL_TNR_TYPE_RGB & _tnr_mode);
-    add_handler (image_handler);
-#else
-
-    /* simple noise reduction */
-    image_handler = create_cl_snr_image_handler (context);
-    _snr = image_handler.dynamic_cast_ptr<CLSnrImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _snr.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create snr handler failed");
-    _snr->set_kernels_enable (XCAM_DENOISE_TYPE_SIMPLE & _snr_mode);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
-#endif
-
-#if 1
     image_handler = create_cl_yuv_pipe_image_handler (context);
     _yuv_pipe = image_handler.dynamic_cast_ptr<CLYuvPipeImageHandler> ();
     XCAM_FAIL_RETURN (
@@ -535,43 +339,8 @@ CL3aImageProcessor::create_handlers ()
     _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_YUV);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
-#else
-    /* macc */
-    image_handler = create_cl_macc_image_handler (context);
-    _macc = image_handler.dynamic_cast_ptr<CLMaccImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _macc.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create macc handler failed");
-    _macc->set_kernels_enable (_enable_macc);
-    add_handler (image_handler);
 
-    /* color space conversion */
-    image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_RGBATONV12);
-    _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _csc .ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create csc handler failed");
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    add_handler (image_handler);
-
-
-    /* Temporal Noise Reduction (YUV domain) */
-    image_handler = create_cl_tnr_image_handler(context, CL_TNR_TYPE_YUV);
-    _tnr_yuv = image_handler.dynamic_cast_ptr<CLTnrImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _tnr_yuv.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create tnr handler failed");
-    _tnr_yuv->set_mode (CL_TNR_TYPE_YUV & _tnr_mode);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    add_handler (image_handler);
-#endif
-
+#if ENABLE_YEENR_HANDLER
     /* ee */
     image_handler = create_cl_ee_image_handler (context);
     _ee = image_handler.dynamic_cast_ptr<CLEeImageHandler> ();
@@ -584,20 +353,7 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
-
-
-    /* biyuv */
-    image_handler = create_cl_biyuv_image_handler (context);
-    _biyuv = image_handler.dynamic_cast_ptr<CLBiyuvImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _biyuv.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create biyuv handler failed");
-    _biyuv->set_kernels_enable (XCAM_DENOISE_TYPE_BIYUV & _snr_mode);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
+#endif
 
     /* image scaler */
     image_handler = create_cl_image_scaler_handler (context, V4L2_PIX_FMT_NV12);
@@ -655,9 +411,6 @@ CL3aImageProcessor::set_hdr (uint32_t mode)
 
     STREAM_LOCK;
 
-    if (_hdr.ptr ())
-        return _hdr->set_mode (mode);
-
     return true;
 }
 
@@ -668,9 +421,6 @@ CL3aImageProcessor::set_gamma (bool enable)
 
     STREAM_LOCK;
 
-    if (_gamma.ptr ())
-        return _gamma->set_kernels_enable (enable);
-
     return true;
 }
 
@@ -680,15 +430,6 @@ CL3aImageProcessor::set_denoise (uint32_t mode)
     _snr_mode = mode;
 
     STREAM_LOCK;
-
-    if (_snr.ptr ())
-        _snr->set_kernels_enable (XCAM_DENOISE_TYPE_SIMPLE & _snr_mode);
-    if (_binr.ptr ())
-        _binr->set_kernels_enable (XCAM_DENOISE_TYPE_BILATERAL & _snr_mode);
-    if (_ee.ptr ())
-        _ee->set_kernels_enable (XCAM_DENOISE_TYPE_EE & _snr_mode);
-    if (_bnr.ptr ())
-        _bnr->set_kernels_enable (XCAM_DENOISE_TYPE_BNR & _snr_mode);
     if (_bayer_pipe.ptr ())
         _bayer_pipe->enable_denoise (XCAM_DENOISE_TYPE_BNR & _snr_mode);
 
@@ -701,9 +442,6 @@ CL3aImageProcessor::set_macc (bool enable)
     _enable_macc = enable;
 
     STREAM_LOCK;
-
-    if (_macc.ptr ())
-        return _macc->set_kernels_enable (enable);
     return true;
 }
 
@@ -713,9 +451,6 @@ CL3aImageProcessor::set_dpc (bool enable)
     _enable_dpc = enable;
 
     STREAM_LOCK;
-
-    if (_dpc.ptr ())
-        return _dpc->set_kernels_enable (enable);
 
     return true;
 }
@@ -736,25 +471,14 @@ CL3aImageProcessor::set_tonemapping (bool enable)
 bool
 CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
 {
+    XCAM_UNUSED (level);
     _tnr_mode = mode;
 
     STREAM_LOCK;
-    //TODO: map denoise level to threshold & gain
-    XCAM_UNUSED(level);
-    bool ret = false;
-    if (_tnr_rgb.ptr ())
-        ret = _tnr_rgb->set_kernels_enable (mode & CL_TNR_TYPE_RGB);
-    if (_tnr_yuv.ptr ())
-        ret = _tnr_yuv->set_kernels_enable (mode & CL_TNR_TYPE_YUV);
-
-    // fix for merged kernels
-    if (_rgb_pipe.ptr ())
-        _rgb_pipe->set_kernels_enable (mode & CL_TNR_TYPE_RGB);
-
     if (_yuv_pipe.ptr ())
         _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_YUV);
 
-    return ret;
+    return true;
 }
 
 };
