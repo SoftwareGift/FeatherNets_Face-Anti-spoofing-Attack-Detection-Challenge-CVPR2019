@@ -110,13 +110,13 @@ inline void stats_3a_calculate (
         tmp = ((__local float8*)slm_gb)[index];
         result_gb = avg_float8 (tmp);
 
-        avg_y = convert_uchar_sat(
-                    mad ((result_gr * wb_config->gr_gain + result_gb * wb_config->gb_gain), 74.843f,
-                         mad (result_r * wb_config->r_gain, 76.245f, result_b * 29.070f)));
-
         int out_index = mad24 (mad24 (group_id_y, group_x_size, group_id_x),
                                (GROUP_CELL_X_SIZE / STATS_3A_CELL_X_SIZE) * (GROUP_CELL_Y_SIZE / STATS_3A_CELL_Y_SIZE),
                                index);
+
+#if STATS_BITS==8
+        avg_y = mad ((result_gr * wb_config->gr_gain + result_gb * wb_config->gb_gain), 74.843f,
+                     mad (result_r * wb_config->r_gain, 76.245f, result_b * 29.070f));
 
         //ushort avg_y; avg_r; avg_gr; avg_gb; avg_b; valid_wb_count; f_value1; f_value2;
         stats_output[out_index] = (ushort8) (
@@ -128,6 +128,22 @@ inline void stats_3a_calculate (
                                       STATS_3A_CELL_X_SIZE * STATS_3A_CELL_Y_SIZE,
                                       0,
                                       0);
+#elif STATS_BITS==12
+        avg_y = mad ((result_gr * wb_config->gr_gain + result_gb * wb_config->gb_gain), 1201.883f,
+                     mad (result_r * wb_config->r_gain, 1224.405f, result_b * 466.830f));
+
+        stats_output[out_index] = (ushort8) (
+                                      convert_ushort (clamp (avg_y, 0.0f, 4095.0f)),
+                                      convert_ushort (clamp (result_r * 4096.0f, 0.0f, 4095.0f)),
+                                      convert_ushort (clamp (result_gr * 4096.0f, 0.0f, 4095.0f)),
+                                      convert_ushort (clamp (result_gb * 4096.0f, 0.0f, 4095.0f)),
+                                      convert_ushort (clamp (result_b * 4096.0f, 0.0f, 4095.0f)),
+                                      STATS_3A_CELL_X_SIZE * STATS_3A_CELL_Y_SIZE,
+                                      0,
+                                      0);
+#else
+        printf ("kernel 3a-stats error, wrong bit depth:%d\n", STATS_BITS);
+#endif
     }
 }
 

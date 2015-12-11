@@ -20,6 +20,8 @@
 
 #include "x3a_stats_pool.h"
 
+#define XCAM_3A_STATS_DEFAULT_BIT_DEPTH 8
+
 namespace XCam {
 
 X3aStatsData::X3aStatsData (XCam3AStats *data)
@@ -67,6 +69,7 @@ X3aStats::get_stats ()
 }
 
 X3aStatsPool::X3aStatsPool ()
+    : _bit_depth (XCAM_3A_STATS_DEFAULT_BIT_DEPTH)
 {
 }
 
@@ -87,8 +90,8 @@ X3aStatsPool::fixate_video_info (VideoBufferInfo &info)
     _stats_info.width = info.width / grid;
     _stats_info.height = info.height / grid;
     _stats_info.grid_pixel_size = grid;
-    _stats_info.bit_depth = 8;
-    _stats_info.histogram_bins = 256;
+    _stats_info.bit_depth = _bit_depth;
+    _stats_info.histogram_bins = (1 << _bit_depth);
     return true;
 }
 

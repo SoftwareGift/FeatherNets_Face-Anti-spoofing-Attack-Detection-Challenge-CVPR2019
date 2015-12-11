@@ -38,6 +38,7 @@ class CLBayerBasicImageKernel
 {
 public:
     explicit CLBayerBasicImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLBayerBasicImageHandler>& handler);
+    void set_stats_bits (uint32_t stats_bits);
 
     bool set_blc (const XCam3aResultBlackLevel &blc);
     bool set_wb (const XCam3aResultWhiteBalance &wb);
@@ -103,7 +104,10 @@ private:
 
 
 SmartPtr<CLImageHandler>
-create_cl_bayer_basic_image_handler (SmartPtr<CLContext> &context, bool enable_gamma = true);
+create_cl_bayer_basic_image_handler (
+    SmartPtr<CLContext> &context,
+    bool enable_gamma = true,
+    uint32_t stats_bits = 8);
 
 };
 

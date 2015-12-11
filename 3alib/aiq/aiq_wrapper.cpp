@@ -40,7 +40,11 @@ public:
     XCam3AAiqContext ();
     ~XCam3AAiqContext ();
     bool setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_data, const char *cpf);
-    bool setup_stats_pool (uint32_t width, uint32_t height);
+    void set_size (uint32_t width, uint32_t height);
+    bool setup_stats_pool (uint32_t bit_depth = 8);
+    bool is_stats_pool_ready () const {
+        return (_stats_pool.ptr () ? true : false);
+    }
     SmartPtr<X3aAnalyzeTuner> &get_analyzer () {
         return _analyzer;
     }
@@ -59,6 +63,8 @@ private:
 // members
     SmartPtr<X3aAnalyzeTuner>      _analyzer;
     SmartPtr<X3aStatisticsQueue>   _stats_pool;
+    uint32_t                       _video_width;
+    uint32_t                       _video_height;
 
     Mutex                          _result_mutex;
     X3aResultList                  _results;
@@ -66,7 +72,9 @@ private:
 };
 
 XCam3AAiqContext::XCam3AAiqContext ()
-    : _brightness_level(0)
+    : _video_width (0)
+    , _video_height (0)
+    , _brightness_level(0)
 {
 }
 
@@ -91,15 +99,23 @@ XCam3AAiqContext::setup_analyzer (struct atomisp_sensor_mode_data &sensor_mode_d
     return true;
 }
 
+void
+XCam3AAiqContext::set_size (uint32_t width, uint32_t height)
+{
+    _video_width = width;
+    _video_height = height;
+}
+
 bool
-XCam3AAiqContext::setup_stats_pool (uint32_t width, uint32_t height)
+XCam3AAiqContext::setup_stats_pool (uint32_t bit_depth)
 {
     VideoBufferInfo info;
-    info.init (XCAM_PIX_FMT_SGRBG16, width, height);
+    info.init (XCAM_PIX_FMT_SGRBG16, _video_width, _video_height);
 
     _stats_pool = new X3aStatisticsQueue;
     XCAM_ASSERT (_stats_pool.ptr ());
 
+    _stats_pool->set_bit_depth (bit_depth);
     XCAM_FAIL_RETURN (
         WARNING,
         _stats_pool->set_video_info (info),
@@ -277,12 +293,7 @@ xcam_configure_3a (XCam3AContext *context, uint32_t width, uint32_t height, doub
         ret,
         "start aiq 3a failed");
 
-    // init statistics queue
-    XCAM_FAIL_RETURN (
-        WARNING,
-        aiq_context->setup_stats_pool (width, height),
-        ret,
-        "aiq configure 3a failed on stats pool setup");
+    aiq_context->set_size (width, height);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -297,6 +308,15 @@ xcam_set_3a_stats (XCam3AContext *context, XCam3AStats *stats, int64_t timestamp
     SmartPtr<X3aAnalyzeTuner> analyzer = aiq_context->get_analyzer ();
     XCAM_ASSERT (analyzer.ptr ());
     XCAM_ASSERT (stats);
+
+    if (!aiq_context->is_stats_pool_ready ()) {
+        // init statistics queue
+        XCAM_FAIL_RETURN (
+            WARNING,
+            aiq_context->setup_stats_pool (stats->info.bit_depth),
+            XCAM_RETURN_ERROR_UNKNOWN,
+            "aiq configure 3a failed on stats pool setup");
+    }
 
     // Convert stats to atomisp_3a_stats;
     SmartPtr<X3aIspStatistics> isp_stats = aiq_context->get_stats_buffer ();

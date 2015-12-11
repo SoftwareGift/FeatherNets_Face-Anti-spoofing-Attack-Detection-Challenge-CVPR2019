@@ -47,6 +47,7 @@ public:
 public:
     CL3AStatsCalculatorContext (const SmartPtr<CLContext> &context);
     ~CL3AStatsCalculatorContext ();
+    void set_bit_depth (uint32_t bits);
 
     bool is_ready () const {
         return _data_allocated;

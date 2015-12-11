@@ -68,6 +68,7 @@ public:
 
     bool set_output_format (uint32_t fourcc);
     bool set_capture_stage (CaptureStage capture_stage);
+    bool set_3a_stats_bits (uint32_t bits);
 
     virtual bool set_hdr (uint32_t mode);
     virtual bool set_denoise (uint32_t mode);
@@ -94,6 +95,7 @@ private:
 
 private:
     uint32_t                            _output_fourcc;
+    uint32_t                            _3a_stats_bits;
     OutSampleType                       _out_smaple_type;
     PipelineProfile                     _pipeline_profile;
     CaptureStage                        _capture_stage;

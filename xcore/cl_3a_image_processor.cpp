@@ -39,6 +39,7 @@ namespace XCam {
 CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
+    , _3a_stats_bits (8)
     , _out_smaple_type (OutSampleYuv)
     , _pipeline_profile (BasicPipelineProfile)
     , _capture_stage (TonemappingStage)
@@ -96,6 +97,21 @@ bool
 CL3aImageProcessor::set_capture_stage (CaptureStage capture_stage)
 {
     _capture_stage = capture_stage;
+    return true;
+}
+
+bool
+CL3aImageProcessor::set_3a_stats_bits (uint32_t bits)
+{
+    switch (bits) {
+    case 8:
+    case 12:
+        _3a_stats_bits = bits;
+        break;
+    default:
+        XCAM_LOG_WARNING ("cl image processor 3a stats doesn't support %d-bits", bits);
+        return false;
+    }
     return true;
 }
 
@@ -290,7 +306,7 @@ CL3aImageProcessor::create_handlers ()
     XCAM_ASSERT (context.ptr ());
 
     /* bayer pipeline */
-    image_handler = create_cl_bayer_basic_image_handler (context, _enable_gamma);
+    image_handler = create_cl_bayer_basic_image_handler (context, _enable_gamma, _3a_stats_bits);
     _bayer_basic_pipe = image_handler.dynamic_cast_ptr<CLBayerBasicImageHandler> ();
     XCAM_FAIL_RETURN (
         WARNING,

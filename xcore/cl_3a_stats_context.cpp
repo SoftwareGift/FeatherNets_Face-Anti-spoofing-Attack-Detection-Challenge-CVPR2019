@@ -31,10 +31,18 @@ CL3AStatsCalculatorContext::CL3AStatsCalculatorContext (const SmartPtr<CLContext
     , _factor_shift (0)
     , _data_allocated (false)
 {
+    _stats_pool = new X3aStatsPool ();
 }
 
 CL3AStatsCalculatorContext::~CL3AStatsCalculatorContext ()
 {
+}
+
+void
+CL3AStatsCalculatorContext::set_bit_depth (uint32_t bits)
+{
+    XCAM_ASSERT (_stats_pool.ptr ());
+    _stats_pool->set_bit_depth (bits);
 }
 
 bool
@@ -42,7 +50,6 @@ CL3AStatsCalculatorContext::allocate_data (const VideoBufferInfo &buffer_info, u
 {
     uint32_t multiply_factor = 0;
 
-    _stats_pool = new X3aStatsPool ();
     _stats_pool->set_video_info (buffer_info);
 
     XCAM_FAIL_RETURN (
@@ -112,12 +119,13 @@ CL3AStatsCalculatorContext::get_next_buffer ()
 
 void debug_print_3a_stats (XCam3AStats *stats_ptr)
 {
-
-    printf ("debug 3a stats \n");
+    static int frames = 0;
+    frames++;
+    printf ("********frame(%d) debug 3a stats(%dbits) \n", frames, stats_ptr->info.bit_depth);
     for (int y = 30; y < 60; ++y) {
         printf ("---- y ");
         for (int x = 40; x < 80; ++x)
-            printf ("%4d", stats_ptr->stats[y * stats_ptr->info.aligned_width + x].avg_y);
+            printf ("%4d ", stats_ptr->stats[y * stats_ptr->info.aligned_width + x].avg_y);
         printf ("\n");
     }
 

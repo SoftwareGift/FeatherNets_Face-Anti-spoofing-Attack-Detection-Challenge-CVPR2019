@@ -67,6 +67,9 @@ public:
     XCam3AStatsInfo &get_stats_info () {
         return _stats_info;
     }
+    void set_bit_depth (uint32_t bit_depth) {
+        _bit_depth = bit_depth;
+    }
     void set_stats_info (const XCam3AStatsInfo &info);
 
 protected:
@@ -79,6 +82,7 @@ private:
 
 private:
     XCam3AStatsInfo    _stats_info;
+    uint32_t           _bit_depth;
 };
 
 };

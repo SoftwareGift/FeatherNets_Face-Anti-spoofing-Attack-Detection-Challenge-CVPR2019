@@ -58,6 +58,13 @@ CLBayerBasicImageKernel::CLBayerBasicImageKernel (SmartPtr<CLContext> &context, 
     XCAM_ASSERT (_3a_stats_context.ptr ());
 }
 
+void
+CLBayerBasicImageKernel::set_stats_bits (uint32_t stats_bits)
+{
+    XCAM_ASSERT (_3a_stats_context.ptr ());
+    _3a_stats_context->set_bit_depth (stats_bits);
+}
+
 bool
 CLBayerBasicImageKernel::set_blc (const XCam3aResultBlackLevel &blc)
 {
@@ -293,7 +300,7 @@ CLBayerBasicImageHandler::post_stats (const SmartPtr<X3aStats> &stats)
 
 
 SmartPtr<CLImageHandler>
-create_cl_bayer_basic_image_handler (SmartPtr<CLContext> &context, bool enable_gamma)
+create_cl_bayer_basic_image_handler (SmartPtr<CLContext> &context, bool enable_gamma, uint32_t stats_bits)
 {
     SmartPtr<CLBayerBasicImageHandler> bayer_planar_handler;
     SmartPtr<CLBayerBasicImageKernel> basic_kernel;
@@ -307,9 +314,11 @@ create_cl_bayer_basic_image_handler (SmartPtr<CLContext> &context, bool enable_g
 
         snprintf (build_options, sizeof (build_options),
                   " -DENABLE_GAMMA=%d "
-                  " -DENABLE_IMAGE_2D_INPUT=%d ",
+                  " -DENABLE_IMAGE_2D_INPUT=%d "
+                  " -DSTATS_BITS=%d ",
                   (enable_gamma ? 1 : 0),
-                  ENABLE_IMAGE_2D_INPUT);
+                  ENABLE_IMAGE_2D_INPUT,
+                  stats_bits);
 
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN (kernel_bayer_basic)
 #include "kernel_bayer_basic.clx"
@@ -317,7 +326,7 @@ create_cl_bayer_basic_image_handler (SmartPtr<CLContext> &context, bool enable_g
         ret = basic_kernel->load_from_source (
                   kernel_bayer_basic_body, strlen (kernel_bayer_basic_body),
                   NULL, NULL,
-                  enable_gamma ? "-DENABLE_GAMMA=1" : "-DENABLE_GAMMA=0");
+                  build_options);
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,
@@ -325,6 +334,7 @@ create_cl_bayer_basic_image_handler (SmartPtr<CLContext> &context, bool enable_g
             "CL image handler(%s) load source failed", basic_kernel->get_kernel_name());
     }
     XCAM_ASSERT (basic_kernel->is_valid ());
+    basic_kernel->set_stats_bits (stats_bits);
     bayer_planar_handler->set_bayer_kernel (basic_kernel);
 
     return bayer_planar_handler;
