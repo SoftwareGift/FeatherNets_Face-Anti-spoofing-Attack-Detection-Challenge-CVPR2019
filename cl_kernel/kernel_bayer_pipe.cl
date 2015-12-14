@@ -110,18 +110,13 @@ inline float2 dot_denoise (float2 value, float2 in1, float2 in2, float2 in3, flo
 
 inline float2 dot_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 in4, float2 out, CLEeConfig ee_config, float2 *egain)
 {
-    float2 eH = mad(in1, -0.5f, value);
-    eH = mad(in3, -0.5f, eH);
-    float2 eV = mad(in2, -0.5f, value);
-    eV = mad(in4, -0.5f, eV);
 
-    eH = fmax(eH, eV);
+    float2 ee = mad(in1 + in2 + in3 + in4, -0.25f, value);
+    ee =  fabs(ee) > ee_config.ee_threshold ? ee : 0.0f;
 
-    eH = eH > ee_config.ee_threshold ? eH : 0.0f;
+    egain[0] = mad(ee, ee_config.ee_gain, out) / (out + 0.00001);
 
-    egain[0] = mad(eH, ee_config.ee_gain, out) / out;
-
-    return out * egain[0];
+    return out * egain[0] + (value - out) * ee_config.ee_gain * 0.25;
 }
 
 inline float2 dot_denoise_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 in4, __local float *table, float gain, float2 *egain, CLEeConfig ee_config)
@@ -204,6 +199,7 @@ void demosaic_denoise_2_cell (
     float2 value;
     int index;
     float2 egain[4];
+    float2 de;
 
     ///////////////////////////////////////G///////////////////////////////////
     {
@@ -221,17 +217,21 @@ void demosaic_denoise_2_cell (
         value = mad (Gr_x[0].s01, 4.0f,  (Gb_w[0].s01 +
                                           Gb_w[0].s12 + Gb_w[1].s01 + Gb_w[1].s12)) * 0.125f;
         out_data[0].s02 = dot_denoise_ee (value, Gb_w[0].s01, Gb_w[0].s12, Gb_w[1].s01, Gb_w[1].s12, table, GUASS_DELTA_S_1_5, &egain[0], ee_config);
+
         value = (Gr_x[0].s01 + Gr_x[0].s12 +
                  Gb_w[0].s12 + Gb_w[1].s12) * 0.25f;
-        out_data[0].s13 = dot_denoise_ee(value, Gr_x[0].s01, Gr_x[0].s12, Gb_w[0].s12, Gb_w[1].s12, table, GUASS_DELTA_S_1, &egain[1], ee_config);
+        de = dot_denoise(value, Gr_x[0].s01, Gr_x[0].s12, Gb_w[0].s12, Gb_w[1].s12, table, GUASS_DELTA_S_1);
+        out_data[0].s13 = de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = (Gr_x[0].s01 + Gr_x[1].s01 +
                  Gb_w[1].s01 + Gb_w[1].s12) * 0.25f;
-        out_data[1].s02 = dot_denoise_ee (value, Gr_x[0].s01, Gr_x[1].s01, Gb_w[1].s01, Gb_w[1].s12, table, GUASS_DELTA_S_1, &egain[2], ee_config);
+        de = dot_denoise (value, Gr_x[0].s01, Gr_x[1].s01, Gb_w[1].s01, Gb_w[1].s12, table, GUASS_DELTA_S_1);
+        out_data[1].s02 = de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = mad (Gb_w[1].s12, 4.0f, (Gr_x[0].s01 +
                                          Gr_x[0].s12 + Gr_x[1].s01 + Gr_x[1].s12)) * 0.125f;
-        out_data[1].s13 = dot_denoise_ee (value, Gr_x[0].s01, Gr_x[0].s12, Gr_x[1].s01, Gr_x[1].s12, table, GUASS_DELTA_S_1_5, &egain[3], ee_config);
+        de = dot_denoise (value, Gr_x[0].s01, Gr_x[0].s12, Gr_x[1].s01, Gr_x[1].s12, table, GUASS_DELTA_S_1_5);
+        out_data[1].s13 = de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         write_imagef (out, (int2)(out_x, out_y + out_height), out_data[0]);
         write_imagef (out, (int2)(out_x, out_y + 1 + out_height), out_data[1]);
@@ -248,17 +248,21 @@ void demosaic_denoise_2_cell (
         R_y[2] = *(__local float4*)(y_data_in + index);
 
         value = (R_y[1].s01 + R_y[1].s12) * 0.5f;
-        out_data[0].s02 = dot_denoise (value, R_y[0].s01, R_y[0].s12, R_y[2].s01, R_y[2].s12, table, GUASS_DELTA_S_2_5) * egain[0];
+        de =  dot_denoise (value, R_y[0].s01, R_y[0].s12, R_y[2].s01, R_y[2].s12, table, GUASS_DELTA_S_2_5);
+        out_data[0].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = R_y[1].s12;
-        out_data[0].s13 = dot_denoise (value, R_y[0].s12, R_y[1].s01, R_y[1].s23, R_y[2].s12, table, GUASS_DELTA_S_2) * egain[1];
+        de = dot_denoise (value, R_y[0].s12, R_y[1].s01, R_y[1].s23, R_y[2].s12, table, GUASS_DELTA_S_2);
+        out_data[0].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = (R_y[1].s01 + R_y[1].s12 +
                  R_y[2].s01 + R_y[2].s12) * 0.25f;
-        out_data[1].s02 = dot_denoise (value, R_y[1].s01, R_y[1].s12, R_y[2].s01, R_y[2].s12, table, GUASS_DELTA_S_1_5) * egain[2];
+        de = dot_denoise (value, R_y[1].s01, R_y[1].s12, R_y[2].s01, R_y[2].s12, table, GUASS_DELTA_S_1_5);
+        out_data[1].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = (R_y[1].s12 + R_y[2].s12) * 0.5f;
-        out_data[1].s13 = dot_denoise (value, R_y[1].s01, R_y[1].s23, R_y[2].s01, R_y[2].s23, table, GUASS_DELTA_S_2_5) * egain[3];
+        de = dot_denoise (value, R_y[1].s01, R_y[1].s23, R_y[2].s01, R_y[2].s23, table, GUASS_DELTA_S_2_5);
+        out_data[1].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         write_imagef (out, (int2)(out_x, out_y), out_data[0]);
         write_imagef (out, (int2)(out_x, out_y + 1), out_data[1]);
@@ -275,17 +279,21 @@ void demosaic_denoise_2_cell (
         B_z[2] = *(__local float4*)(z_data_in + index);
 
         value = (B_z[0].s12 + B_z[1].s12) * 0.5f;
-        out_data[0].s02 = dot_denoise (value, B_z[0].s01, B_z[0].s23, B_z[1].s01, B_z[1].s23, table, GUASS_DELTA_S_2_5) * egain[0];
+        de = dot_denoise (value, B_z[0].s01, B_z[0].s23, B_z[1].s01, B_z[1].s23, table, GUASS_DELTA_S_2_5);
+        out_data[0].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = (B_z[0].s12 + B_z[0].s23 +
                  B_z[1].s12 + B_z[1].s23) * 0.25f;
-        out_data[0].s13 = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[1].s12, B_z[1].s23, table, GUASS_DELTA_S_1_5) * egain[1];
+        de = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[1].s12, B_z[1].s23, table, GUASS_DELTA_S_1_5);
+        out_data[0].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = B_z[1].s12;
-        out_data[1].s02 = dot_denoise (value, B_z[0].s12, B_z[1].s01, B_z[1].s23, B_z[2].s12, table, GUASS_DELTA_S_2) * egain[2];
+        de = dot_denoise (value, B_z[0].s12, B_z[1].s01, B_z[1].s23, B_z[2].s12, table, GUASS_DELTA_S_2);
+        out_data[1].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         value = (B_z[1].s12 + B_z[1].s23) * 0.5f;
-        out_data[1].s13 = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[2].s12, B_z[2].s23, table, GUASS_DELTA_S_2_5) * egain[3];
+        de = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[2].s12, B_z[2].s23, table, GUASS_DELTA_S_2_5);
+        out_data[1].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
 
         write_imagef (out, (int2)(out_x, out_y + out_height * 2), out_data[0]);
         write_imagef (out, (int2)(out_x, out_y + 1 + out_height * 2), out_data[1]);
