@@ -26,6 +26,7 @@ namespace XCam {
 
 X3aAnalyzer::X3aAnalyzer (const char *name)
     : XAnalyzer (name)
+    , _brightness_level_param (0.0)
     , _ae_handler (NULL)
     , _awb_handler (NULL)
     , _af_handler (NULL)
