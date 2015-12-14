@@ -58,7 +58,7 @@ inline int shared_pos (int x, int y)
 /* BA10=> GRBG  */
 inline void grbg_slm_load (
     __local float *px, __local float *py, __local float *pz, __local float *pw,
-    int index, __read_only image2d_t input, int x_start, int y_start
+    int index, __read_only image2d_t input, uint input_height, int x_start, int y_start
 )
 {
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
@@ -69,9 +69,9 @@ inline void grbg_slm_load (
     float4 gr, r, b, gb;
 
     gr = read_imagef (input, sampler, (int2)(x0, y0));
-    r = read_imagef (input, sampler, (int2)(x0, y0 + 544));
-    b = read_imagef (input, sampler, (int2)(x0, y0 + 544 * 2));
-    gb = read_imagef (input, sampler, (int2)(x0, y0 + 544 * 3));
+    r = read_imagef (input, sampler, (int2)(x0, y0 + input_height));
+    b = read_imagef (input, sampler, (int2)(x0, y0 + input_height * 2));
+    gb = read_imagef (input, sampler, (int2)(x0, y0 + input_height * 3));
 
     (*(__local float4 *)(px + index)) = gr;
     (*(__local float4 *)(py + index)) = r;
@@ -350,7 +350,7 @@ __kernel void kernel_bayer_pipe (__read_only image2d_t input,
     i *= 4;
     for (; i < SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE; i += (l_size_x * l_size_y) * 4) {
         grbg_slm_load (p1_x, p1_y, p1_z, p1_w, i,
-                       input,
+                       input, input_height,
                        x_start - SLM_CELL_X_OFFSET, y_start - SLM_CELL_Y_OFFSET);
     }
     for(; j < 64; j += l_size_x * l_size_y)
