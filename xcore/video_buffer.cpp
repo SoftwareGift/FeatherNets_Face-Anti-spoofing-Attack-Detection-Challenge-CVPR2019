@@ -172,9 +172,9 @@ VideoBufferInfo::init (
         break;
 
     case XCAM_PIX_FMT_LAB:
-        this->color_bits = 32;
+        this->color_bits = 8;
         this->components = 1;
-        this->strides [0] = aligned_width * 3 * 4;
+        this->strides [0] = aligned_width * 3;
         this->offsets [0] = 0;
         image_size = this->strides [0] * aligned_height;
         break;
@@ -286,7 +286,7 @@ VideoBufferInfo::get_planar_info (
         break;
 
     case XCAM_PIX_FMT_LAB:
-        planar.pixel_bytes = 3 * 4;
+        planar.pixel_bytes = 3;
         break;
 
     case XCAM_PIX_FMT_RGB48_planar:
