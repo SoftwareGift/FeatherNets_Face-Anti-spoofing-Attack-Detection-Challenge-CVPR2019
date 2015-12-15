@@ -71,6 +71,7 @@ CLTonemappingImageKernel::prepare_arguments (
 
     int pixel_totalnum = stats_ptr->info.aligned_width * stats_ptr->info.aligned_height;
     int pixel_num = 0;
+    int hist_bin_count = 1 << stats_ptr->info.bit_depth;
     int64_t cumulative_value = 0;
     int saturated_thresh = pixel_totalnum * 0.003f;
     int percent_90_thresh = pixel_totalnum * 0.1f;
@@ -80,7 +81,7 @@ CLTonemappingImageKernel::prepare_arguments (
     float y_average = 0;
     float y_medium = 0;
 
-    for (int i = 255; i >= 0; i--)
+    for (int i = (hist_bin_count - 1); i >= 0; i--)
     {
         pixel_num += stats_ptr->hist_y[i];
         if ((y_saturated == 0) && (pixel_num >= saturated_thresh))
@@ -100,21 +101,23 @@ CLTonemappingImageKernel::prepare_arguments (
 
     y_average = cumulative_value / pixel_totalnum;
 
-    if (y_saturated < 255) {
+    if (y_saturated < (hist_bin_count - 1)) {
         y_saturated = y_saturated + 1;
     }
 
-    _y_target =  (255 / y_saturated) * (1.5 * y_medium + 0.5 * y_average) / 2;
+    _y_target =  (hist_bin_count / y_saturated) * (1.5 * y_medium + 0.5 * y_average) / 2;
 
     if (_y_target < 4) {
         _y_target = 4;
     }
     if ((_y_target > y_saturated) || (y_saturated < 4)) {
-        _y_target = y_saturated;
+        _y_target = y_saturated / 4;
     }
 
-    _y_max = 255 * (2 * y_saturated + _y_target) / y_saturated - y_saturated - _y_target;
+    _y_max = hist_bin_count * (2 * y_saturated + _y_target) / y_saturated - y_saturated - _y_target;
 
+    _y_target = _y_target / pow(2, stats_ptr->info.bit_depth - 8);
+    _y_max = _y_max / pow(2, stats_ptr->info.bit_depth - 8);
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
