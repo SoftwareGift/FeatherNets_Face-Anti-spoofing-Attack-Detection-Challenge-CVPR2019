@@ -98,7 +98,7 @@ public:
     bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
     bool set_framecount (uint8_t count) ;
 
-    virtual XCamReturn post_execute ();
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 protected:
     virtual XCamReturn prepare_arguments (
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,

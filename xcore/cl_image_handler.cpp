@@ -129,8 +129,10 @@ CLImageKernel::prepare_arguments (
 }
 
 XCamReturn
-CLImageKernel::post_execute ()
+CLImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
+    XCAM_UNUSED (output);
+
     _image_in.release ();
     _image_out.release ();
     return XCAM_RETURN_NO_ERROR;
@@ -340,12 +342,16 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
             "cl_image_handler(%s) execute kernel(%s) failed",
             XCAM_STR (_name), kernel->get_kernel_name ());
 
+        ret = kernel->post_execute (output);
         XCAM_FAIL_RETURN (
             WARNING,
-            (ret = kernel->post_execute ()) == XCAM_RETURN_NO_ERROR,
+            (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
             ret,
             "cl_image_handler(%s) post_execute kernel(%s) failed",
             XCAM_STR (_name), kernel->get_kernel_name ());
+
+        if (ret == XCAM_RETURN_BYPASS)
+            break;
     }
 
 #if ENABLE_PROFILING
@@ -354,7 +360,7 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
 
     XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
 
-    return XCAM_RETURN_NO_ERROR;
+    return ret;
 }
 
 void

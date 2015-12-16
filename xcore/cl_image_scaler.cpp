@@ -127,8 +127,9 @@ CLImageScalerKernel::prepare_arguments (
 }
 
 XCamReturn
-CLImageScalerKernel::post_execute ()
+CLImageScalerKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
+    XCAM_UNUSED (output);
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if ((V4L2_PIX_FMT_NV12 != get_pixel_format ()) ||

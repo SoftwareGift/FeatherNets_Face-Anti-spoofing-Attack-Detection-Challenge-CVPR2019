@@ -213,13 +213,13 @@ CLTnrImageKernel::prepare_arguments (
 
 
 XCamReturn
-CLTnrImageKernel::post_execute ()
+CLTnrImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
     if ((CL_TNR_TYPE_YUV == _type) && _image_out->is_valid ()) {
         _image_out_prev = _image_out;
     }
 
-    return CLImageKernel::post_execute ();
+    return CLImageKernel::post_execute (output);
 }
 
 bool

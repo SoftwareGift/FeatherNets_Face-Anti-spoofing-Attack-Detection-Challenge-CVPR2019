@@ -32,6 +32,7 @@ public:
     virtual ~Thread ();
 
     bool start ();
+    virtual bool emit_stop ();
     bool stop ();
     bool is_running ();
 

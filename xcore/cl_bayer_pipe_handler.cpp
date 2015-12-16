@@ -155,8 +155,10 @@ CLBayerPipeImageKernel::prepare_arguments (
 
 
 XCamReturn
-CLBayerPipeImageKernel::post_execute ()
+CLBayerPipeImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
+    XCAM_UNUSED (output);
+
     _image_in.release ();
     _image_out.release ();
     _bnr_table_buffer.release ();

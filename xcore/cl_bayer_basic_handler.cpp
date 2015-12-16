@@ -20,6 +20,7 @@
 
 #include "xcam_utils.h"
 #include "cl_bayer_basic_handler.h"
+#include "xcam_thread.h"
 
 #define GROUP_CELL_X_SIZE 64
 #define GROUP_CELL_Y_SIZE 4
@@ -33,10 +34,111 @@
 
 namespace XCam {
 
+struct BayerPostData {
+    SmartPtr<DrmBoBuffer> image_buffer;
+    SmartPtr<CLBuffer>    stats_cl_buf;
+};
+
+class CLBayer3AStatsThread
+    : public Thread
+{
+public:
+    CLBayer3AStatsThread (CLBayerBasicImageKernel *kernel)
+        : Thread ("CLBayer3AStatsThread")
+        , _kernel (kernel)
+    {}
+    ~CLBayer3AStatsThread () {}
+
+    virtual bool emit_stop ();
+    bool queue_stats (SmartPtr<DrmBoBuffer> &buf, SmartPtr<CLBuffer> &stats);
+    SmartPtr<DrmBoBuffer> pop_buf ();
+protected:
+    virtual bool loop ();
+    virtual void stopped ();
+
+private:
+    CLBayerBasicImageKernel     *_kernel;
+    SafeList<BayerPostData>      _stats_process_list;
+    SafeList<DrmBoBuffer>        _buffer_done_list;
+};
+
+bool
+CLBayer3AStatsThread::emit_stop ()
+{
+    _stats_process_list.pause_pop ();
+    _buffer_done_list.pause_pop ();
+
+    _stats_process_list.wakeup ();
+    _buffer_done_list.wakeup ();
+
+    return Thread::emit_stop ();
+}
+
+bool
+CLBayer3AStatsThread::queue_stats (SmartPtr<DrmBoBuffer> &buf, SmartPtr<CLBuffer> &stats)
+{
+    XCAM_FAIL_RETURN (
+        WARNING,
+        buf.ptr () && stats.ptr (),
+        false,
+        "cl bayer 3a-stats thread has error buffer/stats to queue");
+
+    SmartPtr<BayerPostData> data = new BayerPostData;
+    XCAM_ASSERT (data.ptr ());
+    data->image_buffer = buf;
+    data->stats_cl_buf = stats;
+
+    return _stats_process_list.push (data);
+}
+
+SmartPtr<DrmBoBuffer>
+CLBayer3AStatsThread::pop_buf ()
+{
+    return _buffer_done_list.pop ();
+}
+
+void
+CLBayer3AStatsThread::stopped ()
+{
+    _stats_process_list.clear ();
+    _buffer_done_list.clear ();
+}
+
+bool
+CLBayer3AStatsThread::loop ()
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    SmartPtr<BayerPostData> data;
+    data = _stats_process_list.pop ();
+    if (!data.ptr ()) {
+        XCAM_LOG_INFO ("cl bayer 3a-stats thread is going to stop, processing data empty");
+        return false;
+    }
+
+    XCAM_ASSERT (data->image_buffer.ptr ());
+    XCAM_ASSERT (data->stats_cl_buf.ptr ());
+    XCAM_ASSERT (_kernel);
+
+    ret = _kernel->process_stats_buffer (data->image_buffer, data->stats_cl_buf);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        false,
+        "cl bayer 3a-stats thread has error buffer on kernel post processing");
+
+    XCAM_FAIL_RETURN (
+        ERROR,
+        _buffer_done_list.push (data->image_buffer),
+        false,
+        "cl bayer 3a-stats thread failed to queue done-buffers");
+    return true;
+}
+
 CLBayerBasicImageKernel::CLBayerBasicImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLBayerBasicImageHandler>& handler)
     : CLImageKernel (context, "kernel_bayer_basic")
     , _input_aligned_width (0)
     , _out_aligned_height (0)
+    , _is_first_buf (true)
     , _handler (handler)
 {
     _blc_config.level_gr = XCAM_CL_BLC_DEFAULT_LEVEL;
@@ -56,6 +158,14 @@ CLBayerBasicImageKernel::CLBayerBasicImageKernel (SmartPtr<CLContext> &context, 
 
     _3a_stats_context = new CL3AStatsCalculatorContext (context);
     XCAM_ASSERT (_3a_stats_context.ptr ());
+    _3a_stats_thread = new CLBayer3AStatsThread (this);
+    XCAM_ASSERT (_3a_stats_thread.ptr ());
+}
+
+CLBayerBasicImageKernel::~CLBayerBasicImageKernel ()
+{
+    _3a_stats_thread->stop ();
+    _3a_stats_context->clean_up_data ();
 }
 
 void
@@ -116,6 +226,14 @@ CLBayerBasicImageKernel::prepare_arguments (
         return XCAM_RETURN_ERROR_MEM;
     }
 
+    if (_is_first_buf) {
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _3a_stats_thread->start (),
+            XCAM_RETURN_ERROR_THREAD,
+            "cl bayer basic kernel(%s) start 3a stats thread failed", get_kernel_name ());
+    }
+
     in_image_info.format.image_channel_order = CL_RGBA;
     in_image_info.format.image_channel_data_type = CL_UNSIGNED_INT32; //CL_UNORM_INT16;
     in_image_info.width = in_video_info.aligned_width / 8;
@@ -143,7 +261,12 @@ CLBayerBasicImageKernel::prepare_arguments (
         context, sizeof(float) * (XCAM_GAMMA_TABLE_SIZE + 1),
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_gamma_table);
 
-    _stats_cl_buffer = _3a_stats_context->get_next_buffer ();
+    _stats_cl_buffer = _3a_stats_context->get_buffer ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _stats_cl_buffer.ptr (),
+        XCAM_RETURN_ERROR_PARAM,
+        "CLBayerBasic handler get 3a stats buffer failed");
 
     XCAM_ASSERT (_image_out->is_valid ());
     XCAM_FAIL_RETURN (
@@ -198,38 +321,64 @@ CLBayerBasicImageKernel::prepare_arguments (
 
     //printf ("work_size:g(%d, %d), l(%d, %d)\n", work_size.global[0], work_size.global[1], work_size.local[0], work_size.local[1]);
 
-    _output_buffer = output;
-
     return XCAM_RETURN_NO_ERROR;
 }
 
 
 XCamReturn
-CLBayerBasicImageKernel::post_execute ()
+CLBayerBasicImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
+{
+    SmartPtr<DrmBoBuffer> done_buf;
+
+    _buffer_in.release ();
+    _gamma_table_buffer.release ();
+    CLImageKernel::post_execute (output);
+
+    XCAM_FAIL_RETURN (
+        ERROR,
+        _3a_stats_thread->queue_stats (output, _stats_cl_buffer),
+        XCAM_RETURN_ERROR_UNKNOWN,
+        "cl bayer basic kernel(%s) process 3a stats failed", get_kernel_name ());
+
+    if (_is_first_buf) {
+        _is_first_buf = false;
+        return XCAM_RETURN_BYPASS;
+    }
+
+    done_buf = _3a_stats_thread->pop_buf ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        done_buf.ptr (),
+        XCAM_RETURN_ERROR_MEM,
+        "cl bayer basic kernel(%s) failed to get done buffer", get_kernel_name ());
+    output = done_buf;
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLBayerBasicImageKernel::process_stats_buffer (SmartPtr<DrmBoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats)
 {
     SmartPtr<X3aStats> stats_3a;
     SmartPtr<CLContext> context = get_context ();
 
-    _buffer_in.release ();
-    _gamma_table_buffer.release ();
-
-    CLImageKernel::post_execute ();
+    XCAM_OBJ_PROFILING_START;
 
     context->finish ();
-    stats_3a = _3a_stats_context->copy_stats_out (_stats_cl_buffer);
+    stats_3a = _3a_stats_context->copy_stats_out (cl_stats);
     if (!stats_3a.ptr ()) {
         XCAM_LOG_DEBUG ("copy 3a stats failed, maybe handler stopped");
         return XCAM_RETURN_ERROR_CL;
     }
 
-    stats_3a->set_timestamp (_output_buffer->get_timestamp ());
-    _output_buffer->attach_buffer (stats_3a);
+    stats_3a->set_timestamp (buffer->get_timestamp ());
+    buffer->attach_buffer (stats_3a);
 
-    _stats_cl_buffer.release ();
-    _output_buffer.release ();
+    if (cl_stats.ptr ())
+        _3a_stats_context->release_buffer (cl_stats);
 
-    XCAM_FAIL_RETURN (WARNING, stats_3a.ptr (), XCAM_RETURN_ERROR_MEM, "3a stats dequeue failed");
-    //return XCAM_RETURN_NO_ERROR;
+    XCAM_OBJ_PROFILING_END ("3a_stats_cpu_copy(async)", 30);
+
     return _handler->post_stats (stats_3a);
 }
 
@@ -237,6 +386,7 @@ void
 CLBayerBasicImageKernel::pre_stop ()
 {
     _3a_stats_context->pre_stop ();
+    _3a_stats_thread->emit_stop ();
 }
 
 CLBayerBasicImageHandler::CLBayerBasicImageHandler (const char *name)

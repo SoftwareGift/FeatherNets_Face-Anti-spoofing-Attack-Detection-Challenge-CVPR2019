@@ -32,7 +32,7 @@ class CLDemoImageKernel
 public:
     explicit CLDemoImageKernel (SmartPtr<CLContext> &context);
 
-    virtual XCamReturn post_execute ();
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 protected:
     virtual XCamReturn prepare_arguments (
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,

@@ -32,19 +32,22 @@
 namespace XCam {
 
 class CLBayerBasicImageHandler;
+class CLBayer3AStatsThread;
 
 class CLBayerBasicImageKernel
     : public CLImageKernel
 {
+    friend class CLBayer3AStatsThread;
 public:
     explicit CLBayerBasicImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLBayerBasicImageHandler>& handler);
+    virtual ~CLBayerBasicImageKernel ();
     void set_stats_bits (uint32_t stats_bits);
 
     bool set_blc (const XCam3aResultBlackLevel &blc);
     bool set_wb (const XCam3aResultWhiteBalance &wb);
     bool set_gamma_table (const XCam3aResultGammaTable &gamma);
 
-    virtual XCamReturn post_execute ();
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
     virtual void pre_stop ();
 
 protected:
@@ -54,6 +57,8 @@ protected:
         CLWorkSize &work_size);
 
 private:
+    XCamReturn process_stats_buffer (SmartPtr<DrmBoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats);
+
     XCAM_DEAD_COPY (CLBayerBasicImageKernel);
 
 private:
@@ -65,12 +70,15 @@ private:
 
     float                     _gamma_table[XCAM_GAMMA_TABLE_SIZE + 1];
     SmartPtr<CLBuffer>        _gamma_table_buffer;
-    SmartPtr<DrmBoBuffer>     _output_buffer;
 
-    SmartPtr<CLBuffer>        _stats_cl_buffer;
+    bool                      _is_first_buf;
+
+    SmartPtr<CLBuffer>                    _stats_cl_buffer;
     SmartPtr<CL3AStatsCalculatorContext>  _3a_stats_context;
+    SmartPtr<CLBayer3AStatsThread>        _3a_stats_thread;
     SmartPtr<CLBayerBasicImageHandler>    _handler;
 
+    XCAM_OBJ_PROFILING_DEFINES;
 };
 
 class CLBayerBasicImageHandler

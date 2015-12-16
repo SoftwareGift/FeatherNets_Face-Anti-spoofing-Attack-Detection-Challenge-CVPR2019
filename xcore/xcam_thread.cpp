@@ -108,6 +108,14 @@ bool Thread::start ()
     return true;
 }
 
+bool
+Thread::emit_stop ()
+{
+    SmartLock locker(_mutex);
+    _started = false;
+    return true;
+}
+
 bool Thread::stop ()
 {
     SmartLock locker(_mutex);

@@ -56,7 +56,8 @@ public:
     void pre_stop ();
     void clean_up_data ();
 
-    SmartPtr<CLBuffer> get_next_buffer ();
+    SmartPtr<CLBuffer> get_buffer ();
+    bool release_buffer (SmartPtr<CLBuffer> &buf);
     SmartPtr<X3aStats> copy_stats_out (const SmartPtr<CLBuffer> &stats_cl_buf);
 
 private:
@@ -67,9 +68,8 @@ private:
 private:
     SmartPtr<CLContext>              _context;
     SmartPtr<X3aStatsPool>           _stats_pool;
-    SmartPtr<CLBuffer>               _stats_cl_buffer[XCAM_CL_3A_STATS_BUFFER_COUNT];
+    SafeList<CLBuffer>               _stats_cl_buffers;
     uint32_t                         _stats_mem_size;
-    uint32_t                         _buf_index;
     uint32_t                         _width_factor;
     uint32_t                         _height_factor;
     uint32_t                         _factor_shift;

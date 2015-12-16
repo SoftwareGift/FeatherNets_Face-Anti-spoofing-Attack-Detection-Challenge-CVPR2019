@@ -177,8 +177,10 @@ CLYuvPipeImageKernel::prepare_arguments (
 }
 
 XCamReturn
-CLYuvPipeImageKernel::post_execute ()
+CLYuvPipeImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
+    XCAM_UNUSED (output);
+
     if (_buffer_out->is_valid ()) {
         _buffer_out_prev = _buffer_out;
     }

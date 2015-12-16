@@ -44,7 +44,7 @@ protected:
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
         CLArgument args[], uint32_t &arg_count,
         CLWorkSize &work_size);
-    virtual XCamReturn post_execute ();
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLYuvPipeImageKernel);

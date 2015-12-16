@@ -25,7 +25,6 @@
 namespace XCam {
 CL3AStatsCalculatorContext::CL3AStatsCalculatorContext (const SmartPtr<CLContext> &context)
     : _context (context)
-    , _buf_index (0)
     , _width_factor (1)
     , _height_factor (1)
     , _factor_shift (0)
@@ -36,6 +35,7 @@ CL3AStatsCalculatorContext::CL3AStatsCalculatorContext (const SmartPtr<CLContext
 
 CL3AStatsCalculatorContext::~CL3AStatsCalculatorContext ()
 {
+    clean_up_data ();
 }
 
 void
@@ -74,17 +74,17 @@ CL3AStatsCalculatorContext::allocate_data (const VideoBufferInfo &buffer_info, u
         _stats_info.aligned_height * _height_factor * sizeof (CL3AStatsStruct);
 
     for (uint32_t i = 0; i < XCAM_CL_3A_STATS_BUFFER_COUNT; ++i) {
-        _stats_cl_buffer[i] = new CLBuffer (
+        SmartPtr<CLBuffer> buf_new = new CLBuffer (
             _context, _stats_mem_size);
 
-        XCAM_ASSERT (_stats_cl_buffer[i].ptr ());
+        XCAM_ASSERT (buf_new.ptr ());
         XCAM_FAIL_RETURN (
             WARNING,
-            _stats_cl_buffer[i]->is_valid (),
+            buf_new->is_valid (),
             false,
             "allocate cl stats buffer failed");
+        _stats_cl_buffers.push (buf_new);
     }
-    _buf_index = 0;
     _data_allocated = true;
 
     return true;
@@ -95,26 +95,34 @@ CL3AStatsCalculatorContext::pre_stop ()
 {
     if (_stats_pool.ptr ())
         _stats_pool->stop ();
+    _stats_cl_buffers.pause_pop ();
+    _stats_cl_buffers.wakeup ();
 }
-
 
 void
 CL3AStatsCalculatorContext::clean_up_data ()
 {
     _data_allocated = false;
 
-    for (uint32_t i = 0; i < XCAM_CL_3A_STATS_BUFFER_COUNT; ++i) {
-        _stats_cl_buffer[i].release ();
-    }
-    _buf_index = 0;
+    _stats_cl_buffers.pause_pop ();
+    _stats_cl_buffers.wakeup ();
+    _stats_cl_buffers.clear ();
 }
 
 SmartPtr<CLBuffer>
-CL3AStatsCalculatorContext::get_next_buffer ()
+CL3AStatsCalculatorContext::get_buffer ()
 {
-    SmartPtr<CLBuffer> buf = _stats_cl_buffer[_buf_index];
-    _buf_index = ((_buf_index + 1) % XCAM_CL_3A_STATS_BUFFER_COUNT);
+    SmartPtr<CLBuffer> buf = _stats_cl_buffers.pop ();
     return buf;
+}
+
+bool
+CL3AStatsCalculatorContext::release_buffer (SmartPtr<CLBuffer> &buf)
+{
+    XCAM_ASSERT (buf.ptr ());
+    if (!buf.ptr ())
+        return false;
+    return _stats_cl_buffers.push (buf);
 }
 
 void debug_print_3a_stats (XCam3AStats *stats_ptr)

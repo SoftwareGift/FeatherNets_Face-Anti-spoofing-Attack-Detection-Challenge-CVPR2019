@@ -50,7 +50,7 @@ public:
         CLArgument args[], uint32_t &arg_count,
         CLWorkSize &work_size);
 
-    virtual XCamReturn post_execute ();
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 
     virtual void pre_stop ();
     CLImageScalerMemoryLayout get_mem_layout () const {

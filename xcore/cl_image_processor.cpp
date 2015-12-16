@@ -178,10 +178,12 @@ CLImageProcessor::process_cl_buffer_queue ()
         ret = handler->execute (data, out_data);
         XCAM_FAIL_RETURN (
             WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
+            (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
             ret,
             "CLImageProcessor execute image handler failed");
         XCAM_ASSERT (out_data.ptr ());
+        if (ret == XCAM_RETURN_BYPASS)
+            return ret;
 
         // for loop in handler, find next handler
         ImageHandlerList::iterator i_handler = _handlers.begin ();

@@ -64,9 +64,9 @@ CLDemoImageKernel::prepare_arguments (
 
 
 XCamReturn
-CLDemoImageKernel::post_execute ()
+CLDemoImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
-    return CLImageKernel::post_execute ();
+    return CLImageKernel::post_execute (output);
 }
 
 SmartPtr<CLImageHandler>
