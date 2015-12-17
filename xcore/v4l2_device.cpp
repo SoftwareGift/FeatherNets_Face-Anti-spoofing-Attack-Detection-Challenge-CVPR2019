@@ -226,6 +226,8 @@ V4l2Device::set_format (struct v4l2_format &format)
     XCAM_FAIL_RETURN (ERROR, is_opened (), XCAM_RETURN_ERROR_FILE,
                       "Cannot set format to v4l2 device while it is closed.");
 
+    struct v4l2_format tmp_format = format;
+
     ret = pre_set_format (format);
     if (ret != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_WARNING ("device(%s) pre_set_format failed", XCAM_STR (_name));
@@ -242,6 +244,16 @@ V4l2Device::set_format (struct v4l2_format &format)
         }
 
         return XCAM_RETURN_ERROR_IOCTL;
+    }
+
+    if (tmp_format.fmt.pix.width != format.fmt.pix.width || tmp_format.fmt.pix.height != format.fmt.pix.height) {
+        XCAM_LOG_ERROR (
+            "device(%s) set v4l2 format failed, supported format: width:%d, height:%d",
+            XCAM_STR (_name),
+            format.fmt.pix.width,
+            format.fmt.pix.height);
+
+        return XCAM_RETURN_ERROR_PARAM;
     }
 
     while (_fps_n && _fps_d) {

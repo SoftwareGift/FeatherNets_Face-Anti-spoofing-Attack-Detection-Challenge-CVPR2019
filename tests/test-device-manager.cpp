@@ -64,6 +64,8 @@ public:
         : _file (NULL)
         , _save_file (false)
         , _interval (1)
+        , _frame_width (0)
+        , _frame_height (0)
         , _frame_count (0)
         , _frame_save (0)
         , _enable_display (false)
@@ -81,9 +83,19 @@ public:
     void enable_save_file (bool enable) {
         _save_file = enable;
     }
+
     void set_interval (uint32_t inteval) {
         _interval = inteval;
     }
+
+    void set_frame_width (uint32_t frame_width) {
+        _frame_width = frame_width;
+    }
+
+    void set_frame_height (uint32_t frame_height) {
+        _frame_height = frame_height;
+    }
+
     void set_frame_save (uint32_t frame_save) {
         _frame_save = frame_save;
     }
@@ -109,6 +121,8 @@ private:
     FILE      *_file;
     bool       _save_file;
     uint32_t   _interval;
+    uint32_t   _frame_width;
+    uint32_t   _frame_height;
     uint32_t   _frame_count;
     uint32_t   _frame_save;
     SmartPtr<DrmDisplay> _display;
@@ -214,7 +228,8 @@ MainDeviceManager::display_buf (const SmartPtr<VideoBuffer> &data)
     struct v4l2_rect rect = { 0, 0, (int)frame_info.width, (int)frame_info.height };
 
     if (!_display->is_render_inited ()) {
-        ret = _display->render_init (0, 0, 1920, 1080, frame_info.format, &rect);
+        ret = _display->render_init (0, 0, this->_frame_width, this->_frame_height,
+                                     frame_info.format, &rect);
         CHECK (ret, "display failed on render_init");
     }
     ret = _display->render_setup_frame_buffer (buf);
@@ -295,6 +310,8 @@ void print_help (const char *bin_name)
             "\t -p preview on local display\n"
             "\t --usb         specify node for usb camera device, enables capture path through USB camera \n"
             "\t               specify [/dev/video4, /dev/video5] depending on which node USB camera is attached\n"
+            "\t --resolution  specify the resolution of usb camera\n"
+            "\t               select from [1920x1080, 1280x720 ...], default is [1920x1080]\n"
             "\t -e display_mode    preview mode\n"
             "\t                select from [primary, overlay], default is [primary]\n"
             "\t --sync        set analyzer in sync mode\n"
@@ -367,6 +384,8 @@ int main (int argc, char *argv[])
     char*   usb_device_name = NULL;
     bool sync_mode = false;
     int frame_rate;
+    int frame_width = 1920;
+    int frame_height = 1080;
     char *path_to_fake = NULL;
 
     const char *short_opts = "sca:n:m:f:d:b:pi:e:r:h";
@@ -381,6 +400,7 @@ int main (int argc, char *argv[])
         {"enable-dpc", no_argument, NULL, 'D'},
         {"enable-wdr", no_argument, NULL, 'W'},
         {"usb", required_argument, NULL, 'U'},
+        {"resolution", required_argument, NULL, 'R'},
         {"sync", no_argument, NULL, 'Y'},
         {"capture", required_argument, NULL, 'C'},
         {"pipeline", required_argument, NULL, 'P'},
@@ -459,6 +479,9 @@ int main (int argc, char *argv[])
             have_usbcam = true;
             usb_device_name = strdup(optarg);
             XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", usb_device_name);
+            break;
+        case 'R':
+            sscanf (optarg, "%d%*c%d", &frame_width, &frame_height);
             break;
         case 'e': {
             if (!strcmp (optarg, "primary"))
@@ -575,6 +598,8 @@ int main (int argc, char *argv[])
         }
     }
 
+    device_manager->set_frame_width(frame_width);
+    device_manager->set_frame_height(frame_height);
     if (need_display) {
         device_manager->enable_display (true);
         device_manager->set_display_mode (display_mode);
@@ -649,7 +674,7 @@ int main (int argc, char *argv[])
     }
     ret = device->open ();
     CHECK (ret, "device(%s) open failed", device->get_device_name());
-    ret = device->set_format (1920, 1080, pixel_format, V4L2_FIELD_NONE, 1920 * 2);
+    ret = device->set_format (frame_width, frame_height, pixel_format, V4L2_FIELD_NONE, frame_width * 2);
     CHECK (ret, "device(%s) set format failed", device->get_device_name());
 
     ret = event_device->open ();
