@@ -98,7 +98,7 @@ X3aCiqTuningHandler::get_current_estimate_cct ()
 {
     AnalyzerHandler::HandlerLock lock(this);
 
-    if (! _awb_handler.ptr ()) {
+    if (_awb_handler.ptr ()) {
         return _awb_handler->get_current_estimate_cct ();
     }
     return 0;
