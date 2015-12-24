@@ -115,9 +115,9 @@ inline float2 dot_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 i
     float2 ee = mad(in1 + in2 + in3 + in4, -0.25f, value);
     ee =  fabs(ee) > ee_config.ee_threshold ? ee : 0.0f;
 
-    egain[0] = mad(ee, ee_config.ee_gain, out) / (out + 0.00001);
+    egain[0] = mad(ee, ee_config.ee_gain, out + 0.03) / (out + 0.03);
 
-    return out * egain[0] + (value - out) * ee_config.ee_gain * 0.25;
+    return out * egain[0] + (value - out) * ee_config.ee_gain * 0.5;
 }
 
 inline float2 dot_denoise_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 in4, __local float *table, float coff0, float2 *egain, CLEeConfig ee_config)
