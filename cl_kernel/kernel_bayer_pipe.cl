@@ -68,6 +68,8 @@ inline void grbg_slm_load (
     int2 pos = (int2)(x0, y0);
     float4 gr, r, b, gb;
 
+    y0 = y0 > 0 ? y0 : 0;
+
     gr = read_imagef (input, sampler, (int2)(x0, y0));
     r = read_imagef (input, sampler, (int2)(x0, y0 + input_height));
     b = read_imagef (input, sampler, (int2)(x0, y0 + input_height * 2));
