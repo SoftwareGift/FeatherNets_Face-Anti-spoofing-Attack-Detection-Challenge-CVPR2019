@@ -111,8 +111,6 @@ private:
     float analyze_motion (SmartPtr<DrmBoBuffer> &input, CLTnrAnalyzeDateType type, CLTnrMotionInfo* info);
     bool calculate_image_histogram (XCam3AStats *stats, CLTnrHistogramType type, float* histogram);
     bool calculate_image_histogram (SmartPtr<DrmBoBuffer> &input, CLTnrHistogramType type, float* histogram);
-    bool detect_motion (const float* vector_u, const float* vector_v, const uint32_t vector_len, int& delta, float& corr);
-    float calculate_correlation (const float* vector_u, const float* vector_v, const uint32_t vector_len);
     void print_image_histogram ();
 
     CLTnrType _type;
