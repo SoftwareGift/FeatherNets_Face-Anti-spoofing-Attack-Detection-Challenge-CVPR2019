@@ -852,6 +852,12 @@ gst_xcam_src_start (GstBaseSrc *src)
         XCAM_LOG_ERROR ("analyzer(%s) prepare handlers failed", analyzer->get_name ());
         return FALSE;
     }
+
+    if(xcamsrc->enable_wdr)
+    {
+        analyzer->set_ae_exposure_time_range (80 * 1110 * 1000 / 37125, 1120 * 1110 * 1000 / 37125);
+        analyzer->set_ae_max_analog_gain (3.98);
+    }
     device_manager->set_3a_analyzer (analyzer);
 
     if (smart_analyzer.ptr ()) {
