@@ -1,3 +1,24 @@
+2015/12/30: release libxcam version 0.4.0
+ * improve performance on OCL pipeline.
+    - design new formats and pipeline to save memory IO.
+    - improve bayer noise reduction with bilateral filter.
+    - support edge enhancement into bayer pipe.
+    - make gpu/cpu working together for 3a-statistics calculation.
+    - move tonemapping kernel from RBG to bayer format.
+ * improve WDR-tonemapping algorithm for quality.
+    - utilize an new adaptive local tone mapping algorithm.
+    - provide the mapping between 16-bit wide dynamic range images to
+      8-bit images to have “nice looking”.
+    - preserve more information on luminance values of the scene
+      especially for high contrast images.
+ * tonemapping parameters calculated to increase the contrast between
+   high light and low light.
+    - tone mapping regularization parameters are calculated according
+      to the distribution of brightness histogram.
+    - the local adaptive parameter are calculated by weighting the
+      neighbor pixels with a Gaussian blur filter.
+ * add bayer raw video input to simulate camera sensor.
+
 2015/10/19: release libxcam version 0.3.0
  * improved OCL pipeline on basic and advanced/extreme pipeline
     - add new bayer noise-reduction into demosaic
