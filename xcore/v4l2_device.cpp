@@ -509,11 +509,15 @@ V4l2Device::allocate_buffer (
     case V4L2_MEMORY_MMAP:
     {
         void *pointer;
+        int map_flags = MAP_SHARED;
+#ifdef NEED_MAP_32BIT
+        map_flags |= MAP_32BIT;
+#endif
         if (io_control (VIDIOC_QUERYBUF, &v4l2_buf) < 0) {
             XCAM_LOG_WARNING("device(%s) query MMAP buf(%d) failed", XCAM_STR(_name), index);
             return XCAM_RETURN_ERROR_MEM;
         }
-        pointer = mmap (0, v4l2_buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, v4l2_buf.m.offset);
+        pointer = mmap (0, v4l2_buf.length, PROT_READ | PROT_WRITE, map_flags, _fd, v4l2_buf.m.offset);
         if (pointer == MAP_FAILED) {
             XCAM_LOG_WARNING("device(%s) mmap buf(%d) failed", XCAM_STR(_name), index);
             return XCAM_RETURN_ERROR_MEM;
