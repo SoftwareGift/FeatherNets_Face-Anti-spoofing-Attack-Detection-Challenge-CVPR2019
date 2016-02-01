@@ -26,18 +26,41 @@
 namespace XCam {
 
 FakePollThread::FakePollThread (const char *raw_path)
+    : _raw_path (NULL)
+    , _raw (NULL)
 {
-    if (raw_path) {
-        _raw = fopen (raw_path, "rb");
-        XCAM_LOG_INFO ("FakePollThread created (%s)", raw_path);
-    }
-    XCAM_ASSERT (_raw);
+    XCAM_ASSERT (raw_path);
+
+    if (raw_path)
+        _raw_path = strdup (raw_path);
 }
 
 FakePollThread::~FakePollThread ()
 {
+    if (_raw_path)
+        xcam_free (_raw_path);
+
     if (_raw)
         fclose (_raw);
+}
+
+XCamReturn
+FakePollThread::start()
+{
+    XCAM_FAIL_RETURN(
+        ERROR,
+        _raw_path,
+        XCAM_RETURN_ERROR_FILE,
+        "FakePollThread failed due to raw path NULL");
+
+    _raw = fopen (_raw_path, "rb");
+    XCAM_FAIL_RETURN(
+        ERROR,
+        _raw,
+        XCAM_RETURN_ERROR_FILE,
+        "FakePollThread failed to open file:%s", XCAM_STR (_raw_path));
+
+    return PollThread::start ();
 }
 
 XCamReturn

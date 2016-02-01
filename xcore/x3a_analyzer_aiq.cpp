@@ -32,6 +32,9 @@ public:
     ~CpfReader();
     bool read (ia_binary_data &binary);
 private:
+    XCAM_DEAD_COPY (CpfReader);
+
+private:
     XCamCpfBlob *_aiq_cpf;
     char *_name;
 };

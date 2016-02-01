@@ -68,7 +68,7 @@ public:
     bool set_poll_callback (PollCallback *callback);
     bool set_stats_callback (StatsCallback *callback);
 
-    XCamReturn start();
+    virtual XCamReturn start();
     virtual XCamReturn stop ();
 
 protected:

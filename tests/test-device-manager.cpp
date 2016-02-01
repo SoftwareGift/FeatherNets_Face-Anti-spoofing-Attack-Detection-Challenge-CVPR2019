@@ -410,6 +410,7 @@ int main (int argc, char *argv[])
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, NULL)) != -1) {
         switch (opt) {
         case 'a': {
+            XCAM_ASSERT (optarg);
             if (!strcmp (optarg, "dynamic"))
                 analyzer_type = AnalyzerTypeDynamic;
             else if (!strcmp (optarg, "simple"))
@@ -428,6 +429,7 @@ int main (int argc, char *argv[])
         }
 
         case 'm': {
+            XCAM_ASSERT (optarg);
             if (!strcmp (optarg, "dma"))
                 v4l2_mem_type = V4L2_MEMORY_DMABUF;
             else if (!strcmp (optarg, "mmap"))
@@ -456,6 +458,7 @@ int main (int argc, char *argv[])
                                         (unsigned)optarg[3]);
             break;
         case 'd':
+            XCAM_ASSERT (optarg);
             if (!strcmp (optarg, "still"))
                 capture_mode = V4L2_CAPTURE_MODE_STILL;
             else if (!strcmp (optarg, "video"))
@@ -481,9 +484,11 @@ int main (int argc, char *argv[])
             XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", usb_device_name);
             break;
         case 'R':
+            XCAM_ASSERT (optarg);
             sscanf (optarg, "%d%*c%d", &frame_width, &frame_height);
             break;
         case 'e': {
+            XCAM_ASSERT (optarg);
             if (!strcmp (optarg, "primary"))
                 display_mode = DRM_DISPLAY_MODE_PRIMARY;
             else if (!strcmp (optarg, "overlay"))
@@ -502,6 +507,7 @@ int main (int argc, char *argv[])
             break;
 #if HAVE_LIBCL
         case 'H': {
+            XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "rgb"))
                 hdr_type = CL_HDR_TYPE_RGB;
             else if (!strcasecmp (optarg, "lab"))
@@ -534,6 +540,7 @@ int main (int argc, char *argv[])
             break;
         }
         case 'T': {
+            XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "yuv"))
                 tnr_type = CL_TNR_TYPE_YUV;
             else if (!strcasecmp (optarg, "rgb"))
@@ -547,6 +554,7 @@ int main (int argc, char *argv[])
             break;
         }
         case 'L': {
+            XCAM_ASSERT (optarg);
             if (atoi(optarg) < 0 || atoi(optarg) > 255) {
                 print_help (bin_name);
                 return -1;
@@ -563,6 +571,7 @@ int main (int argc, char *argv[])
             break;
         }
         case 'P': {
+            XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "basic"))
                 pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
             else if (!strcasecmp (optarg, "advance"))
@@ -576,6 +585,7 @@ int main (int argc, char *argv[])
             break;
         }
         case 'C': {
+            XCAM_ASSERT (optarg);
             if (!strcmp (optarg, "bayer"))
                 capture_stage = CL3aImageProcessor::BasicbayerStage;
             break;

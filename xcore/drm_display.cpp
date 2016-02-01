@@ -71,7 +71,7 @@ DrmDisplay::DrmDisplay(const char* module)
     //_fd = drmOpenRender (128);
     _fd = drmOpen (_module, DEFAULT_DRM_BUSID);
     if (_fd < 0)
-        XCAM_LOG_ERROR("failed to open drm device %s", _module);
+        XCAM_LOG_ERROR("failed to open drm device %s", XCAM_STR (_module));
 
     _buf_manager = drm_intel_bufmgr_gem_init (_fd, DEFAULT_DRM_BATCH_SIZE);
     drm_intel_bufmgr_gem_enable_reuse (_buf_manager);

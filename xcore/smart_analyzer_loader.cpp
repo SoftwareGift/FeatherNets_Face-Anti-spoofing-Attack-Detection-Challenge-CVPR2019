@@ -30,6 +30,7 @@ namespace XCam {
 
 SmartAnalyzerLoader::SmartAnalyzerLoader (const char *lib_path, const char *name, const char *symbol)
     : AnalyzerLoader (lib_path, symbol)
+    , _name (NULL)
 {
     if (name)
         _name = strdup (name);

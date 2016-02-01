@@ -87,20 +87,16 @@ public:
     int64_t get_current_exposure_time ();
     uint32_t get_current_estimate_cct ();
 
-protected:
-
 private:
     XCAM_DEAD_COPY (X3aCiqTuningHandler);
 
 protected:
-    const void* _tuning_data;
-
-public:
+    const void           *_tuning_data;
 
 private:
-    char *_name;
-    SmartPtr<AeHandler> _ae_handler;
-    SmartPtr<AwbHandler> _awb_handler;
+    char                 *_name;
+    SmartPtr<AeHandler>   _ae_handler;
+    SmartPtr<AwbHandler>  _awb_handler;
 };
 
 };

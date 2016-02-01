@@ -78,7 +78,7 @@ read_cpf_file (const char *cpf_file, uint8_t **buf)
         goto read_error;
 
     *buf = (uint8_t*) xcam_new0 (size);
-    XCAM_ASSERT (buf);
+    XCAM_ASSERT (*buf);
     if (fread (*buf, 1, size, fp) != size)
         goto read_error;
 

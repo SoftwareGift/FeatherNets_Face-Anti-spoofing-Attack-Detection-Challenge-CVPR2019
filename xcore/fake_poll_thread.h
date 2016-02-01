@@ -35,6 +35,7 @@ public:
     explicit FakePollThread (const char *raw_path);
     ~FakePollThread ();
 
+    virtual XCamReturn start();
     virtual XCamReturn stop ();
 
 protected:
@@ -49,6 +50,8 @@ private:
     XCamReturn init_buffer_pool ();
     XCamReturn read_buf (SmartPtr<DrmBoBuffer> &buf);
 
+private:
+    char                        *_raw_path;
     FILE                        *_raw;
 #if HAVE_LIBDRM
     SmartPtr<DrmBoBufferPool>    _buf_pool;

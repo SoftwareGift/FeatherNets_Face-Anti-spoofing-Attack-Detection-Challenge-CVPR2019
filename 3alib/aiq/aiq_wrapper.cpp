@@ -162,14 +162,15 @@ XCam3AAiqContext::update_brightness_result(XCamCommonParam *params)
         return;
     _brightness_level = params->brightness;
 
-    XCam3aResultBrightness *xcam3a_brightness_result = xcam_malloc0_type (XCam3aResultBrightness);
-    xcam3a_brightness_result->head.type =   XCAM_3A_RESULT_BRIGHTNESS;
-    xcam3a_brightness_result->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
-    xcam3a_brightness_result->head.version = XCAM_VERSION;
-    xcam3a_brightness_result->brightness_level = _brightness_level;
+    XCam3aResultBrightness xcam3a_brightness_result;
+    xcam_mem_clear (xcam3a_brightness_result);
+    xcam3a_brightness_result.head.type =   XCAM_3A_RESULT_BRIGHTNESS;
+    xcam3a_brightness_result.head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    xcam3a_brightness_result.head.version = XCAM_VERSION;
+    xcam3a_brightness_result.brightness_level = _brightness_level;
 
     SmartPtr<X3aResult> brightness_result =
-        X3aResultFactory::instance ()->create_3a_result ((XCam3aResultHead*)xcam3a_brightness_result);
+        X3aResultFactory::instance ()->create_3a_result ((XCam3aResultHead*)&xcam3a_brightness_result);
     _results.push_back(brightness_result);
 }
 

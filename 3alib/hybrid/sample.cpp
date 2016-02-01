@@ -154,6 +154,7 @@ xcam_combine_analyze_results (XCam3AContext *context, XCam3aResultHead *results[
     *res_count = result_count;
 
     XCam3aResultExposure *exposure = xcam_malloc0_type (XCam3aResultExposure);
+    XCAM_ASSERT (exposure);
     exposure->head.type = XCAM_3A_RESULT_EXPOSURE;
     exposure->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
     exposure->head.version = XCAM_VERSION;
@@ -162,6 +163,7 @@ xcam_combine_analyze_results (XCam3AContext *context, XCam3aResultHead *results[
     results[0] = (XCam3aResultHead *)exposure;
 
     XCam3aResultWhiteBalance *wb = xcam_malloc0_type (XCam3aResultWhiteBalance);
+    XCAM_ASSERT (wb);
     wb->head.type = XCAM_3A_RESULT_WHITE_BALANCE;
     wb->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
     wb->head.version = XCAM_VERSION;

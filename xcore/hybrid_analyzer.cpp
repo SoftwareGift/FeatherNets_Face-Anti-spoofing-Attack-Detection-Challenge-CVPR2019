@@ -64,6 +64,8 @@ HybridAnalyzer::internal_deinit ()
 XCamReturn
 HybridAnalyzer::setup_stats_pool (const XCam3AStats *stats)
 {
+    XCAM_ASSERT (stats);
+
     XCam3AStatsInfo stats_info = stats->info;
     struct atomisp_grid_info grid_info;
     grid_info.enable = 1;

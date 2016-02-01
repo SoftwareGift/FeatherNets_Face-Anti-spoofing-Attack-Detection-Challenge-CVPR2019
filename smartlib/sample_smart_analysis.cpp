@@ -153,7 +153,11 @@ private:
 };
 
 SampleHandler::SampleHandler (const char *name)
-    : _callback (NULL)
+    : _name (NULL)
+    , _width (0)
+    , _height (0)
+    , _framerate (30.0)
+    , _callback (NULL)
 {
     if (name)
         _name = strdup (name);
@@ -165,6 +169,8 @@ SampleHandler::SampleHandler (const char *name)
 
 SampleHandler::~SampleHandler ()
 {
+    if (_name)
+        xcam_free (_name);
 }
 
 XCamReturn
@@ -218,14 +224,15 @@ SampleHandler::analyze (XCamVideoBuffer *buffer)
     _frameSaver->save_frame (buffer);
 
     X3aResultList results;
-    XCam3aResultBrightness *xcam3a_brightness_result = xcam_malloc0_type (XCam3aResultBrightness);
-    xcam3a_brightness_result->head.type =   XCAM_3A_RESULT_BRIGHTNESS;
-    xcam3a_brightness_result->head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
-    xcam3a_brightness_result->head.version = XCAM_VERSION;
-    xcam3a_brightness_result->brightness_level = 9.9;
+    XCam3aResultBrightness xcam3a_brightness_result;
+    xcam_mem_clear (xcam3a_brightness_result);
+    xcam3a_brightness_result.head.type =   XCAM_3A_RESULT_BRIGHTNESS;
+    xcam3a_brightness_result.head.process_type = XCAM_IMAGE_PROCESS_ALWAYS;
+    xcam3a_brightness_result.head.version = XCAM_VERSION;
+    xcam3a_brightness_result.brightness_level = 9.9;
 
     SmartPtr<X3aResult> brightness_result =
-        X3aResultFactory::instance ()->create_3a_result ((XCam3aResultHead*)xcam3a_brightness_result);
+        X3aResultFactory::instance ()->create_3a_result ((XCam3aResultHead*)&xcam3a_brightness_result);
     results.push_back(brightness_result);
 
     if (_callback) {

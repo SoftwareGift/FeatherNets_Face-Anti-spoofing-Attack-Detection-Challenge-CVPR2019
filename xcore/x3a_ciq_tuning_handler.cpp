@@ -27,6 +27,7 @@ namespace XCam {
 
 X3aCiqTuningHandler::X3aCiqTuningHandler (const char *name)
     : _tuning_data (NULL)
+    , _name (NULL)
 {
     if (name)
         _name = strdup (name);
