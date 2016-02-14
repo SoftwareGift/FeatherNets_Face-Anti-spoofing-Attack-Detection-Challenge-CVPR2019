@@ -23,7 +23,8 @@
 namespace XCam {
 
 ScaledVideoBuffer::ScaledVideoBuffer (const VideoBufferInfo &info, const XCamVideoBufferInfo &scaled_info, const SmartPtr<DrmBoData> &data)
-    : DrmBoBuffer (info, data)
+    :  BufferProxy (info, data)
+    , DrmBoBuffer (info, data)
     , _video_info (scaled_info)
 {
 }

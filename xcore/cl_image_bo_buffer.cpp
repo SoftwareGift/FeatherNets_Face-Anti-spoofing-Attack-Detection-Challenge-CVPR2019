@@ -20,6 +20,8 @@
 
 #include "cl_image_bo_buffer.h"
 #include "cl_memory.h"
+#include "swapped_buffer.h"
+
 
 namespace XCam {
 
@@ -39,7 +41,8 @@ CLImageBoData::get_fd ()
 }
 
 CLImageBoBuffer::CLImageBoBuffer (const VideoBufferInfo &info, const SmartPtr<CLImageBoData> &data)
-    : DrmBoBuffer (info, data)
+    : BufferProxy (info, data)
+    , DrmBoBuffer (info, data)
 {
 }
 
@@ -55,6 +58,23 @@ CLImageBoBuffer::get_cl_image ()
         NULL,
         "CLImageBoBuffer get_buffer_data failed with NULL");
     return image->get_image ();
+}
+
+SmartPtr<SwappedBuffer>
+CLImageBoBuffer::create_new_swap_buffer (
+    const VideoBufferInfo &info, SmartPtr<BufferData> &data)
+{
+    XCAM_ASSERT (get_buffer_data ().ptr () == data.ptr ());
+
+    SmartPtr<CLImageBoData> bo = data.dynamic_cast_ptr<CLImageBoData> ();
+
+    XCAM_FAIL_RETURN(
+        WARNING,
+        bo.ptr(),
+        NULL,
+        "CLImageBoBuffer create_new_swap_buffer failed with NULL buffer data");
+
+    return new CLImageBoBuffer (info, bo);
 }
 
 CLBoBufferPool::CLBoBufferPool (SmartPtr<DrmDisplay> &display, SmartPtr<CLContext> &context)
@@ -79,10 +99,17 @@ CLBoBufferPool::create_image_bo (const VideoBufferInfo &info)
     CLImageDesc desc;
     SmartPtr<CLImageBoData> data;
     SmartPtr<CLImage> image;
+    uint32_t swap_flags = get_swap_flags ();
+    uint32_t extra_array_size = 0;
+    if (swap_flags & (uint32_t)(SwappedBuffer::SwapY))
+        ++extra_array_size;
+    if (swap_flags & (uint32_t)(SwappedBuffer::SwapUV))
+        ++extra_array_size;
+
     if (info.components == 1)
         image = new CLImage2D (_context, info, CL_MEM_READ_WRITE);
     else
-        image = new CLImage2DArray (_context, info, CL_MEM_READ_WRITE);
+        image = new CLImage2DArray (_context, info, CL_MEM_READ_WRITE, extra_array_size);
     XCAM_FAIL_RETURN (
         WARNING,
         image.ptr () && image->get_mem_id (),
@@ -119,6 +146,7 @@ CLBoBufferPool::fixate_video_info (VideoBufferInfo &info)
     bool need_reset_info = false;
     uint32_t i = 0;
     SmartPtr<CLImage> image;
+    uint32_t swap_flags = get_swap_flags ();
     SmartPtr<CLImageBoData> image_data = create_image_bo (info);
     XCAM_FAIL_RETURN (
         WARNING,
@@ -153,6 +181,17 @@ CLBoBufferPool::fixate_video_info (VideoBufferInfo &info)
         }
     }
 
+    if (swap_flags && desc.array_size >= 2) {
+        if (swap_flags & (uint32_t)(SwappedBuffer::SwapY)) {
+            _swap_offsets[SwappedBuffer::SwapYOffset0] = info.offsets[0];
+            _swap_offsets[SwappedBuffer::SwapYOffset1] = desc.slice_pitch * 2;
+        }
+        if (swap_flags & (uint32_t)(SwappedBuffer::SwapUV)) {
+            _swap_offsets[SwappedBuffer::SwapUVOffset0] = info.offsets[1];
+            _swap_offsets[SwappedBuffer::SwapUVOffset1] = desc.slice_pitch * (desc.array_size - 1);
+        }
+    }
+
     add_data_unsafe (image_data);
 
     return true;
@@ -172,8 +211,10 @@ CLBoBufferPool::create_buffer_from_data (SmartPtr<BufferData> &data)
     SmartPtr<CLImageBoData> image_data = data.dynamic_cast_ptr<CLImageBoData> ();
     XCAM_ASSERT (image_data.ptr ());
 
-    return new CLImageBoBuffer (info, image_data);
+    SmartPtr<CLImageBoBuffer> out_buf = new CLImageBoBuffer (info, image_data);
+    XCAM_ASSERT (out_buf.ptr ());
+    out_buf->set_swap_info (_swap_flags, _swap_offsets);
+    return out_buf;
 }
-
 
 };

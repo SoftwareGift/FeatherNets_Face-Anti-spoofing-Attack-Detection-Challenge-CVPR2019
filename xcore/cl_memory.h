@@ -232,7 +232,8 @@ public:
     explicit CLImage2DArray (
         SmartPtr<CLContext> &context,
         const VideoBufferInfo &video_info,
-        cl_mem_flags  flags = CL_MEM_READ_WRITE);
+        cl_mem_flags  flags = CL_MEM_READ_WRITE,
+        uint32_t extra_array_size = 0);
 
     ~CLImage2DArray () {}
 

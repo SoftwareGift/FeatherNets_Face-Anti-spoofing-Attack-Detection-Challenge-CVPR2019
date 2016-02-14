@@ -670,7 +670,8 @@ bool CLImage2D::init_image_2d (
 CLImage2DArray::CLImage2DArray (
     SmartPtr<CLContext> &context,
     const VideoBufferInfo &video_info,
-    cl_mem_flags  flags)
+    cl_mem_flags  flags,
+    uint32_t extra_array_size)
     : CLImage (context)
 {
     CLImageDesc cl_desc;
@@ -686,6 +687,8 @@ CLImage2DArray::CLImage2DArray (
     //special process for BYT platform for slice-pitch
     //if (video_info.format == V4L2_PIX_FMT_NV12)
     cl_desc.height = XCAM_ALIGN_UP (cl_desc.height, 16);
+
+    cl_desc.array_size += extra_array_size;
 
     init_image_2d_array (context, cl_desc, flags);
 }

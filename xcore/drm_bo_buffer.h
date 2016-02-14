@@ -26,6 +26,7 @@
 #include "xcam_mutex.h"
 #include "buffer_pool.h"
 #include "drm_display.h"
+#include "swapped_buffer.h"
 
 namespace XCam {
 
@@ -53,6 +54,7 @@ protected:
 
 private:
     XCAM_DEAD_COPY (DrmBoData);
+
 private:
     SmartPtr<DrmDisplay>       _display;
     drm_intel_bo              *_bo;
@@ -61,10 +63,12 @@ private:
 };
 
 class DrmBoBuffer
-    : public BufferProxy
+    : public virtual BufferProxy
+    , public SwappedBuffer
 {
     friend class DrmBoBufferPool;
     friend class DrmDisplay;
+
 public:
     virtual ~DrmBoBuffer () {}
     drm_intel_bo *get_bo ();
@@ -73,6 +77,11 @@ public:
 
 protected:
     DrmBoBuffer (const VideoBufferInfo &info, const SmartPtr<DrmBoData> &data);
+
+    //derived from SwappedBuffer
+    virtual SmartPtr<SwappedBuffer> create_new_swap_buffer (
+        const VideoBufferInfo &info, SmartPtr<BufferData> &data);
+
     XCAM_DEAD_COPY (DrmBoBuffer);
 };
 
@@ -84,9 +93,16 @@ class DrmBoBufferPool
 public:
     explicit DrmBoBufferPool (SmartPtr<DrmDisplay> &display);
     ~DrmBoBufferPool ();
+    void set_swap_flags (uint32_t flags) {
+        _swap_flags = flags;
+    }
+    uint32_t get_swap_flags () const {
+        return _swap_flags;
+    }
 
 protected:
     // derived from BufferPool
+    virtual bool fixate_video_info (VideoBufferInfo &info);
     virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info);
     virtual SmartPtr<BufferProxy> create_buffer_from_data (SmartPtr<BufferData> &data);
 
@@ -96,6 +112,10 @@ protected:
 
 private:
     XCAM_DEAD_COPY (DrmBoBufferPool);
+
+protected:
+    uint32_t                 _swap_flags;
+    uint32_t                 _swap_offsets[XCAM_VIDEO_MAX_COMPONENTS * 2];
 
 private:
     SmartPtr<DrmDisplay>     _display;

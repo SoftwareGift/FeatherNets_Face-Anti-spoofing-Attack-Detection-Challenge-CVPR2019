@@ -87,8 +87,8 @@ class CLImageHandler
 public:
     typedef std::list<SmartPtr<CLImageKernel>> KernelList;
     enum BufferPoolType {
-        CLBoPoolType  = 0,
-        DrmBoPoolType,
+        CLBoPoolType  = 0x0001,
+        DrmBoPoolType = 0x0002,
     };
 
 public:
@@ -111,6 +111,10 @@ public:
     void set_pool_size (uint32_t size) {
         XCAM_ASSERT (size);
         _buf_pool_size = size;
+    }
+
+    void enable_buf_pool_swap_flags (uint32_t flags) {
+        _buf_swap_flags = flags;
     }
 
     bool add_kernel (SmartPtr<CLImageKernel> &kernel);
@@ -141,11 +145,33 @@ private:
     SmartPtr<BufferPool>       _buf_pool;
     BufferPoolType             _buf_pool_type;
     uint32_t                   _buf_pool_size;
+    uint32_t                   _buf_swap_flags;
     X3aResultList              _3a_results;
     int64_t                    _result_timestamp;
 
     XCAM_OBJ_PROFILING_DEFINES;
 };
+
+// never allocate buffer, only swap ouput from input
+class CLCloneImageHandler
+    : public CLImageHandler
+{
+public:
+    explicit CLCloneImageHandler (const char *name);
+    void set_clone_flags (uint32_t flags) {
+        _clone_flags = flags;
+    }
+
+protected:
+    //derived from CLImageHandler
+    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+
+private:
+    XCAM_DEAD_COPY (CLCloneImageHandler);
+
+    uint32_t                   _clone_flags;
+};
+
 
 };
 

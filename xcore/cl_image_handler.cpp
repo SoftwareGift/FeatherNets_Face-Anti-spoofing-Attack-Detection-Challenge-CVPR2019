@@ -22,6 +22,7 @@
 #include "drm_display.h"
 #include "cl_device.h"
 #include "cl_image_bo_buffer.h"
+#include "swapped_buffer.h"
 
 namespace XCam {
 
@@ -142,6 +143,7 @@ CLImageHandler::CLImageHandler (const char *name)
     : _name (NULL)
     , _buf_pool_type (CLImageHandler::CLBoPoolType)
     , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
+    , _buf_swap_flags (SwappedBuffer::SwapNone)
     , _result_timestamp (XCam::InvalidTimestamp)
 {
     XCAM_ASSERT (name);
@@ -190,7 +192,7 @@ CLImageHandler::is_kernels_enabled () const
 XCamReturn
 CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
 {
-    SmartPtr<BufferPool> buffer_pool;
+    SmartPtr<DrmBoBufferPool> buffer_pool;
     SmartPtr<DrmDisplay> display;
 
     if (_buf_pool.ptr ())
@@ -219,6 +221,7 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
 
     XCAM_ASSERT (buffer_pool.ptr ());
     buffer_pool->set_video_info (video_info);
+    buffer_pool->set_swap_flags (_buf_swap_flags);
 
     XCAM_FAIL_RETURN(
         WARNING,
@@ -398,6 +401,37 @@ CLImageHandler::get_3a_result (XCam3aResultType type)
         }
     }
     return res;
+}
+
+CLCloneImageHandler::CLCloneImageHandler (const char *name)
+    : CLImageHandler (name)
+    , _clone_flags (SwappedBuffer::SwapNone)
+{
+}
+
+XCamReturn
+CLCloneImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_FAIL_RETURN (
+        ERROR,
+        _clone_flags != (uint32_t)(SwappedBuffer::SwapNone),
+        XCAM_RETURN_ERROR_PARAM,
+        "CLCloneImageHandler(%s) clone output buffer failed since clone_flags none",
+        XCAM_STR (get_name ()));
+
+    XCAM_ASSERT (input.ptr ());
+    SmartPtr<SwappedBuffer> swap_input = input;
+    SmartPtr<SwappedBuffer> swap_output = swap_input->swap_clone (swap_input, _clone_flags);
+    SmartPtr<DrmBoBuffer> swapped_buf = swap_output.dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        swapped_buf.ptr (),
+        XCAM_RETURN_ERROR_UNKNOWN,
+        "CLCloneImageHandler(%s) clone output buffer failed(clone_flags:%d)",
+        XCAM_STR (get_name ()), _clone_flags);
+
+    output = swapped_buf;
+    return XCAM_RETURN_NO_ERROR;
 }
 
 };

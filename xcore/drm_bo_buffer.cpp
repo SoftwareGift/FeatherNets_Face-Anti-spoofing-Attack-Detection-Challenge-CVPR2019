@@ -106,6 +106,7 @@ DrmBoData::get_fd ()
 
 DrmBoBuffer::DrmBoBuffer (const VideoBufferInfo &info, const SmartPtr<DrmBoData> &data)
     : BufferProxy (info, data)
+    , SwappedBuffer (info, data)
 {
     XCAM_ASSERT (data.ptr ());
 }
@@ -137,9 +138,28 @@ DrmBoBuffer::find_3a_stats ()
     return NULL;
 }
 
-DrmBoBufferPool::DrmBoBufferPool (SmartPtr<DrmDisplay> &display)
-    : _display (display)
+SmartPtr<SwappedBuffer>
+DrmBoBuffer::create_new_swap_buffer (
+    const VideoBufferInfo &info, SmartPtr<BufferData> &data)
 {
+    XCAM_ASSERT (get_buffer_data ().ptr () == data.ptr ());
+
+    SmartPtr<DrmBoData> bo = data.dynamic_cast_ptr<DrmBoData> ();
+
+    XCAM_FAIL_RETURN(
+        WARNING,
+        bo.ptr(),
+        NULL,
+        "DrmBoBuffer create_new_swap_buffer failed with NULL buffer data");
+
+    return new DrmBoBuffer (info, bo);
+}
+
+DrmBoBufferPool::DrmBoBufferPool (SmartPtr<DrmDisplay> &display)
+    : _swap_flags (SwappedBuffer::SwapNone)
+    , _display (display)
+{
+    xcam_mem_clear (_swap_offsets);
     XCAM_ASSERT (display.ptr ());
     XCAM_LOG_DEBUG ("DrmBoBufferPool constructed");
 }
@@ -148,6 +168,31 @@ DrmBoBufferPool::~DrmBoBufferPool ()
 {
     _display.release ();
     XCAM_LOG_DEBUG ("DrmBoBufferPool destructed");
+}
+
+bool
+DrmBoBufferPool::fixate_video_info (VideoBufferInfo &info)
+{
+    if (info.format != V4L2_PIX_FMT_NV12)
+        return true;
+
+    VideoBufferInfo out_info;
+    out_info.init (info.format, info.width, info.height, info.aligned_width, info.aligned_height);
+
+    if (_swap_flags & (uint32_t)(SwappedBuffer::SwapY)) {
+        _swap_offsets[SwappedBuffer::SwapYOffset0] = out_info.offsets[0];
+        _swap_offsets[SwappedBuffer::SwapYOffset1] = out_info.size;
+        out_info.size += out_info.strides[0] * out_info.aligned_height;
+    }
+
+    if (_swap_flags & (uint32_t)(SwappedBuffer::SwapUV)) {
+        _swap_offsets[SwappedBuffer::SwapUVOffset0] = out_info.offsets[1];
+        _swap_offsets[SwappedBuffer::SwapUVOffset1] = out_info.size;
+        out_info.size += out_info.strides[1] * (out_info.aligned_height + 1) / 2;
+    }
+
+    info = out_info;
+    return true;
 }
 
 SmartPtr<BufferData>
@@ -164,7 +209,10 @@ DrmBoBufferPool::create_buffer_from_data (SmartPtr<BufferData> &data)
     SmartPtr<DrmBoData> bo_data = data.dynamic_cast_ptr<DrmBoData> ();
     XCAM_ASSERT (bo_data.ptr ());
 
-    return new DrmBoBuffer (info, bo_data);
+    SmartPtr<DrmBoBuffer> out_buf = new DrmBoBuffer (info, bo_data);
+    XCAM_ASSERT (out_buf.ptr ());
+    out_buf->set_swap_info (_swap_flags, _swap_offsets);
+    return out_buf;
 }
 
 };

@@ -60,6 +60,10 @@ public:
 
 protected:
     CLImageBoBuffer (const VideoBufferInfo &info, const SmartPtr<CLImageBoData> &data);
+
+    //derived from SwappedBuffer
+    virtual SmartPtr<SwappedBuffer> create_new_swap_buffer (
+        const VideoBufferInfo &info, SmartPtr<BufferData> &data);
 };
 
 class CLBoBufferPool
