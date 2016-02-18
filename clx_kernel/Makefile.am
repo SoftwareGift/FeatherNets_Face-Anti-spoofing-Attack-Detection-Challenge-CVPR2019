@@ -28,6 +28,7 @@ clx_kernel_sources = \
 	kernel_newtonemapping.clx        \
 	kernel_biyuv.clx              \
 	kernel_image_scaler.clx       \
+	kernel_retinex.clx       \
 	$(NULL)
 
 cl_quote_sh = \

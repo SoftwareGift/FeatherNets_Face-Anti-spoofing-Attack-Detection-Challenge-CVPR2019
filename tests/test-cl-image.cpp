@@ -38,6 +38,7 @@
 #include "cl_bayer_pipe_handler.h"
 #include "cl_yuv_pipe_handler.h"
 #include "cl_tonemapping_handler.h"
+#include "cl_retinex_handler.h"
 
 using namespace XCam;
 
@@ -58,7 +59,8 @@ enum TestHandlerType {
     TestHandlerEe,
     TestHandlerBayerPipe,
     TestHandlerYuvPipe,
-    TestHandlerTonemapping
+    TestHandlerTonemapping,
+    TestHandlerRetinex
 };
 
 struct TestFileHandle {
@@ -142,7 +144,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
@@ -250,6 +252,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerYuvPipe;
             else if (!strcasecmp (optarg, "tonemapping"))
                 handler_type = TestHandlerTonemapping;
+            else if (!strcasecmp (optarg, "retinex"))
+                handler_type = TestHandlerRetinex;
             else
                 print_help (bin_name);
             break;
@@ -439,6 +443,13 @@ int main (int argc, char *argv[])
         XCAM_ASSERT (tonemapping_pipe.ptr ());
         break;
     }
+    case TestHandlerRetinex: {
+        image_handler = create_cl_retinex_image_handler (context);
+        SmartPtr<CLRetinexImageHandler> retinex = image_handler.dynamic_cast_ptr<CLRetinexImageHandler> ();
+        XCAM_ASSERT (retinex.ptr ());
+        break;
+    }
+
     default:
         XCAM_LOG_ERROR ("unsupported image handler type:%d", handler_type);
         return -1;
