@@ -28,6 +28,7 @@
 #endif
 #include "cl_tnr_handler.h"
 #include "cl_tonemapping_handler.h"
+#include "cl_newtonemapping_handler.h"
 #include "cl_image_scaler.h"
 #include "cl_bayer_basic_handler.h"
 
@@ -47,6 +48,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _tnr_mode (0)
     , _enable_gamma (true)
     , _enable_tonemapping (false)
+    , _enable_newtonemapping (false)
     , _enable_macc (true)
     , _enable_dpc (false)
     , _snr_mode (0)
@@ -326,6 +328,18 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create tonemapping handler failed");
     _tonemapping->set_kernels_enable (_enable_tonemapping);
+    //_tonemapping->set_kernels_enable (false);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
+    image_handler = create_cl_newtonemapping_image_handler (context);
+    _newtonemapping = image_handler.dynamic_cast_ptr<CLNewTonemappingImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _newtonemapping.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create tonemapping handler failed");
+    _newtonemapping->set_kernels_enable (_enable_newtonemapping);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
@@ -483,6 +497,20 @@ CL3aImageProcessor::set_tonemapping (bool enable)
 
     return true;
 }
+
+bool
+CL3aImageProcessor::set_newtonemapping (bool enable)
+{
+    _enable_newtonemapping = enable;
+
+    STREAM_LOCK;
+
+    if (_newtonemapping.ptr ())
+        return _newtonemapping->set_kernels_enable (enable);
+
+    return true;
+}
+
 
 bool
 CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)

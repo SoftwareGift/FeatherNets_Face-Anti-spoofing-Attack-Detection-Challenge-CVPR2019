@@ -147,6 +147,7 @@ xcam_sources +=              \
 	cl_yuv_pipe_handler.cpp    \
 	cl_rgb_pipe_handler.cpp       \
 	cl_tonemapping_handler.cpp	\
+	cl_newtonemapping_handler.cpp   \
 	cl_biyuv_handler.cpp	 \
 	cl_image_scaler.cpp   \
 	$(NULL)
