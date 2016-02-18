@@ -50,12 +50,13 @@ double table_0_0_5[XCAM_BNR_TABLE_SIZE] = {
     6.000000, 6.000000, 6.000000, 6.000000
 };
 
-const X3aCiqBnrEeTuningStaticData imx185_tuning[X3A_CIQ_GAIN_STEPS] = {
-    {1.0, 2.0, 0.025},
-    {16.98, 1.6, 0.02},
-    {49.55, 1.0, 0.015},
-    {139.63, 0.4, 0.01},
-    {X3A_CIQ_GAIN_MAX, 0.2, 0.005},
+const X3aCiqBnrEeTuningStaticData imx185_tuning[X3A_CIQ_EE_GAIN_STEPS] = {
+    {1.0, 2.5, 0.008},
+    {4.0, 1.8, 0.012},
+    {16.98, 1.1, 0.02},
+    {49.55, 0.8, 0.06},
+    {139.63, 0.07, 0.1},
+    {X3A_CIQ_GAIN_MAX, 0.03, 0.4},
 };
 
 X3aCiqBnrEeTuningHandler::X3aCiqBnrEeTuningHandler ()
@@ -86,14 +87,14 @@ X3aCiqBnrEeTuningHandler::analyze (X3aResultList &output)
 
     uint8_t i_curr = 0;
     uint8_t i_prev = 0;
-    for (i_curr = 0; i_curr < X3A_CIQ_GAIN_STEPS; i_curr++) {
+    for (i_curr = 0; i_curr < X3A_CIQ_EE_GAIN_STEPS; i_curr++) {
         if (analog_gain <= tuning[i_curr].analog_gain) {
             break;
         }
         i_prev = i_curr;
     }
-    if (i_curr >= X3A_CIQ_GAIN_STEPS) {
-        i_curr = X3A_CIQ_GAIN_STEPS - 1;
+    if (i_curr >= X3A_CIQ_EE_GAIN_STEPS) {
+        i_curr = X3A_CIQ_EE_GAIN_STEPS - 1;
     }
 
     xcam_mem_clear (bnr_config);

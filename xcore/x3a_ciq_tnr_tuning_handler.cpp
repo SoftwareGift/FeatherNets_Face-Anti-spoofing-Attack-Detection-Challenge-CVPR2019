@@ -35,7 +35,7 @@ typedef struct _X3aCiqTnrTuningStaticData {
     double b_threshold;
 } X3aCiqTnrTuningStaticData;
 
-const X3aCiqTnrTuningStaticData imx185_tuning[X3A_CIQ_GAIN_STEPS] = {
+const X3aCiqTnrTuningStaticData imx185_tuning[X3A_CIQ_TNR_GAIN_STEPS] = {
     {1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
     {16.98, 0.8, 0.0081, 0.00725, 1.0, 0.0253, 0.0158, 0.0168},
     {49.55, 0.5, 0.0146, 0.0128, 1.0, 0.0434, 0.0274, 0.0317},
@@ -75,14 +75,14 @@ X3aCiqTnrTuningHandler::analyze (X3aResultList &output)
 
     uint8_t i_curr = 0;
     uint8_t i_prev = 0;
-    for (i_curr = 0; i_curr < X3A_CIQ_GAIN_STEPS; i_curr++) {
+    for (i_curr = 0; i_curr < X3A_CIQ_TNR_GAIN_STEPS; i_curr++) {
         if (analog_gain <= tuning[i_curr].analog_gain) {
             break;
         }
         i_prev = i_curr;
     }
-    if (i_curr >= X3A_CIQ_GAIN_STEPS) {
-        i_curr = X3A_CIQ_GAIN_STEPS - 1;
+    if (i_curr >= X3A_CIQ_TNR_GAIN_STEPS) {
+        i_curr = X3A_CIQ_TNR_GAIN_STEPS - 1;
     }
 
     //Calculate YUV config
