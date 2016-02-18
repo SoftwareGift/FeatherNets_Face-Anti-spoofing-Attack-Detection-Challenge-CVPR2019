@@ -117,7 +117,7 @@ inline float2 dot_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 i
 
     egain[0] = mad(ee, ee_config.ee_gain, out + 0.03) / (out + 0.03);
 
-    return out * egain[0] + (value - out) * ee_config.ee_gain * 0.5;
+    return out * egain[0];
 }
 
 inline float2 dot_denoise_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 in4, __local float *table, float coff0, float2 *egain, CLEeConfig ee_config)
@@ -196,52 +196,22 @@ void demosaic_denoise_2_cell (
     int in_x, int in_y,
     __write_only image2d_t out, uint out_height, int out_x, int out_y, __local float *table, CLEeConfig ee_config)
 {
-    float4 out_data[2];
+    float4 out_data_r[2];
+    float4 out_data_g[2];
+    float4 out_data_b[2];
     float2 value;
     int index;
     float2 egain[4];
     float2 de;
     float gain_coff0 = table[0];
 
-    ///////////////////////////////////////G///////////////////////////////////
+    float4 R_y[3], B_z[3];;
+    float2 Gr_x0, Gb_w2;
+    float4 Gr_x1, Gb_w1;
+    float3 Gr_x2, Gb_w0;
+
+    // R egain
     {
-        float3 Gr_x[2], Gb_w[2];
-        index = shared_pos (in_x - 1, in_y - 1);
-        Gb_w[0] = *(__local float3*)(w_data_in + index);
-        index = shared_pos (in_x - 1, in_y);
-        Gb_w[1] = *(__local float3*)(w_data_in + index);
-
-        index = shared_pos (in_x, in_y);
-        Gr_x[0] = *(__local float3*)(x_data_in + index);
-        index = shared_pos (in_x, in_y + 1);
-        Gr_x[1] = *(__local float3*)(x_data_in + index);
-
-        value = mad (Gr_x[0].s01, 4.0f,  (Gb_w[0].s01 +
-                                          Gb_w[0].s12 + Gb_w[1].s01 + Gb_w[1].s12)) * 0.125f;
-        out_data[0].s02 = dot_denoise_ee (value, Gb_w[0].s01, Gb_w[0].s12, Gb_w[1].s01, Gb_w[1].s12, table, gain_coff0 * GUASS_DELTA_S_1_5, &egain[0], ee_config);
-
-        value = (Gr_x[0].s01 + Gr_x[0].s12 +
-                 Gb_w[0].s12 + Gb_w[1].s12) * 0.25f;
-        de = dot_denoise(value, Gr_x[0].s01, Gr_x[0].s12, Gb_w[0].s12, Gb_w[1].s12, table, gain_coff0 * GUASS_DELTA_S_1);
-        out_data[0].s13 = de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        value = (Gr_x[0].s01 + Gr_x[1].s01 +
-                 Gb_w[1].s01 + Gb_w[1].s12) * 0.25f;
-        de = dot_denoise (value, Gr_x[0].s01, Gr_x[1].s01, Gb_w[1].s01, Gb_w[1].s12, table, gain_coff0 * GUASS_DELTA_S_1);
-        out_data[1].s02 = de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        value = mad (Gb_w[1].s12, 4.0f, (Gr_x[0].s01 +
-                                         Gr_x[0].s12 + Gr_x[1].s01 + Gr_x[1].s12)) * 0.125f;
-        de = dot_denoise (value, Gr_x[0].s01, Gr_x[0].s12, Gr_x[1].s01, Gr_x[1].s12, table, gain_coff0 * GUASS_DELTA_S_1_5);
-        out_data[1].s13 = de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        write_imagef (out, (int2)(out_x, out_y + out_height), out_data[0]);
-        write_imagef (out, (int2)(out_x, out_y + 1 + out_height), out_data[1]);
-    }
-
-    ////////////////////////////////R//////////////////////////////////////////
-    {
-        float4 R_y[3];
         index = shared_pos (in_x - 1, in_y - 1);
         R_y[0] = *(__local float4*)(y_data_in + index);
         index = shared_pos (in_x - 1, in_y);
@@ -249,30 +219,37 @@ void demosaic_denoise_2_cell (
         index = shared_pos (in_x - 1, in_y + 1);
         R_y[2] = *(__local float4*)(y_data_in + index);
 
-        value = (R_y[1].s01 + R_y[1].s12) * 0.5f;
-        de =  dot_denoise (value, R_y[0].s01, R_y[0].s12, R_y[2].s01, R_y[2].s12, table, gain_coff0 * GUASS_DELTA_S_2_5);
-        out_data[0].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        value = R_y[1].s12;
-        de = dot_denoise (value, R_y[0].s12, R_y[1].s01, R_y[1].s23, R_y[2].s12, table, gain_coff0 * GUASS_DELTA_S_2);
-        out_data[0].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        value = (R_y[1].s01 + R_y[1].s12 +
-                 R_y[2].s01 + R_y[2].s12) * 0.25f;
-        de = dot_denoise (value, R_y[1].s01, R_y[1].s12, R_y[2].s01, R_y[2].s12, table, gain_coff0 * GUASS_DELTA_S_1_5);
-        out_data[1].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        value = (R_y[1].s12 + R_y[2].s12) * 0.5f;
-        de = dot_denoise (value, R_y[1].s01, R_y[1].s23, R_y[2].s01, R_y[2].s23, table, gain_coff0 * GUASS_DELTA_S_2_5);
-        out_data[1].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        write_imagef (out, (int2)(out_x, out_y), out_data[0]);
-        write_imagef (out, (int2)(out_x, out_y + 1), out_data[1]);
-
+        out_data_r[0].s13 = dot_denoise_ee (R_y[1].s12, R_y[0].s12, R_y[1].s01, R_y[1].s23, R_y[2].s12,
+                                             table, gain_coff0 * GUASS_DELTA_S_2, &egain[1], ee_config);
     }
-    ////////////////////////////////B//////////////////////////////////////////
+
+    // Gr, Gb egain
     {
-        float4 B_z[3];
+        index = shared_pos (in_x, in_y - 1);
+        Gr_x0 = *(__local float2*)(x_data_in + index);
+        index = shared_pos (in_x - 1, in_y);
+        Gr_x1 = *(__local float4*)(x_data_in + index);
+        index = shared_pos (in_x, in_y + 1);
+        Gr_x2 = *(__local float3*)(x_data_in + index);
+
+        index = shared_pos (in_x - 1, in_y - 1);
+        Gb_w0 = *(__local float3*)(w_data_in + index);
+        index = shared_pos (in_x - 1, in_y);
+        Gb_w1 = *(__local float4*)(w_data_in + index);
+        index = shared_pos (in_x, in_y + 1);
+        Gb_w2 = *(__local float2*)(w_data_in + index);
+
+        value = mad (Gr_x1.s12, 4.0f, (Gb_w0.s01 + Gb_w0.s12 + Gb_w1.s01 + Gb_w1.s12)) * 0.125f;
+        de = dot_denoise (value, Gb_w0.s01, Gb_w0.s12, Gb_w1.s01, Gb_w1.s12, table, gain_coff0 * GUASS_DELTA_S_1_5);
+        out_data_g[0].s02 = dot_ee(Gr_x1.s12, Gr_x0, Gr_x1.s01, Gr_x1.s23, Gr_x2.s01, de, ee_config, &egain[0]);
+
+        value = mad (Gb_w1.s12, 4.0f, (Gr_x1.s12 + Gr_x1.s23 + Gr_x2.s01 + Gr_x2.s12)) * 0.125f;
+        de = dot_denoise (value, Gr_x1.s12, Gr_x1.s23, Gr_x2.s01, Gr_x2.s12, table, gain_coff0 * GUASS_DELTA_S_1_5);
+        out_data_g[1].s13 = dot_ee(Gb_w1.s12, Gb_w0.s12, Gb_w1.s01, Gb_w1.s23, Gb_w2, de, ee_config, &egain[3]);
+    }
+
+    // B egain
+    {
         index = shared_pos (in_x - 1, in_y - 1);
         B_z[0] = *(__local float4*)(z_data_in + index);
         index = shared_pos (in_x - 1, in_y);
@@ -280,25 +257,59 @@ void demosaic_denoise_2_cell (
         index = shared_pos (in_x - 1, in_y + 1);
         B_z[2] = *(__local float4*)(z_data_in + index);
 
+        out_data_b[1].s02 = dot_denoise_ee (B_z[1].s12, B_z[0].s12, B_z[1].s01, B_z[1].s23, B_z[2].s12,
+                                             table, gain_coff0 * GUASS_DELTA_S_2, &egain[2], ee_config);
+    }
+
+    ////////////////////////////////R//////////////////////////////////////////
+    {
+        value = (R_y[1].s01 + R_y[1].s12) * 0.5f;
+        de =  dot_denoise (value, R_y[0].s01, R_y[0].s12, R_y[2].s01, R_y[2].s12, table, gain_coff0 * GUASS_DELTA_S_2_5);
+        out_data_r[0].s02 = de * egain[0];
+
+        value = (R_y[1].s01 + R_y[1].s12 + R_y[2].s01 + R_y[2].s12) * 0.25f;
+        de = dot_denoise (value, R_y[1].s01, R_y[1].s12, R_y[2].s01, R_y[2].s12, table, gain_coff0 * GUASS_DELTA_S_1_5);
+        out_data_r[1].s02 = de * egain[2];
+
+        value = (R_y[1].s12 + R_y[2].s12) * 0.5f;
+        de = dot_denoise (value, R_y[1].s01, R_y[1].s23, R_y[2].s01, R_y[2].s23, table, gain_coff0 * GUASS_DELTA_S_2_5);
+        out_data_r[1].s13 = de * egain[3];
+
+        write_imagef (out, (int2)(out_x, out_y), out_data_r[0]);
+        write_imagef (out, (int2)(out_x, out_y + 1), out_data_r[1]);
+    }
+
+    ////////////////////////////////G//////////////////////////////////////////
+    {
+        value = (Gr_x1.s12 + Gr_x1.s23 + Gb_w0.s12 + Gb_w1.s12) * 0.25f;
+        de = dot_denoise(value, Gr_x1.s12, Gr_x1.s23, Gb_w0.s12, Gb_w1.s12, table, gain_coff0 * GUASS_DELTA_S_1);
+        out_data_g[0].s13 = de * egain[1];
+
+        value = (Gr_x1.s12 + Gr_x2.s01 + Gb_w1.s01 + Gb_w1.s12) * 0.25f;
+        de = dot_denoise (value, Gr_x1.s12, Gr_x2.s01, Gb_w1.s01, Gb_w1.s12, table, gain_coff0 * GUASS_DELTA_S_1);
+        out_data_g[1].s02 = de * egain[2];
+
+        write_imagef (out, (int2)(out_x, out_y + out_height), out_data_g[0]);
+        write_imagef (out, (int2)(out_x, out_y + 1 + out_height), out_data_g[1]);
+    }
+
+    ////////////////////////////////B//////////////////////////////////////////
+    {
         value = (B_z[0].s12 + B_z[1].s12) * 0.5f;
         de = dot_denoise (value, B_z[0].s01, B_z[0].s23, B_z[1].s01, B_z[1].s23, table, gain_coff0 * GUASS_DELTA_S_2_5);
-        out_data[0].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
+        out_data_b[0].s02 = de * egain[0];
 
         value = (B_z[0].s12 + B_z[0].s23 +
-                 B_z[1].s12 + B_z[1].s23) * 0.25f;
+                  B_z[1].s12 + B_z[1].s23) * 0.25f;
         de = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[1].s12, B_z[1].s23, table, gain_coff0 * GUASS_DELTA_S_1_5);
-        out_data[0].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
-
-        value = B_z[1].s12;
-        de = dot_denoise (value, B_z[0].s12, B_z[1].s01, B_z[1].s23, B_z[2].s12, table, gain_coff0 * GUASS_DELTA_S_2);
-        out_data[1].s02  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
+        out_data_b[0].s13 = de * egain[1];
 
         value = (B_z[1].s12 + B_z[1].s23) * 0.5f;
         de = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[2].s12, B_z[2].s23, table, gain_coff0 * GUASS_DELTA_S_2_5);
-        out_data[1].s13  =  de * egain[0] + (value - de) * ee_config.ee_gain * 0.5;
+        out_data_b[1].s13 = de * egain[3];
 
-        write_imagef (out, (int2)(out_x, out_y + out_height * 2), out_data[0]);
-        write_imagef (out, (int2)(out_x, out_y + 1 + out_height * 2), out_data[1]);
+        write_imagef (out, (int2)(out_x, out_y + out_height * 2), out_data_b[0]);
+        write_imagef (out, (int2)(out_x, out_y + 1 + out_height * 2), out_data_b[1]);
     }
 }
 
