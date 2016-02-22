@@ -143,6 +143,7 @@ typedef X3aStandardResultT<XCam3aResultChromaToneControl> X3aChromaToneControlRe
 typedef X3aStandardResultT<XCam3aResultBayerNoiseReduction> X3aBayerNoiseReduction;
 typedef X3aStandardResultT<XCam3aResultBrightness>      X3aBrightnessResult;
 typedef X3aStandardResultT<XCam3aResultTemporalNoiseReduction> X3aTemporalNoiseReduction;
+typedef X3aStandardResultT<XCam3aResultWaveletNoiseReduction> X3aWaveletNoiseReduction;
 };
 
 #endif //XCAM_3A_RESULT_H

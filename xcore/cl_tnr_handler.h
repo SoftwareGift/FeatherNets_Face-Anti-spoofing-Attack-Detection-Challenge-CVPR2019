@@ -18,8 +18,8 @@
  * Author: Wei Zong <wei.zong@intel.com>
  */
 
-#ifndef XCAM_CL_DEMO_HANLDER_H
-#define XCAM_CL_DEMO_HANLDER_H
+#ifndef XCAM_CL_TNR_HANLDER_H
+#define XCAM_CL_TNR_HANLDER_H
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
@@ -156,4 +156,4 @@ create_cl_tnr_image_handler (SmartPtr<CLContext> &context, CLTnrType type);
 
 };
 
-#endif //XCAM_CL_DEMO_HANLDER_H
+#endif //XCAM_CL_TNR_HANLDER_H

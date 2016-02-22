@@ -130,6 +130,9 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
     case XCAM_3A_RESULT_BRIGHTNESS:
         result = create_brightness ((XCam3aResultBrightness*)from);
         break;
+    case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
+        result = create_wavelet_noise_reduction ((XCam3aResultWaveletNoiseReduction*)from);
+        break;
     default:
         XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", type);
         break;
@@ -257,5 +260,12 @@ X3aResultFactory::create_brightness (XCam3aResultBrightness *from)
 {
     XCAM_3A_RESULT_FACTORY (X3aBrightnessResult, XCAM_3A_RESULT_BRIGHTNESS, from);
 }
+
+SmartPtr<X3aWaveletNoiseReduction>
+X3aResultFactory::create_wavelet_noise_reduction (XCam3aResultWaveletNoiseReduction *from)
+{
+    XCAM_3A_RESULT_FACTORY (X3aWaveletNoiseReduction, XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION, from);
+}
 };
+
 

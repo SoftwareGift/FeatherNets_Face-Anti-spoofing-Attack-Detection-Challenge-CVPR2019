@@ -32,7 +32,7 @@ namespace XCam {
 #define X3A_CIQ_EXPOSURE_TIME_TICK   (X3A_CIQ_EXPOSURE_TIME_MAX / X3A_CIQ_EXPOSURE_TIME_STEPS)
 
 #define X3A_CIQ_EE_GAIN_STEPS 6 //Number of EE Gain steps
-#define X3A_CIQ_TNR_GAIN_STEPS 5 //Number of TNR Gain steps
+#define X3A_CIQ_GAIN_STEPS 5 //Number of Gain steps
 #define X3A_CIQ_GAIN_MAX   249 //Max Gain
 
 #define X3A_CIQ_LSC_LUT_WIDTH    16

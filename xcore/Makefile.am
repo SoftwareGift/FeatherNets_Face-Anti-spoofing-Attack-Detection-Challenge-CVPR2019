@@ -88,6 +88,7 @@ xcam_sources =               \
 	x3a_ciq_tuning_handler.cpp \
 	x3a_ciq_tnr_tuning_handler.cpp \
 	x3a_ciq_bnr_ee_tuning_handler.cpp \
+	x3a_ciq_wavelet_tuning_handler.cpp \
 	$(NULL)
 
 if ENABLE_IA_AIQ
@@ -153,6 +154,7 @@ xcam_sources +=              \
 	cl_image_scaler.cpp   \
 	cl_retinex_handler.cpp	     \
 	cl_gauss_handler.cpp	     \
+	cl_wavelet_denoise_handler.cpp	     \
 	$(NULL)
 endif
 

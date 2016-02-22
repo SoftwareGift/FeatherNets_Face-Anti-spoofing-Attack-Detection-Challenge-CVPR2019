@@ -103,7 +103,7 @@ CLImageScalerKernel::prepare_arguments (
         input_imageDesc.height = input_info.height;
         input_imageDesc.row_pitch = input_info.strides[0];
 
-        _image_in = new CLVaImage (context, input, input_imageDesc, 0);
+        _image_in = new CLVaImage (context, input, input_imageDesc, input_info.offsets[0]);
     }
 
     //set args;

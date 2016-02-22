@@ -32,9 +32,10 @@
 #include "cl_newtonemapping_handler.h"
 #include "cl_image_scaler.h"
 #include "cl_bayer_basic_handler.h"
+#include "cl_wavelet_denoise_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
-#define XCAM_CL_3A_IMAGE_SCALER_FACTOR 0.5
+#define XCAM_CL_3A_IMAGE_SCALER_FACTOR 1.0
 
 namespace XCam {
 
@@ -53,6 +54,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_macc (true)
     , _enable_dpc (false)
     , _enable_retinex (false)
+    , _enable_wavelet (false)
     , _snr_mode (0)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
@@ -138,6 +140,7 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB:
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
     case XCAM_3A_RESULT_EDGE_ENHANCEMENT:
+    case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
         return true;
 
     default:
@@ -293,6 +296,17 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         XCAM_UNUSED (brightness_level);
         break;
     }
+
+    case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION: {
+        SmartPtr<X3aWaveletNoiseReduction> wavelet_res = result.dynamic_cast_ptr<X3aWaveletNoiseReduction> ();
+        XCAM_ASSERT (wavelet_res.ptr ());
+        if (_wavelet.ptr()) {
+            _wavelet->set_denoise_config (wavelet_res->get_standard_result ());
+        }
+
+        break;
+    }
+
     default:
         XCAM_LOG_WARNING ("CL3aImageProcessor unknow 3a result:%d", res_type);
         break;
@@ -387,6 +401,19 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 #endif
 
+    /* wavelet denoise */
+    image_handler = create_cl_wavelet_denoise_image_handler (context);
+    _wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _wavelet.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create wavelet denoise handler failed");
+    _wavelet->set_kernels_enable (_enable_wavelet);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
     /* retinex*/
     image_handler = create_cl_retinex_image_handler (context);
     _retinex = image_handler.dynamic_cast_ptr<CLRetinexImageHandler> ();
@@ -473,6 +500,16 @@ bool
 CL3aImageProcessor::set_retinex (bool enable)
 {
     _enable_retinex = enable;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CL3aImageProcessor::set_wavelet (bool enable)
+{
+    _enable_wavelet = enable;
 
     STREAM_LOCK;
 

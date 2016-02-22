@@ -282,7 +282,17 @@ translate_3a_results_to_xcam (X3aResultList &list,
             results[result_count++] = (XCam3aResultHead*)new_bnr;
             break;
         }
-
+        case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
+        {
+            SmartPtr<X3aWaveletNoiseReduction> xcam_wavelet =
+                isp_result.dynamic_cast_ptr<X3aWaveletNoiseReduction> ();
+            const XCam3aResultWaveletNoiseReduction &wavelet = xcam_wavelet->get_standard_result();
+            XCam3aResultWaveletNoiseReduction *new_wavelet = xcam_malloc0_type(XCam3aResultWaveletNoiseReduction);
+            XCAM_ASSERT (new_wavelet);
+            *new_wavelet = wavelet;
+            results[result_count++] = (XCam3aResultHead*)new_wavelet;
+            break;
+        }
         default: {
             XCAM_LOG_WARNING ("unknow type(%d) in translation", isp_result->get_type());
             break;
