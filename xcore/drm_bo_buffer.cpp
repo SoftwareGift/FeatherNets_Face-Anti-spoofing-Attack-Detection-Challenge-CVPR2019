@@ -157,6 +157,7 @@ DrmBoBuffer::create_new_swap_buffer (
 
 DrmBoBufferPool::DrmBoBufferPool (SmartPtr<DrmDisplay> &display)
     : _swap_flags (SwappedBuffer::SwapNone)
+    , _swap_init_order ((uint32_t)(SwappedBuffer::OrderY0Y1) | (uint32_t)(SwappedBuffer::OrderUV0UV1))
     , _display (display)
 {
     xcam_mem_clear (_swap_offsets);
@@ -191,7 +192,42 @@ DrmBoBufferPool::fixate_video_info (VideoBufferInfo &info)
         out_info.size += out_info.strides[1] * (out_info.aligned_height + 1) / 2;
     }
 
+    if(!init_swap_order (out_info)) {
+        XCAM_LOG_ERROR ("DrmBoBufferPool: fix video info faield to init swap order");
+        return false;
+    }
+
     info = out_info;
+    return true;
+}
+
+bool
+DrmBoBufferPool::init_swap_order (VideoBufferInfo &info)
+{
+    if (_swap_flags & (uint32_t)(SwappedBuffer::SwapY)) {
+        if ((_swap_init_order & (uint32_t)(SwappedBuffer::OrderYMask)) == (uint32_t)(SwappedBuffer::OrderY0Y1)) {
+            info.offsets[0] = _swap_offsets[SwappedBuffer::SwapYOffset0];
+        } else if ((_swap_init_order & (uint32_t)(SwappedBuffer::OrderYMask)) ==
+                   (uint32_t)(SwappedBuffer::OrderY1Y0)) {
+            info.offsets[0] = _swap_offsets[SwappedBuffer::SwapYOffset1];
+        } else {
+            XCAM_LOG_WARNING ("BufferPool: There's unkown init_swap_order(Y):0x%04x", _swap_init_order);
+            return false;
+        }
+    }
+
+    if (_swap_flags & (uint32_t)(SwappedBuffer::SwapUV)) {
+        if ((_swap_init_order & (uint32_t)(SwappedBuffer::OrderUVMask)) == (uint32_t)(SwappedBuffer::OrderUV0UV1)) {
+            info.offsets[1] = _swap_offsets[SwappedBuffer::SwapUVOffset0];
+        } else if ((_swap_init_order & (uint32_t)(SwappedBuffer::OrderUVMask)) ==
+                   (uint32_t)(SwappedBuffer::OrderUV1UV0)) {
+            info.offsets[1] = _swap_offsets[SwappedBuffer::SwapUVOffset1];
+        } else {
+            XCAM_LOG_WARNING ("BufferPool: There's unkown init_swap_order(UV):0x%04x", _swap_init_order);
+            return false;
+        }
+    }
+
     return true;
 }
 

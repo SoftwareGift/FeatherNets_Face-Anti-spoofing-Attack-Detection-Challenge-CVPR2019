@@ -44,6 +44,15 @@ public:
         SwapUVOffset1 = 3,
     };
 
+    enum InitOrder {
+        OrderYMask = 0x000F,
+        OrderY0Y1 = 0x0001,
+        OrderY1Y0 = 0x0002,
+        OrderUVMask = 0x0F00,
+        OrderUV0UV1 = 0x0100,
+        OrderUV1UV0 = 0x0200,
+    };
+
 protected:
     explicit SwappedBuffer (
         const VideoBufferInfo &info, const SmartPtr<BufferData> &data);

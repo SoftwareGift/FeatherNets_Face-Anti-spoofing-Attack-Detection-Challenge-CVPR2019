@@ -113,8 +113,12 @@ public:
         _buf_pool_size = size;
     }
 
-    void enable_buf_pool_swap_flags (uint32_t flags) {
+    void enable_buf_pool_swap_flags (
+        uint32_t flags,
+        uint32_t init_order = (uint32_t)(SwappedBuffer::OrderY0Y1))
+    {
         _buf_swap_flags = flags;
+        _buf_swap_init_order = init_order;
     }
 
     bool add_kernel (SmartPtr<CLImageKernel> &kernel);
@@ -146,6 +150,7 @@ private:
     BufferPoolType             _buf_pool_type;
     uint32_t                   _buf_pool_size;
     uint32_t                   _buf_swap_flags;
+    uint32_t                   _buf_swap_init_order;
     X3aResultList              _3a_results;
     int64_t                    _result_timestamp;
 

@@ -192,6 +192,11 @@ CLBoBufferPool::fixate_video_info (VideoBufferInfo &info)
         }
     }
 
+    if(!init_swap_order (info)) {
+        XCAM_LOG_ERROR ("CLBoBufferPool: fix video info faield to init swap order");
+        return false;
+    }
+
     add_data_unsafe (image_data);
 
     return true;

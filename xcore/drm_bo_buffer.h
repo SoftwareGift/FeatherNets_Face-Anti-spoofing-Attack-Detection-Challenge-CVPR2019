@@ -93,8 +93,11 @@ class DrmBoBufferPool
 public:
     explicit DrmBoBufferPool (SmartPtr<DrmDisplay> &display);
     ~DrmBoBufferPool ();
-    void set_swap_flags (uint32_t flags) {
+
+    // **** MUST be set before set_video_info ****
+    void set_swap_flags (uint32_t flags, uint32_t init_order) {
         _swap_flags = flags;
+        _swap_init_order = init_order;
     }
     uint32_t get_swap_flags () const {
         return _swap_flags;
@@ -110,11 +113,14 @@ protected:
         return _display;
     }
 
+    bool init_swap_order (VideoBufferInfo &info);
+
 private:
     XCAM_DEAD_COPY (DrmBoBufferPool);
 
 protected:
     uint32_t                 _swap_flags;
+    uint32_t                 _swap_init_order;
     uint32_t                 _swap_offsets[XCAM_VIDEO_MAX_COMPONENTS * 2];
 
 private:

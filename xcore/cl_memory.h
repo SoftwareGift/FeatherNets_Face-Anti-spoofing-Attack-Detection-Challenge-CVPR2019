@@ -182,7 +182,8 @@ public:
     explicit CLVaImage (
         SmartPtr<CLContext> &context,
         SmartPtr<DrmBoBuffer> &bo,
-        uint32_t offset = 0);
+        uint32_t offset = 0,
+        bool single_plane = false);
     explicit CLVaImage (
         SmartPtr<CLContext> &context,
         SmartPtr<DrmBoBuffer> &bo,

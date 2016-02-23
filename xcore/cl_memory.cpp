@@ -498,7 +498,8 @@ CLImage::init_desc_by_image ()
 CLVaImage::CLVaImage (
     SmartPtr<CLContext> &context,
     SmartPtr<DrmBoBuffer> &bo,
-    uint32_t offset)
+    uint32_t offset,
+    bool single_plane)
     : CLImage (context)
     , _bo (bo)
 {
@@ -509,7 +510,10 @@ CLVaImage::CLVaImage (
         XCAM_LOG_WARNING ("CLVaImage create va image failed on default videoinfo");
         return;
     }
-    if (!merge_multi_plane (video_info, cl_desc)) {
+    if (single_plane) {
+        cl_desc.array_size = 0;
+        cl_desc.slice_pitch = 0;
+    } else if (!merge_multi_plane (video_info, cl_desc)) {
         XCAM_LOG_WARNING ("CLVaImage create va image failed on merging planes");
         return;
     }

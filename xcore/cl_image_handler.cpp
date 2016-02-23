@@ -143,7 +143,8 @@ CLImageHandler::CLImageHandler (const char *name)
     : _name (NULL)
     , _buf_pool_type (CLImageHandler::CLBoPoolType)
     , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
-    , _buf_swap_flags (SwappedBuffer::SwapNone)
+    , _buf_swap_flags ((uint32_t)(SwappedBuffer::OrderY0Y1) | (uint32_t)(SwappedBuffer::OrderUV0UV1))
+    , _buf_swap_init_order (SwappedBuffer::OrderY0Y1)
     , _result_timestamp (XCam::InvalidTimestamp)
 {
     XCAM_ASSERT (name);
@@ -220,8 +221,8 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
         XCAM_STR (_name), (int32_t)_buf_pool_type);
 
     XCAM_ASSERT (buffer_pool.ptr ());
+    buffer_pool->set_swap_flags (_buf_swap_flags, _buf_swap_init_order);
     buffer_pool->set_video_info (video_info);
-    buffer_pool->set_swap_flags (_buf_swap_flags);
 
     XCAM_FAIL_RETURN(
         WARNING,
