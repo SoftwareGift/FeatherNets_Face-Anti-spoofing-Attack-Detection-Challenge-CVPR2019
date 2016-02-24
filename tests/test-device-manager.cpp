@@ -117,6 +117,7 @@ protected:
 private:
     void open_file ();
     void close_file ();
+    XCamReturn write_buf (const SmartPtr<VideoBuffer> &buf);
 
     FILE      *_file;
     bool       _save_file;
@@ -161,61 +162,13 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
         return;
     }
 
-    const VideoBufferInfo & frame_info = buf->get_video_info ();
-    uint8_t *frame = buf->map ();
-
-    if (frame == NULL)
-        return;
-
-    uint32_t size = 0;
-
-    switch(frame_info.format)  {
-    case V4L2_PIX_FMT_NV12:  // 420
-    case V4L2_PIX_FMT_NV21:
-        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 3 / 2;
-        break;
-    case V4L2_PIX_FMT_YUV422P: // 422 Planar
-    case V4L2_PIX_FMT_YUYV: // 422
-    case V4L2_PIX_FMT_SBGGR10:
-    case V4L2_PIX_FMT_SGBRG10:
-    case V4L2_PIX_FMT_SGRBG10:
-    case V4L2_PIX_FMT_SRGGB10:
-    case V4L2_PIX_FMT_SBGGR12:
-    case V4L2_PIX_FMT_SGBRG12:
-    case V4L2_PIX_FMT_SGRBG12:
-    case V4L2_PIX_FMT_SRGGB12:
-        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 2;
-        break;
-    case XCAM_PIX_FMT_RGBA64:
-        size = XCAM_ALIGN_UP(frame_info.width, 2) * XCAM_ALIGN_UP(frame_info.height, 2) * 2 * 4;
-        break;
-    case XCAM_PIX_FMT_RGB48_planar:
-    case XCAM_PIX_FMT_RGB24_planar:
-        size = XCAM_ALIGN_UP(frame_info.aligned_width, 2) * XCAM_ALIGN_UP(frame_info.aligned_height, 2)
-               * frame_info.components * XCAM_ALIGN_UP (frame_info.color_bits, 8) / 8;
-        break;
-    case XCAM_PIX_FMT_SGRBG16_planar:
-        size = XCAM_ALIGN_UP(frame_info.aligned_width, 2) * XCAM_ALIGN_UP(frame_info.aligned_height, 2)
-               * frame_info.components * XCAM_ALIGN_UP (frame_info.color_bits, 8) / 8;
-        XCAM_ASSERT (size <= frame_info.size);
-        break;
-    default:
-        XCAM_LOG_ERROR (
-            "unknown v4l2 format(%s) in buffer handle",
-            xcam_fourcc_to_string (frame_info.format));
-        return;
-    }
-
     open_file ();
 
     if (!_file) {
         XCAM_LOG_ERROR ("open file failed");
         return;
     }
-
-    if (fwrite (frame, size, 1, _file) <= 0) {
-        XCAM_LOG_WARNING ("write frame failed.");
-    }
+    write_buf (buf);
 }
 
 int
@@ -263,6 +216,35 @@ MainDeviceManager::close_file ()
     if (_file)
         fclose (_file);
     _file = NULL;
+}
+
+XCamReturn
+MainDeviceManager::write_buf (const SmartPtr<VideoBuffer> &buf)
+{
+    const VideoBufferInfo &info = buf->get_video_info ();
+    VideoBufferPlanarInfo planar;
+    uint8_t *memory = NULL;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    memory = buf->map ();
+    if (!memory) {
+        XCAM_LOG_ERROR ("map buffer failed in write_buf");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
+    for (uint32_t index = 0; index < info.components; index++) {
+        info.get_planar_info (planar, index);
+        uint32_t line_bytes = planar.width * planar.pixel_bytes;
+
+        for (uint32_t i = 0; i < planar.height; i++) {
+            if (fwrite (memory + info.offsets [index] + i * info.strides [index], 1, line_bytes, _file) != line_bytes) {
+                XCAM_LOG_ERROR ("write file failed, size doesn't match");
+                ret = XCAM_RETURN_ERROR_FILE;
+            }
+        }
+    }
+    buf->unmap ();
+    return ret;
 }
 
 #define V4L2_CAPTURE_MODE_STILL   0x2000
