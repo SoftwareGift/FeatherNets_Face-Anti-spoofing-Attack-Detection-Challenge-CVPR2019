@@ -54,9 +54,17 @@ __inline void cl_macc(float8 *in, __global float *table)
 }
 
 #if USE_BUFFER_OBJECT
-__inline void cl_tnr_yuv(float8 *in, __global uchar8 *inputFramePre, int x, int y, float gain_yuv, float thr_y, float thr_uv, uint vertical_offset, uint x_offset)
+__inline void cl_tnr_yuv(
+    float8 *in, __global uchar8 *inputFramePre,
+    int x, int y,
+    float gain_yuv, float thr_y, float thr_uv,
+    uint vertical_offset, uint x_offset)
 #else
-__inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x, int y, float gain_yuv, float thr_y, float thr_uv, uint vertical_offset, uint x_offset)
+__inline void cl_tnr_yuv(
+    float8 *in,
+    __read_only image2d_t inputFramePre, __read_only image2d_t inputFramePreUV,
+    int x, int y,
+    float gain_yuv, float thr_y, float thr_uv, uint x_offset)
 #endif
 {
     float8 in_prev[3];
@@ -69,7 +77,7 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
 #else
     in_prev[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y))))) / 256.0f;
     in_prev[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, 2 * y + 1))))) / 256.0f;
-    in_prev[2] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePre, sampler, (int2)(x, y + vertical_offset))))) / 256.0f;
+    in_prev[2] = convert_float8(as_uchar8(convert_ushort4(read_imageui(inputFramePreUV, sampler, (int2)(x, y))))) / 256.0f;
 #endif
 
     float diff_max = 0.8f;
@@ -143,16 +151,34 @@ __inline void cl_tnr_yuv(float8 *in,  __read_only image2d_t inputFramePre, int x
 }
 
 #if USE_BUFFER_OBJECT
-__kernel void kernel_yuv_pipe (__global uchar8 *output, __global uchar8 *inputFramePre, uint vertical_offset, uint plannar_offset, __global float *matrix, __global float *table, float yuv_gain, float thr_y, float thr_uv, uint tnr_yuv_enable, __global ushort8 *inputFrame0)
+__kernel void kernel_yuv_pipe (
+    __global uchar8 *output,
+    __global uchar8 *inputFramePre, uint vertical_offset,
+    uint plannar_offset,
+    __global float *matrix, __global float *table,
+    float yuv_gain, float thr_y, float thr_uv, uint tnr_yuv_enable,
+    __global ushort8 *inputFrame0)
 
 #else
-__kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2d_t inputFramePre, uint vertical_offset, uint plannar_offset, __global float *matrix, __global float *table, float yuv_gain, float thr_y, float thr_uv, uint tnr_yuv_enable, __read_only image2d_t inputFrame0)
+
+__kernel void kernel_yuv_pipe (
+    __write_only image2d_t output, __write_only image2d_t output_uv,
+    __read_only image2d_t inputFramePre, __read_only image2d_t inputFramePreUV,
+    uint plannar_offset,
+    __global float *matrix, __global float *table,
+    float yuv_gain, float thr_y, float thr_uv, uint tnr_yuv_enable,
+    __read_only image2d_t inputFrame0)
 
 #endif
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
     int offsetX = get_global_size(0);
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+    float8 inR[2], inG[2], inB[2];
+    float8 out[3];
+
+#if USE_BUFFER_OBJECT
     // x [0, 240]
     // y [0, 540]
     uint offsetE = 2 * y * offsetX + x;
@@ -160,12 +186,7 @@ __kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2
     uint offsetUV = (y + vertical_offset) * offsetX + x;
     uint offsetG = offsetX * plannar_offset;
     uint offsetB = offsetX * plannar_offset * 2;
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 
-    float8 inR[2], inG[2], inB[2];
-    float8 out[3];
-
-#if USE_BUFFER_OBJECT
     inR[0] = convert_float8(inputFrame0[offsetE]) / 65536.0f;
     inR[1] = convert_float8(inputFrame0[offsetO]) / 65536.0f;
     inG[0] = convert_float8(inputFrame0[offsetE + offsetG]) / 65536.0f;
@@ -185,7 +206,12 @@ __kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2
     cl_macc(&out[2], table);
 
     if (tnr_yuv_enable) {
+#if USE_BUFFER_OBJECT
         cl_tnr_yuv (&out[0], inputFramePre, x, y, yuv_gain, thr_y, thr_uv, vertical_offset, offsetX);
+#else
+        cl_tnr_yuv (&out[0], inputFramePre, inputFramePreUV, x, y, yuv_gain, thr_y, thr_uv, offsetX);
+#endif
+
     }
 
 #if USE_BUFFER_OBJECT
@@ -195,7 +221,7 @@ __kernel void kernel_yuv_pipe (__write_only image2d_t output, __read_only image2
 #else
     write_imageui(output, (int2)(x, 2 * y), convert_uint4(as_ushort4(convert_uchar8_sat(out[0] * 255.0f))));
     write_imageui(output, (int2)(x, 2 * y + 1), convert_uint4(as_ushort4(convert_uchar8_sat(out[1] * 255.0f))));
-    write_imageui(output, (int2)(x, y + vertical_offset), convert_uint4(as_ushort4(convert_uchar8_sat(out[2] * 255.0f))));
+    write_imageui(output_uv, (int2)(x, y), convert_uint4(as_ushort4(convert_uchar8_sat(out[2] * 255.0f))));
 #endif
 
 }

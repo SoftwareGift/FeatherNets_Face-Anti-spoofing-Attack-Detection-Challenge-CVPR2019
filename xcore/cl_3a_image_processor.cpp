@@ -369,7 +369,7 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create yuv pipe handler failed");
     _yuv_pipe->set_tnr_enable (_tnr_mode & CL_TNR_TYPE_YUV);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE * 2);
     add_handler (image_handler);
 
 #if ENABLE_YEENR_HANDLER

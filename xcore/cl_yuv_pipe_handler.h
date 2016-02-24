@@ -62,6 +62,10 @@ private:
     SmartPtr<CLMemory>  _buffer_in;
     SmartPtr<CLMemory>  _buffer_out;
     SmartPtr<CLMemory>  _buffer_out_prev;
+
+    //
+    SmartPtr<CLMemory>  _buffer_out_UV;
+    SmartPtr<CLMemory>  _buffer_out_prev_UV;
 };
 
 class CLYuvPipeImageHandler

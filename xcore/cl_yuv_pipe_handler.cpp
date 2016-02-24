@@ -106,11 +106,15 @@ CLYuvPipeImageKernel::prepare_arguments (
     out_image_info.format.image_channel_order = CL_RGBA;
     out_image_info.format.image_channel_data_type = CL_UNSIGNED_INT16;
     out_image_info.width = video_info_out.width / 8;
-    out_image_info.height = video_info_out.aligned_height + (video_info_out.aligned_height / 2);
+    out_image_info.height = video_info_out.aligned_height;
     out_image_info.row_pitch = video_info_out.strides[0];
 
     _buffer_in = new CLVaImage (context, input, in_image_info);
-    _buffer_out = new CLVaImage (context, output, out_image_info);
+    _buffer_out = new CLVaImage (context, output, out_image_info, video_info_out.offsets[0]);
+
+    out_image_info.height = video_info_out.aligned_height / 2;
+    out_image_info.row_pitch = video_info_out.strides[1];
+    _buffer_out_UV = new CLVaImage (context, output, out_image_info, video_info_out.offsets[1]);
 #else
     _buffer_in = new CLVaBuffer (context, input);
     _buffer_out = new CLVaBuffer (context, output);
@@ -127,6 +131,7 @@ CLYuvPipeImageKernel::prepare_arguments (
 
     if (!_buffer_out_prev.ptr ()) {
         _buffer_out_prev = _buffer_out;
+        _buffer_out_prev_UV = _buffer_out_UV;
         _enable_tnr_yuv_state = _enable_tnr_yuv;
         _enable_tnr_yuv = 0;
     }
@@ -142,30 +147,62 @@ CLYuvPipeImageKernel::prepare_arguments (
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     //set args;
-    args[0].arg_adress = &_buffer_out->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_buffer_out_prev->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_vertical_offset;
-    args[2].arg_size = sizeof (_vertical_offset);
-    args[3].arg_adress = &_plannar_offset;
-    args[3].arg_size = sizeof (_plannar_offset);
-    args[4].arg_adress = &_matrix_buffer->get_mem_id();
-    args[4].arg_size = sizeof (cl_mem);
-    args[5].arg_adress = &_macc_table_buffer->get_mem_id();
-    args[5].arg_size = sizeof (cl_mem);
-    args[6].arg_adress = &_gain_yuv;
-    args[6].arg_size = sizeof (_gain_yuv);
-    args[7].arg_adress = &_thr_y;
-    args[7].arg_size = sizeof (_thr_y);
-    args[8].arg_adress = &_thr_uv;
-    args[8].arg_size = sizeof (_thr_uv);
-    args[9].arg_adress = &_enable_tnr_yuv;
-    args[9].arg_size = sizeof (_enable_tnr_yuv);
-    args[10].arg_adress = &_buffer_in->get_mem_id ();
-    args[10].arg_size = sizeof (cl_mem);
+    arg_count = 0;
+    args[arg_count].arg_adress = &_buffer_out->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
 
-    arg_count = 11;
+#if !USE_BUFFER_OBJECT
+    args[arg_count].arg_adress = &_buffer_out_UV->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+#endif
+
+    args[arg_count].arg_adress = &_buffer_out_prev->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+#if !USE_BUFFER_OBJECT
+    args[arg_count].arg_adress = &_buffer_out_prev_UV->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+#else
+    args[arg_count].arg_adress = &_vertical_offset;
+    args[arg_count].arg_size = sizeof (_vertical_offset);
+    ++arg_count;
+#endif
+
+    args[arg_count].arg_adress = &_plannar_offset;
+    args[arg_count].arg_size = sizeof (_plannar_offset);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_matrix_buffer->get_mem_id();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_macc_table_buffer->get_mem_id();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_gain_yuv;
+    args[arg_count].arg_size = sizeof (_gain_yuv);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_thr_y;
+    args[arg_count].arg_size = sizeof (_thr_y);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_thr_uv;
+    args[arg_count].arg_size = sizeof (_thr_uv);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_enable_tnr_yuv;
+    args[arg_count].arg_size = sizeof (_enable_tnr_yuv);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_buffer_in->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = video_info_out.width / 8 ;
@@ -183,9 +220,11 @@ CLYuvPipeImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 
     if (_buffer_out->is_valid ()) {
         _buffer_out_prev = _buffer_out;
+        _buffer_out_prev_UV = _buffer_out_UV;
     }
     _buffer_in.release ();
     _buffer_out.release ();
+    _buffer_out_UV.release ();
     _matrix_buffer.release ();
     _macc_table_buffer.release ();
 
