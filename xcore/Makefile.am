@@ -152,6 +152,7 @@ xcam_sources +=              \
 	cl_biyuv_handler.cpp	 \
 	cl_image_scaler.cpp   \
 	cl_retinex_handler.cpp	     \
+	cl_gauss_handler.cpp	     \
 	$(NULL)
 endif
 

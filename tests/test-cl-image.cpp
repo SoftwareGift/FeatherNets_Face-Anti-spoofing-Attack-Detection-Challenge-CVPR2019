@@ -39,6 +39,7 @@
 #include "cl_yuv_pipe_handler.h"
 #include "cl_tonemapping_handler.h"
 #include "cl_retinex_handler.h"
+#include "cl_gauss_handler.h"
 
 using namespace XCam;
 
@@ -60,7 +61,8 @@ enum TestHandlerType {
     TestHandlerBayerPipe,
     TestHandlerYuvPipe,
     TestHandlerTonemapping,
-    TestHandlerRetinex
+    TestHandlerRetinex,
+    TestHandlerGauss
 };
 
 struct TestFileHandle {
@@ -144,7 +146,7 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
@@ -254,6 +256,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerTonemapping;
             else if (!strcasecmp (optarg, "retinex"))
                 handler_type = TestHandlerRetinex;
+            else if (!strcasecmp (optarg, "gauss"))
+                handler_type = TestHandlerGauss;
             else
                 print_help (bin_name);
             break;
@@ -447,6 +451,12 @@ int main (int argc, char *argv[])
         image_handler = create_cl_retinex_image_handler (context);
         SmartPtr<CLRetinexImageHandler> retinex = image_handler.dynamic_cast_ptr<CLRetinexImageHandler> ();
         XCAM_ASSERT (retinex.ptr ());
+        break;
+    }
+    case TestHandlerGauss: {
+        image_handler = create_cl_gauss_image_handler (context);
+        SmartPtr<CLGaussImageHandler> gauss = image_handler.dynamic_cast_ptr<CLGaussImageHandler> ();
+        XCAM_ASSERT (gauss.ptr ());
         break;
     }
 
