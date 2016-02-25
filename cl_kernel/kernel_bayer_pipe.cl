@@ -220,7 +220,7 @@ void demosaic_denoise_2_cell (
         R_y[2] = *(__local float4*)(y_data_in + index);
 
         out_data_r[0].s13 = dot_denoise_ee (R_y[1].s12, R_y[0].s12, R_y[1].s01, R_y[1].s23, R_y[2].s12,
-                                             table, gain_coff0 * GUASS_DELTA_S_2, &egain[1], ee_config);
+                                            table, gain_coff0 * GUASS_DELTA_S_2, &egain[1], ee_config);
     }
 
     // Gr, Gb egain
@@ -258,7 +258,7 @@ void demosaic_denoise_2_cell (
         B_z[2] = *(__local float4*)(z_data_in + index);
 
         out_data_b[1].s02 = dot_denoise_ee (B_z[1].s12, B_z[0].s12, B_z[1].s01, B_z[1].s23, B_z[2].s12,
-                                             table, gain_coff0 * GUASS_DELTA_S_2, &egain[2], ee_config);
+                                            table, gain_coff0 * GUASS_DELTA_S_2, &egain[2], ee_config);
     }
 
     ////////////////////////////////R//////////////////////////////////////////
@@ -300,7 +300,7 @@ void demosaic_denoise_2_cell (
         out_data_b[0].s02 = de * egain[0];
 
         value = (B_z[0].s12 + B_z[0].s23 +
-                  B_z[1].s12 + B_z[1].s23) * 0.25f;
+                 B_z[1].s12 + B_z[1].s23) * 0.25f;
         de = dot_denoise (value, B_z[0].s12, B_z[0].s23, B_z[1].s12, B_z[1].s23, table, gain_coff0 * GUASS_DELTA_S_1_5);
         out_data_b[0].s13 = de * egain[1];
 
