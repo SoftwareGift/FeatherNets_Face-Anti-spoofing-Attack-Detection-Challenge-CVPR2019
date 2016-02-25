@@ -27,7 +27,6 @@ namespace XCam {
 
 CLCscImageKernel::CLCscImageKernel (SmartPtr<CLContext> &context, const char *name)
     : CLImageKernel (context, name)
-    , _vertical_offset (0)
     , _kernel_csc_type (CL_CSC_TYPE_RGBATONV12)
 {
     set_matrix (default_rgbtoyuv_matrix);
@@ -56,13 +55,20 @@ CLCscImageKernel::prepare_arguments (
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & in_video_info = input->get_video_info ();
     const VideoBufferInfo & out_video_info = output->get_video_info ();
+    bool in_single_plane = false, out_single_plane = false;
 
-    _image_in = new CLVaImage (context, input);
-    _image_out = new CLVaImage (context, output);
+    if (_kernel_csc_type == CL_CSC_TYPE_NV12TORGBA) {
+        in_single_plane = true;
+    }
+    if (_kernel_csc_type == CL_CSC_TYPE_RGBATONV12) {
+        out_single_plane = true;
+    }
+
+    _image_in = new CLVaImage (context, input, in_video_info.offsets[0], in_single_plane);
+    _image_out = new CLVaImage (context, output, out_video_info.offsets[0], out_single_plane);
     _matrix_buffer = new CLBuffer (
         context, sizeof(float)*XCAM_COLOR_MATRIX_SIZE,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_rgbtoyuv_matrix);
-    _vertical_offset = out_video_info.aligned_height;
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid () && _matrix_buffer->is_valid());
     XCAM_FAIL_RETURN (
@@ -71,40 +77,66 @@ CLCscImageKernel::prepare_arguments (
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
-    //set args;
-    args[0].arg_adress = &_image_in->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_vertical_offset;
-    args[2].arg_size = sizeof (_vertical_offset);
-    args[3].arg_adress = &_matrix_buffer->get_mem_id();
-    args[3].arg_size = sizeof (cl_mem);
-
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    if (_kernel_csc_type == CL_CSC_TYPE_RGBATONV12) {
-        work_size.global[0] = out_video_info.width / 2;
-        work_size.global[1] = out_video_info.height / 2;
-        arg_count = 4;
-    }
-    else if ((_kernel_csc_type == CL_CSC_TYPE_RGBATOLAB)
-             || (_kernel_csc_type == CL_CSC_TYPE_RGBA64TORGBA)
-             || (_kernel_csc_type == CL_CSC_TYPE_YUYVTORGBA)) {
-        work_size.global[0] = out_video_info.width;
-        work_size.global[1] = out_video_info.height;
-        arg_count = 2;
-    }
-    else if(_kernel_csc_type == CL_CSC_TYPE_NV12TORGBA) {
-        _vertical_offset = in_video_info.aligned_height;
-        work_size.global[0] = out_video_info.width / 2;
-        work_size.global[1] = out_video_info.height / 2;
-        arg_count = 3;
-    }
-
     work_size.local[0] = 4;
     work_size.local[1] = 4;
 
+    //set args;
+    arg_count = 0;
+    args[arg_count].arg_adress = &_image_in->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_image_out->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    do {
+        if ((_kernel_csc_type == CL_CSC_TYPE_RGBATOLAB)
+                || (_kernel_csc_type == CL_CSC_TYPE_RGBA64TORGBA)
+                || (_kernel_csc_type == CL_CSC_TYPE_YUYVTORGBA)) {
+            work_size.global[0] = out_video_info.width;
+            work_size.global[1] = out_video_info.height;
+            break;
+        }
+
+        if(_kernel_csc_type == CL_CSC_TYPE_NV12TORGBA) {
+            _image_uv = new CLVaImage (context, input, in_video_info.offsets[1], true);
+            args[arg_count].arg_adress = &_image_uv->get_mem_id();
+            args[arg_count].arg_size = sizeof (cl_mem);
+            ++arg_count;
+
+            work_size.global[0] = out_video_info.width / 2;
+            work_size.global[1] = out_video_info.height / 2;
+            break;
+        }
+
+        if (_kernel_csc_type == CL_CSC_TYPE_RGBATONV12) {
+            _image_uv = new CLVaImage (context, output, out_video_info.offsets[1], true);
+            args[arg_count].arg_adress = &_image_uv->get_mem_id();
+            args[arg_count].arg_size = sizeof (cl_mem);
+            ++arg_count;
+
+            args[arg_count].arg_adress = &_matrix_buffer->get_mem_id();
+            args[arg_count].arg_size = sizeof (cl_mem);
+            ++arg_count;
+
+            work_size.global[0] = out_video_info.width / 2;
+            work_size.global[1] = out_video_info.height / 2;
+            break;
+        }
+    } while (0);
+
     return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLCscImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
+{
+    _matrix_buffer.release ();
+    _image_uv.release ();
+
+    return CLImageKernel::post_execute (output);
 }
 
 CLCscImageHandler::CLCscImageHandler (const char *name, CLCscType type)

@@ -49,14 +49,15 @@ protected:
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
         CLArgument args[], uint32_t &arg_count,
         CLWorkSize &work_size);
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLCscImageKernel);
 
-    uint32_t _vertical_offset;
-    float _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
-    CLCscType _kernel_csc_type;
-    SmartPtr<CLBuffer>  _matrix_buffer;
+    float                   _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
+    CLCscType               _kernel_csc_type;
+    SmartPtr<CLBuffer>      _matrix_buffer;
+    SmartPtr<CLImage>       _image_uv;
 };
 
 class CLCscImageHandler

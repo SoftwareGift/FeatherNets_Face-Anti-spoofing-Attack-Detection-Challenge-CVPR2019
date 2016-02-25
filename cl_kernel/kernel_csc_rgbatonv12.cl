@@ -5,7 +5,7 @@
  * vertical_offset, vertical offset from y to uv
  */
 
-__kernel void kernel_csc_rgbatonv12 (__read_only image2d_t input, __write_only image2d_t output, uint vertical_offset, __global float *matrix)
+__kernel void kernel_csc_rgbatonv12 (__read_only image2d_t input, __write_only image2d_t output_y, __write_only image2d_t output_uv, __global float *matrix)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
@@ -39,11 +39,11 @@ __kernel void kernel_csc_rgbatonv12 (__read_only image2d_t input, __write_only i
     pixel_out_v.y = 0.0;
     pixel_out_v.z = 0.0;
     pixel_out_v.w = 1.0;
-    write_imagef(output, (int2)(2 * x, 2 * y), pixel_out_y1);
-    write_imagef(output, (int2)(2 * x + 1, 2 * y), pixel_out_y2);
-    write_imagef(output, (int2)(2 * x, 2 * y + 1), pixel_out_y3);
-    write_imagef(output, (int2)(2 * x + 1, 2 * y + 1), pixel_out_y4);
-    write_imagef(output, (int2)(2 * x, y + vertical_offset), pixel_out_u);
-    write_imagef(output, (int2)(2 * x + 1, y + vertical_offset), pixel_out_v);
+    write_imagef(output_y, (int2)(2 * x, 2 * y), pixel_out_y1);
+    write_imagef(output_y, (int2)(2 * x + 1, 2 * y), pixel_out_y2);
+    write_imagef(output_y, (int2)(2 * x, 2 * y + 1), pixel_out_y3);
+    write_imagef(output_y, (int2)(2 * x + 1, 2 * y + 1), pixel_out_y4);
+    write_imagef(output_uv, (int2)(2 * x, y), pixel_out_u);
+    write_imagef(output_uv, (int2)(2 * x + 1, y), pixel_out_v);
 }
 
