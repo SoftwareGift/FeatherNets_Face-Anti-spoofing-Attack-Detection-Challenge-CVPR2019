@@ -111,6 +111,8 @@ protected:
 
     bool add_data_unsafe (SmartPtr<BufferData> data);
 
+    void update_video_info_unsafe (const VideoBufferInfo &info);
+
 private:
     void release (SmartPtr<BufferData> &data);
     XCAM_DEAD_COPY (BufferPool);

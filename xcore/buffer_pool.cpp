@@ -127,8 +127,14 @@ BufferPool::set_video_info (const VideoBufferInfo &info)
         fixate_video_info (new_info),
         false,
         "BufferPool fixate video info failed");
-    _buffer_info = new_info;
+    update_video_info_unsafe (new_info);
     return true;
+}
+
+void
+BufferPool::update_video_info_unsafe (const VideoBufferInfo &info)
+{
+    _buffer_info = info;
 }
 
 bool

@@ -161,6 +161,26 @@ CLImageHandler::~CLImageHandler ()
 }
 
 bool
+CLImageHandler::enable_buf_pool_swap_flags (
+    uint32_t flags,
+    uint32_t init_order)
+{
+    _buf_swap_flags = flags;
+    _buf_swap_init_order = init_order;
+
+    SmartPtr<DrmBoBufferPool> pool = _buf_pool.dynamic_cast_ptr<DrmBoBufferPool> ();
+
+    if (pool.ptr () && !pool->update_swap_init_order (init_order)) {
+        XCAM_LOG_ERROR (
+            "Handler(%s) update swap order(0x%04x) to buffer pool failed",
+            XCAM_STR (get_name ()),
+            init_order);
+        return false;
+    }
+    return true;
+}
+
+bool
 CLImageHandler::add_kernel (SmartPtr<CLImageKernel> &kernel)
 {
     _kernels.push_back (kernel);

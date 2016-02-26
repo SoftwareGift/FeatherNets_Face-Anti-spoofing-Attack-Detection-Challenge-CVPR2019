@@ -113,13 +113,9 @@ public:
         _buf_pool_size = size;
     }
 
-    void enable_buf_pool_swap_flags (
+    bool enable_buf_pool_swap_flags (
         uint32_t flags,
-        uint32_t init_order = (uint32_t)(SwappedBuffer::OrderY0Y1))
-    {
-        _buf_swap_flags = flags;
-        _buf_swap_init_order = init_order;
-    }
+        uint32_t init_order = (uint32_t)(SwappedBuffer::OrderY0Y1));
 
     bool add_kernel (SmartPtr<CLImageKernel> &kernel);
     bool set_kernels_enable (bool enable);
@@ -165,6 +161,9 @@ public:
     explicit CLCloneImageHandler (const char *name);
     void set_clone_flags (uint32_t flags) {
         _clone_flags = flags;
+    }
+    uint32_t get_clone_flags () const {
+        return _clone_flags;
     }
 
 protected:

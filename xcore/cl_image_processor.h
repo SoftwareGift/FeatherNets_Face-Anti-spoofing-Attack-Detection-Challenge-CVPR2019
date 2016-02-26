@@ -35,6 +35,7 @@ class CLHandlerThread;
 class CLImageProcessor
     : public ImageProcessor
 {
+public:
     typedef std::list<SmartPtr<CLImageHandler>>  ImageHandlerList;
     friend class CLHandlerThread;
 
@@ -43,6 +44,8 @@ public:
     virtual ~CLImageProcessor ();
 
     bool add_handler (SmartPtr<CLImageHandler> &handler);
+    ImageHandlerList::iterator handlers_begin ();
+    ImageHandlerList::iterator handlers_end ();
 
 protected:
 

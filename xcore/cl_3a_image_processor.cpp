@@ -454,7 +454,46 @@ CL3aImageProcessor::create_handlers ()
         add_handler (image_handler);
     }
 
+    XCAM_FAIL_RETURN (
+        WARNING,
+        post_config (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor post_config failed");
+
     return XCAM_RETURN_NO_ERROR;
+}
+
+bool
+CL3aImageProcessor::post_config ()
+{
+    CLImageProcessor::ImageHandlerList::iterator i_handler = handlers_begin ();
+    CLImageProcessor::ImageHandlerList::iterator end = handlers_end ();
+    uint32_t swap_y_count = 0;
+    bool start_count = false;
+    bool ret = true;
+
+    if (!_yuv_pipe.ptr ())  //not necessary to check
+        return true;
+
+    for (; i_handler != end; ++i_handler) {
+        if (!start_count) {
+            SmartPtr<CLYuvPipeImageHandler> convert_yuv = (*i_handler).dynamic_cast_ptr<CLYuvPipeImageHandler> ();
+            if (convert_yuv.ptr () && convert_yuv.ptr () == _yuv_pipe.ptr ())
+                start_count = true;
+            continue;
+        }
+
+        SmartPtr<CLCloneImageHandler> clone_y = (*i_handler).dynamic_cast_ptr<CLCloneImageHandler> ();
+        if (clone_y.ptr () && clone_y->is_kernels_enabled () && (clone_y->get_clone_flags () & SwappedBuffer::SwapY))
+            swap_y_count++;
+    }
+
+    if (swap_y_count % 2 == 1)
+        ret = _yuv_pipe->enable_buf_pool_swap_flags (SwappedBuffer::SwapY, SwappedBuffer::OrderY1Y0);
+    else
+        ret = _yuv_pipe->enable_buf_pool_swap_flags (SwappedBuffer::SwapY, SwappedBuffer::OrderY0Y1);
+
+    return ret;
 }
 
 bool

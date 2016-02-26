@@ -172,6 +172,34 @@ DrmBoBufferPool::~DrmBoBufferPool ()
 }
 
 bool
+DrmBoBufferPool::update_swap_init_order (uint32_t init_order)
+{
+    VideoBufferInfo info = get_video_info ();
+    XCAM_ASSERT (info.format);
+
+    if ((_swap_flags & (uint32_t)(SwappedBuffer::SwapY)) && !(init_order & (uint32_t)(SwappedBuffer::OrderYMask))) {
+        XCAM_LOG_WARNING ("update swap init order failed, need init Y order, error order:0x%04x", init_order);
+        return false;
+    }
+
+    if ((_swap_flags & (uint32_t)(SwappedBuffer::SwapUV)) && !(init_order & (uint32_t)(SwappedBuffer::OrderUVMask))) {
+        XCAM_LOG_WARNING ("update swap init order failed, need init UV order, error order:0x%04x", init_order);
+        return false;
+    }
+    _swap_init_order = init_order;
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        init_swap_order (info),
+        false,
+        "CL3aImageProcessor post_config failed");
+
+    update_video_info_unsafe (info);
+
+    return true;
+}
+
+bool
 DrmBoBufferPool::fixate_video_info (VideoBufferInfo &info)
 {
     if (info.format != V4L2_PIX_FMT_NV12)

@@ -79,6 +79,18 @@ CLImageProcessor::add_handler (SmartPtr<CLImageHandler> &handler)
     return true;
 }
 
+CLImageProcessor::ImageHandlerList::iterator
+CLImageProcessor::handlers_begin ()
+{
+    return _handlers.begin ();
+}
+
+CLImageProcessor::ImageHandlerList::iterator
+CLImageProcessor::handlers_end ()
+{
+    return _handlers.end ();
+}
+
 SmartPtr<CLContext>
 CLImageProcessor::get_cl_context ()
 {

@@ -97,6 +97,8 @@ protected:
 
 private:
     virtual XCamReturn create_handlers ();
+
+    bool post_config ();
     XCAM_DEAD_COPY (CL3aImageProcessor);
 
 private:

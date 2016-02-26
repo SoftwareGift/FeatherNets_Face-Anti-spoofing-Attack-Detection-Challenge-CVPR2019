@@ -103,6 +103,8 @@ public:
         return _swap_flags;
     }
 
+    bool update_swap_init_order (uint32_t init_order);
+
 protected:
     // derived from BufferPool
     virtual bool fixate_video_info (VideoBufferInfo &info);
