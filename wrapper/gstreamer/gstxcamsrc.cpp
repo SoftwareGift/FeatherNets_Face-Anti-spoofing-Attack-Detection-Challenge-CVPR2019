@@ -67,6 +67,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_ENABLE_3A          TRUE
 #define DEFAULT_PROP_ENABLE_USB         FALSE
 #define DEFAULT_PROP_ENABLE_WDR         FALSE
+#define DEFAULT_PROP_ENABLE_WAVELET     FALSE
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_PIXELFORMAT        V4L2_PIX_FMT_NV12 //420 instead of 0
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
@@ -226,6 +227,7 @@ enum {
     PROP_INPUT_FMT,
     PROP_ENABLE_USB,
     PROP_ENABLE_WDR,
+    PROP_ENABLE_WAVELET,
     PROP_FAKE_INPUT
 };
 
@@ -338,6 +340,11 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                               DEFAULT_PROP_ENABLE_WDR, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
+        gobject_class, PROP_ENABLE_WAVELET,
+        g_param_spec_boolean ("enable-wavelet", "enable wavelet denoise", "Enable WAVELET DENOISE",
+                              DEFAULT_PROP_ENABLE_WAVELET, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
         gobject_class, PROP_MEM_MODE,
         g_param_spec_enum ("io-mode", "memory mode", "Memory mode",
                            GST_TYPE_XCAM_SRC_MEM_MODE, DEFAULT_PROP_MEM_MODE,
@@ -433,6 +440,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
     xcamsrc->enable_wdr = DEFAULT_PROP_ENABLE_WDR;
+    xcamsrc->enable_wavelet = DEFAULT_PROP_ENABLE_WAVELET;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
     xcamsrc->time_offset = -1;
@@ -505,6 +513,10 @@ gst_xcam_src_get_property (
 
     case PROP_ENABLE_WDR:
         g_value_set_boolean (value, src->enable_wdr);
+        break;
+
+    case PROP_ENABLE_WAVELET:
+        g_value_set_boolean (value, src->enable_wavelet);
         break;
 
     case PROP_MEM_MODE:
@@ -582,6 +594,10 @@ gst_xcam_src_set_property (
 
     case PROP_ENABLE_WDR:
         src->enable_wdr = g_value_get_boolean (value);
+        break;
+
+    case PROP_ENABLE_WAVELET:
+        src->enable_wavelet = g_value_get_boolean (value);
         break;
 
     case PROP_MEM_MODE:
@@ -784,6 +800,10 @@ gst_xcam_src_start (GstBaseSrc *src)
             cl_processor->set_gamma (false);
             xcamsrc->in_format = V4L2_PIX_FMT_SGRBG12;
             setenv ("AIQ_CPF_PATH", "/etc/atomisp/imx185_wdr.cpf", 1);
+        }
+        if(xcamsrc->enable_wavelet)
+        {
+            cl_processor->set_wavelet (true);
         }
         cl_processor->set_profile ((CL3aImageProcessor::PipelineProfile)xcamsrc->cl_pipe_profile);
         device_manager->add_image_processor (cl_processor);
