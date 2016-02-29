@@ -366,6 +366,17 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
             "cl_image_handler(%s) execute kernel(%s) failed",
             XCAM_STR (_name), kernel->get_kernel_name ());
 
+    }
+
+#if ENABLE_PROFILING
+    CLDevice::instance()->get_context ()->finish ();
+#endif
+
+    // for post_execute
+    for (KernelList::iterator i_kernel = _kernels.begin ();
+            i_kernel != _kernels.end (); ++i_kernel) {
+        SmartPtr<CLImageKernel> &kernel = *i_kernel;
+
         ret = kernel->post_execute (output);
         XCAM_FAIL_RETURN (
             WARNING,
@@ -377,10 +388,6 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
         if (ret == XCAM_RETURN_BYPASS)
             break;
     }
-
-#if ENABLE_PROFILING
-    CLDevice::instance()->get_context ()->finish ();
-#endif
 
     XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
 
