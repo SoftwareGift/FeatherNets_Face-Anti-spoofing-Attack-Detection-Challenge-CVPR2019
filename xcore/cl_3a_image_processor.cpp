@@ -344,7 +344,6 @@ CL3aImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create tonemapping handler failed");
     _tonemapping->set_kernels_enable (_enable_tonemapping);
-    //_tonemapping->set_kernels_enable (false);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 

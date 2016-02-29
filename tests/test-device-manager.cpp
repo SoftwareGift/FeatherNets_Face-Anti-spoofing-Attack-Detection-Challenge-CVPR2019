@@ -744,6 +744,10 @@ int main (int argc, char *argv[])
         cl_processor->set_retinex (retinex_type);
         cl_processor->set_wavelet (wavelet_type);
         cl_processor->set_capture_stage (capture_stage);
+
+        if (wdr_type) {
+            cl_processor->set_3a_stats_bits(12);
+        }
         if (need_display) {
             cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }

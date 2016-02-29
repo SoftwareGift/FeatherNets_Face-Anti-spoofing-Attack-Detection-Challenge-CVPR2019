@@ -26,6 +26,31 @@ CLNewTonemappingImageKernel::CLNewTonemappingImageKernel (SmartPtr<CLContext> &c
         const char *name)
     : CLImageKernel (context, name)
 {
+    _image_height = 540;
+
+    for(int i = 0; i < 65536; i++)
+    {
+        _map_hist[i] = i;
+    }
+}
+
+void Haleq(int *y, int *hist, int *hist_leq, int left, int right, int level, int index_left, int index_right)
+{
+    int l;
+    float e, le;
+
+    l = (left + right) / 2;
+    int num_left = left > 0 ? hist[left - 1] : 0;
+    int pixel_num = hist[right] - num_left;
+    e = y[num_left + pixel_num / 2];
+    le = 0.5f * (e - l) + l;
+    int index = (index_left + index_right) / 2;
+    hist_leq[index] = (int)(le + 0.5f);
+
+    if(level > 6) return;
+
+    Haleq(y, hist, hist_leq, left, (int)(le + 0.5f), level + 1, index_left, index);
+    Haleq(y, hist, hist_leq, (int)(le + 0.5f) + 1, right, level + 1, index + 1, index_right);
 }
 
 XCamReturn
@@ -51,70 +76,122 @@ CLNewTonemappingImageKernel::prepare_arguments (
 
     SmartPtr<X3aStats> stats = input->find_3a_stats ();
     XCam3AStats *stats_ptr = stats->get_stats ();
-    int pixel_totalnum = stats_ptr->info.aligned_width * stats_ptr->info.aligned_height;
-    ushort *image_buf = (ushort *)input->map();
-    float *y = new float[pixel_totalnum];
-    _y_max = 0;
-    _y_min = 65536;
-    for(int i = 0; i < pixel_totalnum; i++)
+    int stats_totalnum = stats_ptr->info.width * stats_ptr->info.height;
+    int hist_bin_count = 1 << stats_ptr->info.bit_depth;
+    int gain = 65536 / hist_bin_count;
+    int y_max;
+
+    for(int i = hist_bin_count - 1; i >= 0; i--)
     {
-        float r = image_buf[i + pixel_totalnum];
-        float g = (image_buf[i] + image_buf[i + pixel_totalnum * 3]) / 2.0f;
-        float b = image_buf[i + pixel_totalnum * 2];
-        y[i] = 0.299f * r + 0.587f * g + 0.114f * b;
-        if(_y_max < y[i]) _y_max = (int)y[i];
-        if(_y_min > y[i]) _y_min = (int)y[i];
+        if(stats_ptr->hist_y[i] > 0)
+        {
+            y_max = i;
+            break;
+        }
     }
-    int hist_log[65536];
-    float t = 0.01f;
-    for(int i = 0; i < 65536; i++)
+
+    int* hist_new = new int[65536];
+    int* hist_log = new int[hist_bin_count];
+    int* sort_y = new int[stats_totalnum];
+    float* map_index_leq = new float[65536];
+    int* map_index_log = new int[65536];
+
+    float t = 0.01f * y_max;
+    float max_log = log(y_max + t);
+    float t_log = log(t);
+    for(int i = 0; i < hist_bin_count; i++)
     {
         hist_log[i] = 0;
     }
-    for(int i = 0; i < pixel_totalnum; i++)
+
+    float factor = (hist_bin_count - 1) / (max_log - t_log);
+    for(int i = 0; i < y_max; i++)
     {
-        int index = (int)(65535 * (log(y[i] / _y_max + t) - log(_y_min / _y_max + t)) / (log(1.0f + t) - log(_y_min / _y_max + t)));
-        hist_log[index]++;
-    }
-    int avg_binnum = pixel_totalnum / 256;
-    int acc_num = 0;
-    int j = 1;
-    _hist_leq[0] = 0;
-    for(int i = 0; i < 65536 && j < 256; i++)
-    {
-        acc_num += hist_log[i];
-        while(acc_num > avg_binnum && j < 256)
+        int index = (int)((log(i + t) - t_log) * factor + 0.5f);
+        hist_log[index] += stats_ptr->hist_y[i];
+        for(int l = 0; l < gain; l++)
         {
-            _hist_leq[j] = 0.5 * (i / 65535.0f - j / 255.0f) + j / 255.0f;
-            j++;
-            acc_num -= avg_binnum;
+            map_index_log[l + i * gain] = l + index * gain;
         }
     }
-    for(int i = j; i < 256; i++)
-    {
-        _hist_leq[i] = i / 255.0f;
-    }
-    input->unmap();
 
-    _hist_leq_buffer = new CLBuffer(
-        context, sizeof(float) * 256,
-        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_hist_leq);
+    for(int i = y_max * gain; i < 65536; i++)
+    {
+        map_index_log[i] = 65535;
+    }
+
+    for(int i = 0; i < hist_bin_count; i++)
+    {
+        int avg_bin = hist_log[i] / gain;
+        int remain_num = hist_log[i] % gain;
+
+        for(int l = 0; l < gain; l++)
+        {
+            hist_new[l + i * gain] = avg_bin + (l < remain_num ? 1 : 0);
+        }
+    }
+
+    int sort_index = 0;
+    for(int i = 0; i < 65536; i++)
+    {
+        for(int l = 0; l < hist_new[i]; l++)
+        {
+            sort_y[sort_index] = i;
+            sort_index++;
+        }
+    }
+
+    for(int i = 1; i < 65536; i++)
+    {
+        hist_new[i] += hist_new[i - 1];
+    }
+
+    int map_leq_index[256];
+
+    for(int i = 0; i < 256; i++)
+    {
+        map_leq_index[i] = i;
+    }
+
+    Haleq(sort_y, hist_new, map_leq_index, 0, 65535, 0, 0, 255);
+
+    map_leq_index[255] = 65536;
+
+    int k;
+    for(int i = 0; i < 255; i++)
+    {
+        for(k = map_leq_index[i]; k < map_leq_index[i + 1]; k++)
+        {
+            map_index_leq[k] = i;
+        }
+    }
+
+    for(int i = 0; i < 65536; i++)
+    {
+        _map_hist[i] = map_index_leq[map_index_log[i]] / 255.0f;
+    }
+
+    delete[] hist_new;
+    delete[] hist_log;
+    delete[] map_index_leq;
+    delete[] map_index_log;
+    delete[] sort_y;
+
+    _map_hist_buffer = new CLBuffer(
+        context, sizeof(float) * 65536,
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_map_hist);
 
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_hist_leq_buffer->get_mem_id ();
+    args[2].arg_adress = &_map_hist_buffer->get_mem_id ();
     args[2].arg_size = sizeof (cl_mem);
     args[3].arg_adress = &_image_height;
     args[3].arg_size = sizeof (int);
-    args[4].arg_adress = &_y_max;
-    args[4].arg_size = sizeof (int);
-    args[5].arg_adress = &_y_min;
-    args[5].arg_size = sizeof (int);
 
-    arg_count = 6;
+    arg_count = 4;
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;

@@ -8,7 +8,7 @@
 #define WORK_ITEM_X_SIZE 8
 #define WORK_ITEM_Y_SIZE 8
 
-__kernel void kernel_newtonemapping (__read_only image2d_t input, __write_only image2d_t output, __global float *hist_leq, int image_height, int y_max, int y_min)
+__kernel void kernel_newtonemapping (__read_only image2d_t input, __write_only image2d_t output, __global float *hist_leq, int image_height)
 {
     int g_id_x = get_global_id (0);
     int g_id_y = get_global_id (1);
@@ -38,14 +38,13 @@ __kernel void kernel_newtonemapping (__read_only image2d_t input, __write_only i
     src_y_data = mad(src_data_G, 0.587f, src_y_data);
     src_y_data = mad(src_data_B, 0.114f, src_y_data);
 
-    float t = 0.01f;
-    float4 log_y_data = (log(src_y_data * 65535.0f / y_max + t) - log((float4)(y_min / y_max + t))) / (log((float4)(1.0f + t)) - log((float4)(y_min / y_max + t)));
-    float4 dst_y_data = log_y_data;
-    for(int i = 0; i < 256; i++)
-    {
-        dst_y_data = log_y_data <= hist_leq[i] ? dst_y_data : i;
-    }
-    float4 gain = dst_y_data / (src_y_data * 255.0f);
+    float4 dst_y_data;
+    dst_y_data.x = hist_leq[(int)(src_y_data.x * 65535 + 0.5f)];
+    dst_y_data.y = hist_leq[(int)(src_y_data.y * 65535 + 0.5f)];
+    dst_y_data.z = hist_leq[(int)(src_y_data.z * 65535 + 0.5f)];
+    dst_y_data.w = hist_leq[(int)(src_y_data.w * 65535 + 0.5f)];
+
+    float4 gain = dst_y_data / src_y_data;
     src_data_Gr = src_data_Gr * gain;
     src_data_R = src_data_R * gain;
     src_data_B = src_data_B * gain;

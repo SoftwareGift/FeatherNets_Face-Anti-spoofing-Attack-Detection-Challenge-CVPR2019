@@ -43,11 +43,9 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLNewTonemappingImageKernel);
-    int                     _y_max;
-    int                     _y_min;
     int                     _image_height;
-    float                   _hist_leq[256];
-    SmartPtr<CLBuffer>      _hist_leq_buffer;
+    float                   _map_hist[65536];
+    SmartPtr<CLBuffer>      _map_hist_buffer;
 };
 
 class CLNewTonemappingImageHandler
