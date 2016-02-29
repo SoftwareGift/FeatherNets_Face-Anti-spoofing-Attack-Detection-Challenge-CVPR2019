@@ -9,7 +9,7 @@
 
 __constant float threshConst[5] = { 5.430166, 2.376415, 1.184031, 0.640919, 0.367972 };
 
-__kernel void kernel_wavelet_denoise(__global uint *src, __global uint *dest, __global float *details,
+__kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOut, __global float *details, __global uint *dest,
                                      int inputYOffset, int outputYOffset, uint inputUVoffset, uint outputUVoffset,
                                      int layer, int decomLevels, float hardThresh, float softThresh)
 {
@@ -29,6 +29,7 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *dest, __
     layer = (layer < decomLevels) ? layer : decomLevels;
 
     src += inputYOffset;
+    approxOut += inputYOffset;
     dest += outputYOffset;
 
     int xScaler = pown(2.0, (layer - 1));
@@ -162,7 +163,7 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *dest, __
     approx = as_uint4(convert_uchar16((convert_float16(sum) * div)));
     detail = convert_float16(convert_char16(e) - as_char16(approx));
 
-    deviation = (detail < threshConst[layer] || detail > -threshConst[layer]) ? detail * detail : 0;
+    deviation = (detail < threshConst[layer - 1] || detail > -threshConst[layer - 1]) ? detail * detail : deviation;
 
     stdev = sqrt((deviation.s0 + deviation.s1 + deviation.s2 + deviation.s3 + deviation.s4 +
                   deviation.s5 + deviation.s6 + deviation.s7 + deviation.s8 + deviation.s9 +
@@ -177,24 +178,24 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *dest, __
     __global float16 *details_p = (__global float16 *)(&details[pixel_index]);
     if (layer == 1) {
         (*details_p) = detail;
-    } else {
-        (*details_p) += detail;
-    }
-
-    if (layer < decomLevels) {
-        (*(__global uint4*)(src + group_index)) = approx;
-    }
-    else
-    {
-        // Reconstruction
-        __global uint4* dest_p = (__global uint4*)(&dest[group_index]);
-        (*dest_p) = as_uint4(convert_uchar16(*details_p + convert_float16(as_uchar16(approx))));
 
         // copy UV
         if (y % 2 == 0) {
             uv = vload4(0, src + uv_index + inputUVoffset * (imageWidth / 4));
             vstore4(uv, 0, dest + uv_index + outputUVoffset * (imageWidth / 4));
         }
+    } else {
+        (*details_p) += detail;
+    }
+
+    if (layer < decomLevels) {
+        (*(__global uint4*)(approxOut + group_index)) = approx;
+    }
+    else
+    {
+        // Reconstruction
+        __global uint4* dest_p = (__global uint4*)(&dest[group_index]);
+        (*dest_p) = as_uint4(convert_uchar16(*details_p + convert_float16(as_uchar16(approx))));
     }
 }
 

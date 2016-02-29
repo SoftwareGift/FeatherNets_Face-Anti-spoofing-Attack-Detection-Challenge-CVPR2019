@@ -67,9 +67,10 @@ private:
 
     SmartPtr<CLWaveletDenoiseImageHandler> _handler;
 
-    SmartPtr<CLMemory>  _buffer_in;
-    SmartPtr<CLMemory>  _buffer_out;
+    SmartPtr<CLMemory>  _input_image;
+    SmartPtr<CLMemory>  _approx_image;
     SmartPtr<CLMemory>  _details_image;
+    SmartPtr<CLMemory>  _reconstruct_image;
 };
 
 class CLWaveletDenoiseImageHandler
@@ -87,6 +88,10 @@ public:
         return _details_image;
     };
 
+    SmartPtr<CLMemory> &get_approx_image () {
+        return _approx_image;
+    };
+
 protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
@@ -96,6 +101,7 @@ private:
 private:
     XCam3aResultWaveletNoiseReduction _config;
     SmartPtr<CLMemory> _details_image;
+    SmartPtr<CLMemory> _approx_image;
 };
 
 SmartPtr<CLImageHandler>
