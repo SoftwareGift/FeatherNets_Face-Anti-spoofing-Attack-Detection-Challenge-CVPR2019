@@ -44,7 +44,7 @@ __kernel void kernel_newtonemapping (__read_only image2d_t input, __write_only i
     dst_y_data.z = hist_leq[(int)(src_y_data.z * 65535 + 0.5f)];
     dst_y_data.w = hist_leq[(int)(src_y_data.w * 65535 + 0.5f)];
 
-    float4 gain = dst_y_data / src_y_data;
+    float4 gain = dst_y_data / (src_y_data + 0.00001f);
     src_data_Gr = src_data_Gr * gain;
     src_data_R = src_data_R * gain;
     src_data_B = src_data_B * gain;

@@ -157,6 +157,12 @@ CLNewTonemappingImageKernel::prepare_arguments (
 
     map_leq_index[255] = 65536;
 
+    for(int i = 1; i < 256; i++)
+    {
+        if(map_leq_index[i] < map_leq_index[i - 1])
+            map_leq_index[i] = map_leq_index[i - 1];
+    }
+
     int k;
     for(int i = 0; i < 255; i++)
     {
