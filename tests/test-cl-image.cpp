@@ -40,6 +40,7 @@
 #include "cl_tonemapping_handler.h"
 #include "cl_retinex_handler.h"
 #include "cl_gauss_handler.h"
+#include "cl_wavelet_denoise_handler.h"
 
 using namespace XCam;
 
@@ -62,7 +63,8 @@ enum TestHandlerType {
     TestHandlerYuvPipe,
     TestHandlerTonemapping,
     TestHandlerRetinex,
-    TestHandlerGauss
+    TestHandlerGauss,
+    TestHandlerWavelet,
 };
 
 struct TestFileHandle {
@@ -146,7 +148,8 @@ print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise, gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss]\n"
+            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise,"
+            " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
@@ -258,6 +261,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerRetinex;
             else if (!strcasecmp (optarg, "gauss"))
                 handler_type = TestHandlerGauss;
+            else if (!strcasecmp (optarg, "wavelet"))
+                handler_type = TestHandlerWavelet;
             else
                 print_help (bin_name);
             break;
@@ -457,6 +462,16 @@ int main (int argc, char *argv[])
         image_handler = create_cl_gauss_image_handler (context);
         SmartPtr<CLGaussImageHandler> gauss = image_handler.dynamic_cast_ptr<CLGaussImageHandler> ();
         XCAM_ASSERT (gauss.ptr ());
+        break;
+    }
+    case TestHandlerWavelet: {
+        image_handler = create_cl_wavelet_denoise_image_handler (context);
+        SmartPtr<CLWaveletDenoiseImageHandler> wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
+        XCAM_ASSERT (wavelet.ptr ());
+        XCam3aResultWaveletNoiseReduction wavelet_config;
+        wavelet_config.threshold[0] = 0.3;
+        wavelet_config.threshold[1] = 0.1;
+        wavelet->set_denoise_config (wavelet_config);
         break;
     }
 
