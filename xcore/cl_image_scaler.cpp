@@ -23,18 +23,24 @@
 
 namespace XCam {
 
-#define XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE 4
-
-CLImageScalerKernel::CLImageScalerKernel (
+CLScalerKernel::CLScalerKernel (
     SmartPtr<CLContext> &context,
-    CLImageScalerMemoryLayout mem_layout,
-    SmartPtr<CLImageScaler> &scaler
+    CLImageScalerMemoryLayout mem_layout
 )
     : CLImageKernel (context, "kernel_image_scaler")
     , _pixel_format (V4L2_PIX_FMT_NV12)
     , _mem_layout (mem_layout)
     , _output_width (0)
     , _output_height (0)
+{
+}
+
+CLImageScalerKernel::CLImageScalerKernel (
+    SmartPtr<CLContext> &context,
+    CLImageScalerMemoryLayout mem_layout,
+    SmartPtr<CLImageScaler> &scaler
+)
+    : CLScalerKernel (context, mem_layout)
     , _scaler (scaler)
 {
 }
@@ -103,7 +109,7 @@ CLImageScalerKernel::prepare_arguments (
         input_imageDesc.height = input_info.height;
         input_imageDesc.row_pitch = input_info.strides[0];
 
-        _image_in = new CLVaImage (context, input, input_imageDesc, input_info.offsets[0]);
+        _image_in = new CLVaImage (context, input, input_imageDesc, 0);
     }
 
     //set args;

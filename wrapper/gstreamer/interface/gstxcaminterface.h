@@ -453,6 +453,17 @@ struct _GstXCam3AInterface {
      * \return           bool          0 on success
      */
     gboolean (* set_tonemapping_mode)           (GstXCam3A *xcam, gboolean enable);
+
+    /*!
+     * \brief set retinex mode.
+     *
+     * \param[in,out]    xcam          XCam3A handle
+     * \param[in]        enable        true: enable, false: disable
+     * \return           bool          0 on success
+     */
+    gboolean (* set_retinex_mode)           (GstXCam3A *xcam, gboolean enable);
+
+
 };
 
 /*! \brief Get GST interface type of XCam 3A interface.

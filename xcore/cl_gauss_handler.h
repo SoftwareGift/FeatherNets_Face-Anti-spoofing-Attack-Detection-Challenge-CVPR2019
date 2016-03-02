@@ -44,12 +44,13 @@ protected:
         CLArgument args[], uint32_t &arg_count,
         CLWorkSize &work_size);
 
-private:
-    XCAM_DEAD_COPY (CLGaussImageKernel);
+protected:
     uint32_t _vertical_offset_in;
     uint32_t _vertical_offset_out;
     SmartPtr<CLBuffer>  _g_table_buffer;
     float _g_table[XCAM_GAUSS_TABLE_SIZE*XCAM_GAUSS_TABLE_SIZE];
+private:
+    XCAM_DEAD_COPY (CLGaussImageKernel);
 };
 
 class CLGaussImageHandler

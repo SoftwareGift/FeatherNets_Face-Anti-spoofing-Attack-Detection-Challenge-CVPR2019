@@ -83,6 +83,7 @@ struct _GstXCamSrc
     gboolean                     enable_3a;
     gboolean                     enable_usb;
     gboolean                     enable_wavelet;
+    gboolean                     enable_retinex;
     char                        *path_to_fake;
 
     gboolean                     time_offset_ready;

@@ -4,21 +4,24 @@
  * output:   image2d_t as write only
  */
 typedef struct {
-    float  gain;
-    float  threshold;
-    float           log_min;
-    float           log_max;
+    float    gain;
+    float    threshold;
+    float    log_min;
+    float    log_max;
+    float    width;
+    float    height;
 } CLRetinexConfig;
 
-__kernel void kernel_retinex (__read_only image2d_t input, __write_only image2d_t output, uint vertical_offset_in, uint vertical_offset_out, CLRetinexConfig re_config, __global float *table)
+__kernel void kernel_retinex (__read_only image2d_t input, __read_only image2d_t ga_input, __write_only image2d_t output, uint vertical_offset_in, uint vertical_offset_out, CLRetinexConfig re_config)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+    sampler_t sampler1 = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
     float4 y_out, uv_in;
-    float4 y_in[25];
-    float y_ga, y_lg;
+    float4 y_in, y_ga;
+    float y_lg;
     int i;
     // cpy UV
     if(y % 2 == 0) {
@@ -26,19 +29,11 @@ __kernel void kernel_retinex (__read_only image2d_t input, __write_only image2d_
         write_imagef(output, (int2)(x, y / 2 + vertical_offset_out), uv_in);
     }
 
-    for(i = 0; i < 25; i++)
-        y_in[i] = read_imagef(input, sampler, (int2)(x - 2 + i % 5, y - 2 + i / 5)) * 255.0;
+    y_in = read_imagef(input, sampler, (int2)(x, y)) * 255.0;
+    y_ga = read_imagef(ga_input, sampler1, (float2)(x / re_config.width, y / (re_config.height / 2 * 3))) * 255.0;
 
-    for(i = 0; i < 25; i++)
-        y_ga += y_in[i].x * table[i];
-    y_lg = log(y_in[12].x) - log(y_ga);
+    y_lg = log(y_in.x) - log(y_ga.x);
 
-    if(y_lg < re_config.log_min)
-        y_out.x = 0.0f;
-    else if(y_lg > re_config.log_max)
-        y_out.x = 1.0;
-    else
-        y_out.x = re_config.gain * (y_lg - re_config.log_min) / 255.0;
+    y_out.x = re_config.gain * y_in.x / 128.0 * (y_lg - re_config.log_min) / 255.0;
     write_imagef(output, (int2)(x, y), y_out);
 }
-
