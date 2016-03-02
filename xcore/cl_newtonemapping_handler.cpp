@@ -90,40 +90,25 @@ CLNewTonemappingImageKernel::prepare_arguments (
         }
     }
 
+    y_max = (y_max + 1) * gain;
+
     int* hist_new = new int[65536];
-    int* hist_log = new int[hist_bin_count];
+    int* hist_log = new int[65536];
     int* sort_y = new int[stats_totalnum];
     float* map_index_leq = new float[65536];
     int* map_index_log = new int[65536];
 
-    float t = 0.01f * y_max;
-    float max_log = log(y_max + t);
-    float t_log = log(t);
-    for(int i = 0; i < hist_bin_count; i++)
+    for(int i = 0; i < 65536; i++)
     {
         hist_log[i] = 0;
     }
 
-    float factor = (hist_bin_count - 1) / (max_log - t_log);
-    for(int i = 0; i < y_max; i++)
-    {
-        int index = (int)((log(i + t) - t_log) * factor + 0.5f);
-        hist_log[index] += stats_ptr->hist_y[i];
-        for(int l = 0; l < gain; l++)
-        {
-            map_index_log[l + i * gain] = l + index * gain;
-        }
-    }
-
-    for(int i = y_max * gain; i < 65536; i++)
-    {
-        map_index_log[i] = 65535;
-    }
-
+    int pixel_num = 0;
     for(int i = 0; i < hist_bin_count; i++)
     {
-        int avg_bin = hist_log[i] / gain;
-        int remain_num = hist_log[i] % gain;
+        int avg_bin = stats_ptr->hist_y[i] / gain;
+        int remain_num = stats_ptr->hist_y[i] % gain;
+        pixel_num += stats_ptr->hist_y[i];
 
         for(int l = 0; l < gain; l++)
         {
@@ -131,10 +116,49 @@ CLNewTonemappingImageKernel::prepare_arguments (
         }
     }
 
+    int thres = 65536 / 3 * 2;
+    int y_max0 = (y_max > thres) ? thres : y_max;
+    int y_max1 = (y_max - thres) > 0 ? (y_max - thres) : 0;
+    float t0 = 0.01f * y_max0;
+    float t1 = 0.01f * y_max1;
+    float max0_log = log(y_max0 + t0);
+    float max1_log = log(y_max1 + t1);
+    float t0_log = log(t0);
+    float t1_log = log(t1);
+    float factor0;
+
+    if(y_max < thres)
+        factor0 = 65535 / (max0_log - t0_log);
+    else
+        factor0 = y_max0 / (max0_log - t0_log);
+
+    float factor1 = y_max1 / (max1_log - t1_log);
+
+    for(int i = 0; i < y_max0; i++)
+    {
+        int index = (int)((log(i + t0) - t0_log) * factor0 + 0.5f);
+        hist_log[index] += hist_new[i];
+        map_index_log[i] = index;
+    }
+
+    for(int i = y_max0; i < y_max; i++)
+    {
+        int r = y_max - i;
+        int index = (int)((log(r + t1) - t1_log) * factor1 + 0.5f);
+        index = y_max - index;
+        hist_log[index] += hist_new[i];
+        map_index_log[i] = index;
+    }
+
+    for(int i = y_max; i < 65536; i++)
+    {
+        map_index_log[i] = 65535;
+    }
+
     int sort_index = 0;
     for(int i = 0; i < 65536; i++)
     {
-        for(int l = 0; l < hist_new[i]; l++)
+        for(int l = 0; l < hist_log[i]; l++)
         {
             sort_y[sort_index] = i;
             sort_index++;
@@ -143,7 +167,7 @@ CLNewTonemappingImageKernel::prepare_arguments (
 
     for(int i = 1; i < 65536; i++)
     {
-        hist_new[i] += hist_new[i - 1];
+        hist_log[i] += hist_log[i - 1];
     }
 
     int map_leq_index[256];
@@ -153,7 +177,7 @@ CLNewTonemappingImageKernel::prepare_arguments (
         map_leq_index[i] = i;
     }
 
-    Haleq(sort_y, hist_new, map_leq_index, 0, 65535, 0, 0, 255);
+    Haleq(sort_y, hist_log, map_leq_index, 0, 65535, 0, 0, 255);
 
     map_leq_index[255] = 65536;
 
