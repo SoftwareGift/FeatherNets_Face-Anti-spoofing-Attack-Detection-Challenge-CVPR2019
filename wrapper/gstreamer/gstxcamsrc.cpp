@@ -66,12 +66,12 @@ using namespace GstXCam;
 #define DEFAULT_PROP_MEM_MODE           V4L2_MEMORY_DMABUF
 #define DEFAULT_PROP_ENABLE_3A          TRUE
 #define DEFAULT_PROP_ENABLE_USB         FALSE
-#define DEFAULT_PROP_ENABLE_WDR         FALSE
 #define DEFAULT_PROP_ENABLE_WAVELET     FALSE
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_PIXELFORMAT        V4L2_PIX_FMT_NV12 //420 instead of 0
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
+#define DEFAULT_PROP_WDR_MODE           NONE_WDR
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
 #define DEFAULT_PROP_CL_PIPE_PROFILE    0
 
@@ -165,6 +165,28 @@ gst_xcam_src_image_processor_get_type (void)
     return g_type;
 }
 
+#define GST_TYPE_XCAM_SRC_WDR_MODE (gst_xcam_src_wdr_mode_get_type ())
+static GType
+gst_xcam_src_wdr_mode_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue wdr_mode_types[] = {
+        {NONE_WDR, "WDR disabled", "none"},
+        {GAUSSIAN_WDR, "Gaussian WDR mode", "gaussian"},
+        {HALEQ_WDR, "Haleq WDR mode", "haleq"},
+        {0, NULL, NULL},
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamSrcWDRModeType", wdr_mode_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
+
 #define GST_TYPE_XCAM_SRC_ANALYZER (gst_xcam_src_analyzer_get_type ())
 static GType
 gst_xcam_src_analyzer_get_type (void)
@@ -220,13 +242,13 @@ enum {
     PROP_BUFFERCOUNT,
     PROP_FIELD,
     PROP_IMAGE_PROCESSOR,
+    PROP_WDR_MODE,
     PROP_3A_ANALYZER,
     PROP_PIPE_PROFLE,
     PROP_CPF,
     PROP_3A_LIB,
     PROP_INPUT_FMT,
     PROP_ENABLE_USB,
-    PROP_ENABLE_WDR,
     PROP_ENABLE_WAVELET,
     PROP_FAKE_INPUT
 };
@@ -335,11 +357,6 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                               DEFAULT_PROP_ENABLE_USB, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
-        gobject_class, PROP_ENABLE_WDR,
-        g_param_spec_boolean ("enable-wdr", "enable wdr", "Enable WDR",
-                              DEFAULT_PROP_ENABLE_WDR, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
         gobject_class, PROP_ENABLE_WAVELET,
         g_param_spec_boolean ("enable-wavelet", "enable wavelet denoise", "Enable WAVELET DENOISE",
                               DEFAULT_PROP_ENABLE_WAVELET, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
@@ -366,6 +383,12 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
         gobject_class, PROP_IMAGE_PROCESSOR,
         g_param_spec_enum ("imageprocessor", "image processor", "Image Processor",
                            GST_TYPE_XCAM_SRC_IMAGE_PROCESSOR, DEFAULT_PROP_IMAGE_PROCESSOR,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_WDR_MODE,
+        g_param_spec_enum ("wdr-mode", "wdr mode", "WDR Mode",
+                           GST_TYPE_XCAM_SRC_WDR_MODE,  DEFAULT_PROP_WDR_MODE,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
@@ -439,7 +462,6 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
-    xcamsrc->enable_wdr = DEFAULT_PROP_ENABLE_WDR;
     xcamsrc->enable_wavelet = DEFAULT_PROP_ENABLE_WAVELET;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
@@ -468,6 +490,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     XCAM_CONSTRUCTOR (xcamsrc->xcam_video_info, VideoBufferInfo);
     xcamsrc->xcam_video_info.init (DEFAULT_PROP_PIXELFORMAT, DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT);
     xcamsrc->image_processor_type = DEFAULT_PROP_IMAGE_PROCESSOR;
+    xcamsrc->wdr_mode_type = DEFAULT_PROP_WDR_MODE;
     xcamsrc->analyzer_type = DEFAULT_PROP_ANALYZER;
     XCAM_CONSTRUCTOR (xcamsrc->device_manager, SmartPtr<MainDeviceManager>);
     xcamsrc->device_manager = new MainDeviceManager;
@@ -511,10 +534,6 @@ gst_xcam_src_get_property (
         g_value_set_boolean (value, src->enable_usb);
         break;
 
-    case PROP_ENABLE_WDR:
-        g_value_set_boolean (value, src->enable_wdr);
-        break;
-
     case PROP_ENABLE_WAVELET:
         g_value_set_boolean (value, src->enable_wavelet);
         break;
@@ -531,6 +550,9 @@ gst_xcam_src_get_property (
         break;
     case PROP_IMAGE_PROCESSOR:
         g_value_set_enum (value, src->image_processor_type);
+        break;
+    case PROP_WDR_MODE:
+        g_value_set_enum (value, src->wdr_mode_type);
         break;
     case PROP_3A_ANALYZER:
         g_value_set_enum (value, src->analyzer_type);
@@ -592,10 +614,6 @@ gst_xcam_src_set_property (
         src->enable_usb = g_value_get_boolean (value);
         break;
 
-    case PROP_ENABLE_WDR:
-        src->enable_wdr = g_value_get_boolean (value);
-        break;
-
     case PROP_ENABLE_WAVELET:
         src->enable_wavelet = g_value_get_boolean (value);
         break;
@@ -625,6 +643,9 @@ gst_xcam_src_set_property (
             src->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
         }
 #endif
+        break;
+    case PROP_WDR_MODE:
+        src->wdr_mode_type = (WDRModeType)g_value_get_enum (value);
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
@@ -794,12 +815,21 @@ gst_xcam_src_start (GstBaseSrc *src)
         device_manager->add_image_processor (isp_processor);
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback (device_manager);
-        if(xcamsrc->enable_wdr)
+        if(xcamsrc->wdr_mode_type != NONE_WDR)
         {
-            cl_processor->set_tonemapping(true);
             cl_processor->set_gamma (false);
             xcamsrc->in_format = V4L2_PIX_FMT_SGRBG12;
             setenv ("AIQ_CPF_PATH", "/etc/atomisp/imx185_wdr.cpf", 1);
+
+            if(xcamsrc->wdr_mode_type == GAUSSIAN_WDR)
+            {
+                cl_processor->set_tonemapping(true);
+            }
+            else if(xcamsrc->wdr_mode_type == HALEQ_WDR)
+            {
+                cl_processor->set_newtonemapping(true);
+                cl_processor->set_3a_stats_bits(12);
+            }
         }
         if(xcamsrc->enable_wavelet)
         {
@@ -873,7 +903,7 @@ gst_xcam_src_start (GstBaseSrc *src)
         return FALSE;
     }
 
-    if(xcamsrc->enable_wdr)
+    if(xcamsrc->wdr_mode_type != NONE_WDR)
     {
         analyzer->set_ae_exposure_time_range (80 * 1110 * 1000 / 37125, 1120 * 1110 * 1000 / 37125);
         analyzer->set_ae_max_analog_gain (3.98);
