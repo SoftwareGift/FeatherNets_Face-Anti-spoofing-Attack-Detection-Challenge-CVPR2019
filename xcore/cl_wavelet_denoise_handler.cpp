@@ -152,7 +152,7 @@ CLWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, 
 
     if (!_approx_image.ptr ()) {
         const VideoBufferInfo & video_info = input->get_video_info ();
-        uint32_t buffer_size = sizeof(float) * video_info.width * video_info.height;
+        uint32_t buffer_size = video_info.width * video_info.height;
 
         SmartPtr<CLContext>  context = CLDevice::instance ()->get_context ();
         _approx_image = new CLBuffer (context, buffer_size,
