@@ -10,7 +10,7 @@
 __constant float threshConst[5] = { 5.430166, 2.376415, 1.184031, 0.640919, 0.367972 };
 
 __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOut, __global float *details, __global uint *dest,
-                                     int inputYOffset, int outputYOffset, uint inputUVoffset, uint outputUVoffset,
+                                     int inputYOffset, int outputYOffset, uint inputUVOffset, uint outputUVOffset,
                                      int layer, int decomLevels, float hardThresh, float softThresh)
 {
     int x = get_global_id(0);
@@ -29,7 +29,6 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
     layer = (layer < decomLevels) ? layer : decomLevels;
 
     src += inputYOffset;
-    approxOut += inputYOffset;
     dest += outputYOffset;
 
     int xScaler = pown(2.0, (layer - 1));
@@ -41,12 +40,24 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
     uint4 approx;
     float16 detail;
 
+#if WAVELET_DENOISE_UV
+    int srcOffset = (layer % 2) ? (inputUVOffset * imageWidth / 4) : 0;
+    __global uchar *src_p = (__global uchar *)(src + srcOffset);
+#else
     __global uchar *src_p = (__global uchar *)(src);
+#endif
+
     int pixel_index = x * 16 + y * imageWidth;
     int group_index = x * 4 + y * (imageWidth / 4);
 
-    uint4 uv;
-    int uv_index = x * 4 + (y / 2) * (imageWidth / 4);
+#if WAVELET_DENOISE_UV
+    uint4 luma;
+    int luma_index0 = x * 4 + (2 * y) * (imageWidth / 4);
+    int luma_index1 = x * 4 + (2 * y + 1) * (imageWidth / 4);
+#else
+    uint4 chroma;
+    int chroma_index = x * 4 + (y / 2) * (imageWidth / 4);
+#endif
 
     ushort16 a;
     ushort16 b;
@@ -156,20 +167,25 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
      { g, h, i } { 1, 2, 1 }
     */
     ushort16 sum;
+
+#if WAVELET_DENOISE_UV
+    sum.odd = (ushort8)1 * a.odd + (ushort8)2 * b.odd + (ushort8)1 * c.odd +
+              (ushort8)2 * d.odd + (ushort8)4 * e.odd + (ushort8)2 * f.odd +
+              (ushort8)1 * g.odd + (ushort8)2 * h.odd + (ushort8)1 * i.odd;
+
+    sum.even = (ushort8)1 * a.even + (ushort8)2 * b.even + (ushort8)1 * c.even +
+               (ushort8)2 * d.even + (ushort8)4 * e.even + (ushort8)2 * f.even +
+               (ushort8)1 * g.even + (ushort8)2 * h.even + (ushort8)1 * i.even;
+#else
     sum = (ushort16)1 * a + (ushort16)2 * b + (ushort16)1 * c +
           (ushort16)2 * d + (ushort16)4 * e + (ushort16)2 * f +
           (ushort16)1 * g + (ushort16)2 * h + (ushort16)1 * i;
+#endif
 
-    approx = as_uint4(convert_uchar16((convert_float16(sum) * div)));
+    approx = as_uint4(convert_uchar16(((convert_float16(sum) + 0.5 / div) * div)));
     detail = convert_float16(convert_char16(e) - as_char16(approx));
 
-    deviation = (detail < threshConst[layer - 1] || detail > -threshConst[layer - 1]) ? detail * detail : deviation;
-
-    stdev = sqrt((deviation.s0 + deviation.s1 + deviation.s2 + deviation.s3 + deviation.s4 +
-                  deviation.s5 + deviation.s6 + deviation.s7 + deviation.s8 + deviation.s9 +
-                  deviation.sa + deviation.sb + deviation.sc + deviation.sd + deviation.sf) / 16.0);
-
-    thold = hardThresh * stdev;
+    thold = hardThresh * threshConst[layer - 1];
 
     detail = (detail < -thold) ? detail + (thold - thold * softThresh) : detail;
     detail = (detail > thold) ? detail - (thold - thold * softThresh) : detail;
@@ -179,23 +195,41 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
     if (layer == 1) {
         (*details_p) = detail;
 
+#if WAVELET_DENOISE_UV
+        // copy Y
+        luma = vload4(0, src + luma_index0);
+        vstore4(luma, 0, dest + luma_index0);
+        luma = vload4(0, src + luma_index1);
+        vstore4(luma, 0, dest + luma_index1);
+#else
         // copy UV
         if (y % 2 == 0) {
-            uv = vload4(0, src + uv_index + inputUVoffset * (imageWidth / 4));
-            vstore4(uv, 0, dest + uv_index + outputUVoffset * (imageWidth / 4));
+            chroma = vload4(0, src + chroma_index + inputUVOffset * (imageWidth / 4));
+            vstore4(chroma, 0, dest + chroma_index + outputUVOffset * (imageWidth / 4));
         }
+#endif
     } else {
         (*details_p) += detail;
     }
 
     if (layer < decomLevels) {
+#if WAVELET_DENOISE_UV
+        int approxOffset = (layer % 2) ? 0 : (inputUVOffset * imageWidth / 4);
+        (*(__global uint4*)(approxOut + group_index + approxOffset)) = approx;
+#else
         (*(__global uint4*)(approxOut + group_index)) = approx;
+#endif
     }
     else
     {
         // Reconstruction
+#if WAVELET_DENOISE_UV
+        __global uint4* dest_p = (__global uint4*)(&dest[group_index + outputUVOffset * imageWidth / 4]);
+        (*dest_p) = as_uint4(convert_uchar16(*details_p + convert_float16(as_uchar16(approx))));
+#else
         __global uint4* dest_p = (__global uint4*)(&dest[group_index]);
         (*dest_p) = as_uint4(convert_uchar16(*details_p + convert_float16(as_uchar16(approx))));
+#endif
     }
 }
 

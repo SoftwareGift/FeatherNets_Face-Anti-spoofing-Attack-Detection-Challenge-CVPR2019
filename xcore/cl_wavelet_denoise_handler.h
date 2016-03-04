@@ -27,8 +27,6 @@
 
 namespace XCam {
 
-#define WAVELET_DECOMPOSITION_LEVELS 4
-
 class CLWaveletDenoiseImageHandler;
 
 class CLWaveletDenoiseImageKernel

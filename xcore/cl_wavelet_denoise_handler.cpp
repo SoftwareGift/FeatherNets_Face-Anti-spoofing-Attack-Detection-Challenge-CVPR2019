@@ -23,6 +23,9 @@
 #include "cl_device.h"
 #include "cl_wavelet_denoise_handler.h"
 
+#define WAVELET_DENOISE_UV 0
+#define WAVELET_DECOMPOSITION_LEVELS 4
+
 namespace XCam {
 
 CLWaveletDenoiseImageKernel::CLWaveletDenoiseImageKernel (SmartPtr<CLContext> &context,
@@ -122,8 +125,13 @@ CLWaveletDenoiseImageKernel::prepare_arguments (
     args[11].arg_adress = &_soft_threshold;
     args[11].arg_size = sizeof (_soft_threshold);
 
+#if WAVELET_DENOISE_UV
+    work_size.global[0] = video_info_in.width / 16;
+    work_size.global[1] = video_info_in.height / 2;
+#else
     work_size.global[0] = video_info_in.width / 16;
     work_size.global[1] = video_info_in.height;
+#endif
     arg_count = 12;
 
     return XCAM_RETURN_NO_ERROR;
@@ -152,7 +160,7 @@ CLWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, 
 
     if (!_approx_image.ptr ()) {
         const VideoBufferInfo & video_info = input->get_video_info ();
-        uint32_t buffer_size = video_info.width * video_info.height;
+        uint32_t buffer_size = video_info.width * video_info.aligned_height;
 
         SmartPtr<CLContext>  context = CLDevice::instance ()->get_context ();
         _approx_image = new CLBuffer (context, buffer_size,
@@ -196,7 +204,10 @@ create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context)
     for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
         wavelet_kernel = new CLWaveletDenoiseImageKernel (context, "kernel_wavelet_denoise", wavelet_handler, layer);
 
-        ret = wavelet_kernel->load_from_source (kernel_wavelet_denoise_body, strlen (kernel_wavelet_denoise_body));
+        ret = wavelet_kernel->load_from_source (
+                  kernel_wavelet_denoise_body, strlen (kernel_wavelet_denoise_body),
+                  NULL, NULL,
+                  WAVELET_DENOISE_UV ? "-DWAVELET_DENOISE_UV=1" : "-DWAVELET_DENOISE_UV=0");
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,
