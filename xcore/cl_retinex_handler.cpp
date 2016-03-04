@@ -218,8 +218,8 @@ CLRetinexImageKernel::prepare_arguments (
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info_in = input->get_video_info ();
     const VideoBufferInfo & video_info_out = output->get_video_info ();
-    _retinex_config.log_min = -0.2;
-    _retinex_config.log_max = 0.4;
+    _retinex_config.log_min = -0.1;
+    _retinex_config.log_max = 0.3;
     _retinex_config.gain = 255.0 / (_retinex_config.log_max - _retinex_config.log_min);
     _retinex_config.width = (float)video_info_in.width;
     _retinex_config.height = (float)video_info_in.height;
