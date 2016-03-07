@@ -33,10 +33,10 @@ typedef struct _X3aCiqWaveletTuningStaticData {
 
 const X3aCiqWaveletTuningStaticData imx185_tuning[X3A_CIQ_GAIN_STEPS] = {
     {1.0, 0.01, 1.0, 5},
-    {16.98, 0.02, 0.8, 5},
-    {49.55, 0.3, 0.7, 5},
-    {139.63, 0.4, 0.6, 5},
-    {X3A_CIQ_GAIN_MAX, 0.5, 0.5, 5},
+    {16.98, 0.02, 0.7, 5},
+    {49.55, 0.3, 0.5, 5},
+    {139.63, 0.4, 0.3, 5},
+    {X3A_CIQ_GAIN_MAX, 0.5, 0.2, 5},
 };
 
 X3aCiqWaveletTuningHandler::X3aCiqWaveletTuningHandler ()

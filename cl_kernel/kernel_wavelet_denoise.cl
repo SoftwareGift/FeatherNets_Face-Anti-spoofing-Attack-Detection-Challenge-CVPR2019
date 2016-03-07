@@ -31,8 +31,13 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
     src += inputYOffset;
     dest += outputYOffset;
 
+#if WAVELET_DENOISE_UV
+    int xScaler = pown(2.0, layer);
+    int yScaler = pown(2.0, (layer - 1));
+#else
     int xScaler = pown(2.0, (layer - 1));
     int yScaler = xScaler;
+#endif
 
     xScaler = ((x == 0) || (x > imageWidth / 16 - xScaler)) ? 0 : xScaler;
     yScaler = ((y < yScaler) || (y > imageHeight - yScaler)) ? 0 : yScaler;
@@ -167,20 +172,9 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
      { g, h, i } { 1, 2, 1 }
     */
     ushort16 sum;
-
-#if WAVELET_DENOISE_UV
-    sum.odd = (ushort8)1 * a.odd + (ushort8)2 * b.odd + (ushort8)1 * c.odd +
-              (ushort8)2 * d.odd + (ushort8)4 * e.odd + (ushort8)2 * f.odd +
-              (ushort8)1 * g.odd + (ushort8)2 * h.odd + (ushort8)1 * i.odd;
-
-    sum.even = (ushort8)1 * a.even + (ushort8)2 * b.even + (ushort8)1 * c.even +
-               (ushort8)2 * d.even + (ushort8)4 * e.even + (ushort8)2 * f.even +
-               (ushort8)1 * g.even + (ushort8)2 * h.even + (ushort8)1 * i.even;
-#else
     sum = (ushort16)1 * a + (ushort16)2 * b + (ushort16)1 * c +
           (ushort16)2 * d + (ushort16)4 * e + (ushort16)2 * f +
           (ushort16)1 * g + (ushort16)2 * h + (ushort16)1 * i;
-#endif
 
     approx = as_uint4(convert_uchar16(((convert_float16(sum) + 0.5 / div) * div)));
     detail = convert_float16(convert_char16(e) - as_char16(approx));

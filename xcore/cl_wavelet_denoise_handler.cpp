@@ -23,7 +23,7 @@
 #include "cl_device.h"
 #include "cl_wavelet_denoise_handler.h"
 
-#define WAVELET_DENOISE_UV 0
+#define WAVELET_DENOISE_UV 1
 #define WAVELET_DECOMPOSITION_LEVELS 4
 
 namespace XCam {
