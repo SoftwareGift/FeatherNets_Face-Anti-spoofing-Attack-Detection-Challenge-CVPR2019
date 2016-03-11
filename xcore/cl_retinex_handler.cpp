@@ -268,7 +268,7 @@ CLRetinexImageKernel::prepare_arguments (
 
 CLRetinexImageHandler::CLRetinexImageHandler (const char *name)
     : CLImageHandler (name)
-    , _scaler_factor(0.5)
+    , _scaler_factor(0.25)
 {
 }
 
