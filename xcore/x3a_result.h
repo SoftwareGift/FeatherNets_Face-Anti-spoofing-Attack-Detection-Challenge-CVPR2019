@@ -93,6 +93,8 @@ protected:
 
 typedef std::list<SmartPtr<X3aResult>>  X3aResultList;
 
+void x3a_list_remove_result (X3aResultList &list, uint32_t type);
+
 /* !
  * \template StandardResult must inherited from XCam3aResultHead
  */

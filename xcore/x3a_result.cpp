@@ -22,4 +22,18 @@
 
 namespace XCam {
 
+void
+x3a_list_remove_result (X3aResultList &list, uint32_t type)
+{
+    for (X3aResultList::iterator i = list.begin (); i != list.end ();) {
+        SmartPtr<X3aResult> &result = *i;
+        XCAM_ASSERT (result.ptr ());
+        if (result->get_type () == type) {
+            list.erase (i++);
+            continue;
+        }
+        ++i;
+    }
+}
+
 };

@@ -191,6 +191,8 @@ translate_atomisp_parameters (
         results[result_count++] = (XCam3aResultHead*)dpc;
     }
 
+    /* OCL has defined BNR config, no need to translate ISP BNR config */
+#if 0
     /* Translation for bnr config */
     XCAM_ASSERT (result_count < max_count);
     if (atomisp_params.nr_config) {
@@ -203,6 +205,7 @@ translate_atomisp_parameters (
         bnr->direction = (double)atomisp_params.nr_config->direction / pow(2, 16);
         results[result_count++] = (XCam3aResultHead*)bnr;
     }
+#endif
 
     return result_count;
 }
