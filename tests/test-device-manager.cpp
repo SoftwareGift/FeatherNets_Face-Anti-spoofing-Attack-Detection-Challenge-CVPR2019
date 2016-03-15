@@ -337,9 +337,6 @@ int main (int argc, char *argv[])
     SmartPtr<X3aAnalyzerLoader> loader;
     const char *path_of_3a;
     SmartPtr<ImageProcessor> isp_processor;
-#if HAVE_LIBCL
-    SmartPtr<CLCscImageProcessor> cl_csc_proccessor;
-#endif
     AnalyzerType  analyzer_type = AnalyzerTypeSimple;
     DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
 #if HAVE_LIBDRM
@@ -728,15 +725,8 @@ int main (int argc, char *argv[])
     XCAM_ASSERT (isp_processor.ptr ());
     device_manager->add_image_processor (isp_processor);
 #if HAVE_LIBCL
-    if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display && (!have_cl_processor)) {
-        cl_csc_proccessor = new CLCscImageProcessor();
-        XCAM_ASSERT (cl_csc_proccessor.ptr ());
-        device_manager->add_image_processor (cl_csc_proccessor);
-    }
-
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
-        cl_post_processor = new CLPostImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
         cl_processor->set_dpc(dpc_type);
         cl_processor->set_hdr (hdr_type);
@@ -751,15 +741,17 @@ int main (int argc, char *argv[])
         if (wdr_type) {
             cl_processor->set_3a_stats_bits(12);
         }
-        if (need_display) {
-            cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
-        }
         cl_processor->set_tnr (tnr_type, tnr_level);
         cl_processor->set_profile (pipeline_mode);
         analyzer->set_parameter_brightness((brightness_level - 128) / 128.0);
         device_manager->add_image_processor (cl_processor);
-        device_manager->add_image_processor (cl_post_processor);
     }
+
+    cl_post_processor = new CLPostImageProcessor ();
+    if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display) {
+        cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+    }
+    device_manager->add_image_processor (cl_post_processor);
 #endif
 
     SmartPtr<PollThread> poll_thread;
