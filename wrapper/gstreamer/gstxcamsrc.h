@@ -60,6 +60,12 @@ typedef enum {
 } WDRModeType;
 
 typedef enum {
+    NONE_WAVELET = 0,
+    HAT_WAVELET,
+    HAAR_WAVELET,
+} WaveletModeType;
+
+typedef enum {
     SIMPLE_ANALYZER = 0,
     AIQ_ANALYZER,
     DYNAMIC_ANALYZER,
@@ -82,7 +88,6 @@ struct _GstXCamSrc
     char                        *path_to_3alib;
     gboolean                     enable_3a;
     gboolean                     enable_usb;
-    gboolean                     enable_wavelet;
     gboolean                     enable_retinex;
     char                        *path_to_fake;
 
@@ -99,6 +104,7 @@ struct _GstXCamSrc
     VideoBufferInfo              xcam_video_info;
     ImageProcessorType           image_processor_type;
     WDRModeType                  wdr_mode_type;
+    WaveletModeType              wavelet_mode;
     AnalyzerType                 analyzer_type;
     int32_t                      cl_pipe_profile;
     SmartPtr<MainDeviceManager>  device_manager;

@@ -66,13 +66,13 @@ using namespace GstXCam;
 #define DEFAULT_PROP_MEM_MODE           V4L2_MEMORY_DMABUF
 #define DEFAULT_PROP_ENABLE_3A          TRUE
 #define DEFAULT_PROP_ENABLE_USB         FALSE
-#define DEFAULT_PROP_ENABLE_WAVELET     FALSE
 #define DEFAULT_PROP_ENABLE_RETINEX     FALSE
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_PIXELFORMAT        V4L2_PIX_FMT_NV12 //420 instead of 0
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
 #define DEFAULT_PROP_WDR_MODE           NONE_WDR
+#define DEFAULT_PROP_WAVELET_MODE       NONE_WAVELET
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
 #define DEFAULT_PROP_CL_PIPE_PROFILE    0
 
@@ -187,6 +187,26 @@ gst_xcam_src_wdr_mode_get_type (void)
     return g_type;
 }
 
+#define GST_TYPE_XCAM_SRC_WAVELET_MODE (gst_xcam_src_wavelet_mode_get_type ())
+static GType
+gst_xcam_src_wavelet_mode_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue wavelet_mode_types[] = {
+        {NONE_WAVELET, "Wavelet disabled", "none"},
+        {HAT_WAVELET, "Hat wavelet", "hat"},
+        {HAAR_WAVELET, "Haar wavelet", "haar"},
+        {0, NULL, NULL},
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamSrcWaveletModeType", wavelet_mode_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
 
 #define GST_TYPE_XCAM_SRC_ANALYZER (gst_xcam_src_analyzer_get_type ())
 static GType
@@ -250,7 +270,7 @@ enum {
     PROP_3A_LIB,
     PROP_INPUT_FMT,
     PROP_ENABLE_USB,
-    PROP_ENABLE_WAVELET,
+    PROP_WAVELET_MODE,
     PROP_ENABLE_RETINEX,
     PROP_FAKE_INPUT
 };
@@ -359,9 +379,10 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                               DEFAULT_PROP_ENABLE_USB, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
-        gobject_class, PROP_ENABLE_WAVELET,
-        g_param_spec_boolean ("enable-wavelet", "enable wavelet denoise", "Enable WAVELET DENOISE",
-                              DEFAULT_PROP_ENABLE_WAVELET, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+        gobject_class, PROP_WAVELET_MODE,
+        g_param_spec_enum ("wavelet-mode", "wavelet mode", "WAVELET Mode",
+                           GST_TYPE_XCAM_SRC_WAVELET_MODE,  DEFAULT_PROP_WAVELET_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
         gobject_class, PROP_ENABLE_RETINEX,
@@ -469,7 +490,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
-    xcamsrc->enable_wavelet = DEFAULT_PROP_ENABLE_WAVELET;
+    xcamsrc->wavelet_mode = NONE_WAVELET;
     xcamsrc->enable_retinex = DEFAULT_PROP_ENABLE_RETINEX;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
@@ -542,8 +563,8 @@ gst_xcam_src_get_property (
         g_value_set_boolean (value, src->enable_usb);
         break;
 
-    case PROP_ENABLE_WAVELET:
-        g_value_set_boolean (value, src->enable_wavelet);
+    case PROP_WAVELET_MODE:
+        g_value_set_enum (value, src->wavelet_mode);
         break;
 
     case PROP_ENABLE_RETINEX:
@@ -626,10 +647,6 @@ gst_xcam_src_set_property (
         src->enable_usb = g_value_get_boolean (value);
         break;
 
-    case PROP_ENABLE_WAVELET:
-        src->enable_wavelet = g_value_get_boolean (value);
-        break;
-
     case PROP_ENABLE_RETINEX:
         src->enable_retinex = g_value_get_boolean (value);
         break;
@@ -662,6 +679,9 @@ gst_xcam_src_set_property (
         break;
     case PROP_WDR_MODE:
         src->wdr_mode_type = (WDRModeType)g_value_get_enum (value);
+        break;
+    case PROP_WAVELET_MODE:
+        src->wavelet_mode = (WaveletModeType)g_value_get_enum (value);
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
@@ -848,9 +868,9 @@ gst_xcam_src_start (GstBaseSrc *src)
                 cl_processor->set_3a_stats_bits(12);
             }
         }
-        if(xcamsrc->enable_wavelet)
-        {
-            cl_processor->set_wavelet (true);
+
+        if (NONE_WAVELET != xcamsrc->wavelet_mode) {
+            cl_processor->set_wavelet (xcamsrc->wavelet_mode);
         }
 
         if(xcamsrc->enable_retinex)

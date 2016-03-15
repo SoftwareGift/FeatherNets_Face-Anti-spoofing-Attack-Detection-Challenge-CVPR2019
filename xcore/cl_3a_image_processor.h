@@ -38,6 +38,7 @@ class CLNewTonemappingImageHandler;
 class CLImageScaler;
 class CLRetinexImageHandler;
 class CLWaveletDenoiseImageHandler;
+class CLNewWaveletDenoiseImageHandler;
 
 #define ENABLE_YEENR_HANDLER 0
 
@@ -82,7 +83,7 @@ public:
     virtual bool set_tonemapping (bool enable);
     virtual bool set_newtonemapping (bool enable);
     virtual bool set_retinex (bool enable);
-    virtual bool set_wavelet (bool enable);
+    virtual bool set_wavelet (uint32_t enable);
 
     PipelineProfile get_profile () const {
         return _pipeline_profile;
@@ -116,6 +117,7 @@ private:
 #endif
     SmartPtr<CLRetinexImageHandler>          _retinex;
     SmartPtr<CLWaveletDenoiseImageHandler>   _wavelet;
+    SmartPtr<CLNewWaveletDenoiseImageHandler>   _newwavelet;
 
     // simple 3a bayer pipeline
     SmartPtr<CLBayerBasicImageHandler>  _bayer_basic_pipe;
@@ -131,6 +133,7 @@ private:
     bool                                _enable_dpc;
     bool                                _enable_retinex;
     bool                                _enable_wavelet;
+    bool                                _enable_newwavelet;
     uint32_t                            _snr_mode; // spatial nr mode
 };
 

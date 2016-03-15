@@ -31,6 +31,8 @@ clx_kernel_sources = \
 	kernel_retinex.clx       \
 	kernel_gauss.clx       \
 	kernel_wavelet_denoise.clx       \
+	kernel_wavelet_haar_transform.clx       \
+	kernel_wavelet_haar_reconstruction.clx  \
 	$(NULL)
 
 cl_quote_sh = \

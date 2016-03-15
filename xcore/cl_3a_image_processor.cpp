@@ -33,6 +33,7 @@
 #include "cl_image_scaler.h"
 #include "cl_bayer_basic_handler.h"
 #include "cl_wavelet_denoise_handler.h"
+#include "cl_newwavelet_denoise_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
 #define XCAM_CL_3A_IMAGE_SCALER_FACTOR 1.0
@@ -54,6 +55,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_dpc (false)
     , _enable_retinex (false)
     , _enable_wavelet (false)
+    , _enable_newwavelet (false)
     , _snr_mode (0)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
@@ -399,6 +401,20 @@ CL3aImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
+    /* haar wavelet denoise */
+    image_handler = create_cl_newwavelet_denoise_image_handler (context);
+    _newwavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _newwavelet.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CL3aImageProcessor create new wavelet denoise handler failed");
+    _newwavelet->set_kernels_enable (_enable_newwavelet);
+    _newwavelet->set_clone_flags (SwappedBuffer::SwapY);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
     /* retinex*/
     image_handler = create_cl_retinex_image_handler (context);
     _retinex = image_handler.dynamic_cast_ptr<CLRetinexImageHandler> ();
@@ -518,9 +534,18 @@ CL3aImageProcessor::set_retinex (bool enable)
 }
 
 bool
-CL3aImageProcessor::set_wavelet (bool enable)
+CL3aImageProcessor::set_wavelet (uint32_t mode)
 {
-    _enable_wavelet = enable;
+    if (mode == 1) {
+        _enable_wavelet = true;
+        _enable_newwavelet = false;
+    } else if (mode == 2) {
+        _enable_wavelet = false;
+        _enable_newwavelet = true;
+    } else {
+        _enable_wavelet = false;
+        _enable_newwavelet = false;
+    }
 
     STREAM_LOCK;
 

@@ -215,6 +215,11 @@ public:
         const VideoBufferInfo &video_info,
         cl_mem_flags  flags = CL_MEM_READ_WRITE);
 
+    explicit CLImage2D (
+        SmartPtr<CLContext> &context,
+        const CLImageDesc &cl_desc,
+        cl_mem_flags  flags = CL_MEM_READ_WRITE);
+
     ~CLImage2D () {}
 
 private:

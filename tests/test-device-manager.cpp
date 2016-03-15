@@ -317,7 +317,7 @@ void print_help (const char *bin_name)
             "\t --enable-wdr  enable wdr\n"
             "\t --enable-new-wdr  enable new wdr algorithm\n"
             "\t --enable-retinex  enable retinex\n"
-            "\t --enable-wavelet  enable wavelet denoise\n"
+            "\t --wavelet-mode  specify wavelet mode\n"
             "\t --pipeline    pipe mode\n"
             "\t               select from [basic, advance, extreme], default is [basic]\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
@@ -365,7 +365,7 @@ int main (int argc, char *argv[])
     bool newtonemapping_type = false;
     bool wdr_type = false;
     bool retinex_type = false;
-    bool wavelet_type = false;
+    uint32_t wavelet_type = 0;
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
     char*   usb_device_name = NULL;
@@ -388,7 +388,7 @@ int main (int argc, char *argv[])
         {"enable-wdr", no_argument, NULL, 'W'},
         {"enable-new-wdr", no_argument, NULL, 'N'},
         {"enable-retinex", no_argument, NULL, 'X'},
-        {"enable-wavelet", no_argument, NULL, 'V'},
+        {"wavelet-mode", required_argument, NULL, 'V'},
         {"usb", required_argument, NULL, 'U'},
         {"resolution", required_argument, NULL, 'R'},
         {"sync", no_argument, NULL, 'Y'},
@@ -530,7 +530,12 @@ int main (int argc, char *argv[])
             break;
         }
         case 'V': {
-            wavelet_type = true;
+            XCAM_ASSERT (optarg);
+            if (atoi(optarg) < 0 || atoi(optarg) > 255) {
+                print_help (bin_name);
+                return -1;
+            }
+            wavelet_type = atoi(optarg);
             break;
         }
         case 'D': {

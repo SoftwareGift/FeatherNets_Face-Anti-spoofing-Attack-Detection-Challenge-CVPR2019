@@ -156,6 +156,7 @@ xcam_sources +=              \
 	cl_retinex_handler.cpp	     \
 	cl_gauss_handler.cpp	     \
 	cl_wavelet_denoise_handler.cpp	     \
+	cl_newwavelet_denoise_handler.cpp	 \
 	$(NULL)
 endif
 
