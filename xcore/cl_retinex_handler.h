@@ -93,11 +93,12 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLRetinexImageKernel);
-    CLRetinexConfig _retinex_config;
-    SmartPtr<CLImage>   _image_in_ga;
-    uint32_t _vertical_offset_in;
-    uint32_t _vertical_offset_out;
-    SmartPtr<CLRetinexImageHandler> _scaler;
+
+    SmartPtr<CLImage>                _image_in_ga;
+    SmartPtr<CLImage>                _image_in_uv;
+    SmartPtr<CLImage>                _image_out_uv;
+    SmartPtr<CLRetinexImageHandler>  _scaler;
+    CLRetinexConfig                  _retinex_config;
 };
 
 class CLRetinexImageHandler
