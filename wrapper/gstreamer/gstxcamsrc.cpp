@@ -772,6 +772,7 @@ gst_xcam_src_start (GstBaseSrc *src)
     SmartPtr<ImageProcessor> isp_processor;
 #if HAVE_LIBCL
     SmartPtr<CL3aImageProcessor> cl_processor;
+    SmartPtr<CLPostImageProcessor> cl_post_processor;
 #endif
     SmartPtr<V4l2Device> capture_device;
     SmartPtr<V4l2SubDevice> event_device;
@@ -866,6 +867,12 @@ gst_xcam_src_start (GstBaseSrc *src)
         isp_processor = new IspImageProcessor (isp_controller);
         device_manager->add_image_processor (isp_processor);
     }
+
+#if HAVE_LIBCL
+    cl_post_processor = new CLPostImageProcessor ();
+    device_manager->add_image_processor (cl_post_processor);
+    device_manager->set_cl_post_image_processor (cl_post_processor);
+#endif
 
     switch (xcamsrc->analyzer_type) {
 #if HAVE_IA_AIQ
@@ -1041,14 +1048,12 @@ gst_xcam_src_set_caps (GstBaseSrc *src, GstCaps *caps)
         return FALSE;
     }
 #if HAVE_LIBCL
-    if (xcamsrc->image_processor_type == CL_IMAGE_PROCESSOR) {
-        SmartPtr<CL3aImageProcessor> processor = xcamsrc->device_manager->get_cl_image_processor ();
-        XCAM_ASSERT (processor.ptr ());
-        if (!processor->set_output_format (out_format)) {
-            GST_ERROR ("CL pipeline doesn't support output format:%" GST_FOURCC_FORMAT,
-                       GST_FOURCC_ARGS (out_format));
-            return FALSE;
-        }
+    SmartPtr<CLPostImageProcessor> processor = xcamsrc->device_manager->get_cl_post_image_processor ();
+    XCAM_ASSERT (processor.ptr ());
+    if (!processor->set_output_format (out_format)) {
+        GST_ERROR ("pipeline doesn't support output format:%" GST_FOURCC_FORMAT,
+                   GST_FOURCC_ARGS (out_format));
+        return FALSE;
     }
 #endif
 

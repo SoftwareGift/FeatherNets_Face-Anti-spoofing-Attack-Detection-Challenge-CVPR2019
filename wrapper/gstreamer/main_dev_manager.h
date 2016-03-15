@@ -47,6 +47,7 @@
 #include <isp_image_processor.h>
 #if HAVE_LIBCL
 #include <cl_3a_image_processor.h>
+#include <cl_post_image_processor.h>
 #endif
 #if HAVE_IA_AIQ
 #include <x3a_analyzer_aiq.h>
@@ -77,6 +78,14 @@ public:
     XCam::SmartPtr<XCam::CL3aImageProcessor> &get_cl_image_processor () {
         return _cl_image_processor;
     }
+
+    void set_cl_post_image_processor (XCam::SmartPtr<XCam::CLPostImageProcessor> &processor) {
+        _cl_post_image_processor = processor;
+    }
+
+    XCam::SmartPtr<XCam::CLPostImageProcessor> &get_cl_post_image_processor () {
+        return _cl_post_image_processor;
+    }
 #endif
 
 protected:
@@ -86,7 +95,8 @@ protected:
 private:
     XCam::SafeList<XCam::VideoBuffer>         _ready_buffers;
 #if HAVE_LIBCL
-    XCam::SmartPtr<XCam::CL3aImageProcessor>  _cl_image_processor;
+    XCam::SmartPtr<XCam::CL3aImageProcessor>   _cl_image_processor;
+    XCam::SmartPtr<XCam::CLPostImageProcessor> _cl_post_image_processor;
 #endif
 };
 
