@@ -126,6 +126,7 @@ xcam_sources +=              \
 	cl_image_handler.cpp     \
 	cl_image_processor.cpp   \
 	cl_3a_image_processor.cpp      \
+	cl_post_image_processor.cpp    \
 	cl_csc_image_processor.cpp    \
 	cl_3a_stats_calculator.cpp     \
 	cl_3a_stats_context.cpp  \

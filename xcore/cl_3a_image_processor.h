@@ -104,7 +104,6 @@ private:
 private:
     uint32_t                            _output_fourcc;
     uint32_t                            _3a_stats_bits;
-    OutSampleType                       _out_smaple_type;
     PipelineProfile                     _pipeline_profile;
     CaptureStage                        _capture_stage;
     SmartPtr<StatsCallback>             _stats_callback;

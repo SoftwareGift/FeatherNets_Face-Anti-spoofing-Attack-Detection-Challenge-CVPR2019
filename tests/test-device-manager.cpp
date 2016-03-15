@@ -30,6 +30,7 @@
 #endif
 #if HAVE_LIBCL
 #include "cl_3a_image_processor.h"
+#include "cl_post_image_processor.h"
 #include "cl_csc_image_processor.h"
 #include "cl_hdr_handler.h"
 #include "cl_tnr_handler.h"
@@ -347,6 +348,7 @@ int main (int argc, char *argv[])
 
 #if HAVE_LIBCL
     SmartPtr<CL3aImageProcessor> cl_processor;
+    SmartPtr<CLPostImageProcessor> cl_post_processor;
     uint32_t hdr_type = CL_HDR_DISABLE;
     uint32_t tnr_type = CL_TNR_DISABLE;
     uint32_t denoise_type = 0;
@@ -734,6 +736,7 @@ int main (int argc, char *argv[])
 
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
+        cl_post_processor = new CLPostImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
         cl_processor->set_dpc(dpc_type);
         cl_processor->set_hdr (hdr_type);
@@ -749,12 +752,13 @@ int main (int argc, char *argv[])
             cl_processor->set_3a_stats_bits(12);
         }
         if (need_display) {
-            cl_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+            cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
         cl_processor->set_tnr (tnr_type, tnr_level);
         cl_processor->set_profile (pipeline_mode);
         analyzer->set_parameter_brightness((brightness_level - 128) / 128.0);
         device_manager->add_image_processor (cl_processor);
+        device_manager->add_image_processor (cl_post_processor);
     }
 #endif
 
