@@ -22,6 +22,7 @@
 #include "cl_post_image_processor.h"
 #include "cl_context.h"
 
+#include "cl_retinex_handler.h"
 #include "cl_csc_handler.h"
 
 #define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 6
@@ -32,6 +33,7 @@ CLPostImageProcessor::CLPostImageProcessor ()
     : CLImageProcessor ("CLPostImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _out_sample_type (OutSampleYuv)
+    , _enable_retinex (false)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -76,6 +78,19 @@ CLPostImageProcessor::create_handlers ()
 
     XCAM_ASSERT (context.ptr ());
 
+    /* retinex*/
+    image_handler = create_cl_retinex_image_handler (context);
+    _retinex = image_handler.dynamic_cast_ptr<CLRetinexImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _retinex.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create retinex handler failed");
+    _retinex->set_kernels_enable (_enable_retinex);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
     image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
     _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
     XCAM_FAIL_RETURN (
@@ -89,6 +104,16 @@ CLPostImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+bool
+CLPostImageProcessor::set_retinex (bool enable)
+{
+    _enable_retinex = enable;
+
+    STREAM_LOCK;
+
+    return true;
 }
 
 };

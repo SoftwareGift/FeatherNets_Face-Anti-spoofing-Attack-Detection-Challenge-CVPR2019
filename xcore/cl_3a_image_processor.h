@@ -36,7 +36,6 @@ class CLYuvPipeImageHandler;
 class CLTonemappingImageHandler;
 class CLNewTonemappingImageHandler;
 class CLImageScaler;
-class CLRetinexImageHandler;
 class CLWaveletDenoiseImageHandler;
 class CLNewWaveletDenoiseImageHandler;
 
@@ -82,7 +81,6 @@ public:
     virtual bool set_tnr (uint32_t mode, uint8_t level);
     virtual bool set_tonemapping (bool enable);
     virtual bool set_newtonemapping (bool enable);
-    virtual bool set_retinex (bool enable);
     virtual bool set_wavelet (uint32_t enable);
 
     PipelineProfile get_profile () const {
@@ -115,7 +113,6 @@ private:
 #if ENABLE_YEENR_HANDLER
     SmartPtr<CLEeImageHandler>          _ee;
 #endif
-    SmartPtr<CLRetinexImageHandler>          _retinex;
     SmartPtr<CLWaveletDenoiseImageHandler>   _wavelet;
     SmartPtr<CLNewWaveletDenoiseImageHandler>   _newwavelet;
 
@@ -131,7 +128,6 @@ private:
     bool                                _enable_newtonemapping;
     bool                                _enable_macc;
     bool                                _enable_dpc;
-    bool                                _enable_retinex;
     bool                                _enable_wavelet;
     bool                                _enable_newwavelet;
     uint32_t                            _snr_mode; // spatial nr mode

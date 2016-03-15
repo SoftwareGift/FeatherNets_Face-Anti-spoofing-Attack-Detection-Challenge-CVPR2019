@@ -27,6 +27,7 @@
 
 namespace XCam {
 
+class CLRetinexImageHandler;
 class CLCscImageHandler;
 
 class CLPostImageProcessor
@@ -45,6 +46,8 @@ public:
 
     bool set_output_format (uint32_t fourcc);
 
+    virtual bool set_retinex (bool enable);
+
 private:
     virtual XCamReturn create_handlers ();
 
@@ -53,7 +56,10 @@ private:
 private:
     uint32_t                               _output_fourcc;
     OutSampleType                          _out_sample_type;
+    SmartPtr<CLRetinexImageHandler>        _retinex;
     SmartPtr<CLCscImageHandler>            _csc;
+
+    bool                                   _enable_retinex;
 };
 
 };

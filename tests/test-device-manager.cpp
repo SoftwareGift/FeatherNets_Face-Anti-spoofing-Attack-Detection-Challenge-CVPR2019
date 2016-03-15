@@ -739,7 +739,6 @@ int main (int argc, char *argv[])
         cl_processor->set_tonemapping(tonemapping_type);
         cl_processor->set_newtonemapping(newtonemapping_type);
         cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
-        cl_processor->set_retinex (retinex_type);
         cl_processor->set_wavelet (wavelet_type);
         cl_processor->set_capture_stage (capture_stage);
 
@@ -753,6 +752,9 @@ int main (int argc, char *argv[])
     }
 
     cl_post_processor = new CLPostImageProcessor ();
+
+    cl_post_processor->set_retinex (retinex_type);
+
     if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display) {
         cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
     }

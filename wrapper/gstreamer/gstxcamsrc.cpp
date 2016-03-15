@@ -873,11 +873,6 @@ gst_xcam_src_start (GstBaseSrc *src)
             cl_processor->set_wavelet (xcamsrc->wavelet_mode);
         }
 
-        if(xcamsrc->enable_retinex)
-        {
-            cl_processor->set_retinex(true);
-        }
-
         cl_processor->set_profile ((CL3aImageProcessor::PipelineProfile)xcamsrc->cl_pipe_profile);
         device_manager->add_image_processor (cl_processor);
         device_manager->set_cl_image_processor (cl_processor);
@@ -890,6 +885,12 @@ gst_xcam_src_start (GstBaseSrc *src)
 
 #if HAVE_LIBCL
     cl_post_processor = new CLPostImageProcessor ();
+
+    if(xcamsrc->enable_retinex)
+    {
+        cl_post_processor->set_retinex (true);
+    }
+
     device_manager->add_image_processor (cl_post_processor);
     device_manager->set_cl_post_image_processor (cl_post_processor);
 #endif
