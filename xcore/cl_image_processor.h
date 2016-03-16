@@ -31,6 +31,7 @@ namespace XCam {
 class CLImageHandler;
 class CLContext;
 class CLHandlerThread;
+class CLBufferNotifyThread;
 
 class CLImageProcessor
     : public ImageProcessor
@@ -38,6 +39,7 @@ class CLImageProcessor
 public:
     typedef std::list<SmartPtr<CLImageHandler>>  ImageHandlerList;
     friend class CLHandlerThread;
+    friend class CLBufferNotifyThread;
 
 public:
     explicit CLImageProcessor (const char* name = NULL);
@@ -63,6 +65,7 @@ private:
     virtual XCamReturn create_handlers ();
 
     XCamReturn process_cl_buffer_queue ();
+    XCamReturn process_done_buffer ();
     XCAM_DEAD_COPY (CLImageProcessor);
 
 protected:
@@ -77,6 +80,7 @@ private:
     ImageHandlerList               _handlers;
     SmartPtr<CLHandlerThread>      _handler_thread;
     PriorityBufferQueue            _process_buffer_queue;
+    SmartPtr<CLBufferNotifyThread> _done_buf_thread;
     SafeList<DrmBoBuffer>          _done_buffer_queue;
     uint32_t                       _seq_num;
     XCAM_OBJ_PROFILING_DEFINES;

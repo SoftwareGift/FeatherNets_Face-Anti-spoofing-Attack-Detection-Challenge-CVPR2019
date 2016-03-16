@@ -52,6 +52,30 @@ bool CLHandlerThread::loop ()
     return true;
 }
 
+class CLBufferNotifyThread
+    : public Thread
+{
+public:
+    CLBufferNotifyThread (CLImageProcessor *processor)
+        : Thread ("CLBufNtfThrd")
+        , _processor (processor)
+    {}
+    ~CLBufferNotifyThread () {}
+
+    virtual bool loop ();
+
+private:
+    CLImageProcessor *_processor;
+};
+
+bool CLBufferNotifyThread::loop ()
+{
+    XCAM_ASSERT (_processor);
+    XCamReturn ret = _processor->process_done_buffer ();
+    if (ret < XCAM_RETURN_NO_ERROR)
+        return false;
+    return true;
+}
 CLImageProcessor::CLImageProcessor (const char* name)
     : ImageProcessor (name ? name : "CLImageProcessor")
     , _seq_num (0)
@@ -61,6 +85,9 @@ CLImageProcessor::CLImageProcessor (const char* name)
 
     _handler_thread = new CLHandlerThread (this);
     XCAM_ASSERT (_handler_thread.ptr ());
+
+    _done_buf_thread = new CLBufferNotifyThread (this);
+    XCAM_ASSERT (_done_buf_thread.ptr ());
 
     XCAM_LOG_DEBUG ("CLImageProcessor constructed");
     XCAM_OBJ_PROFILING_INIT;
@@ -132,14 +159,8 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
         XCAM_RETURN_ERROR_MEM,
         "CL image processor can't handle this buffer, maybe type error");
 
-    while (!_done_buffer_queue.is_empty ()) {
-        SmartPtr<DrmBoBuffer> done_buf = _done_buffer_queue.pop (50000); //50ms
-        if (!done_buf.ptr ())
-            break;
-        //notify buffer done
-        notify_process_buffer_done (done_buf);
-    }
-    output = NULL; // consider call back?
+    // Always set to NULL,  output buf should be handled in CLBufferNotifyThread
+    output = NULL;
 
     STREAM_LOCK;
 
@@ -165,6 +186,18 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
         "CLImageProcessor push priority buffer failed");
 
     return XCAM_RETURN_BYPASS;
+}
+
+XCamReturn
+CLImageProcessor::process_done_buffer ()
+{
+    SmartPtr<DrmBoBuffer> done_buf = _done_buffer_queue.pop (-1);
+    if (!done_buf.ptr ())
+        return XCAM_RETURN_ERROR_THREAD;
+
+    //notify buffer done, only in this thread
+    notify_process_buffer_done (done_buf);
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -244,6 +277,9 @@ CLImageProcessor::emit_start ()
     _done_buffer_queue.resume_pop ();
     _process_buffer_queue.resume_pop ();
 
+    if (!_done_buf_thread->start ())
+        return XCAM_RETURN_ERROR_THREAD;
+
     if (!_handler_thread->start ())
         return XCAM_RETURN_ERROR_THREAD;
 
@@ -263,6 +299,7 @@ CLImageProcessor::emit_stop ()
     }
 
     _handler_thread->stop ();
+    _done_buf_thread->stop ();
     _process_buffer_queue.clear ();
     _done_buffer_queue.clear ();
 }
