@@ -20,12 +20,12 @@
 
 #include "priority_buffer_queue.h"
 
-#define XCAM_PRIORITY_BUFFER_FIXED_DELAY 6
+#define XCAM_PRIORITY_BUFFER_FIXED_DELAY 8
 
 namespace XCam {
 
 bool
-PriorityBuffer::priority_less_than (const PriorityBuffer& buf) const
+PriorityBuffer::priority_greater_than (const PriorityBuffer& buf) const
 {
     int32_t result =
         ((int32_t)(buf.seq_num - this->seq_num) * XCAM_PRIORITY_BUFFER_FIXED_DELAY +
@@ -48,7 +48,7 @@ PriorityBufferQueue::push_priority_buf (const SmartPtr<PriorityBuffer> &buf)
     for (; iter != _obj_list.end (); ++iter) {
         SmartPtr<PriorityBuffer> &current = *iter;
         XCAM_ASSERT (current.ptr ());
-        if (buf->priority_less_than (*current.ptr()))
+        if (buf->priority_greater_than (*current.ptr()))
             break;
     }
 

@@ -53,7 +53,7 @@ public:
         ++rank;
     }
 
-    bool priority_less_than (const PriorityBuffer& buf) const;
+    bool priority_greater_than (const PriorityBuffer& buf) const;
 };
 
 class PriorityBufferQueue
