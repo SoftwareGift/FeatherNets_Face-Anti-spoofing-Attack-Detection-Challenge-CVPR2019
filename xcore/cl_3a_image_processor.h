@@ -62,6 +62,12 @@ public:
         TonemappingStage,
     };
 
+    enum WaveletBasis {
+        WaveletDisable = 0,
+        HatWavelet,
+        HaarWavelet,
+    };
+
 public:
     explicit CL3aImageProcessor ();
     virtual ~CL3aImageProcessor ();
@@ -81,7 +87,7 @@ public:
     virtual bool set_tnr (uint32_t mode, uint8_t level);
     virtual bool set_tonemapping (bool enable);
     virtual bool set_newtonemapping (bool enable);
-    virtual bool set_wavelet (uint32_t enable);
+    virtual bool set_wavelet (WaveletBasis basis);
 
     PipelineProfile get_profile () const {
         return _pipeline_profile;
@@ -128,8 +134,7 @@ private:
     bool                                _enable_newtonemapping;
     bool                                _enable_macc;
     bool                                _enable_dpc;
-    bool                                _enable_wavelet;
-    bool                                _enable_newwavelet;
+    WaveletBasis                        _wavelet_basis;
     uint32_t                            _snr_mode; // spatial nr mode
 };
 

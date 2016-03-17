@@ -52,8 +52,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_newtonemapping (false)
     , _enable_macc (true)
     , _enable_dpc (false)
-    , _enable_wavelet (false)
-    , _enable_newwavelet (false)
+    , _wavelet_basis (WaveletDisable)
     , _snr_mode (0)
 {
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
@@ -387,31 +386,41 @@ CL3aImageProcessor::create_handlers ()
 #endif
 
     /* wavelet denoise */
-    image_handler = create_cl_wavelet_denoise_image_handler (context);
-    _wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _wavelet.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create wavelet denoise handler failed");
-    _wavelet->set_kernels_enable (_enable_wavelet);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
-
-    /* haar wavelet denoise */
-    image_handler = create_cl_newwavelet_denoise_image_handler (context);
-    _newwavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _newwavelet.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create new wavelet denoise handler failed");
-    _newwavelet->set_kernels_enable (_enable_newwavelet);
-    _newwavelet->set_clone_flags (SwappedBuffer::SwapY);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
+    switch (_wavelet_basis) {
+    case HatWavelet: {
+        image_handler = create_cl_wavelet_denoise_image_handler (context);
+        _wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _wavelet.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create wavelet denoise handler failed");
+        _wavelet->set_kernels_enable (true);
+        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+        add_handler (image_handler);
+        break;
+    }
+    case HaarWavelet: {
+        image_handler = create_cl_newwavelet_denoise_image_handler (context);
+        _newwavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _newwavelet.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create new wavelet denoise handler failed");
+        _newwavelet->set_kernels_enable (true);
+        _newwavelet->set_clone_flags (SwappedBuffer::SwapY);
+        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+        add_handler (image_handler);
+        break;
+    }
+    case WaveletDisable:
+    default :
+        XCAM_LOG_DEBUG ("unknown or disable wavelet (%d)", _wavelet_basis);
+        break;
+    }
 
     /* image scaler */
     image_handler = create_cl_image_scaler_handler (context, V4L2_PIX_FMT_NV12);
@@ -509,18 +518,9 @@ CL3aImageProcessor::set_gamma (bool enable)
 }
 
 bool
-CL3aImageProcessor::set_wavelet (uint32_t mode)
+CL3aImageProcessor::set_wavelet (WaveletBasis basis)
 {
-    if (mode == 1) {
-        _enable_wavelet = true;
-        _enable_newwavelet = false;
-    } else if (mode == 2) {
-        _enable_wavelet = false;
-        _enable_newwavelet = true;
-    } else {
-        _enable_wavelet = false;
-        _enable_newwavelet = false;
-    }
+    _wavelet_basis = basis;
 
     STREAM_LOCK;
 

@@ -212,14 +212,15 @@ XCamReturn
 SampleHandler::analyze (XCamVideoBuffer *buffer)
 {
     XCAM_LOG_DEBUG ("Smart SampleHandler::analyze on ts:" XCAM_TIMESTAMP_FORMAT, XCAM_TIMESTAMP_ARGS (buffer->timestamp));
+    if (NULL == buffer) {
+        return XCAM_RETURN_ERROR_PARAM;
+    }
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    XCamVideoBufferInfo info = buffer->info;
-
-    XCAM_LOG_DEBUG ("format(0x%x), color_bits(%d)", info.format, info.color_bits);
-    XCAM_LOG_DEBUG ("size(%d), components(%d)", info.size, info.components);
-    XCAM_LOG_DEBUG ("width(%d), heitht(%d)", info.width, info.height);
-    XCAM_LOG_DEBUG ("aligned_width(%d), aligned_height(%d)", info.aligned_width, info.aligned_height);
+    XCAM_LOG_DEBUG ("format(0x%x), color_bits(%d)", buffer->info.format, buffer->info.color_bits);
+    XCAM_LOG_DEBUG ("size(%d), components(%d)", buffer->info.size, buffer->info.components);
+    XCAM_LOG_DEBUG ("width(%d), heitht(%d)", buffer->info.width, buffer->info.height);
+    XCAM_LOG_DEBUG ("aligned_width(%d), aligned_height(%d)", buffer->info.aligned_width, buffer->info.aligned_height);
 
     _frameSaver->save_frame (buffer);
 

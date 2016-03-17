@@ -72,7 +72,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
 #define DEFAULT_PROP_WDR_MODE           NONE_WDR
-#define DEFAULT_PROP_WAVELET_MODE       NONE_WAVELET
+#define DEFAULT_PROP_WAVELET_MODE       CL3aImageProcessor::WaveletDisable
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
 #define DEFAULT_PROP_CL_PIPE_PROFILE    0
 
@@ -193,9 +193,9 @@ gst_xcam_src_wavelet_mode_get_type (void)
 {
     static GType g_type = 0;
     static const GEnumValue wavelet_mode_types[] = {
-        {NONE_WAVELET, "Wavelet disabled", "none"},
-        {HAT_WAVELET, "Hat wavelet", "hat"},
-        {HAAR_WAVELET, "Haar wavelet", "haar"},
+        {CL3aImageProcessor::WaveletDisable, "Wavelet disabled", "none"},
+        {CL3aImageProcessor::HatWavelet, "Hat wavelet", "hat"},
+        {CL3aImageProcessor::HaarWavelet, "Haar wavelet", "haar"},
         {0, NULL, NULL},
     };
 
@@ -490,7 +490,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
-    xcamsrc->wavelet_mode = NONE_WAVELET;
+    xcamsrc->wavelet_mode = CL3aImageProcessor::WaveletDisable;
     xcamsrc->enable_retinex = DEFAULT_PROP_ENABLE_RETINEX;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
@@ -681,7 +681,7 @@ gst_xcam_src_set_property (
         src->wdr_mode_type = (WDRModeType)g_value_get_enum (value);
         break;
     case PROP_WAVELET_MODE:
-        src->wavelet_mode = (WaveletModeType)g_value_get_enum (value);
+        src->wavelet_mode = (CL3aImageProcessor::WaveletBasis)g_value_get_enum (value);
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
@@ -869,7 +869,7 @@ gst_xcam_src_start (GstBaseSrc *src)
             }
         }
 
-        if (NONE_WAVELET != xcamsrc->wavelet_mode) {
+        if (CL3aImageProcessor::WaveletDisable != xcamsrc->wavelet_mode) {
             cl_processor->set_wavelet (xcamsrc->wavelet_mode);
         }
 
@@ -1040,7 +1040,7 @@ translate_format_to_xcam (GstVideoFormat format)
     case GST_VIDEO_FORMAT_Y42B:
         return V4L2_PIX_FMT_YUV422P;
 
-        //RGB
+    //RGB
     case GST_VIDEO_FORMAT_RGBx:
         return V4L2_PIX_FMT_RGB32;
     case GST_VIDEO_FORMAT_BGRx:

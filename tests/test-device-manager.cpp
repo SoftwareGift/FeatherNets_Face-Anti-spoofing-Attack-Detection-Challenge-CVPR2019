@@ -365,7 +365,7 @@ int main (int argc, char *argv[])
     bool newtonemapping_type = false;
     bool wdr_type = false;
     bool retinex_type = false;
-    uint32_t wavelet_type = 0;
+    CL3aImageProcessor::WaveletBasis wavelet_mode = CL3aImageProcessor::WaveletDisable;
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
     char*   usb_device_name = NULL;
@@ -535,7 +535,13 @@ int main (int argc, char *argv[])
                 print_help (bin_name);
                 return -1;
             }
-            wavelet_type = atoi(optarg);
+            if (atoi(optarg) == 1) {
+                wavelet_mode = CL3aImageProcessor::HatWavelet;
+            } else if (atoi(optarg) == 2) {
+                wavelet_mode = CL3aImageProcessor::HaarWavelet;
+            } else {
+                wavelet_mode = CL3aImageProcessor::WaveletDisable;
+            }
             break;
         }
         case 'D': {
@@ -739,7 +745,7 @@ int main (int argc, char *argv[])
         cl_processor->set_tonemapping(tonemapping_type);
         cl_processor->set_newtonemapping(newtonemapping_type);
         cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
-        cl_processor->set_wavelet (wavelet_type);
+        cl_processor->set_wavelet (wavelet_mode);
         cl_processor->set_capture_stage (capture_stage);
 
         if (wdr_type) {

@@ -108,7 +108,6 @@ protected:
 private:
     XCAM_DEAD_COPY (CLTnrImageKernel);
 
-    float analyze_motion (SmartPtr<DrmBoBuffer> &input, CLTnrAnalyzeDateType type, CLTnrMotionInfo* info);
     bool calculate_image_histogram (XCam3AStats *stats, CLTnrHistogramType type, float* histogram);
     bool calculate_image_histogram (SmartPtr<DrmBoBuffer> &input, CLTnrHistogramType type, float* histogram);
     void print_image_histogram ();

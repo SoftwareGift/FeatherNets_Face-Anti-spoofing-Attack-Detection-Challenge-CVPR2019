@@ -23,7 +23,7 @@
 #include "cl_newwavelet_denoise_handler.h"
 
 #define WAVELET_DENOISE_Y 1
-#define WAVELET_DECOMPOSITION_LEVELS 1
+#define WAVELET_DECOMPOSITION_LEVELS 4
 
 namespace XCam {
 
@@ -93,13 +93,8 @@ CLNewWaveletDenoiseImageKernel::prepare_arguments (
         work_size.local[1] = 1;
     }
 
-    if (_filter_bank == CL_WAVELET_HAAR_ANALYSIS) {
-        work_size.global[0] = video_info_in.width >> _current_layer;
-        work_size.global[1] = video_info_in.height >> _current_layer;
-    } else if (_filter_bank == CL_WAVELET_HAAR_SYNTHESIS) {
-        work_size.global[0] = video_info_in.width >> _current_layer;
-        work_size.global[1] = video_info_in.height >> _current_layer;
-    }
+    work_size.global[0] = video_info_in.width >> _current_layer;
+    work_size.global[1] = video_info_in.height >> _current_layer;
 
     SmartPtr<CLWaveletDecompBuffer> buffer;
     if (_current_layer == 1) {

@@ -241,14 +241,6 @@ CLTnrImageKernel::set_yuv_config (const XCam3aResultTemporalNoiseReduction& conf
     return true;
 }
 
-float
-CLTnrImageKernel::analyze_motion (SmartPtr<DrmBoBuffer>& input, CLTnrAnalyzeDateType type, CLTnrMotionInfo* info)
-{
-    float tnr_gain = 1.0;
-
-    return tnr_gain;
-}
-
 bool
 CLTnrImageKernel::calculate_image_histogram (XCam3AStats* stats, CLTnrHistogramType type, float* histogram)
 {
