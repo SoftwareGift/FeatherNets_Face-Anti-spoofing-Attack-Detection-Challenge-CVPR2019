@@ -110,48 +110,65 @@ CLNewTonemappingImageKernel::prepare_arguments (
     int* hist_log = new int[hist_bin_count];
     int* sort_y = new int[stats_totalnum + 1];
     float* map_index_leq = new float[hist_bin_count];
-    int* map_index_log = new int[hist_bin_count + 1];
+    int* map_index_log = new int[hist_bin_count];
 
     for(int i = 0; i < hist_bin_count; i++)
     {
         hist_log[i] = 0;
     }
 
-    int thres = hist_bin_count * (53 * hist_bin_count / 256) / (2 * y_avg);
+    int thres = hist_bin_count * (53 * hist_bin_count / 256) / (2 * y_avg + 1);
     int y_max0 = (y_max > thres) ? thres : y_max;
     int y_max1 = (y_max - thres) > 0 ? (y_max - thres) : 0;
+
+    if(y_max < thres)
+    {
+        y_max0 = hist_bin_count - 1;
+    }
+
     float t0 = 0.01f * y_max0;
     float t1 = 0.01f * y_max1;
     float max0_log = log(y_max0 + t0);
-    float max1_log = log(y_max1 + t1 + 1);
+    float max1_log = log(y_max1 + t1 + 0.01f);
     float t0_log = log(t0);
-    float t1_log = log(t1);
+    float t1_log = log(t1 + 0.01f);
     float factor0;
 
     if(y_max < thres)
-        factor0 = (hist_bin_count - 1) / (max0_log - t0_log);
+        factor0 = (hist_bin_count - 1) / (max0_log - t0_log + 0.01f);
     else
-        factor0 = y_max0 / (max0_log - t0_log);
+        factor0 = y_max0 / (max0_log - t0_log + 0.01f);
 
-    float factor1 = y_max1 / (max1_log - t1_log);
+    float factor1 = y_max1 / (max1_log - t1_log + 0.01f);
 
-    for(int i = 0; i < y_max0; i++)
+    if(y_max < thres)
     {
-        int index = (int)((log(i + t0) - t0_log) * factor0 + 0.5f);
-        hist_log[index] += stats_ptr->hist_y[i];
-        map_index_log[i] = index;
+        for(int i = 0; i < y_max; i++)
+        {
+            int index = (int)((log(i + t0) - t0_log) * factor0 + 0.5f);
+            hist_log[index] += stats_ptr->hist_y[i];
+            map_index_log[i] = index;
+        }
+    }
+    else
+    {
+        for(int i = 0; i < y_max0; i++)
+        {
+            int index = (int)((log(i + t0) - t0_log) * factor0 + 0.5f);
+            hist_log[index] += stats_ptr->hist_y[i];
+            map_index_log[i] = index;
+        }
+        for(int i = y_max0; i < y_max; i++)
+        {
+            int r = y_max - i;
+            int index = (int)((log(r + t1) - t1_log) * factor1 + 0.5f);
+            index = y_max - index;
+            hist_log[index] += stats_ptr->hist_y[i];
+            map_index_log[i] = index;
+        }
     }
 
-    for(int i = y_max0; i < y_max; i++)
-    {
-        int r = y_max - i;
-        int index = (int)((log(r + t1) - t1_log) * factor1 + 0.5f);
-        index = y_max - index;
-        hist_log[index] += stats_ptr->hist_y[i];
-        map_index_log[i] = index;
-    }
-
-    for(int i = y_max; i < hist_bin_count + 1; i++)
+    for(int i = y_max; i < hist_bin_count; i++)
     {
         map_index_log[i] = map_index_log[y_max - 1];
     }
