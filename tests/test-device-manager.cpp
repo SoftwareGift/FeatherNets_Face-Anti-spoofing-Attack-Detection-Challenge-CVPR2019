@@ -319,6 +319,7 @@ void print_help (const char *bin_name)
             "\t --wavelet-mode  specify wavelet mode\n"
             "\t --pipeline    pipe mode\n"
             "\t               select from [basic, advance, extreme], default is [basic]\n"
+            "\t --disable-post disable cl post image processor\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
 #endif
             , bin_name
@@ -355,6 +356,7 @@ int main (int argc, char *argv[])
     CL3aImageProcessor::CLTonemappingMode wdr_mode = CL3aImageProcessor::WDRdisabled;
 #endif
     bool have_cl_processor = false;
+    bool have_cl_post_processor = true;
     bool need_display = false;
     enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
     const char *bin_name = argv[0];
@@ -391,6 +393,7 @@ int main (int argc, char *argv[])
         {"sync", no_argument, NULL, 'Y'},
         {"capture", required_argument, NULL, 'C'},
         {"pipeline", required_argument, NULL, 'P'},
+        {"disable-post", no_argument, NULL, 'O'},
         {0, 0, 0, 0},
     };
 
@@ -600,6 +603,10 @@ int main (int argc, char *argv[])
                 capture_stage = CL3aImageProcessor::BasicbayerStage;
             break;
         }
+        case 'O': {
+            have_cl_post_processor = false;
+            break;
+        }
 #endif
         case 'r': {
             if (optarg) {
@@ -749,14 +756,16 @@ int main (int argc, char *argv[])
         device_manager->add_image_processor (cl_processor);
     }
 
-    cl_post_processor = new CLPostImageProcessor ();
+    if (have_cl_post_processor) {
+        cl_post_processor = new CLPostImageProcessor ();
 
-    cl_post_processor->set_retinex (retinex_type);
+        cl_post_processor->set_retinex (retinex_type);
 
-    if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display) {
-        cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+        if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display) {
+            cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+        }
+        device_manager->add_image_processor (cl_post_processor);
     }
-    device_manager->add_image_processor (cl_post_processor);
 #endif
 
     SmartPtr<PollThread> poll_thread;
