@@ -30,7 +30,7 @@ SmartAnalysisHandler::SmartAnalysisHandler (XCamSmartAnalysisDescription *desc, 
     , _context (NULL)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 
     create_context ();
 }

@@ -160,7 +160,7 @@ SampleHandler::SampleHandler (const char *name)
     , _callback (NULL)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 
     if (!_frameSaver.ptr ()) {
         _frameSaver = new FrameSaver (true, 2, 16);

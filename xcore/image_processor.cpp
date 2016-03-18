@@ -140,7 +140,7 @@ ImageProcessor::ImageProcessor (const char* name)
     , _callback (NULL)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 
     _processor_thread = new ImageProcessorThread (this);
     _results_thread = new X3aResultsProcessThread (this);

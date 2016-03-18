@@ -30,11 +30,13 @@ X3aCiqTuningHandler::X3aCiqTuningHandler (const char *name)
     , _name (NULL)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 }
 
 X3aCiqTuningHandler::~X3aCiqTuningHandler ()
 {
+    if (_name)
+        xcam_free (_name);
 }
 
 void

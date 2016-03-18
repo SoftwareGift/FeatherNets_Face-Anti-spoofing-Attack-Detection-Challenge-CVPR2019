@@ -88,6 +88,7 @@
     XCAM_DOUBLE_EQUAL(a, b, 0.000001)
 
 #define XCAM_GAMMA_TABLE_SIZE 256
+#define XCAM_MAX_STR_SIZE 4096
 
 #define XCAM_TIMESPEC_2_USEC(timespec) ((timespec).tv_sec*1000000LL + (timespec).tv_nsec/1000)
 #define XCAM_TIMEVAL_2_USEC(timeval) ((timeval).tv_sec*1000000LL + (timeval).tv_usec)

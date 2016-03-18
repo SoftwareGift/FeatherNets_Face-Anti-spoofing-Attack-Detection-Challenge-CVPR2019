@@ -149,7 +149,7 @@ CLImageHandler::CLImageHandler (const char *name)
 {
     XCAM_ASSERT (name);
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 
     XCAM_OBJ_PROFILING_INIT;
 }

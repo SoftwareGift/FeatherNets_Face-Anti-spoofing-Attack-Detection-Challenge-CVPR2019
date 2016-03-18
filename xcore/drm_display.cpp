@@ -64,9 +64,9 @@ DrmDisplay::DrmDisplay(const char* module)
     xcam_mem_clear(_compose);
 
     if (module)
-        _module = strdup (module);
+        _module = strndup (module, XCAM_MAX_STR_SIZE);
     else
-        _module = strdup (DEFAULT_DRM_DEVICE);
+        _module = strndup (DEFAULT_DRM_DEVICE, XCAM_MAX_STR_SIZE);
 
     //_fd = drmOpenRender (128);
     _fd = drmOpen (_module, DEFAULT_DRM_BUSID);

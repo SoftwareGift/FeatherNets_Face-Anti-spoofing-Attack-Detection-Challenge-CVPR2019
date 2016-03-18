@@ -33,7 +33,7 @@ SmartAnalyzerLoader::SmartAnalyzerLoader (const char *lib_path, const char *name
     , _name (NULL)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 }
 
 SmartAnalyzerLoader::~SmartAnalyzerLoader ()

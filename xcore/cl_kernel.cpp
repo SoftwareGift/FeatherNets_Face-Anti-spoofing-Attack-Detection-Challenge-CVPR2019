@@ -37,7 +37,7 @@ CLKernel::CLKernel(SmartPtr<CLContext> &context, const char *name)
     XCAM_ASSERT (name);
 
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 
     set_default_work_size ();
 }

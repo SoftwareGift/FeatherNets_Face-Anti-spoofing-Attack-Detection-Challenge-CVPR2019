@@ -117,7 +117,7 @@ XAnalyzer::XAnalyzer (const char *name)
     , _callback (NULL)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 
     _analyzer_thread  = new AnalyzerThread (this);
 }

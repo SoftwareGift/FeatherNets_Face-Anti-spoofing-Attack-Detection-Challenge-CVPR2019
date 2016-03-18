@@ -40,7 +40,7 @@ private:
 };
 
 CpfReader::CpfReader (const char *name)
-    : _name (strdup(name))
+    : _name (strndup(name, XCAM_MAX_STR_SIZE))
 {
     _aiq_cpf = xcam_cpf_blob_new ();
     XCAM_ASSERT (name);
@@ -72,7 +72,7 @@ X3aAnalyzerAiq::X3aAnalyzerAiq (SmartPtr<IspController> &isp, const char *cpf_pa
     , _cpf_path (NULL)
 {
     if (cpf_path)
-        _cpf_path = strdup (cpf_path);
+        _cpf_path = strndup (cpf_path, XCAM_MAX_STR_SIZE);
 
     _aiq_compositor = new AiqCompositor ();
     XCAM_ASSERT (_aiq_compositor.ptr());
@@ -88,7 +88,7 @@ X3aAnalyzerAiq::X3aAnalyzerAiq (struct atomisp_sensor_mode_data &sensor_data, co
     , _cpf_path (NULL)
 {
     if (cpf_path)
-        _cpf_path = strdup (cpf_path);
+        _cpf_path = strndup (cpf_path, XCAM_MAX_STR_SIZE);
 
     _aiq_compositor = new AiqCompositor ();
     XCAM_ASSERT (_aiq_compositor.ptr());

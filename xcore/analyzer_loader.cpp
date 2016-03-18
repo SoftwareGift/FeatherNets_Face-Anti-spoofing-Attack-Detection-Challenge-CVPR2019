@@ -27,9 +27,9 @@ AnalyzerLoader::AnalyzerLoader (const char *lib_path, const char *symbol)
     : _handle (NULL)
 {
     XCAM_ASSERT (lib_path);
-    _path = strdup (lib_path);
+    _path = strndup (lib_path, XCAM_MAX_STR_SIZE);
     XCAM_ASSERT (symbol);
-    _symbol = strdup (symbol);
+    _symbol = strndup (symbol, XCAM_MAX_STR_SIZE);
 }
 
 AnalyzerLoader::~AnalyzerLoader ()

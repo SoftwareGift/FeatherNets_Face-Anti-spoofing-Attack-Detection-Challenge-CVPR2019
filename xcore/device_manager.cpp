@@ -70,7 +70,7 @@ XCamMessage::XCamMessage (XCamMessageType type, int64_t timestamp, const char *m
     , msg (NULL)
 {
     if (message)
-        this->msg = strdup (message);
+        this->msg = strndup (message, XCAM_MAX_STR_SIZE);
 }
 
 XCamMessage::~XCamMessage ()

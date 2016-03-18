@@ -368,12 +368,12 @@ int main (int argc, char *argv[])
     CL3aImageProcessor::WaveletBasis wavelet_mode = CL3aImageProcessor::WaveletDisable;
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
-    char*   usb_device_name = NULL;
+    SmartPtr<char> usb_device_name;
     bool sync_mode = false;
     int frame_rate;
     int frame_width = 1920;
     int frame_height = 1080;
-    char *path_to_fake = NULL;
+    SmartPtr<char> path_to_fake = NULL;
 
     const char *short_opts = "sca:n:m:f:d:b:pi:e:r:h";
     const struct option long_opts[] = {
@@ -470,8 +470,8 @@ int main (int argc, char *argv[])
             break;
         case 'U':
             have_usbcam = true;
-            usb_device_name = strdup(optarg);
-            XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", usb_device_name);
+            usb_device_name = strndup(optarg, XCAM_MAX_STR_SIZE);
+            XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", XCAM_STR(usb_device_name.ptr ()));
             break;
         case 'R':
             XCAM_ASSERT (optarg);
@@ -611,7 +611,7 @@ int main (int argc, char *argv[])
         case 'r': {
             if (optarg) {
                 XCAM_LOG_INFO ("use raw image %s as input source", optarg);
-                path_to_fake = strdup(optarg);
+                path_to_fake = strndup(optarg, XCAM_MAX_STR_SIZE);
             }
             break;
         }
@@ -632,10 +632,10 @@ int main (int argc, char *argv[])
         device_manager->set_display_mode (display_mode);
     }
     if (!device.ptr ())  {
-        if (path_to_fake) {
+        if (path_to_fake.ptr ()) {
             device = new FakeV4l2Device ();
         } else if (have_usbcam) {
-            device = new UVCDevice (usb_device_name);
+            device = new UVCDevice (usb_device_name.ptr ());
         } else {
             if (capture_mode == V4L2_CAPTURE_MODE_STILL)
                 device = new AtomispDevice (CAPTURE_DEVICE_STILL);
@@ -768,8 +768,8 @@ int main (int argc, char *argv[])
 #endif
 
     SmartPtr<PollThread> poll_thread;
-    if (path_to_fake)
-        poll_thread = new FakePollThread (path_to_fake);
+    if (path_to_fake.ptr ())
+        poll_thread = new FakePollThread (path_to_fake.ptr ());
     else
         poll_thread = new PollThread ();
     device_manager->set_poll_thread (poll_thread);
@@ -797,10 +797,6 @@ int main (int argc, char *argv[])
     CHECK_CONTINUE (ret, "device manager stop failed");
     device->close ();
     event_device->close ();
-    if (usb_device_name)
-        free (usb_device_name);
-    if (path_to_fake)
-        free (path_to_fake);
 
     return 0;
 }

@@ -47,7 +47,7 @@ V4l2Device::V4l2Device (const char *name)
     , _buf_count (XCAM_V4L2_DEFAULT_BUFFER_COUNT)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
     xcam_mem_clear (_format);
 }
 
@@ -69,7 +69,7 @@ V4l2Device::set_device_name (const char *name)
     }
     if (_name)
         xcam_free (_name);
-    _name = strdup (name);
+    _name = strndup (name, XCAM_MAX_STR_SIZE);
     return true;
 }
 

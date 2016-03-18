@@ -32,7 +32,7 @@ FakePollThread::FakePollThread (const char *raw_path)
     XCAM_ASSERT (raw_path);
 
     if (raw_path)
-        _raw_path = strdup (raw_path);
+        _raw_path = strndup (raw_path, XCAM_MAX_STR_SIZE);
 }
 
 FakePollThread::~FakePollThread ()

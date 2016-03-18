@@ -486,8 +486,8 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->sensor_id = 0;
     xcamsrc->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     xcamsrc->device = NULL;
-    xcamsrc->path_to_cpf = strdup(DEFAULT_CPF_FILE_NAME);
-    xcamsrc->path_to_3alib = strdup(DEFAULT_DYNAMIC_3A_LIB);
+    xcamsrc->path_to_cpf = strndup(DEFAULT_CPF_FILE_NAME, XCAM_MAX_STR_SIZE);
+    xcamsrc->path_to_3alib = strndup(DEFAULT_DYNAMIC_3A_LIB, XCAM_MAX_STR_SIZE);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
     xcamsrc->wavelet_mode = CL3aImageProcessor::WaveletDisable;
@@ -633,7 +633,7 @@ gst_xcam_src_set_property (
             xcam_free (src->device);
         src->device = NULL;
         if (device)
-            src->device = strdup (device);
+            src->device = strndup (device, XCAM_MAX_STR_SIZE);
         break;
     }
     case PROP_SENSOR:
@@ -699,7 +699,7 @@ gst_xcam_src_set_property (
             xcam_free (src->path_to_cpf);
         src->path_to_cpf = NULL;
         if (cpf)
-            src->path_to_cpf = strdup (cpf);
+            src->path_to_cpf = strndup (cpf, XCAM_MAX_STR_SIZE);
         break;
     }
     case PROP_3A_LIB: {
@@ -708,7 +708,7 @@ gst_xcam_src_set_property (
             xcam_free (src->path_to_3alib);
         src->path_to_3alib = NULL;
         if (path)
-            src->path_to_3alib = strdup (path);
+            src->path_to_3alib = strndup (path, XCAM_MAX_STR_SIZE);
         break;
     }
     case PROP_INPUT_FMT: {
@@ -728,7 +728,7 @@ gst_xcam_src_set_property (
             xcam_free (src->path_to_fake);
         src->path_to_fake = NULL;
         if (raw_path)
-            src->path_to_fake = strdup (raw_path);
+            src->path_to_fake = strndup (raw_path, XCAM_MAX_STR_SIZE);
         break;
     }
     default:
@@ -802,9 +802,9 @@ gst_xcam_src_start (GstBaseSrc *src)
     // Check device
     if (xcamsrc->device == NULL) {
         if (xcamsrc->capture_mode == V4L2_CAPTURE_MODE_STILL)
-            xcamsrc->device = strdup (CAPTURE_DEVICE_STILL);
+            xcamsrc->device = strndup (CAPTURE_DEVICE_STILL, XCAM_MAX_STR_SIZE);
         else
-            xcamsrc->device = strdup (CAPTURE_DEVICE_VIDEO);
+            xcamsrc->device = strndup (CAPTURE_DEVICE_VIDEO, XCAM_MAX_STR_SIZE);
     }
     XCAM_ASSERT (xcamsrc->device);
 

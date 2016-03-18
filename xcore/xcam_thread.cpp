@@ -30,7 +30,7 @@ Thread::Thread (const char *name)
     , _started (false)
 {
     if (name)
-        _name = strdup (name);
+        _name = strndup (name, XCAM_MAX_STR_SIZE);
 }
 
 Thread::~Thread ()
