@@ -68,6 +68,12 @@ public:
         HaarWavelet,
     };
 
+    enum CLTonemappingMode {
+        WDRdisabled  = 0,
+        Gaussian,
+        Haleq,
+    };
+
 public:
     explicit CL3aImageProcessor ();
     virtual ~CL3aImageProcessor ();
@@ -85,9 +91,8 @@ public:
     virtual bool set_macc (bool enable);
     virtual bool set_dpc (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
-    virtual bool set_tonemapping (bool enable);
-    virtual bool set_newtonemapping (bool enable);
     virtual bool set_wavelet (WaveletBasis basis);
+    virtual bool set_tonemapping (CLTonemappingMode wdr_mode);
 
     PipelineProfile get_profile () const {
         return _pipeline_profile;
@@ -111,6 +116,7 @@ private:
     uint32_t                            _3a_stats_bits;
     PipelineProfile                     _pipeline_profile;
     CaptureStage                        _capture_stage;
+    CLTonemappingMode                   _wdr_mode;
     SmartPtr<StatsCallback>             _stats_callback;
     SmartPtr<CLCscImageHandler>         _csc;
     SmartPtr<CLTonemappingImageHandler> _tonemapping;
@@ -130,8 +136,6 @@ private:
     uint32_t                            _hdr_mode;
     uint32_t                            _tnr_mode;
     bool                                _enable_gamma;
-    bool                                _enable_tonemapping;
-    bool                                _enable_newtonemapping;
     bool                                _enable_macc;
     bool                                _enable_dpc;
     WaveletBasis                        _wavelet_basis;

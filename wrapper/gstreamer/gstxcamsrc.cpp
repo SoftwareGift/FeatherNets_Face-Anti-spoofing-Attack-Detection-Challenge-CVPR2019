@@ -332,7 +332,6 @@ static gboolean gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode);
 static gboolean gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint32 mode);
 static gboolean gst_xcam_src_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable);
 static gboolean gst_xcam_src_set_dpc_mode(GstXCam3A * xcam3a, gboolean enable);
-static gboolean gst_xcam_src_set_tonemapping_mode(GstXCam3A * xcam3a, gboolean enable);
 
 static gboolean gst_xcam_src_plugin_init (GstPlugin * xcamsrc);
 
@@ -778,7 +777,6 @@ gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface)
     iface->set_denoise_mode = gst_xcam_src_set_denoise_mode;
     iface->set_gamma_mode = gst_xcam_src_set_gamma_mode;
     iface->set_dpc_mode = gst_xcam_src_set_dpc_mode;
-    iface->set_tonemapping_mode = gst_xcam_src_set_tonemapping_mode;
 }
 
 static gboolean
@@ -856,16 +854,16 @@ gst_xcam_src_start (GstBaseSrc *src)
         {
             cl_processor->set_gamma (false);
             xcamsrc->in_format = V4L2_PIX_FMT_SGRBG12;
+            cl_processor->set_3a_stats_bits(12);
             setenv ("AIQ_CPF_PATH", "/etc/atomisp/imx185_wdr.cpf", 1);
 
             if(xcamsrc->wdr_mode_type == GAUSSIAN_WDR)
             {
-                cl_processor->set_tonemapping(true);
+                cl_processor->set_tonemapping(CL3aImageProcessor::CLTonemappingMode::Gaussian);
             }
             else if(xcamsrc->wdr_mode_type == HALEQ_WDR)
             {
-                cl_processor->set_newtonemapping(true);
-                cl_processor->set_3a_stats_bits(12);
+                cl_processor->set_tonemapping(CL3aImageProcessor::CLTonemappingMode::Haleq);
             }
         }
 
@@ -1517,21 +1515,6 @@ gst_xcam_src_set_dpc_mode (GstXCam3A *xcam3a, gboolean enable)
     SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
     if (cl_image_processor.ptr ())
         return cl_image_processor->set_dpc (enable);
-    else
-#endif
-        return false;
-}
-
-static gboolean
-gst_xcam_src_set_tonemapping_mode (GstXCam3A *xcam3a, gboolean enable)
-{
-    GST_XCAM_INTERFACE_HEADER (xcam3a, src, device_manager, analyzer);
-    XCAM_UNUSED (analyzer);
-
-#if HAVE_LIBCL
-    SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
-    if (cl_image_processor.ptr ())
-        return cl_image_processor->set_tonemapping (enable);
     else
 #endif
         return false;

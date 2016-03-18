@@ -309,13 +309,12 @@ void print_help (const char *bin_name)
             "\t --tnr         specify temporal noise reduction type, default is tnr off\n"
             "\t               select from [rgb, yuv, both]\n"
             "\t --tnr-level   specify tnr level\n"
+            "\t --wdr-mode    specify wdr mode. select from [gaussian, haleq]\n"
             "\t --bilateral   enable bilateral noise reduction\n"
             "\t --enable-snr  enable simple noise reduction\n"
             "\t --enable-ee   enable YEENR\n"
             "\t --enable-bnr  enable bayer noise reduction\n"
             "\t --enable-dpc  enable defect pixel correction\n"
-            "\t --enable-wdr  enable wdr\n"
-            "\t --enable-new-wdr  enable new wdr algorithm\n"
             "\t --enable-retinex  enable retinex\n"
             "\t --wavelet-mode  specify wavelet mode\n"
             "\t --pipeline    pipe mode\n"
@@ -353,6 +352,7 @@ int main (int argc, char *argv[])
     bool dpc_type = false;
     CL3aImageProcessor::PipelineProfile pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
     CL3aImageProcessor::CaptureStage capture_stage = CL3aImageProcessor::TonemappingStage;
+    CL3aImageProcessor::CLTonemappingMode wdr_mode = CL3aImageProcessor::WDRdisabled;
 #endif
     bool have_cl_processor = false;
     bool need_display = false;
@@ -361,8 +361,6 @@ int main (int argc, char *argv[])
     int opt;
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
-    bool tonemapping_type = false;
-    bool newtonemapping_type = false;
     bool wdr_type = false;
     bool retinex_type = false;
     CL3aImageProcessor::WaveletBasis wavelet_mode = CL3aImageProcessor::WaveletDisable;
@@ -380,13 +378,12 @@ int main (int argc, char *argv[])
         {"hdr", required_argument, NULL, 'H'},
         {"tnr", required_argument, NULL, 'T'},
         {"tnr-level", required_argument, NULL, 'L'},
+        {"wdr-mode", required_argument, NULL, 'W'},
         {"bilateral", no_argument, NULL, 'I'},
         {"enable-snr", no_argument, NULL, 'S'},
         {"enable-ee", no_argument, NULL, 'E'},
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-dpc", no_argument, NULL, 'D'},
-        {"enable-wdr", no_argument, NULL, 'W'},
-        {"enable-new-wdr", no_argument, NULL, 'N'},
         {"enable-retinex", no_argument, NULL, 'X'},
         {"wavelet-mode", required_argument, NULL, 'V'},
         {"usb", required_argument, NULL, 'U'},
@@ -572,18 +569,14 @@ int main (int argc, char *argv[])
             break;
         }
         case 'W': {
-            wdr_type = true;
-            tonemapping_type = true;
-            pixel_format = V4L2_PIX_FMT_SGRBG12;
+            XCAM_ASSERT (optarg);
+            if (!strcasecmp (optarg, "gaussian"))
+                wdr_mode = CL3aImageProcessor::Gaussian;
+            else if (!strcasecmp (optarg, "haleq"))
+                wdr_mode = CL3aImageProcessor::Haleq;
 
-            setenv ("AIQ_CPF_PATH", IMX185_WDR_CPF, 1);
-            break;
-        }
-        case 'N': {
-            wdr_type = true;
-            newtonemapping_type = true;
             pixel_format = V4L2_PIX_FMT_SGRBG12;
-
+            wdr_type = true;
             setenv ("AIQ_CPF_PATH", IMX185_WDR_CPF, 1);
             break;
         }
@@ -694,9 +687,9 @@ int main (int argc, char *argv[])
     else {
         frame_rate = 25;
         device->set_framerate (frame_rate, 1);
-        if(tonemapping_type == true) {
+        if(wdr_type == true) {
             XCAM_LOG_WARNING("Tonemapping is only applicable under BA12 format. Disable tonemapping automatically.");
-            tonemapping_type = false;
+            wdr_type = false;
         }
     }
     ret = device->open ();
@@ -742,8 +735,7 @@ int main (int argc, char *argv[])
         cl_processor->set_dpc(dpc_type);
         cl_processor->set_hdr (hdr_type);
         cl_processor->set_denoise (denoise_type);
-        cl_processor->set_tonemapping(tonemapping_type);
-        cl_processor->set_newtonemapping(newtonemapping_type);
+        cl_processor->set_tonemapping(wdr_mode);
         cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
         cl_processor->set_wavelet (wavelet_mode);
         cl_processor->set_capture_stage (capture_stage);

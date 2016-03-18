@@ -45,11 +45,10 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _3a_stats_bits (8)
     , _pipeline_profile (BasicPipelineProfile)
     , _capture_stage (TonemappingStage)
+    , _wdr_mode (WDRdisabled)
     , _hdr_mode (0)
     , _tnr_mode (0)
     , _enable_gamma (true)
-    , _enable_tonemapping (false)
-    , _enable_newtonemapping (false)
     , _enable_macc (true)
     , _enable_dpc (false)
     , _wavelet_basis (WaveletDisable)
@@ -167,9 +166,6 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         if (_bayer_basic_pipe.ptr ()) {
             _bayer_basic_pipe->set_wb_config (wb_res->get_standard_result ());
             _bayer_basic_pipe->set_3a_result (result);
-        }
-        if (_tonemapping.ptr ()) {
-            _tonemapping->set_wb_config (wb_res->get_standard_result ());
         }
         break;
     }
@@ -321,27 +317,37 @@ CL3aImageProcessor::create_handlers ()
     add_handler (image_handler);
 
     /* tone mapping */
-    image_handler = create_cl_tonemapping_image_handler (context);
-    _tonemapping = image_handler.dynamic_cast_ptr<CLTonemappingImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _tonemapping.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create tonemapping handler failed");
-    _tonemapping->set_kernels_enable (_enable_tonemapping);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
-
-    image_handler = create_cl_newtonemapping_image_handler (context);
-    _newtonemapping = image_handler.dynamic_cast_ptr<CLNewTonemappingImageHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _newtonemapping.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CL3aImageProcessor create tonemapping handler failed");
-    _newtonemapping->set_kernels_enable (_enable_newtonemapping);
-    image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
-    add_handler (image_handler);
+    switch(_wdr_mode) {
+    case Gaussian: {
+        image_handler = create_cl_tonemapping_image_handler (context);
+        _tonemapping = image_handler.dynamic_cast_ptr<CLTonemappingImageHandler> ();
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _tonemapping.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create tonemapping handler failed");
+        _tonemapping->set_kernels_enable (true);
+        image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+        add_handler (image_handler);
+        break;
+    }
+    case Haleq: {
+        image_handler = create_cl_newtonemapping_image_handler (context);
+        _newtonemapping = image_handler.dynamic_cast_ptr<CLNewTonemappingImageHandler> ();
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _newtonemapping.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create tonemapping handler failed");
+        _newtonemapping->set_kernels_enable (true);
+        image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
+        add_handler (image_handler);
+        break;
+    }
+    default:
+        XCAM_LOG_DEBUG ("WDR disabled");
+        break;
+    }
 
     /* bayer pipe */
     image_handler = create_cl_bayer_pipe_image_handler (context);
@@ -559,31 +565,14 @@ CL3aImageProcessor::set_dpc (bool enable)
 }
 
 bool
-CL3aImageProcessor::set_tonemapping (bool enable)
+CL3aImageProcessor::set_tonemapping (CLTonemappingMode wdr_mode)
 {
-    _enable_tonemapping = enable;
+    _wdr_mode = wdr_mode;
 
     STREAM_LOCK;
 
-    if (_tonemapping.ptr ())
-        return _tonemapping->set_kernels_enable (enable);
-
     return true;
 }
-
-bool
-CL3aImageProcessor::set_newtonemapping (bool enable)
-{
-    _enable_newtonemapping = enable;
-
-    STREAM_LOCK;
-
-    if (_newtonemapping.ptr ())
-        return _newtonemapping->set_kernels_enable (enable);
-
-    return true;
-}
-
 
 bool
 CL3aImageProcessor::set_tnr (uint32_t mode, uint8_t level)
