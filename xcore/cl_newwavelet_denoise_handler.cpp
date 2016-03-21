@@ -64,11 +64,24 @@ CLNewWaveletDenoiseImageKernel::prepare_arguments (
     _input_y_offset = video_info_in.offsets[0];
     _output_y_offset = video_info_out.offsets[0];
 
-    _image_in = new CLVaImage (context, input, _input_y_offset, true);
-    _image_out = new CLVaImage (context, output, _output_y_offset, true);
+    _input_uv_offset = video_info_in.offsets[1];
+    _output_uv_offset = video_info_out.offsets[1];
 
-    _input_uv_offset = video_info_in.aligned_height;
-    _output_uv_offset = video_info_out.aligned_height;
+    CLImageDesc cl_desc_in, cl_desc_out;
+    cl_desc_in.format.image_channel_data_type = CL_UNORM_INT8;
+    cl_desc_in.format.image_channel_order = CL_RGBA;
+    cl_desc_in.width = video_info_in.width / 4;
+    cl_desc_in.height = video_info_in.height;
+    cl_desc_in.row_pitch = video_info_in.strides[0];
+
+    cl_desc_out.format.image_channel_data_type = CL_UNORM_INT8;
+    cl_desc_out.format.image_channel_order = CL_RGBA;
+    cl_desc_out.width = video_info_out.width / 4;
+    cl_desc_out.height = video_info_out.height;
+    cl_desc_out.row_pitch = video_info_out.strides[0];
+
+    _image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    _image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
     XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
@@ -79,22 +92,10 @@ CLNewWaveletDenoiseImageKernel::prepare_arguments (
 
     //set args;
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    if (_current_layer == 1) {
-        work_size.local[0] = 8;
-        work_size.local[1] = 4;
-    } else if (_current_layer == 2) {
-        work_size.local[0] = 8;
-        work_size.local[1] = 2;
-    } else if (_current_layer == 3) {
-        work_size.local[0] = 8;
-        work_size.local[1] = 1;
-    } else {
-        work_size.local[0] = 4;
-        work_size.local[1] = 1;
-    }
-
-    work_size.global[0] = video_info_in.width >> _current_layer;
-    work_size.global[1] = video_info_in.height >> _current_layer;
+    work_size.local[0] = 8;
+    work_size.local[1] = 4;
+    work_size.global[0] = XCAM_ALIGN_UP ((video_info_in.width >> _current_layer) / 4 , 16);
+    work_size.global[1] = XCAM_ALIGN_UP (video_info_in.height  >> _current_layer, 16);
 
     SmartPtr<CLWaveletDecompBuffer> buffer;
     if (_current_layer == 1) {
@@ -189,8 +190,11 @@ CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &inpu
             decompBuffer->width = video_info.width >> layer;
             decompBuffer->height = video_info.height >> layer;
             decompBuffer->layer = layer;
-            cl_desc.width = decompBuffer->width;
+
+            cl_desc.width = decompBuffer->width / 4;
             cl_desc.height = decompBuffer->height;
+            cl_desc.format.image_channel_order = CL_RGBA;
+            cl_desc.format.image_channel_data_type = CL_UNORM_INT8;
 
             decompBuffer->ll = new CLImage2D (context, cl_desc);
             decompBuffer->hl = new CLImage2D (context, cl_desc);

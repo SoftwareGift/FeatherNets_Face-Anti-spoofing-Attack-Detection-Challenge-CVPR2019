@@ -18,28 +18,35 @@ __kernel void kernel_wavelet_haar_reconstruction (__write_only image2d_t output,
     int y = get_global_id (1);
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
-    float4 pixel_ll;
-    float4 pixel_hl;
-    float4 pixel_lh;
-    float4 pixel_hh;
+    float4 line_ll;
+    float4 line_hl;
+    float4 line_lh;
+    float4 line_hh;
 
-    pixel_ll = read_imagef(ll, sampler, (int2)(x, y));
-    pixel_hl = read_imagef(hl, sampler, (int2)(x, y)) - 0.5f;
-    pixel_lh = read_imagef(lh, sampler, (int2)(x, y)) - 0.5f;
-    pixel_hh = read_imagef(hh, sampler, (int2)(x, y)) - 0.5f;
-
-    // column reconstruction
-    float4 row_l[2];
-    float4 row_h[2];
-    row_l[0] = pixel_ll + pixel_hl;
-    row_h[0] = pixel_ll - pixel_hl;
-    row_l[1] = pixel_lh + pixel_hh;
-    row_h[1] = pixel_lh - pixel_hh;
+    line_ll = read_imagef(ll, sampler, (int2)(x, y));
+    line_hl = read_imagef(hl, sampler, (int2)(x, y)) - 0.5f;
+    line_lh = read_imagef(lh, sampler, (int2)(x, y)) - 0.5f;
+    line_hh = read_imagef(hh, sampler, (int2)(x, y)) - 0.5f;
 
     // row reconstruction
-    write_imagef(output, (int2)(2 * x, 2 * y), row_l[0] + row_l[1]);
-    write_imagef(output, (int2)(2 * x, 2 * y + 1), row_h[0] + row_h[1]);
-    write_imagef(output, (int2)(2 * x + 1, 2 * y), row_l[0] - row_l[1]);
-    write_imagef(output, (int2)(2 * x + 1, 2 * y + 1), row_h[0] - row_h[1]);
+    float4 row_l[2];
+    float4 row_h[2];
+    row_l[0] = line_ll + line_lh;
+    row_l[1] = line_hl + line_hh;
+    row_h[0] = line_ll - line_lh;
+    row_h[1] = line_hl - line_hh;
+
+    // column reconstruction
+    float8 line[2];
+    line[0].odd = row_l[0] + row_l[1];
+    line[0].even = row_l[0] - row_l[1];
+    line[1].odd = row_h[0] + row_h[1];
+    line[1].even = row_h[0] - row_h[1];
+
+    write_imagef(output, (int2)(2 * x, 2 * y), line[0].lo);
+    write_imagef(output, (int2)(2 * x, 2 * y + 1), line[0].hi);
+    write_imagef(output, (int2)(2 * x + 1, 2 * y), line[1].lo);
+    write_imagef(output, (int2)(2 * x + 1, 2 * y + 1), line[1].hi);
+
 }
 
