@@ -1,7 +1,7 @@
 /*
  * cl_gauss_handler.cpp - CL gauss handler
  *
- *  Copyright (c) 2015 Intel Corporation
+ *  Copyright (c) 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: wangfei <feix.w.wang@intel.com>
+ *             Wind Yuan <feng.yuan@intel.com>
  */
 #include "xcam_utils.h"
 #include "cl_gauss_handler.h"
@@ -25,10 +26,8 @@ namespace XCam {
 
 CLGaussImageKernel::CLGaussImageKernel (SmartPtr<CLContext> &context)
     : CLImageKernel (context, "kernel_gauss")
-    , _vertical_offset_in (0)
-    , _vertical_offset_out (0)
 {
-    set_gaussian(5, 2);
+    set_gaussian(XCAM_GAUSS_TABLE_SIZE, 2);
 }
 
 bool
@@ -52,6 +51,20 @@ CLGaussImageKernel::set_gaussian (int size, float sigma)
     return true;
 }
 
+SmartPtr<DrmBoBuffer>
+CLGaussImageKernel::get_input_parameter (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (output);
+    return input;
+}
+SmartPtr<DrmBoBuffer>
+CLGaussImageKernel::get_output_parameter (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (input);
+    return output;
+}
 
 XCamReturn
 CLGaussImageKernel::prepare_arguments (
@@ -60,11 +73,33 @@ CLGaussImageKernel::prepare_arguments (
     CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & video_info_in = input->get_video_info ();
-    const VideoBufferInfo & video_info_out = output->get_video_info ();
+    SmartPtr<DrmBoBuffer>  input_buf = get_input_parameter (input, output);
+    SmartPtr<DrmBoBuffer>  output_buf = get_output_parameter (input, output);
 
-    _image_in = new CLVaImage (context, input);
-    _image_out = new CLVaImage (context, output);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        input_buf.ptr () && output_buf.ptr (),
+        XCAM_RETURN_ERROR_MEM,
+        "cl image kernel(%s) get input/output buffer failed", get_kernel_name ());
+
+    const VideoBufferInfo & video_info_in = input_buf->get_video_info ();
+    const VideoBufferInfo & video_info_out = output_buf->get_video_info ();
+    CLImageDesc cl_desc_in, cl_desc_out;
+
+    cl_desc_in.format.image_channel_data_type = CL_UNORM_INT8;
+    cl_desc_in.format.image_channel_order = CL_R;
+    cl_desc_in.width = video_info_in.width;
+    cl_desc_in.height = video_info_in.height;
+    cl_desc_in.row_pitch = video_info_in.strides[0];
+    _image_in = new CLVaImage (context, input_buf, cl_desc_in, video_info_in.offsets[0]);
+
+    cl_desc_out.format.image_channel_data_type = CL_UNORM_INT8;
+    cl_desc_out.format.image_channel_order = CL_RGBA;
+    cl_desc_out.width = video_info_out.width / 4;
+    cl_desc_out.height = video_info_out.height;
+    cl_desc_out.row_pitch = video_info_out.strides[0];
+    _image_out = new CLVaImage (context, output_buf, cl_desc_out, video_info_out.offsets[0]);
+
     _g_table_buffer = new CLBuffer(
         context, sizeof(float)*XCAM_GAUSS_TABLE_SIZE * XCAM_GAUSS_TABLE_SIZE,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_g_table);
@@ -76,26 +111,19 @@ CLGaussImageKernel::prepare_arguments (
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
-    _vertical_offset_in = video_info_in.aligned_height;
-    _vertical_offset_out = video_info_out.aligned_height;
-
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_vertical_offset_in;
-    args[2].arg_size = sizeof (_vertical_offset_in);
-    args[3].arg_adress = &_vertical_offset_out;
-    args[3].arg_size = sizeof (_vertical_offset_out);
-    args[4].arg_adress = &_g_table_buffer->get_mem_id();
-    args[4].arg_size = sizeof (cl_mem);
-    arg_count = 5;
+    args[2].arg_adress = &_g_table_buffer->get_mem_id();
+    args[2].arg_size = sizeof (cl_mem);
+    arg_count = 3;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = video_info_in.width / 2;
-    work_size.global[1] = video_info_in.height / 2;
-    work_size.local[0] = 4;
+    work_size.global[0] = XCAM_ALIGN_UP(cl_desc_out.width, 8);
+    work_size.global[1] = XCAM_ALIGN_UP (cl_desc_out.height / 2, 4);
+    work_size.local[0] = 8;
     work_size.local[1] = 4;
 
     return XCAM_RETURN_NO_ERROR;

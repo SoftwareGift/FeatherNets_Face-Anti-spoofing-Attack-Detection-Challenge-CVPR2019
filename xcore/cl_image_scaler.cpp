@@ -35,33 +35,46 @@ CLScalerKernel::CLScalerKernel (
 {
 }
 
-CLImageScalerKernel::CLImageScalerKernel (
-    SmartPtr<CLContext> &context,
-    CLImageScalerMemoryLayout mem_layout,
-    SmartPtr<CLImageScaler> &scaler
-)
-    : CLScalerKernel (context, mem_layout)
-    , _scaler (scaler)
+SmartPtr<DrmBoBuffer>
+CLScalerKernel::get_input_parameter (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
+    XCAM_UNUSED (output);
+    return input;
+}
+
+SmartPtr<DrmBoBuffer>
+CLScalerKernel::get_output_parameter (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (input);
+    return output;
 }
 
 XCamReturn
-CLImageScalerKernel::prepare_arguments (
+CLScalerKernel::prepare_arguments (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
     CLArgument args[], uint32_t &arg_count,
     CLWorkSize &work_size)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo &input_info = input->get_video_info ();
+
+    SmartPtr<DrmBoBuffer> input_buf = get_input_parameter (input, output);
+    SmartPtr<DrmBoBuffer> output_buf = get_output_parameter (input, output);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        input_buf.ptr () && output_buf.ptr (),
+        XCAM_RETURN_ERROR_MEM,
+        "cl image kernel(%s) get input/output buffer failed", get_kernel_name ());
+
+    const VideoBufferInfo &input_info = input_buf->get_video_info ();
+    const VideoBufferInfo & output_info = output_buf->get_video_info ();
+
+
     _pixel_format = input_info.format;
 
-    XCAM_UNUSED (output);
-    SmartPtr<DrmBoBuffer> scaler_buf = _scaler->get_scaler_buf ();
-    XCAM_ASSERT (scaler_buf.ptr ());
-
-    const VideoBufferInfo & output_info = scaler_buf->get_video_info ();
     CLImageDesc output_imageDesc;
     uint32_t channel_bits = XCAM_ALIGN_UP (output_info.color_bits, 8);
     if (channel_bits == 8)
@@ -75,7 +88,7 @@ CLImageScalerKernel::prepare_arguments (
         output_imageDesc.height = output_info.height / 2;
         output_imageDesc.row_pitch = output_info.strides[1];
 
-        _cl_image_out = new CLVaImage (context, scaler_buf, output_imageDesc, output_info.offsets[1]);
+        _cl_image_out = new CLVaImage (context, output_buf, output_imageDesc, output_info.offsets[1]);
         _output_width = output_info.width / 2;
         _output_height = output_info.height / 2;
     } else {
@@ -84,7 +97,7 @@ CLImageScalerKernel::prepare_arguments (
         output_imageDesc.height = output_info.height;
         output_imageDesc.row_pitch = output_info.strides[0];
 
-        _cl_image_out = new CLVaImage (context, scaler_buf, output_imageDesc, 0);
+        _cl_image_out = new CLVaImage (context, output_buf, output_imageDesc, output_info.offsets[0]);
         _output_width = output_info.width;
         _output_height = output_info.height;
     }
@@ -102,14 +115,14 @@ CLImageScalerKernel::prepare_arguments (
         input_imageDesc.height = input_info.height / 2;
         input_imageDesc.row_pitch = input_info.strides[1];
 
-        _image_in = new CLVaImage (context, input, input_imageDesc, input_info.offsets[1]);
+        _image_in = new CLVaImage (context, input_buf, input_imageDesc, input_info.offsets[1]);
     } else {
         input_imageDesc.format.image_channel_order = CL_R;
         input_imageDesc.width = input_info.width;
         input_imageDesc.height = input_info.height;
         input_imageDesc.row_pitch = input_info.strides[0];
 
-        _image_in = new CLVaImage (context, input, input_imageDesc, 0);
+        _image_in = new CLVaImage (context, input_buf, input_imageDesc, input_info.offsets[0]);
     }
 
     //set args;
@@ -124,12 +137,32 @@ CLImageScalerKernel::prepare_arguments (
     arg_count = 4;
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = _output_width;
-    work_size.global[1] = _output_height;
-    work_size.local[0] = XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE;
-    work_size.local[1] = XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE;
+    work_size.global[0] = XCAM_ALIGN_UP (_output_width, XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE0);
+    work_size.global[1] = XCAM_ALIGN_UP (_output_height, XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE1);
+    work_size.local[0] = XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE0;
+    work_size.local[1] = XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE1;
 
     return ret;
+}
+
+
+CLImageScalerKernel::CLImageScalerKernel (
+    SmartPtr<CLContext> &context,
+    CLImageScalerMemoryLayout mem_layout,
+    SmartPtr<CLImageScaler> &scaler
+)
+    : CLScalerKernel (context, mem_layout)
+    , _scaler (scaler)
+{
+}
+
+SmartPtr<DrmBoBuffer>
+CLImageScalerKernel::get_output_parameter (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (input);
+    XCAM_UNUSED (output);
+    return _scaler->get_scaler_buf ();
 }
 
 XCamReturn
@@ -210,9 +243,9 @@ CLImageScaler::prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<D
     if (!_scaler_buf_pool.ptr ()) {
         VideoBufferInfo scaler_video_info;
         uint32_t new_width = XCAM_ALIGN_UP ((uint32_t)(video_info.width * _scaler_factor),
-                                            2 * XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE);
+                                            2 * XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE0);
         uint32_t new_height = XCAM_ALIGN_UP ((uint32_t)(video_info.height * _scaler_factor),
-                                             2 * XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE);
+                                             2 * XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE1);
 
         scaler_video_info.init (video_info.format, new_width, new_height);
 

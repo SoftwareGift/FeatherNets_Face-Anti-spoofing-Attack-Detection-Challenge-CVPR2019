@@ -35,7 +35,8 @@ enum CLImageScalerMemoryLayout {
     CL_IMAGE_SCALER_RGBA = 2,
 };
 
-#define XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE 4
+#define XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE0 8
+#define XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE1 4
 
 class CLImageScaler;
 
@@ -53,6 +54,18 @@ public:
     uint32_t get_pixel_format () const {
         return _pixel_format;
     };
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
+
+    //new virtual functions
+    virtual SmartPtr<DrmBoBuffer> get_input_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLScalerKernel);
@@ -72,14 +85,12 @@ public:
     explicit CLImageScalerKernel (
         SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLImageScaler> &scaler);
 
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
+protected:
     virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
-
     virtual void pre_stop ();
+
+    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLImageScalerKernel);

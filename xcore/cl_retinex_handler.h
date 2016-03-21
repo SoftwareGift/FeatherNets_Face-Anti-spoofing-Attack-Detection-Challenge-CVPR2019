@@ -1,7 +1,7 @@
 /*
  * cl_retinex_handler.h - CL retinex handler.
  *
- *  Copyright (c) 2015 Intel Corporation
+ *  Copyright (c) 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: wangfei <feix.w.wang@intel.com>
+ *             Wind Yuan <feng.yuan@intel.com>
  */
 
 #ifndef XCAM_CL_RETINEX_HANLDER_H
@@ -47,13 +48,14 @@ class CLRetinexScalerImageKernel
     : public CLScalerKernel
 {
 public:
-    explicit CLRetinexScalerImageKernel (SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLRetinexImageHandler> &scaler);
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    explicit CLRetinexScalerImageKernel (
+        SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLRetinexImageHandler> &scaler);
     virtual void pre_stop ();
+
+protected:
+    //derived from CLScalerKernel
+    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLRetinexScalerImageKernel);
@@ -66,12 +68,11 @@ class CLRetinexGaussImageKernel
 {
 public:
     explicit CLRetinexGaussImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &scaler);
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-//    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
-//    virtual void pre_stop ();
+    virtual SmartPtr<DrmBoBuffer> get_input_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+
 
 private:
     XCAM_DEAD_COPY (CLRetinexGaussImageKernel);
@@ -91,6 +92,8 @@ protected:
         CLArgument args[], uint32_t &arg_count,
         CLWorkSize &work_size);
 
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+
 private:
     XCAM_DEAD_COPY (CLRetinexImageKernel);
 
@@ -109,23 +112,27 @@ public:
     bool set_retinex_kernel(SmartPtr<CLRetinexImageKernel> &kernel);
     bool set_retinex_scaler_kernel(SmartPtr<CLRetinexScalerImageKernel> &kernel);
     bool set_retinex_gauss_kernel(SmartPtr<CLRetinexGaussImageKernel> &kernel);
-    SmartPtr<DrmBoBuffer> &get_scaler_buf () {
-        return _scaler_buf;
+    SmartPtr<DrmBoBuffer> &get_scaler_buf1 () {
+        return _scaler_buf1;
+    };
+    SmartPtr<DrmBoBuffer> &get_scaler_buf2 () {
+        return _scaler_buf2;
     };
     void pre_stop ();
 
 protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info);
 
 private:
     XCAM_DEAD_COPY (CLRetinexImageHandler);
-    SmartPtr<CLRetinexImageKernel> _retinex_kernel;
-    SmartPtr<CLRetinexScalerImageKernel> _retinex_scaler_kernel;
-    SmartPtr<CLRetinexGaussImageKernel> _retinex_gauss_kernel;
-    SmartPtr<ScaledVideoBufferPool> _scaler_buf_pool;
-    SmartPtr<DrmBoBuffer>   _scaler_buf;
-    double _scaler_factor;
+    SmartPtr<CLRetinexImageKernel>        _retinex_kernel;
+    SmartPtr<CLRetinexScalerImageKernel>  _retinex_scaler_kernel;
+    SmartPtr<CLRetinexGaussImageKernel>   _retinex_gauss_kernel;
+    SmartPtr<DrmBoBufferPool>             _scaler_buf_pool;
+    SmartPtr<DrmBoBuffer>                 _scaler_buf1;
+    SmartPtr<DrmBoBuffer>                 _scaler_buf2;
+    double                                _scaler_factor;
 };
 
 SmartPtr<CLImageHandler>

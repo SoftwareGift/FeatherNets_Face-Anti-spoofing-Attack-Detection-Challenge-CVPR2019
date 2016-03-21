@@ -1,7 +1,7 @@
 /*
  * cl_gauss_handler.h - CL gauss handler.
  *
- *  Copyright (c) 2015 Intel Corporation
+ *  Copyright (c) 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,11 +44,15 @@ protected:
         CLArgument args[], uint32_t &arg_count,
         CLWorkSize &work_size);
 
+    // new virtual fucntions
+    virtual SmartPtr<DrmBoBuffer> get_input_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+
 protected:
-    uint32_t _vertical_offset_in;
-    uint32_t _vertical_offset_out;
-    SmartPtr<CLBuffer>  _g_table_buffer;
-    float _g_table[XCAM_GAUSS_TABLE_SIZE*XCAM_GAUSS_TABLE_SIZE];
+    SmartPtr<CLBuffer>    _g_table_buffer;
+    float                 _g_table[XCAM_GAUSS_TABLE_SIZE*XCAM_GAUSS_TABLE_SIZE];
 private:
     XCAM_DEAD_COPY (CLGaussImageKernel);
 };
