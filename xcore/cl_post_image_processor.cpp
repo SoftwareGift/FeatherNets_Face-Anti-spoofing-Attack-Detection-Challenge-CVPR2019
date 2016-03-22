@@ -25,7 +25,8 @@
 #include "cl_retinex_handler.h"
 #include "cl_csc_handler.h"
 
-#define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 6
+#define XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE 6
+#define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 12
 
 namespace XCam {
 
@@ -100,7 +101,7 @@ CLPostImageProcessor::create_handlers ()
         "CLPostImageProcessor create csc handler failed");
     _csc->set_kernels_enable (_out_sample_type == OutSampleRGB);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
     add_handler (image_handler);
 
     return XCAM_RETURN_NO_ERROR;

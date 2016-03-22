@@ -88,7 +88,7 @@ CLScalerKernel::prepare_arguments (
         output_imageDesc.height = output_info.height / 2;
         output_imageDesc.row_pitch = output_info.strides[1];
 
-        _cl_image_out = new CLVaImage (context, output_buf, output_imageDesc, output_info.offsets[1]);
+        _image_out = new CLVaImage (context, output_buf, output_imageDesc, output_info.offsets[1]);
         _output_width = output_info.width / 2;
         _output_height = output_info.height / 2;
     } else {
@@ -97,7 +97,7 @@ CLScalerKernel::prepare_arguments (
         output_imageDesc.height = output_info.height;
         output_imageDesc.row_pitch = output_info.strides[0];
 
-        _cl_image_out = new CLVaImage (context, output_buf, output_imageDesc, output_info.offsets[0]);
+        _image_out = new CLVaImage (context, output_buf, output_imageDesc, output_info.offsets[0]);
         _output_width = output_info.width;
         _output_height = output_info.height;
     }
@@ -128,7 +128,7 @@ CLScalerKernel::prepare_arguments (
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_cl_image_out->get_mem_id ();
+    args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
     args[2].arg_adress = &_output_width;
     args[2].arg_size = sizeof (_output_width);
@@ -168,7 +168,6 @@ CLImageScalerKernel::get_output_parameter (
 XCamReturn
 CLImageScalerKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
-    XCAM_UNUSED (output);
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if ((V4L2_PIX_FMT_NV12 != get_pixel_format ()) ||
@@ -185,6 +184,8 @@ CLImageScalerKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
         //post buffer out
         ret = _scaler->post_buffer (buffer);
     }
+
+    CLScalerKernel::post_execute (output);
     return ret;
 }
 

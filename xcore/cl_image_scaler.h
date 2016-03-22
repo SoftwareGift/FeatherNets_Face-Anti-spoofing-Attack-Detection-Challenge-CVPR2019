@@ -75,7 +75,6 @@ protected:
     CLImageScalerMemoryLayout _mem_layout;
     uint32_t _output_width;
     uint32_t _output_height;
-    SmartPtr<CLImage> _cl_image_out;
 };
 
 class CLImageScalerKernel
