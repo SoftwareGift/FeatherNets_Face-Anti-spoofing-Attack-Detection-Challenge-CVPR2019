@@ -100,6 +100,7 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create csc handler failed");
     _csc->set_kernels_enable (_out_sample_type == OutSampleRGB);
+    _csc->set_output_format (_output_fourcc);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
     add_handler (image_handler);

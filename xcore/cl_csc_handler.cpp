@@ -180,6 +180,20 @@ CLCscImageHandler::set_rgbtoyuv_matrix (const XCam3aResultColorMatrix &matrix)
     return true;
 }
 
+bool
+CLCscImageHandler::set_output_format (uint32_t fourcc)
+{
+    XCAM_FAIL_RETURN (
+        WARNING,
+        V4L2_PIX_FMT_XBGR32 == fourcc || V4L2_PIX_FMT_NV12 == fourcc,
+        false,
+        "CL csc handler doesn't support format: (%s)",
+        xcam_fourcc_to_string (fourcc));
+
+    _output_format = fourcc;
+    return true;
+}
+
 XCamReturn
 CLCscImageHandler::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input,

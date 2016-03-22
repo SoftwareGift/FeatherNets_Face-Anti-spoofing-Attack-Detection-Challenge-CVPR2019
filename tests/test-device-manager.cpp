@@ -761,7 +761,7 @@ int main (int argc, char *argv[])
 
         cl_post_processor->set_retinex (retinex_type);
 
-        if ((display_mode == DRM_DISPLAY_MODE_PRIMARY) && need_display) {
+        if (need_display) {
             cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
         device_manager->add_image_processor (cl_post_processor);
