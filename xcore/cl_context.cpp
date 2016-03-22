@@ -75,7 +75,7 @@ CLContext::event_list_2_id_array (
         SmartPtr<CLEvent> &event = *iter;
 
         if (num_of_events_wait >= max_count) {
-            XCAM_LOG_WARNING ("CLEventList(%d) larger than id_array(max_count:%d)", events_wait.size(), max_count);
+            XCAM_LOG_WARNING ("CLEventList(%d) larger than id_array(max_count:%d)", (uint32_t)events_wait.size(), max_count);
             break;
         }
         XCAM_ASSERT (event->get_event_id ());

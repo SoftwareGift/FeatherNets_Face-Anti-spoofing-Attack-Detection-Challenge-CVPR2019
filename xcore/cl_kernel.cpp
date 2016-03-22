@@ -164,7 +164,7 @@ CLKernel::set_work_size (uint32_t dim, size_t *global, size_t *local)
             local [i] <= dev_info.max_work_item_sizes [i],
             XCAM_RETURN_ERROR_PARAM,
             "kernel(%s) work item(%d) size:%d is greater than device max work item size(%d)",
-            _name, i, local [i], dev_info.max_work_item_sizes [i]);
+            _name, i, (uint32_t)local [i], (uint32_t)dev_info.max_work_item_sizes [i]);
     }
 
     XCAM_FAIL_RETURN (
@@ -172,7 +172,7 @@ CLKernel::set_work_size (uint32_t dim, size_t *global, size_t *local)
         work_group_size == 0 || work_group_size <= dev_info.max_work_group_size,
         XCAM_RETURN_ERROR_PARAM,
         "kernel(%s) work-group-size:%d is greater than device max work-group-size(%d)",
-        _name, work_group_size, dev_info.max_work_group_size);
+        _name, work_group_size, (uint32_t)dev_info.max_work_group_size);
 
     _work_dim = dim;
     for (i = 0; i < dim; ++i) {
