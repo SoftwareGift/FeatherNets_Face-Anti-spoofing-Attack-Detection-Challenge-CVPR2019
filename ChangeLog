@@ -1,3 +1,29 @@
+2016/03/28: release libxcam version 0.5.0
+ * enable new WDR tone mapping based on histogram adjustment.
+    - apply bidirectional log based function on luminance to improve
+      image contrast.
+    - transmit wide dynamic range image data to 8-bit color data by
+      novel histogram adjustment algorithm.
+    - details in both over-exposured and under-exposured area clearly
+      show up on screen.
+ * enable wavelet-based algorithm for noise reduction.
+    - decompose image into multiple-scales by wavelet transform with
+      low pass and high pass filters.
+    - perform soft threshold on smaller coefficients(high-pass)
+      to reduce noise.
+    - threshold should be suitably decided by tuned parameters.
+    - reconstruct image from scaled low-pass and high-pass images.
+    - enable Haar-wavelet and Hat-wavelet NR filters.
+ * enable fog removal feature based on retinex algorithm.
+    - base on retinex single-scale algorithm.
+    - scale down image for gaussian blur to improve performance.
+    - scale up blured image and amplify log differences with original
+      image.
+ * improve sharpness in normal light with extreme profile.
+ * support cl post processing with isp mode.
+ * support swap-buffer on nv12 format if only single plane need to
+   process.
+
 2015/12/30: release libxcam version 0.4.0
  * improve performance on OCL pipeline.
     - design new formats and pipeline to save memory IO.

@@ -1,26 +1,30 @@
 libxcam source code
 
-Copyright (C) 2014-2015 Intel Corporation
+Copyright (C) 2014-2016 Intel Corporation
 
 libxcam core source code under the terms of Apache License, Version 2.0
 
 Description:
 libXCam is a project for extended camera features, especially 3A process.
-It separates 3A algorithm and ISP image processor, and makes user defined
-algorithm possible. This framework is also trying to make GPU joining the
-image process.
+It separates 3A algorithm and image processors, and makes user defined
+algorithm possible. This framework also makes GPU/CPU/ISP joining the image
+process.
 
 Features:
-  * 3A common APIs for Auto whitebalance, auto exposure, noise reduction, color correction,
-    edge enhancement, gamma correction and so on.
+  * Image processing features.
+    - 3A features
+       Auto whitebalance, auto exposure, auto focus, black level correction,
+       color correction, 3a-statistics calculation.
+    - Basic features
+       Gamma correction, MACC, color space, demosaicing, noise reduction,
+       edge enhancement.
+    - Advanced features
+       - Noise reduction: simple bilateral NR, temporal NR, wavelet NR
+       - WDR: gaussian-based tone-mapping, histogram adjustment tone-mapping
+       - Fog removal: retinex algorithm.
   * Capture features support memory type of mmap and dma buffer.
-  * 3A algorithms: 'simple' to guilde users how to write specific algorithm
-  * Support dynamically load a 3rd party 3A algorithm
-  * image processing based on Atom isp.
-  * OpenCL image processing interface is ready and some basic features in progress
-  * gstreamer plugin, xcamsrc is in progress
-
-Plans
-  * Improve gstreamer wrapper with different image processor.
-  * Improve cl features.
-  * Add vaapi image processing to co-work with CL and ISP.
+  * Support 3rd party 3A lib which can be loaded dynamically.
+  * Image processing based on both ISP and Open CL.
+  * Support 3a analysis tuning framework for different features
+  * Support smart analysis framework
+  * Support as gstreamer plugin <xcamsrc>
