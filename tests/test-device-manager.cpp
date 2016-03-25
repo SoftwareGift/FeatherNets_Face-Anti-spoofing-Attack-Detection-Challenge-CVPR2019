@@ -365,7 +365,9 @@ int main (int argc, char *argv[])
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
     bool wdr_type = false;
     bool retinex_type = false;
-    CL3aImageProcessor::WaveletBasis wavelet_mode = CL3aImageProcessor::WaveletDisable;
+    CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
+    uint32_t wavelet_channel = CL_WAVELET_CHANNEL_UV;
+
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
     SmartPtr<char> usb_device_name;
@@ -536,11 +538,22 @@ int main (int argc, char *argv[])
                 return -1;
             }
             if (atoi(optarg) == 1) {
-                wavelet_mode = CL3aImageProcessor::HatWavelet;
+                wavelet_mode = CL_WAVELET_HAT;
+                wavelet_channel = CL_WAVELET_CHANNEL_Y;
             } else if (atoi(optarg) == 2) {
-                wavelet_mode = CL3aImageProcessor::HaarWavelet;
+                wavelet_mode = CL_WAVELET_HAT;
+                wavelet_channel = CL_WAVELET_CHANNEL_UV;
+            } else if (atoi(optarg) == 3) {
+                wavelet_mode = CL_WAVELET_HAAR;
+                wavelet_channel = CL_WAVELET_CHANNEL_Y;
+            } else if (atoi(optarg) == 4) {
+                wavelet_mode = CL_WAVELET_HAAR;
+                wavelet_channel = CL_WAVELET_CHANNEL_UV;
+            } else if (atoi(optarg) == 5) {
+                wavelet_mode = CL_WAVELET_HAAR;
+                wavelet_channel = CL_WAVELET_CHANNEL_UV | CL_WAVELET_CHANNEL_Y;
             } else {
-                wavelet_mode = CL3aImageProcessor::WaveletDisable;
+                wavelet_mode = CL_WAVELET_DISABLED;
             }
             break;
         }
@@ -744,7 +757,7 @@ int main (int argc, char *argv[])
         cl_processor->set_denoise (denoise_type);
         cl_processor->set_tonemapping(wdr_mode);
         cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
-        cl_processor->set_wavelet (wavelet_mode);
+        cl_processor->set_wavelet (wavelet_mode, wavelet_channel);
         cl_processor->set_capture_stage (capture_stage);
 
         if (wdr_type) {

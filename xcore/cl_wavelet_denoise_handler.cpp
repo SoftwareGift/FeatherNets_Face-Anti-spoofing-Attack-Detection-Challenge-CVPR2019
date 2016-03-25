@@ -23,7 +23,6 @@
 #include "cl_device.h"
 #include "cl_wavelet_denoise_handler.h"
 
-#define WAVELET_DENOISE_UV 1
 #define WAVELET_DECOMPOSITION_LEVELS 4
 
 namespace XCam {
@@ -31,11 +30,13 @@ namespace XCam {
 CLWaveletDenoiseImageKernel::CLWaveletDenoiseImageKernel (SmartPtr<CLContext> &context,
         const char *name,
         SmartPtr<CLWaveletDenoiseImageHandler> &handler,
+        uint32_t channel,
         uint32_t layer)
     : CLImageKernel (context, name, true)
     , _hard_threshold (0.1)
     , _soft_threshold (0.5)
     , _decomposition_levels (WAVELET_DECOMPOSITION_LEVELS)
+    , _channel (channel)
     , _current_layer (layer)
     , _input_y_offset (0)
     , _output_y_offset (0)
@@ -125,13 +126,13 @@ CLWaveletDenoiseImageKernel::prepare_arguments (
     args[11].arg_adress = &_soft_threshold;
     args[11].arg_size = sizeof (_soft_threshold);
 
-#if WAVELET_DENOISE_UV
-    work_size.global[0] = video_info_in.width / 16;
-    work_size.global[1] = video_info_in.height / 2;
-#else
-    work_size.global[0] = video_info_in.width / 16;
-    work_size.global[1] = video_info_in.height;
-#endif
+    if (_channel & CL_WAVELET_CHANNEL_UV) {
+        work_size.global[0] = video_info_in.width / 16;
+        work_size.global[1] = video_info_in.height / 2;
+    } else {
+        work_size.global[0] = video_info_in.width / 16;
+        work_size.global[1] = video_info_in.height;
+    }
     arg_count = 12;
 
     return XCAM_RETURN_NO_ERROR;
@@ -188,7 +189,7 @@ CLWaveletDenoiseImageHandler::set_denoise_config (const XCam3aResultWaveletNoise
 }
 
 SmartPtr<CLImageHandler>
-create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context)
+create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel)
 {
     SmartPtr<CLWaveletDenoiseImageHandler> wavelet_handler;
     SmartPtr<CLWaveletDenoiseImageKernel> wavelet_kernel;
@@ -202,12 +203,12 @@ create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context)
     XCAM_ASSERT (wavelet_handler.ptr ());
 
     for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
-        wavelet_kernel = new CLWaveletDenoiseImageKernel (context, "kernel_wavelet_denoise", wavelet_handler, layer);
+        wavelet_kernel = new CLWaveletDenoiseImageKernel (context, "kernel_wavelet_denoise", wavelet_handler, channel, layer);
 
         ret = wavelet_kernel->load_from_source (
                   kernel_wavelet_denoise_body, strlen (kernel_wavelet_denoise_body),
                   NULL, NULL,
-                  WAVELET_DENOISE_UV ? "-DWAVELET_DENOISE_UV=1" : "-DWAVELET_DENOISE_UV=0");
+                  (channel & CL_WAVELET_CHANNEL_UV) ? "-DWAVELET_DENOISE_UV=1" : "-DWAVELET_DENOISE_UV=0");
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,

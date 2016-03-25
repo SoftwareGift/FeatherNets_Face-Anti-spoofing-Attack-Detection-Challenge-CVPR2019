@@ -52,6 +52,7 @@ enum CLWaveletFilterBank {
 typedef struct _CLCLWaveletDecompBuffer {
     int32_t width;
     int32_t height;
+    uint32_t channel;
     int32_t layer;
     SmartPtr<CLImage> ll;
     SmartPtr<CLImage> hl;
@@ -72,13 +73,14 @@ public:
             const char *name,
             SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
             CLWaveletFilterBank fb,
+            uint32_t channel,
             uint32_t layer);
 
     virtual ~CLNewWaveletDenoiseImageKernel () {
     }
 
     virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
-    SmartPtr<CLWaveletDecompBuffer> get_decomp_buffer (int layer);
+    SmartPtr<CLWaveletDecompBuffer> get_decomp_buffer (uint32_t channel, int layer);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -89,15 +91,15 @@ protected:
 private:
     XCAM_DEAD_COPY (CLNewWaveletDenoiseImageKernel);
 
+    SmartPtr<CLImage> _image_in_uv;
+    SmartPtr<CLImage> _image_out_uv;
+
     CLWaveletFilterBank _filter_bank;
     uint32_t  _decomposition_levels;
+    uint32_t  _channel;
     uint32_t  _current_layer;
     float     _hard_threshold;
     float     _soft_threshold;
-    uint32_t  _input_y_offset;
-    uint32_t  _output_y_offset;
-    uint32_t  _input_uv_offset;
-    uint32_t  _output_uv_offset;
 
     SmartPtr<CLNewWaveletDenoiseImageHandler> _handler;
 };
@@ -108,14 +110,14 @@ class CLNewWaveletDenoiseImageHandler
     typedef std::list<SmartPtr<CLWaveletDecompBuffer>> CLWaveletDecompBufferList;
 
 public:
-    explicit CLNewWaveletDenoiseImageHandler (const char *name);
+    explicit CLNewWaveletDenoiseImageHandler (const char *name, uint32_t channel);
 
     bool set_denoise_config (const XCam3aResultWaveletNoiseReduction& config);
     XCam3aResultWaveletNoiseReduction& get_denoise_config () {
         return _config;
     };
 
-    SmartPtr<CLWaveletDecompBuffer> get_decomp_buffer (int layer);
+    SmartPtr<CLWaveletDecompBuffer> get_decomp_buffer (uint32_t channel, int layer);
 
 protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
@@ -124,12 +126,13 @@ private:
     XCAM_DEAD_COPY (CLNewWaveletDenoiseImageHandler);
 
 private:
+    uint32_t _channel;
     XCam3aResultWaveletNoiseReduction _config;
     CLWaveletDecompBufferList _decompBufferList;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context);
+create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel);
 
 };
 

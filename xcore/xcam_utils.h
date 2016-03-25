@@ -34,6 +34,17 @@ namespace XCam {
 
 static const int64_t InvalidTimestamp = INT64_C(-1);
 
+enum CLWaveletBasis {
+    CL_WAVELET_DISABLED = 0,
+    CL_WAVELET_HAT,
+    CL_WAVELET_HAAR,
+};
+
+enum CLWaveletChannel {
+    CL_WAVELET_CHANNEL_Y = 1,
+    CL_WAVELET_CHANNEL_UV = 1 << 1,
+};
+
 inline double
 linear_interpolate_p2 (double value_start, double value_end,
                        double ref_start, double ref_end,

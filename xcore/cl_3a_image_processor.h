@@ -62,12 +62,6 @@ public:
         TonemappingStage,
     };
 
-    enum WaveletBasis {
-        WaveletDisable = 0,
-        HatWavelet,
-        HaarWavelet,
-    };
-
     enum CLTonemappingMode {
         WDRdisabled  = 0,
         Gaussian,
@@ -91,7 +85,7 @@ public:
     virtual bool set_macc (bool enable);
     virtual bool set_dpc (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
-    virtual bool set_wavelet (WaveletBasis basis);
+    virtual bool set_wavelet (CLWaveletBasis basis, uint32_t channel);
     virtual bool set_tonemapping (CLTonemappingMode wdr_mode);
 
     PipelineProfile get_profile () const {
@@ -138,7 +132,8 @@ private:
     bool                                _enable_gamma;
     bool                                _enable_macc;
     bool                                _enable_dpc;
-    WaveletBasis                        _wavelet_basis;
+    CLWaveletBasis                      _wavelet_basis;
+    uint32_t                            _wavelet_channel;
     uint32_t                            _snr_mode; // spatial nr mode
 };
 

@@ -72,7 +72,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
 #define DEFAULT_PROP_WDR_MODE           NONE_WDR
-#define DEFAULT_PROP_WAVELET_MODE       CL3aImageProcessor::WaveletDisable
+#define DEFAULT_PROP_WAVELET_MODE       CL_WAVELET_DISABLED
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
 #define DEFAULT_PROP_CL_PIPE_PROFILE    0
 
@@ -193,9 +193,12 @@ gst_xcam_src_wavelet_mode_get_type (void)
 {
     static GType g_type = 0;
     static const GEnumValue wavelet_mode_types[] = {
-        {CL3aImageProcessor::WaveletDisable, "Wavelet disabled", "none"},
-        {CL3aImageProcessor::HatWavelet, "Hat wavelet", "hat"},
-        {CL3aImageProcessor::HaarWavelet, "Haar wavelet", "haar"},
+        {NONE_WAVELET, "Wavelet disabled", "none"},
+        {HAT_WAVELET_Y, "Hat wavelet Y", "hat Y"},
+        {HAT_WAVELET_UV, "Hat wavelet UV", "hat UV"},
+        {HARR_WAVELET_Y, "Haar wavelet Y", "haar Y"},
+        {HARR_WAVELET_UV, "Haar wavelet UV", "haar UV"},
+        {HARR_WAVELET_YUV, "Haar wavelet YUV", "haar YUV"},
         {0, NULL, NULL},
     };
 
@@ -489,7 +492,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->path_to_3alib = strndup(DEFAULT_DYNAMIC_3A_LIB, XCAM_MAX_STR_SIZE);
     xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
-    xcamsrc->wavelet_mode = CL3aImageProcessor::WaveletDisable;
+    xcamsrc->wavelet_mode = NONE_WAVELET;
     xcamsrc->enable_retinex = DEFAULT_PROP_ENABLE_RETINEX;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
@@ -680,7 +683,7 @@ gst_xcam_src_set_property (
         src->wdr_mode_type = (WDRModeType)g_value_get_enum (value);
         break;
     case PROP_WAVELET_MODE:
-        src->wavelet_mode = (CL3aImageProcessor::WaveletBasis)g_value_get_enum (value);
+        src->wavelet_mode = (WaveletModeType)g_value_get_enum (value);
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
@@ -867,8 +870,20 @@ gst_xcam_src_start (GstBaseSrc *src)
             }
         }
 
-        if (CL3aImageProcessor::WaveletDisable != xcamsrc->wavelet_mode) {
-            cl_processor->set_wavelet (xcamsrc->wavelet_mode);
+        if (NONE_WAVELET != xcamsrc->wavelet_mode) {
+            if (HAT_WAVELET_Y == xcamsrc->wavelet_mode) {
+                cl_processor->set_wavelet (CL_WAVELET_HAT, CL_WAVELET_CHANNEL_Y);
+            } else if (HAT_WAVELET_UV == xcamsrc->wavelet_mode) {
+                cl_processor->set_wavelet (CL_WAVELET_HAT, CL_WAVELET_CHANNEL_UV);
+            } else if (HARR_WAVELET_Y == xcamsrc->wavelet_mode) {
+                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_WAVELET_CHANNEL_Y);
+            } else if (HARR_WAVELET_UV == xcamsrc->wavelet_mode) {
+                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_WAVELET_CHANNEL_UV);
+            } else if (HARR_WAVELET_YUV == xcamsrc->wavelet_mode) {
+                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_WAVELET_CHANNEL_UV | CL_WAVELET_CHANNEL_Y);
+            } else {
+                cl_processor->set_wavelet (CL_WAVELET_DISABLED, CL_WAVELET_CHANNEL_UV);
+            }
         }
 
         cl_processor->set_profile ((CL3aImageProcessor::PipelineProfile)xcamsrc->cl_pipe_profile);

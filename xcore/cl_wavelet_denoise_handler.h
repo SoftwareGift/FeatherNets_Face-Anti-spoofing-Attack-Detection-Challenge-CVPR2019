@@ -39,6 +39,7 @@ public:
     explicit CLWaveletDenoiseImageKernel (SmartPtr<CLContext> &context,
                                           const char *name,
                                           SmartPtr<CLWaveletDenoiseImageHandler> &handler,
+                                          uint32_t channel,
                                           uint32_t layer);
 
     virtual ~CLWaveletDenoiseImageKernel () {
@@ -57,6 +58,7 @@ private:
     float     _hard_threshold;
     float     _soft_threshold;
     uint32_t  _decomposition_levels;
+    uint32_t  _channel;
     uint32_t  _current_layer;
     uint32_t  _input_y_offset;
     uint32_t  _output_y_offset;
@@ -103,7 +105,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context);
+create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel);
 
 };
 

@@ -41,6 +41,7 @@
 #include "cl_retinex_handler.h"
 #include "cl_gauss_handler.h"
 #include "cl_wavelet_denoise_handler.h"
+#include "cl_newwavelet_denoise_handler.h"
 
 using namespace XCam;
 
@@ -64,7 +65,8 @@ enum TestHandlerType {
     TestHandlerTonemapping,
     TestHandlerRetinex,
     TestHandlerGauss,
-    TestHandlerWavelet,
+    TestHandlerHatWavelet,
+    TestHandlerHaarWavelet,
 };
 
 struct TestFileHandle {
@@ -149,7 +151,7 @@ print_help (const char *bin_name)
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
             "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise,"
-            " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet]\n"
+            " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet-hat, wavelet-haar]\n"
             "\t -f input_format    specify a input format\n"
             "\t -g output_format    specify a output format\n"
             "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
@@ -180,7 +182,7 @@ int main (int argc, char *argv[])
     VideoBufferInfo input_buf_info;
     SmartPtr<CLContext> context;
     SmartPtr<DrmDisplay> display;
-    SmartPtr<BufferPool> buf_pool;
+    SmartPtr<DrmBoBufferPool> buf_pool;
     int opt = 0;
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
     CLHdrType hdr_type = CL_HDR_TYPE_RGB;
@@ -261,8 +263,10 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerRetinex;
             else if (!strcasecmp (optarg, "gauss"))
                 handler_type = TestHandlerGauss;
-            else if (!strcasecmp (optarg, "wavelet"))
-                handler_type = TestHandlerWavelet;
+            else if (!strcasecmp (optarg, "wavelet-hat"))
+                handler_type = TestHandlerHatWavelet;
+            else if (!strcasecmp (optarg, "wavelet-haar"))
+                handler_type = TestHandlerHaarWavelet;
             else
                 print_help (bin_name);
             break;
@@ -473,8 +477,8 @@ int main (int argc, char *argv[])
         XCAM_ASSERT (gauss.ptr ());
         break;
     }
-    case TestHandlerWavelet: {
-        image_handler = create_cl_wavelet_denoise_image_handler (context);
+    case TestHandlerHatWavelet: {
+        image_handler = create_cl_wavelet_denoise_image_handler (context, CL_WAVELET_CHANNEL_UV);
         SmartPtr<CLWaveletDenoiseImageHandler> wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
         XCAM_ASSERT (wavelet.ptr ());
         XCam3aResultWaveletNoiseReduction wavelet_config;
@@ -485,7 +489,17 @@ int main (int argc, char *argv[])
         wavelet->set_denoise_config (wavelet_config);
         break;
     }
-
+    case TestHandlerHaarWavelet: {
+        image_handler = create_cl_newwavelet_denoise_image_handler (context, CL_WAVELET_CHANNEL_UV | CL_WAVELET_CHANNEL_Y);
+        SmartPtr<CLNewWaveletDenoiseImageHandler> wavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
+        XCAM_ASSERT (wavelet.ptr ());
+        XCam3aResultWaveletNoiseReduction wavelet_config;
+        wavelet_config.threshold[0] = 0.3;
+        wavelet_config.threshold[1] = 0.1;
+        wavelet_config.decomposition_levels = 4;
+        wavelet->set_denoise_config (wavelet_config);
+        break;
+    }
     default:
         XCAM_LOG_ERROR ("unsupported image handler type:%d", handler_type);
         return -1;
@@ -498,6 +512,9 @@ int main (int argc, char *argv[])
     input_buf_info.init (input_format, 1920, 1080);
     display = DrmDisplay::instance ();
     buf_pool = new DrmBoBufferPool (display);
+    XCAM_ASSERT (buf_pool.ptr ());
+    buf_pool->set_swap_flags (
+        SwappedBuffer::SwapY | SwappedBuffer::SwapUV, SwappedBuffer::OrderY1Y0 | SwappedBuffer::OrderUV0UV1);
     buf_pool->set_video_info (input_buf_info);
     if (!buf_pool->reserve (6)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
