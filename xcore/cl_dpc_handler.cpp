@@ -90,6 +90,7 @@ bool
 CLDpcImageHandler::set_dpc_config (const XCam3aResultDefectPixel &dpc)
 {
     CLDPCConfig _dpc_config;
+    _dpc_config.gain = 0.0f;
     _dpc_config.gr_threshold = (float)dpc.gr_threshold;
     _dpc_config.r_threshold = (float)dpc.r_threshold;
     _dpc_config.b_threshold = (float)dpc.b_threshold;

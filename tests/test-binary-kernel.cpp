@@ -47,7 +47,7 @@ get_kernel_name(char *input_file, char **kernel_name)
     char *base_name = basename (input_file);
     size_t kernel_name_length = strlen (base_name) - 3;
 
-    *kernel_name = (char *) xcam_malloc0 (sizeof (char) * kernel_name_length);
+    *kernel_name = (char *) xcam_malloc0 (sizeof (char) * (kernel_name_length + 1));
     XCAM_ASSERT(*kernel_name);
 
     strncpy (*kernel_name, base_name, kernel_name_length);
@@ -157,11 +157,12 @@ int main (int argc, char *argv[])
     ret = get_source_sizes (source_fp, &source_sizes);
     CHECK (ret, "get source sizes from %s failed", source_file);
 
-    kernel_body = (char *) xcam_malloc0 (sizeof (char) * source_sizes);
+    kernel_body = (char *) xcam_malloc0 (sizeof (char) * (source_sizes + 1));
     XCAM_ASSERT(kernel_body);
 
     ret = read_source (source_fp, kernel_body, source_sizes);
     CHECK (ret, "read source from %s failed", source_file);
+    kernel_body[source_sizes] = '\0';
 
     SmartPtr<CLContext> context;
     context = CLDevice::instance ()->get_context ();

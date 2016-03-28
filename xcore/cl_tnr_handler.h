@@ -69,6 +69,8 @@ private:
         CLTnrHistogram (uint32_t width, uint32_t height);
         ~CLTnrHistogram ();
 
+        XCAM_DEAD_COPY (CLTnrHistogram);
+
         float*   hor_hist_current;
         float*   hor_hist_reference;
         float*   ver_hist_current;

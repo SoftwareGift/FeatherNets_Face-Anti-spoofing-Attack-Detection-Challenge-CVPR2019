@@ -67,7 +67,9 @@ CLTonemappingImageKernel::prepare_arguments (
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     SmartPtr<X3aStats> stats = input->find_3a_stats ();
+    XCAM_ASSERT (stats.ptr ());
     XCam3AStats *stats_ptr = stats->get_stats ();
+    XCAM_ASSERT (stats_ptr);
 
     int pixel_totalnum = stats_ptr->info.aligned_width * stats_ptr->info.aligned_height;
     int pixel_num = 0;

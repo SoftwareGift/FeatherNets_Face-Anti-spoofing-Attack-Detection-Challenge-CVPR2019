@@ -487,6 +487,9 @@ create_cl_tnr_image_handler (SmartPtr<CLContext> &context, CLTnrType type)
     } else if (CL_TNR_TYPE_RGB == type) {
         tnr_kernel = new CLTnrImageKernel (context, "kernel_tnr_rgb", CL_TNR_TYPE_RGB);
         ret = tnr_kernel->load_from_source (kernel_tnr_rgb_body, strlen (kernel_tnr_rgb_body));
+    } else {
+        XCAM_LOG_ERROR ("create cl tnr image handler failed, unknown type:%d", type);
+        return NULL;
     }
 
     XCAM_FAIL_RETURN (

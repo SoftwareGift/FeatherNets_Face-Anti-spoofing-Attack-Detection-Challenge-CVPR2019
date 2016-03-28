@@ -170,7 +170,7 @@ int main (int argc, char *argv[])
     uint32_t input_format = 0;
     uint32_t output_format = V4L2_PIX_FMT_RGBA32;
     uint32_t buf_count = 0;
-    uint32_t kernel_loop_count = 0;
+    int32_t kernel_loop_count = 0;
     const char *input_file = NULL, *output_file = NULL;
     TestFileHandle input_fp, output_fp;
     const char *bin_name = argv[0];
@@ -269,6 +269,7 @@ int main (int argc, char *argv[])
         }
         case 'p':
             kernel_loop_count = atoi (optarg);
+            XCAM_ASSERT (kernel_loop_count >= 0 && kernel_loop_count < INT32_MAX);
             break;
         case 'c':
             if (!strcasecmp (optarg, "rgbatonv12"))
@@ -327,6 +328,7 @@ int main (int argc, char *argv[])
         break;
     case TestHandlerBlackLevel: {
         XCam3aResultBlackLevel blc;
+        xcam_mem_clear (blc);
         blc.r_level = 0.05;
         blc.gr_level = 0.05;
         blc.gb_level = 0.05;
@@ -340,6 +342,7 @@ int main (int argc, char *argv[])
     }
     case TestHandlerDefect:  {
         XCam3aResultDefectPixel dpc;
+        xcam_mem_clear (dpc);
         dpc.r_threshold = 0.125;
         dpc.gr_threshold = 0.125;
         dpc.gb_threshold = 0.125;
@@ -363,6 +366,7 @@ int main (int argc, char *argv[])
     case TestHandlerColorConversion: {
         SmartPtr<CLCscImageHandler> csc_handler;
         XCam3aResultColorMatrix color_matrix;
+        xcam_mem_clear (color_matrix);
         double matrix_table[XCAM_COLOR_MATRIX_SIZE] = {0.299, 0.587, 0.114, -0.14713, -0.28886, 0.436, 0.615, -0.51499, -0.10001};
         memcpy (color_matrix.matrix, matrix_table, sizeof(double)*XCAM_COLOR_MATRIX_SIZE);
         image_handler = create_cl_csc_image_handler (context, csc_type);
@@ -382,6 +386,7 @@ int main (int argc, char *argv[])
         break;
     case TestHandlerWhiteBalance: {
         XCam3aResultWhiteBalance wb;
+        xcam_mem_clear (wb);
         wb.r_gain = 1.0;
         wb.gr_gain = 1.0;
         wb.gb_gain = 1.0;
@@ -395,6 +400,7 @@ int main (int argc, char *argv[])
     }
     case TestHandlerGamma: {
         XCam3aResultGammaTable gamma_table;
+        xcam_mem_clear (gamma_table);
         for(int i = 0; i < XCAM_GAMMA_TABLE_SIZE; ++i)
             gamma_table.table[i] = (double)(pow(i / 255.0, 1 / 2.2) * 255.0);
         SmartPtr<CLGammaImageHandler> gamma_handler;
@@ -406,6 +412,7 @@ int main (int argc, char *argv[])
     }
     case TestHandlerBayerNoiseReduction: {
         XCam3aResultBayerNoiseReduction bnr;
+        xcam_mem_clear (bnr);
         bnr.bnr_gain = 0.2;
         bnr.direction = 0.01;
         image_handler = create_cl_bnr_image_handler (context);
@@ -421,6 +428,8 @@ int main (int argc, char *argv[])
     case TestHandlerEe: {
         XCam3aResultEdgeEnhancement ee;
         XCam3aResultNoiseReduction nr;
+        xcam_mem_clear (ee);
+        xcam_mem_clear (nr);
         ee.gain = 2.0;
         ee.threshold = 150.0;
         nr.gain = 0.1;
@@ -469,8 +478,10 @@ int main (int argc, char *argv[])
         SmartPtr<CLWaveletDenoiseImageHandler> wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
         XCAM_ASSERT (wavelet.ptr ());
         XCam3aResultWaveletNoiseReduction wavelet_config;
+        xcam_mem_clear (wavelet_config);
         wavelet_config.threshold[0] = 0.3;
         wavelet_config.threshold[1] = 0.1;
+        wavelet_config.decomposition_levels = 4;
         wavelet->set_denoise_config (wavelet_config);
         break;
     }

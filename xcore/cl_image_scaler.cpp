@@ -288,8 +288,12 @@ create_cl_image_scaler_handler (SmartPtr<CLContext> &context, const uint32_t for
         scaler_kernel = new CLImageScalerKernel (context, CL_IMAGE_SCALER_NV12_Y, scaler_handler);
     } else if (XCAM_PIX_FMT_RGBA64 == format) {
         scaler_kernel = new CLImageScalerKernel (context, CL_IMAGE_SCALER_RGBA, scaler_handler);
+    } else {
+        XCAM_LOG_ERROR ("create cl image scaler failed, unknown format:0x%08x", format);
+        return NULL;
     }
 
+    XCAM_ASSERT (scaler_kernel.ptr ());
     {
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_image_scaler)
 #include "kernel_image_scaler.clx"
