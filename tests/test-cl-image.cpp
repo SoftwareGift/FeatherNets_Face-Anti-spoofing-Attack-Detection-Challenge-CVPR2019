@@ -483,8 +483,8 @@ int main (int argc, char *argv[])
         XCAM_ASSERT (wavelet.ptr ());
         XCam3aResultWaveletNoiseReduction wavelet_config;
         xcam_mem_clear (wavelet_config);
-        wavelet_config.threshold[0] = 0.3;
-        wavelet_config.threshold[1] = 0.1;
+        wavelet_config.threshold[0] = 0.2;
+        wavelet_config.threshold[1] = 0.5;
         wavelet_config.decomposition_levels = 4;
         wavelet->set_denoise_config (wavelet_config);
         break;
@@ -494,8 +494,8 @@ int main (int argc, char *argv[])
         SmartPtr<CLNewWaveletDenoiseImageHandler> wavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
         XCAM_ASSERT (wavelet.ptr ());
         XCam3aResultWaveletNoiseReduction wavelet_config;
-        wavelet_config.threshold[0] = 0.3;
-        wavelet_config.threshold[1] = 0.1;
+        wavelet_config.threshold[0] = 0.2;
+        wavelet_config.threshold[1] = 0.5;
         wavelet_config.decomposition_levels = 4;
         wavelet->set_denoise_config (wavelet_config);
         break;

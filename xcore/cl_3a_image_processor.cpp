@@ -285,6 +285,9 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         if (_wavelet.ptr()) {
             _wavelet->set_denoise_config (wavelet_res->get_standard_result ());
         }
+        if (_newwavelet.ptr()) {
+            _newwavelet->set_denoise_config (wavelet_res->get_standard_result ());
+        }
 
         break;
     }

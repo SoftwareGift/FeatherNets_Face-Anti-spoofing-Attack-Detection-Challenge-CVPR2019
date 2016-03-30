@@ -7,7 +7,7 @@
  * low:
  */
 
-__constant float threshConst[5] = { 5.430166, 2.376415, 1.184031, 0.640919, 0.367972 };
+__constant float threshConst[5] = { 50.430166, 20.376415, 10.184031, 6.640919, 3.367972 };
 
 __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOut, __global float *details, __global uint *dest,
                                      int inputYOffset, int outputYOffset, uint inputUVOffset, uint outputUVOffset,

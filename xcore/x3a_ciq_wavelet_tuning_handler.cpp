@@ -34,8 +34,8 @@ typedef struct _X3aCiqWaveletTuningStaticData {
 const X3aCiqWaveletTuningStaticData imx185_tuning[X3A_CIQ_GAIN_STEPS] = {
     {1.0, 0.01, 1.0, 5},
     {16.98, 0.02, 0.7, 5},
-    {49.55, 0.3, 0.5, 5},
-    {139.63, 0.4, 0.3, 5},
+    {49.55, 0.2, 0.5, 5},
+    {139.63, 0.3, 0.3, 5},
     {X3A_CIQ_GAIN_MAX, 0.5, 0.2, 5},
 };
 
@@ -83,7 +83,7 @@ X3aCiqWaveletTuningHandler::analyze (X3aResultList &output)
     //Calculate Wavelet denoise config
     xcam_mem_clear (config);
 
-    /* [0]:hard threshold / [1]:soft threshold */
+    /* [0]:soft threshold / [1]:hard threshold */
     config.threshold[0] = linear_interpolate_p2 (tuning[i_prev].soft_threshold, tuning[i_curr].soft_threshold,
                           tuning[i_prev].analog_gain, tuning[i_curr].analog_gain, analog_gain);
 

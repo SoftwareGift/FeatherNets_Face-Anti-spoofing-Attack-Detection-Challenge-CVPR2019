@@ -227,7 +227,7 @@ typedef struct _XCam3aResultWaveletNoiseReduction {
 
     /* data */
     uint8_t          decomposition_levels;
-    double           threshold[2];  /* [0]:hard threshold / [1]:soft threshold */
+    double           threshold[2];  /* [0]:soft threshold / [1]:hard threshold */
 } XCam3aResultWaveletNoiseReduction;
 
 XCAM_END_DECLARE
