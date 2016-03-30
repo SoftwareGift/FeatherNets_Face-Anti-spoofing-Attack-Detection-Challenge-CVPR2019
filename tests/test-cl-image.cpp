@@ -514,7 +514,7 @@ int main (int argc, char *argv[])
     buf_pool = new DrmBoBufferPool (display);
     XCAM_ASSERT (buf_pool.ptr ());
     buf_pool->set_swap_flags (
-        SwappedBuffer::SwapY | SwappedBuffer::SwapUV, SwappedBuffer::OrderY1Y0 | SwappedBuffer::OrderUV0UV1);
+        SwappedBuffer::SwapY | SwappedBuffer::SwapUV, SwappedBuffer::OrderY0Y1 | SwappedBuffer::OrderUV0UV1);
     buf_pool->set_video_info (input_buf_info);
     if (!buf_pool->reserve (6)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
