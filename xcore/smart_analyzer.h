@@ -21,25 +21,23 @@
 #define XCAM_SMART_ANALYZER_H
 
 #include "xcam_analyzer.h"
+#include "smart_analysis_handler.h"
 #include "x3a_result_factory.h"
 
 namespace XCam {
 
 class BufferProxy;
-class SmartAnalysisHandler;
 
 class SmartAnalyzer
     : public XAnalyzer
 {
-    typedef std::list<SmartPtr<SmartAnalysisHandler>> SamrtAnalysisHandlerList;
-
 public:
     SmartAnalyzer (const char *name = "SmartAnalyzer");
-    SmartAnalyzer (SmartPtr<SmartAnalysisHandler> handler, const char *name = "SmartAnalyzer");
     ~SmartAnalyzer ();
 
     XCamReturn add_handler (SmartPtr<SmartAnalysisHandler> handler);
     XCamReturn update_params (XCamSmartAnalysisParam &params);
+    void post_smart_results (X3aResultList &results, int64_t timestamp);
 
 protected:
     virtual XCamReturn create_handlers ();
@@ -53,8 +51,8 @@ private:
     XCAM_DEAD_COPY (SmartAnalyzer);
 
 private:
-    SamrtAnalysisHandlerList _handlers;
-    X3aResultList _results;
+    SmartHandlerList   _handlers;
+    X3aResultList      _results;
 };
 
 }

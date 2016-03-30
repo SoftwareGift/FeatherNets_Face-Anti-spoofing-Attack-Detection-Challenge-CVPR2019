@@ -19,6 +19,7 @@
  */
 
 #include <base/xcam_smart_description.h>
+#include <base/xcam_buffer.h>
 #include "xcam_utils.h"
 #include "aiq3a_utils.h"
 #include "buffer_pool.h"
@@ -99,9 +100,21 @@ FrameSaver::save_frame (XCamVideoBuffer *buffer)
         return;
     }
 
-    if (fwrite (buffer->data, buffer->info.size, 1, _file) <= 0) {
-        XCAM_LOG_WARNING ("write frame failed.");
+    uint8_t *memory = xcam_video_buffer_map (buffer);
+    XCamVideoBufferPlanarInfo planar;
+    for (uint32_t index = 0; index < buffer->info.components; index++) {
+        xcam_video_buffer_get_planar_info (&buffer->info, &planar, index);
+        uint32_t line_bytes = planar.width * planar.pixel_bytes;
+
+        for (uint32_t i = 0; i < planar.height; i++) {
+            if (fwrite (memory + buffer->info.offsets [index] + i * buffer->info.strides [index],
+                        1, line_bytes, _file) != line_bytes) {
+                XCAM_LOG_ERROR ("write file failed, size doesn't match");
+                return;
+            }
+        }
     }
+    xcam_video_buffer_unmap (buffer);
     close_file ();
 }
 
@@ -137,7 +150,7 @@ public:
     XCamReturn deinit ();
     bool set_results_callback (AnalyzerCallback *callback);
 
-    XCamReturn update_params (XCamSmartAnalysisParam *params);
+    XCamReturn update_params (const XCamSmartAnalysisParam *params);
     XCamReturn analyze (XCamVideoBuffer *buffer);
 
 private:
@@ -200,7 +213,7 @@ SampleHandler::set_results_callback (AnalyzerCallback *callback)
 }
 
 XCamReturn
-SampleHandler::update_params (XCamSmartAnalysisParam *params)
+SampleHandler::update_params (const XCamSmartAnalysisParam *params)
 {
     XCAM_UNUSED (params);
 
@@ -316,11 +329,13 @@ XCamSmartAnalyerContext::get_results (X3aResultList &results)
 }
 
 static XCamReturn
-xcam_create_context (XCamSmartAnalysisContext **context)
+xcam_create_context (XCamSmartAnalysisContext **context, uint32_t *async_mode, XcamPostResultsFunc post_func)
 {
     XCAM_ASSERT (context);
+    XCAM_UNUSED (post_func);
     XCamSmartAnalyerContext *analysis_context = new XCamSmartAnalyerContext ();
     *context = ((XCamSmartAnalysisContext*)(analysis_context));
+    *async_mode = false;
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -334,7 +349,7 @@ xcam_destroy_context (XCamSmartAnalysisContext *context)
 }
 
 static XCamReturn
-xcam_update_params (XCamSmartAnalysisContext *context, XCamSmartAnalysisParam *params)
+xcam_update_params (XCamSmartAnalysisContext *context, const XCamSmartAnalysisParam *params)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     XCamSmartAnalyerContext *analysis_context = XSMART_ANALYSIS_CONTEXT_CAST (context);
@@ -347,28 +362,6 @@ xcam_update_params (XCamSmartAnalysisContext *context, XCamSmartAnalysisParam *p
     ret = handler->update_params (params);
     if (ret != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_WARNING ("update params failed");
-    }
-
-    return ret;
-}
-
-static XCamReturn
-xcam_analyze (XCamSmartAnalysisContext *context, XCamVideoBuffer *buffer)
-{
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    if (!buffer) {
-        return XCAM_RETURN_ERROR_PARAM;
-    }
-
-    XCamSmartAnalyerContext *analysis_context = XSMART_ANALYSIS_CONTEXT_CAST (context);
-    XCAM_ASSERT (analysis_context);
-
-    SmartPtr<SampleHandler> handler = analysis_context->get_handler ();
-    XCAM_ASSERT (handler.ptr ());
-
-    ret = handler->analyze(buffer);
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_WARNING ("buffer analyze failed");
     }
 
     return ret;
@@ -390,7 +383,6 @@ xcam_get_results (XCamSmartAnalysisContext *context, XCam3aResultHead *results[]
 
     // mark as static
     static XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
-    xcam_mem_clear (res_array);
     XCAM_ASSERT (result_count < XCAM_3A_MAX_RESULT_COUNT);
     result_count = translate_3a_results_to_xcam (analysis_results, res_array, XCAM_3A_MAX_RESULT_COUNT);
 
@@ -403,9 +395,34 @@ xcam_get_results (XCamSmartAnalysisContext *context, XCam3aResultHead *results[]
     return XCAM_RETURN_NO_ERROR;
 }
 
-static void
-xcam_free_results (XCam3aResultHead *results[], uint32_t res_count)
+
+static XCamReturn
+xcam_analyze (XCamSmartAnalysisContext *context, XCamVideoBuffer *buffer, XCam3aResultHead *results[], uint32_t *res_count)
 {
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    if (!buffer) {
+        return XCAM_RETURN_ERROR_PARAM;
+    }
+
+    XCamSmartAnalyerContext *analysis_context = XSMART_ANALYSIS_CONTEXT_CAST (context);
+    XCAM_ASSERT (analysis_context);
+
+    SmartPtr<SampleHandler> handler = analysis_context->get_handler ();
+    XCAM_ASSERT (handler.ptr ());
+
+    ret = handler->analyze(buffer);
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_WARNING ("buffer analyze failed");
+    }
+
+    xcam_get_results (context, results, res_count);
+    return ret;
+}
+
+static void
+xcam_free_results (XCamSmartAnalysisContext *context, XCam3aResultHead *results[], uint32_t res_count)
+{
+    XCAM_UNUSED (context);
     for (uint32_t i = 0; i < res_count; ++i) {
         if (results[i])
             free_3a_result (results[i]);
@@ -417,11 +434,12 @@ XCAM_BEGIN_DECLARE
 XCamSmartAnalysisDescription xcam_smart_analysis_desciption = {
     XCAM_VERSION,
     sizeof (XCamSmartAnalysisDescription),
+    XCAM_SMART_PLUGIN_PRIORITY_DEFAULT,
+    "sample test",
     xcam_create_context,
     xcam_destroy_context,
     xcam_update_params,
     xcam_analyze,
-    xcam_get_results,
     xcam_free_results
 };
 

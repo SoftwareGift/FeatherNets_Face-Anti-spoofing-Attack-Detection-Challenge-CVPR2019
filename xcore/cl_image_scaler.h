@@ -24,7 +24,6 @@
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
 #include "cl_memory.h"
-#include "scaled_buffer_pool.h"
 #include "stats_callback_interface.h"
 
 namespace XCam {
@@ -123,12 +122,12 @@ protected:
     XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<DrmBoBuffer> &output);
 
 private:
-    XCamReturn post_buffer (const SmartPtr<ScaledVideoBuffer> &buffer);
+    XCamReturn post_buffer (const SmartPtr<DrmBoBuffer> &buffer);
     XCAM_DEAD_COPY (CLImageScaler);
 
 private:
     double _scaler_factor;
-    SmartPtr<ScaledVideoBufferPool> _scaler_buf_pool;
+    SmartPtr<DrmBoBufferPool> _scaler_buf_pool;
     SmartPtr<DrmBoBuffer>   _scaler_buf;
     SmartPtr<StatsCallback> _scaler_callback;
 };

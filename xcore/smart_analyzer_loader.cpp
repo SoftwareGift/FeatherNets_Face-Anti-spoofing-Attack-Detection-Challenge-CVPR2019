@@ -42,6 +42,30 @@ SmartAnalyzerLoader::~SmartAnalyzerLoader ()
         xcam_free (_name);
 }
 
+SmartHandlerList
+
+SmartAnalyzerLoader::load_smart_handlers (const char *dir_path)
+{
+    SmartHandlerList ret_handers;
+    AnalyzerLoaderList loaders = create_analyzer_loader (dir_path);
+    for (AnalyzerLoaderList::iterator i_loader = loaders.begin ();
+            i_loader != loaders.end (); ++i_loader)
+    {
+        SmartPtr<SmartAnalysisHandler> handler = (*i_loader)->load_smart_handler(*i_loader);
+        if (!handler.ptr ())
+            continue;
+
+        SmartHandlerList::iterator i_pos = ret_handers.begin ();
+        for (; i_pos != ret_handers.end (); ++i_pos)
+        {
+            if (handler->get_priority() < (*i_pos)->get_priority ())
+                break;
+        }
+        ret_handers.insert (i_pos, handler);
+    }
+    return ret_handers;
+}
+
 AnalyzerLoaderList
 SmartAnalyzerLoader::create_analyzer_loader (const char *dir_path)
 {
@@ -84,7 +108,7 @@ SmartAnalyzerLoader::load_smart_handler (SmartPtr<SmartAnalyzerLoader> &self)
         return NULL;
     }
 
-    handler = new SmartAnalysisHandler (desc, self, _name);
+    handler = new SmartAnalysisHandler (desc, self, (desc->name ? desc->name : _name));
     if (!handler.ptr ()) {
         XCAM_LOG_WARNING ("create smart handler failed");
         close_handle ();
@@ -118,7 +142,7 @@ SmartAnalyzerLoader::load_symbol (void* handle)
 
     if (!desc->create_context || !desc->destroy_context ||
             !desc->update_params || !desc->analyze ||
-            !desc->get_results || !desc->free_results) {
+            !desc->free_results) {
         XCAM_LOG_DEBUG ("some functions in symbol not set from lib");
         return NULL;
     }

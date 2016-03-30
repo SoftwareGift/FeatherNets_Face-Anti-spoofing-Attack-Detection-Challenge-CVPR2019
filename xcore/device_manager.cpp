@@ -28,7 +28,6 @@
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
 #endif
-#include "scaled_buffer_pool.h"
 
 #define XCAM_FAILED_STOP(exp, msg, ...)                 \
     if ((exp) != XCAM_RETURN_NO_ERROR) {                \
@@ -322,15 +321,14 @@ DeviceManager::dvs_stats_ready ()
 }
 
 XCamReturn
-DeviceManager::scaled_image_ready (const SmartPtr<ScaledVideoBuffer> &buffer)
+DeviceManager::scaled_image_ready (const SmartPtr<BufferProxy> &buffer)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_smart_analyzer.ptr()) {
         return XCAM_RETURN_NO_ERROR;
     }
 
-    SmartPtr<BufferProxy> data = buffer;
-    ret = _smart_analyzer->push_buffer (data);
+    ret = _smart_analyzer->push_buffer (buffer);
     XCAM_FAIL_RETURN (ERROR,
                       ret == XCAM_RETURN_NO_ERROR,
                       ret,

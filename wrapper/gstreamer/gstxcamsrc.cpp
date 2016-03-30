@@ -932,25 +932,20 @@ gst_xcam_src_start (GstBaseSrc *src)
         }
 
         // Create smart analyzer from dynamic libraries
-        AnalyzerLoaderList loader_list = SmartAnalyzerLoader::create_analyzer_loader (DEFAULT_SMART_ANALYSIS_LIB_DIR);
-        if (!loader_list.empty () ) {
+        SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
+        if (!smart_handlers.empty () ) {
             smart_analyzer = new SmartAnalyzer ();
             if (!smart_analyzer.ptr ()) {
                 XCAM_LOG_INFO ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
                 break;
             }
-        }
-
-        SmartPtr<SmartAnalysisHandler> smart_handler;
-        AnalyzerLoaderList::iterator i_loader = loader_list.begin ();
-        for (; i_loader != loader_list.end ();  ++i_loader)
-        {
-            smart_handler = (*i_loader)->load_smart_handler(*i_loader);
-            if (smart_handler.ptr ()) {
-                smart_analyzer->add_handler (smart_handler);
+            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
+            for (; i_handler != smart_handlers.end ();  ++i_handler)
+            {
+                XCAM_ASSERT ((*i_handler).ptr ());
+                smart_analyzer->add_handler (*i_handler);
             }
         }
-        break;
     }
     case HYBRID_ANALYZER: {
         XCAM_LOG_INFO ("hybrid 3a library: %s", xcamsrc->path_to_3alib);

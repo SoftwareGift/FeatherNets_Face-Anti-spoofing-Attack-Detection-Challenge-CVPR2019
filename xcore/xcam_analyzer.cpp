@@ -22,7 +22,6 @@
 
 #include "xcam_analyzer.h"
 #include "x3a_stats_pool.h"
-#include "scaled_buffer_pool.h"
 
 namespace XCam {
 

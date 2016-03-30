@@ -172,13 +172,12 @@ CLImageScalerKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 
     if ((V4L2_PIX_FMT_NV12 != get_pixel_format ()) ||
             ((CL_IMAGE_SCALER_NV12_UV == get_mem_layout ()) && (V4L2_PIX_FMT_NV12 == get_pixel_format ()))) {
-        SmartPtr<ScaledVideoBuffer> buffer;
+        SmartPtr<DrmBoBuffer> buffer;
         get_context ()->finish();
 
         _image_in.release ();
 
-        SmartPtr<DrmBoBuffer> scaler_buf = _scaler->get_scaler_buf ();
-        buffer = scaler_buf.dynamic_cast_ptr<ScaledVideoBuffer> ();
+        buffer = _scaler->get_scaler_buf ();
         XCAM_ASSERT (buffer.ptr ());
 
         //post buffer out
@@ -252,7 +251,7 @@ CLImageScaler::prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<D
 
         display = DrmDisplay::instance ();
         XCAM_ASSERT (display.ptr ());
-        _scaler_buf_pool = new ScaledVideoBufferPool (display);
+        _scaler_buf_pool = new DrmBoBufferPool (display);
         _scaler_buf_pool->set_video_info (scaler_video_info);
         _scaler_buf_pool->reserve (6);
     }
@@ -266,7 +265,7 @@ CLImageScaler::prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<D
 }
 
 XCamReturn
-CLImageScaler::post_buffer (const SmartPtr<ScaledVideoBuffer> &buffer)
+CLImageScaler::post_buffer (const SmartPtr<DrmBoBuffer> &buffer)
 {
     if (_scaler_callback.ptr ())
         return _scaler_callback->scaled_image_ready (buffer);

@@ -16,43 +16,167 @@
  * limitations under the License.
  *
  * Author: Zong Wei <wei.zong@intel.com>
+ *             Wind Yuan <feng.yuan@intel.com>
  */
 
 #include "smart_analysis_handler.h"
+#include "smart_analyzer_loader.h"
+#include "smart_analyzer.h"
+#include "drm_bo_buffer.h"
 #include "buffer_pool.h"
 
 namespace XCam {
 
+SmartAnalysisHandler::SmartHandlerMap SmartAnalysisHandler::_handler_map;
+Mutex SmartAnalysisHandler::_handler_map_lock;
+
+class SmartBuffer
+    : public XCamVideoBufferIntel
+{
+public:
+    SmartBuffer (SmartPtr<BufferProxy> buf);
+    ~SmartBuffer ();
+
+    static void     buf_ref (XCamVideoBuffer *data);
+    static void     buf_unref (XCamVideoBuffer *data);
+    static uint8_t *buf_map (XCamVideoBuffer *data);
+    static void     buf_unmap (XCamVideoBuffer *data);
+    static int      buf_get_fd (XCamVideoBuffer *data);
+    static void    *buf_get_bo (XCamVideoBufferIntel *data);
+
+private:
+    mutable RefCount       *_ref;
+    SmartPtr<DrmBoBuffer>   _buf_ptr;
+};
+
+SmartBuffer::SmartBuffer (SmartPtr<BufferProxy> buf)
+    : _ref (NULL)
+{
+    XCAM_ASSERT (buf.ptr ());
+    this->_buf_ptr = buf.dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_ASSERT (this->_buf_ptr.ptr ());
+
+    if (!buf.ptr ()) {
+        return;
+    }
+
+    _ref = new RefCount ();
+
+    const VideoBufferInfo& video_info = buf->get_video_info ();
+
+    this->base.info = *((const XCamVideoBufferInfo*)&video_info);
+    this->base.mem_type = XCAM_MEM_TYPE_PRIVATE_BO;
+    this->base.timestamp = buf->get_timestamp ();
+
+    this->base.ref = SmartBuffer::buf_ref;
+    this->base.unref = SmartBuffer::buf_unref;
+    this->base.map = SmartBuffer::buf_map;
+    this->base.unmap = SmartBuffer::buf_unmap;
+    this->base.get_fd = SmartBuffer::buf_get_fd;
+    this->get_bo = SmartBuffer::buf_get_bo;
+}
+
+SmartBuffer::~SmartBuffer ()
+{
+    delete _ref;
+}
+
+void
+SmartBuffer::buf_ref (XCamVideoBuffer *data)
+{
+    SmartBuffer *buf = (SmartBuffer*) data;
+    XCAM_ASSERT (buf->_ref);
+    if (buf->_ref)
+        buf->_ref->ref ();
+}
+
+void
+SmartBuffer::buf_unref (XCamVideoBuffer *data)
+{
+    SmartBuffer *buf = (SmartBuffer*) data;
+    XCAM_ASSERT (buf->_ref);
+    if (buf->_ref) {
+        if (!buf->_ref->unref()) {
+            delete buf;
+        }
+    }
+}
+
+uint8_t *
+SmartBuffer::buf_map (XCamVideoBuffer *data)
+{
+    SmartBuffer *buf = (SmartBuffer*) data;
+    XCAM_ASSERT (buf->_buf_ptr.ptr ());
+    return buf->_buf_ptr->map ();
+}
+
+void
+SmartBuffer::buf_unmap (XCamVideoBuffer *data)
+{
+    SmartBuffer *buf = (SmartBuffer*) data;
+    XCAM_ASSERT (buf->_buf_ptr.ptr ());
+    buf->_buf_ptr->unmap ();
+}
+
+int
+SmartBuffer::buf_get_fd (XCamVideoBuffer *data)
+{
+    SmartBuffer *buf = (SmartBuffer*) data;
+    XCAM_ASSERT (buf->_buf_ptr.ptr ());
+    return buf->_buf_ptr->get_fd ();
+}
+
+void *
+SmartBuffer::buf_get_bo (XCamVideoBufferIntel *data)
+{
+    SmartBuffer *buf = (SmartBuffer*) data;
+    XCAM_ASSERT (buf->_buf_ptr.ptr ());
+    return buf->_buf_ptr->get_bo ();
+}
+
 SmartAnalysisHandler::SmartAnalysisHandler (XCamSmartAnalysisDescription *desc, SmartPtr<SmartAnalyzerLoader> &loader, const char *name)
     : _desc (desc)
     , _loader (loader)
+    , _analyzer (NULL)
     , _name (NULL)
     , _context (NULL)
+    , _async_mode (false)
 {
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
-
-    create_context ();
 }
 
 SmartAnalysisHandler::~SmartAnalysisHandler ()
 {
+    if (is_valid ())
+        destroy_context ();
+
     if (_name)
         xcam_free (_name);
-
-    destroy_context ();
 }
 
 XCamReturn
-SmartAnalysisHandler::create_context ()
+SmartAnalysisHandler::create_context (SmartPtr<SmartAnalysisHandler> &self)
 {
     XCamSmartAnalysisContext *context = NULL;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    uint32_t async_mode = 0;
     XCAM_ASSERT (!_context);
-    if ((ret = _desc->create_context (&context)) != XCAM_RETURN_NO_ERROR) {
+    XCAM_ASSERT (self.ptr () == this);
+    if ((ret = _desc->create_context (&context, &async_mode, NULL)) != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_WARNING ("smart handler(%s) lib create context failed", XCAM_STR(get_name()));
         return ret;
     }
+    if (!context) {
+        XCAM_LOG_WARNING ("smart handler(%s) lib create context failed with NULL context", XCAM_STR(get_name()));
+        return XCAM_RETURN_ERROR_UNKNOWN;
+    }
+    _async_mode = async_mode;
+
+    XCAM_LOG_INFO ("create smart analysis context(%s)", XCAM_STR(get_name()));
+
+    SmartLock locker (_handler_map_lock);
+    _handler_map[context] = self;
     _context = context;
     return XCAM_RETURN_NO_ERROR;
 }
@@ -60,10 +184,59 @@ SmartAnalysisHandler::create_context ()
 void
 SmartAnalysisHandler::destroy_context ()
 {
-    if (_context && _desc && _desc->destroy_context) {
-        _desc->destroy_context (_context);
+    XCamSmartAnalysisContext *context;
+    {
+        SmartLock locker (_handler_map_lock);
+        context = _context;
         _context = NULL;
+        if (context)
+            _handler_map.erase (context);
     }
+
+    if (context && _desc && _desc->destroy_context) {
+        _desc->destroy_context (context);
+        XCAM_LOG_INFO ("destroy smart analysis context(%s)", XCAM_STR(get_name()));
+    }
+}
+
+XCamReturn
+SmartAnalysisHandler::post_aync_results (
+    XCamSmartAnalysisContext *context,
+    const XCamVideoBuffer *buffer,
+    XCam3aResultHead *results[], uint32_t res_count)
+{
+    SmartPtr<SmartAnalysisHandler> handler = NULL;
+    XCAM_ASSERT (context);
+    {
+        SmartLock locker (_handler_map_lock);
+        SmartHandlerMap::iterator i_h = _handler_map.find (context);
+        if (i_h != _handler_map.end ())
+            handler = i_h->second;
+    }
+
+    if (handler.ptr ()) {
+        XCAM_LOG_WARNING ("can't find a proper smart analyzer handler, please check context pointer");
+        return XCAM_RETURN_ERROR_PARAM;
+    }
+
+    return handler->post_smart_results (buffer, results, res_count);
+}
+
+XCamReturn
+SmartAnalysisHandler::post_smart_results (const XCamVideoBuffer *buffer, XCam3aResultHead *results[], uint32_t res_count)
+{
+    X3aResultList result_list;
+    XCamReturn ret = convert_results (results, res_count, result_list);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "smart handler convert results failed in async mode");
+
+    if (_analyzer)
+        _analyzer->post_smart_results (result_list, (buffer ? InvalidTimestamp : buffer->timestamp));
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -82,37 +255,34 @@ SmartAnalysisHandler::update_params (XCamSmartAnalysisParam &params)
 }
 
 XCamReturn
-SmartAnalysisHandler::analyze (XCamVideoBuffer *buffer, X3aResultList &results)
+SmartAnalysisHandler::analyze (SmartPtr<BufferProxy> &buffer, X3aResultList &results)
 {
     XCAM_LOG_DEBUG ("smart handler(%s) analyze", XCAM_STR(get_name()));
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    XCamVideoBuffer *video_buffer = (XCamVideoBuffer *)(new SmartBuffer (buffer));
+    XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
+    uint32_t res_count = XCAM_3A_MAX_RESULT_COUNT;
 
+    XCAM_ASSERT (buffer.ptr ());
     XCAM_ASSERT (_context);
+    XCAM_ASSERT (video_buffer);
+    xcam_mem_clear (res_array);
 
-    ret = _desc->analyze (_context, buffer);
+    ret = _desc->analyze (_context, video_buffer, res_array, &res_count);
+    XCAM_ASSERT (video_buffer->unref);
+    video_buffer->unref (video_buffer);
     XCAM_FAIL_RETURN (WARNING,
                       ret == XCAM_RETURN_NO_ERROR,
                       ret,
                       "smart handler(%s) calculation failed", XCAM_STR(get_name()));
 
-    XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
-    uint32_t res_count = 0;
-
-    xcam_mem_clear (res_array);
-    XCAM_ASSERT (_context);
-    ret = _desc->get_results (_context, res_array, &res_count);
-    XCAM_FAIL_RETURN (WARNING,
-                      ret == XCAM_RETURN_NO_ERROR,
-                      ret,
-                      "samrt handler(%s) get results failed", XCAM_STR(get_name()));
-
-    if (res_count) {
+    if (res_count > 0 && res_array[0]) {
         ret = convert_results (res_array, res_count, results);
         XCAM_FAIL_RETURN (WARNING,
                           ret == XCAM_RETURN_NO_ERROR,
                           ret,
                           "smart handler(%s) convert_results failed", XCAM_STR(get_name()));
-        _desc->free_results (res_array, res_count);
+        _desc->free_results (_context, res_array, res_count);
     }
 
     return ret;

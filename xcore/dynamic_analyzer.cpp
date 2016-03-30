@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
+ *         Jia Meng <jia.meng@intel.com>
  */
 
 #include "dynamic_analyzer.h"
@@ -170,7 +171,7 @@ DynamicAnalyzer::post_3a_analyze (X3aResultList &results)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
-    uint32_t res_count = 0;
+    uint32_t res_count = XCAM_3A_MAX_RESULT_COUNT;
 
     xcam_mem_clear (res_array);
     XCAM_ASSERT (_context);

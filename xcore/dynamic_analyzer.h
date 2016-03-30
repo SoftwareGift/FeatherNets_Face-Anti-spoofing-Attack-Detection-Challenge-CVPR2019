@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
+ *         Jia Meng <jia.meng@intel.com>
  */
 #ifndef XCAM_DYNAMIC_ANALYZER_H
 #define XCAM_DYNAMIC_ANALYZER_H

@@ -22,8 +22,9 @@
 #define XCAM_SMART_ANALYZER_LOADER_H
 
 #include "xcam_utils.h"
-#include "analyzer_loader.h"
 #include "smartptr.h"
+#include "analyzer_loader.h"
+#include "smart_analysis_handler.h"
 #include <base/xcam_smart_description.h>
 #include <list>
 
@@ -43,6 +44,9 @@ public:
     SmartAnalyzerLoader (const char *lib_path, const char *name = NULL, const char *symbol = XCAM_SMART_ANALYSIS_LIB_DESCRIPTION);
     virtual ~SmartAnalyzerLoader ();
 
+    static SmartHandlerList load_smart_handlers (const char *dir_path);
+
+protected:
     static AnalyzerLoaderList create_analyzer_loader (const char *dir_path);
     SmartPtr<SmartAnalysisHandler> load_smart_handler (SmartPtr<SmartAnalyzerLoader> &self);
 

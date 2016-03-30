@@ -81,8 +81,8 @@ xcam_sources =               \
 	x3a_result.cpp           \
 	x3a_result_factory.cpp   \
 	x3a_statistics_queue.cpp \
-	scaled_buffer_pool.cpp   \
 	xcam_common.cpp          \
+	xcam_buffer.cpp          \
 	xcam_thread.cpp          \
 	x3a_analyze_tuner.cpp \
 	x3a_ciq_tuning_handler.cpp \
@@ -198,10 +198,12 @@ nobase_libxcam_coreinclude_HEADERS =  \
 	base/xcam_3a_result.h      \
 	base/xcam_3a_types.h       \
 	base/xcam_3a_description.h \
+	base/xcam_buffer.h         \
 	base/xcam_params.h         \
 	base/xcam_common.h         \
 	base/xcam_defs.h           \
 	base/xcam_smart_description.h \
+	base/xcam_smart_result.h   \
 	device_manager.h           \
 	handler_interface.h        \
 	image_processor.h          \

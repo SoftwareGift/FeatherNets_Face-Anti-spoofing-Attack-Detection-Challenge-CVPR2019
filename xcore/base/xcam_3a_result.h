@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
+ *         Zong Wei <wei.zong@intel.com>
  */
 
 #ifndef C_XCAM_3A_RESULT_H
@@ -34,6 +35,7 @@ XCAM_BEGIN_DECLARE
 typedef enum _ImageProcessType {
     XCAM_IMAGE_PROCESS_ONCE,
     XCAM_IMAGE_PROCESS_ALWAYS,
+    XCAM_IMAGE_PROCESS_POST,
 } XCamImageProcessType;
 
 typedef enum _XCam3aResultType {
@@ -77,6 +79,11 @@ typedef enum _XCam3aResultType {
     XCAM_3A_RESULT_B_GAMMA,
     XCAM_3A_RESULT_BRIGHTNESS,
     //XCAM_3A_RESULT_SHADING_TABLE,
+
+    //Smart Analysis Type
+    XCAM_3A_RESULT_FACE_DETECTION = 0x4000,
+    XCAM_3A_RESULT_DVS,
+
     XCAM_3A_RESULT_USER_DEFINED_TYPE = 0x8000,
 } XCam3aResultType;
 
@@ -87,12 +94,14 @@ typedef enum _XCam3aResultType {
 #define XCAM_CHROMA_MATRIX_SIZE 4
 #define XCAM_BNR_TABLE_SIZE 64
 
-typedef struct _XCam3aResultHead {
+typedef struct _XCam3aResultHead XCam3aResultHead;
+
+struct _XCam3aResultHead {
     XCam3aResultType      type;
     XCamImageProcessType  process_type;
     uint32_t              version;
-    void                  (*destroy) (void);
-} XCam3aResultHead;
+    void                  (*destroy) (XCam3aResultHead *);
+};
 
 typedef struct _XCam3aResultWhiteBalance {
     XCam3aResultHead head;

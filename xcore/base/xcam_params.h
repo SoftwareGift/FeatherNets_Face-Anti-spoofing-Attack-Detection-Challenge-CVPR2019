@@ -96,6 +96,9 @@ typedef struct _XCamCommonParam {
 } XCamCommonParam;
 
 typedef struct _XCamSmartAnalysisParam {
+    uint32_t   width;
+    uint32_t   height;
+    double     fps;
 
 } XCamSmartAnalysisParam;
 

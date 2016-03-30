@@ -23,73 +23,23 @@
 
 #include "xcam_utils.h"
 #include "smartptr.h"
+#include "base/xcam_buffer.h"
 #include <list>
 
 namespace XCam {
 
-#ifndef V4L2_PIX_FMT_XBGR32
-#define V4L2_PIX_FMT_XBGR32 v4l2_fourcc('X', 'R', '2', '4')
-#endif
-
-#ifndef V4L2_PIX_FMT_ABGR32
-#define V4L2_PIX_FMT_ABGR32 v4l2_fourcc('A', 'R', '2', '4')
-#endif
-
-#ifndef V4L2_PIX_FMT_XRGB32
-#define V4L2_PIX_FMT_XRGB32 v4l2_fourcc('B', 'X', '2', '4')
-#endif
-
-#ifndef V4L2_PIX_FMT_ARGB32
-#define V4L2_PIX_FMT_ARGB32 v4l2_fourcc('B', 'A', '2', '4')
-#endif
-
-#ifndef V4L2_PIX_FMT_RGBA32
-#define V4L2_PIX_FMT_RGBA32 v4l2_fourcc('A', 'B', '2', '4')
-#endif
-
-/*
- * Define special format for 16 bit color
- * every format start with 'X'
- *
- * XCAM_PIX_FMT_RGB48: RGB with color-bits = 16
- * XCAM_PIX_FMT_RGBA64, RGBA with color-bits = 16
- * XCAM_PIX_FMT_SGRBG16, Bayer, with color-bits = 16
- */
-#define XCAM_PIX_FMT_RGB48     v4l2_fourcc('w', 'R', 'G', 'B')
-#define XCAM_PIX_FMT_RGBA64     v4l2_fourcc('w', 'R', 'G', 'a')
-#define XCAM_PIX_FMT_SGRBG16   v4l2_fourcc('w', 'B', 'A', '0')
-#define XCAM_PIX_FMT_LAB    v4l2_fourcc('h', 'L', 'a', 'b')
-#define XCAM_PIX_FMT_RGB48_planar     v4l2_fourcc('n', 'R', 'G', 0x48)
-#define XCAM_PIX_FMT_RGB24_planar     v4l2_fourcc('n', 'R', 'G', 0x24)
-#define XCAM_PIX_FMT_SGRBG16_planar   v4l2_fourcc('n', 'B', 'A', '0')
-#define XCAM_PIX_FMT_SGRBG8_planar   v4l2_fourcc('n', 'B', 'A', '8')
-
-
-#define XCAM_VIDEO_MAX_COMPONENTS 4
-
 class VideoBuffer;
 typedef std::list<SmartPtr<VideoBuffer>>  VideoBufferList;
 
-struct VideoBufferPlanarInfo {
-    uint32_t width;
-    uint32_t height;
-    uint32_t pixel_bytes;
-
+struct VideoBufferPlanarInfo
+        : XCamVideoBufferPlanarInfo
+{
     VideoBufferPlanarInfo ();
 };
 
-struct VideoBufferInfo {
-    uint32_t format;
-    uint32_t color_bits;
-    uint32_t width;
-    uint32_t height;
-    uint32_t aligned_width;
-    uint32_t aligned_height;
-    uint32_t size;
-    uint32_t components;
-    uint32_t strides [XCAM_VIDEO_MAX_COMPONENTS];
-    uint32_t offsets [XCAM_VIDEO_MAX_COMPONENTS];
-
+struct VideoBufferInfo
+        : XCamVideoBufferInfo
+{
     VideoBufferInfo ();
     bool init (
         uint32_t format,

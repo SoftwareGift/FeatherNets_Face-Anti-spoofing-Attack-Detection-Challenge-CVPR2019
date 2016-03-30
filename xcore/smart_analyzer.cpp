@@ -19,7 +19,6 @@
  */
 
 #include "smart_analyzer_loader.h"
-#include "scaled_buffer_pool.h"
 #include "smart_analyzer.h"
 #include "smart_analysis_handler.h"
 
@@ -28,13 +27,6 @@ namespace XCam {
 SmartAnalyzer::SmartAnalyzer (const char *name)
     : XAnalyzer (name)
 {
-}
-
-SmartAnalyzer::SmartAnalyzer (SmartPtr<SmartAnalysisHandler> handler, const char *name)
-    : XAnalyzer (name)
-{
-    if (!handler.ptr ())
-        add_handler (handler);
 }
 
 SmartAnalyzer::~SmartAnalyzer ()
@@ -50,6 +42,7 @@ SmartAnalyzer::add_handler (SmartPtr<SmartAnalysisHandler> handler)
     }
 
     _handlers.push_back (handler);
+    handler->set_analyzer (this);
     return ret;
 }
 
@@ -76,15 +69,31 @@ SmartAnalyzer::internal_init (uint32_t width, uint32_t height, double framerate)
     XCAM_UNUSED (width);
     XCAM_UNUSED (height);
     XCAM_UNUSED (framerate);
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    return ret;
+    SmartHandlerList::iterator i_handler = _handlers.begin ();
+    for (; i_handler != _handlers.end ();  ++i_handler)
+    {
+        SmartPtr<SmartAnalysisHandler> handler = *i_handler;
+        XCamReturn ret = handler->create_context (handler);
+        if (ret != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_WARNING ("smart analyzer initilize handler(%s) context failed", XCAM_STR(handler->get_name()));
+        }
+    }
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 SmartAnalyzer::internal_deinit ()
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    return ret;
+    SmartHandlerList::iterator i_handler = _handlers.begin ();
+    for (; i_handler != _handlers.end ();  ++i_handler)
+    {
+        SmartPtr<SmartAnalysisHandler> handler = *i_handler;
+        if (handler->is_valid ())
+            handler->destroy_context ();
+    }
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -99,18 +108,22 @@ SmartAnalyzer::update_params (XCamSmartAnalysisParam &params)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    SamrtAnalysisHandlerList::iterator i_handler = _handlers.begin ();
+    SmartHandlerList::iterator i_handler = _handlers.begin ();
     for (; i_handler != _handlers.end ();  ++i_handler)
     {
-        ret = (*i_handler)->update_params (params);
+        SmartPtr<SmartAnalysisHandler> handler = *i_handler;
+        if (!handler->is_valid ())
+            continue;
+
+        ret = handler->update_params (params);
+
+        if (ret != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_WARNING ("smart analyzer update handler(%s) context failed", XCAM_STR(handler->get_name()));
+            handler->destroy_context ();
+        }
     }
 
-    XCAM_FAIL_RETURN (WARNING,
-                      ret == XCAM_RETURN_NO_ERROR,
-                      ret,
-                      "smart analyzer update parameters failed");
-
-    return ret;
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -118,33 +131,41 @@ SmartAnalyzer::analyze (SmartPtr<BufferProxy> &buffer)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     X3aResultList results;
-    XCamVideoBuffer videoBuffer;
 
     if (!buffer.ptr ()) {
-        XCAM_LOG_DEBUG ("SmartAnalyzer::analyze got NULL buffer !");
+        XCAM_LOG_DEBUG ("SmartAnalyzer::analyze got NULL buffer!");
         return XCAM_RETURN_ERROR_PARAM;
     }
 
-    SmartPtr<ScaledVideoBuffer> scaledBuffer = buffer.dynamic_cast_ptr<ScaledVideoBuffer> ();
-    scaledBuffer->get_scaled_buffer (videoBuffer);
-
-    SamrtAnalysisHandlerList::iterator i_handler = _handlers.begin ();
+    SmartHandlerList::iterator i_handler = _handlers.begin ();
     for (; i_handler != _handlers.end ();  ++i_handler)
     {
-        ret = (*i_handler)->analyze (&videoBuffer, results);
+        SmartPtr<SmartAnalysisHandler> handler = *i_handler;
+        if (!handler->is_valid ())
+            continue;
+
+        ret = handler->analyze (buffer, results);
+        if (ret != XCAM_RETURN_NO_ERROR && ret != XCAM_RETURN_BYPASS) {
+            XCAM_LOG_WARNING ("smart analyzer analyze handler(%s) context failed", XCAM_STR(handler->get_name()));
+            handler->destroy_context ();
+        }
     }
 
-    XCAM_FAIL_RETURN (WARNING,
-                      ret == XCAM_RETURN_NO_ERROR,
-                      ret,
-                      "smart analyzer calculation failed");
-
     if (!results.empty ()) {
-        set_results_timestamp(results, buffer->get_timestamp ());
+        set_results_timestamp (results, buffer->get_timestamp ());
         notify_calculation_done (results);
     }
 
-    return ret;
+    return XCAM_RETURN_NO_ERROR;
+}
+
+void
+SmartAnalyzer::post_smart_results (X3aResultList &results, int64_t timestamp)
+{
+    if (!results.empty ()) {
+        set_results_timestamp (results, timestamp);
+        notify_calculation_done (results);
+    }
 }
 
 }
