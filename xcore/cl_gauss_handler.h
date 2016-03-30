@@ -26,8 +26,8 @@
 #include "base/xcam_3a_result.h"
 #include "x3a_stats_pool.h"
 
-
-#define XCAM_GAUSS_TABLE_SIZE 5
+#define XCAM_GAUSS_DEFAULT_RADIUS 2
+#define XCAM_GAUSS_DEFAULT_SIGMA 2.0f
 
 namespace XCam {
 
@@ -35,8 +35,11 @@ class CLGaussImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLGaussImageKernel (SmartPtr<CLContext> &context);
-    bool set_gaussian(int size, float sigma);
+    explicit CLGaussImageKernel (
+        SmartPtr<CLContext> &context,
+        uint32_t radius, float sigma);
+    virtual ~CLGaussImageKernel ();
+    bool set_gaussian(uint32_t radius, float sigma);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -52,7 +55,8 @@ protected:
 
 protected:
     SmartPtr<CLBuffer>    _g_table_buffer;
-    float                 _g_table[XCAM_GAUSS_TABLE_SIZE*XCAM_GAUSS_TABLE_SIZE];
+    uint32_t              _g_radius;
+    float                *_g_table;
 private:
     XCAM_DEAD_COPY (CLGaussImageKernel);
 };
@@ -71,7 +75,10 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_cl_gauss_image_handler (SmartPtr<CLContext> &context);
+create_cl_gauss_image_handler (
+    SmartPtr<CLContext> &context,
+    uint32_t radius = XCAM_GAUSS_DEFAULT_RADIUS,
+    float sigma = XCAM_GAUSS_DEFAULT_SIGMA);
 
 };
 

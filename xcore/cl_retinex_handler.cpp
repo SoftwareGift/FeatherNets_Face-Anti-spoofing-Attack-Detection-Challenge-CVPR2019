@@ -53,10 +53,12 @@ CLRetinexScalerImageKernel::pre_stop ()
         _scaler.ptr ()->pre_stop ();
 }
 
-CLRetinexGaussImageKernel::CLRetinexGaussImageKernel (SmartPtr<CLContext> &context,
-        SmartPtr<CLRetinexImageHandler> &scaler)
-    :  CLGaussImageKernel (context),
-       _scaler(scaler)
+CLRetinexGaussImageKernel::CLRetinexGaussImageKernel (
+    SmartPtr<CLContext> &context,
+    SmartPtr<CLRetinexImageHandler> &scaler,
+    uint32_t radius, float sigma)
+    : CLGaussImageKernel (context, radius, sigma)
+    , _scaler(scaler)
 {
 }
 
@@ -298,17 +300,26 @@ create_kernel_retinex_scaler (SmartPtr<CLContext> &context, SmartPtr<CLRetinexIm
 }
 
 SmartPtr<CLRetinexGaussImageKernel>
-create_kernel_retinex_gaussian (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> handler)
+create_kernel_retinex_gaussian (
+    SmartPtr<CLContext> &context,
+    SmartPtr<CLRetinexImageHandler> handler,
+    uint32_t radius, float sigma)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLRetinexGaussImageKernel> kernel;
 
-    kernel = new CLRetinexGaussImageKernel (context, handler);
+    kernel = new CLRetinexGaussImageKernel (context, handler, radius, sigma);
     {
+        char build_options[1024];
+        xcam_mem_clear (build_options);
+        snprintf (build_options, sizeof (build_options), " -DGAUSS_RADIUS=%d ", radius);
+
         XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_gauss)
 #include "kernel_gauss.clx"
         XCAM_CL_KERNEL_FUNC_END;
-        ret = kernel->load_from_source (kernel_gauss_body, strlen (kernel_gauss_body));
+        ret = kernel->load_from_source (
+                  kernel_gauss_body, strlen (kernel_gauss_body),
+                  NULL, NULL, build_options);
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,
@@ -357,7 +368,7 @@ create_cl_retinex_image_handler (SmartPtr<CLContext> &context)
         "Retinex handler create scaler kernel failed");
     retinex_handler->set_retinex_scaler_kernel (retinex_scaler_kernel);
 
-    retinex_gauss_kernel = create_kernel_retinex_gaussian (context, retinex_handler);
+    retinex_gauss_kernel = create_kernel_retinex_gaussian (context, retinex_handler, 2, 2.0);
     XCAM_FAIL_RETURN (
         ERROR,
         retinex_gauss_kernel.ptr () && retinex_gauss_kernel->is_valid (),

@@ -67,7 +67,10 @@ class CLRetinexGaussImageKernel
     : public CLGaussImageKernel
 {
 public:
-    explicit CLRetinexGaussImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &scaler);
+    explicit CLRetinexGaussImageKernel (
+        SmartPtr<CLContext> &context,
+        SmartPtr<CLRetinexImageHandler> &scaler,
+        uint32_t radius, float sigma);
     virtual SmartPtr<DrmBoBuffer> get_input_parameter (
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual SmartPtr<DrmBoBuffer> get_output_parameter (
