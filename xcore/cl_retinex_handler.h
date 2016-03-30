@@ -29,8 +29,9 @@
 #include "cl_image_scaler.h"
 #include "cl_gauss_handler.h"
 
-#define XCAM_RETINEX_TABLE_SIZE 5
-#define XCAM_RETINEX_SCALE 3
+#define XCAM_RETINEX_MAX_SCALE 1
+#define XCAM_RETINEX_SCALER_FACTOR 0.4
+
 namespace XCam {
 
 typedef struct {
@@ -49,7 +50,7 @@ class CLRetinexScalerImageKernel
 {
 public:
     explicit CLRetinexScalerImageKernel (
-        SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLRetinexImageHandler> &scaler);
+        SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLRetinexImageHandler> &retinex);
     virtual void pre_stop ();
 
 protected:
@@ -59,7 +60,7 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLRetinexScalerImageKernel);
-    SmartPtr<CLRetinexImageHandler> _scaler;
+    SmartPtr<CLRetinexImageHandler> _retinex;
 
 };
 
@@ -69,7 +70,8 @@ class CLRetinexGaussImageKernel
 public:
     explicit CLRetinexGaussImageKernel (
         SmartPtr<CLContext> &context,
-        SmartPtr<CLRetinexImageHandler> &scaler,
+        SmartPtr<CLRetinexImageHandler> &retinex,
+        uint32_t index,
         uint32_t radius, float sigma);
     virtual SmartPtr<DrmBoBuffer> get_input_parameter (
         SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
@@ -79,7 +81,9 @@ public:
 
 private:
     XCAM_DEAD_COPY (CLRetinexGaussImageKernel);
-    SmartPtr<CLRetinexImageHandler> _scaler;
+
+    SmartPtr<CLRetinexImageHandler> _retinex;
+    uint32_t                        _index;
 
 };
 
@@ -87,7 +91,7 @@ class CLRetinexImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLRetinexImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &scaler);
+    explicit CLRetinexImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &retinex);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -100,10 +104,10 @@ protected:
 private:
     XCAM_DEAD_COPY (CLRetinexImageKernel);
 
-    SmartPtr<CLImage>                _image_in_ga;
+    SmartPtr<CLImage>                _image_in_ga[XCAM_RETINEX_MAX_SCALE];
     SmartPtr<CLImage>                _image_in_uv;
     SmartPtr<CLImage>                _image_out_uv;
-    SmartPtr<CLRetinexImageHandler>  _scaler;
+    SmartPtr<CLRetinexImageHandler>  _retinex;
     CLRetinexConfig                  _retinex_config;
 };
 
@@ -114,13 +118,15 @@ public:
     explicit CLRetinexImageHandler (const char *name);
     bool set_retinex_kernel(SmartPtr<CLRetinexImageKernel> &kernel);
     bool set_retinex_scaler_kernel(SmartPtr<CLRetinexScalerImageKernel> &kernel);
-    bool set_retinex_gauss_kernel(SmartPtr<CLRetinexGaussImageKernel> &kernel);
+    //bool set_retinex_gauss_kernel(SmartPtr<CLRetinexGaussImageKernel> &kernel);
     SmartPtr<DrmBoBuffer> &get_scaler_buf1 () {
         return _scaler_buf1;
     };
-    SmartPtr<DrmBoBuffer> &get_scaler_buf2 () {
-        return _scaler_buf2;
+    SmartPtr<DrmBoBuffer> &get_gaussian_buf (uint index) {
+        XCAM_ASSERT (index < XCAM_RETINEX_MAX_SCALE);
+        return _gaussian_buf[index];
     };
+
     void pre_stop ();
 
 protected:
@@ -131,11 +137,13 @@ private:
     XCAM_DEAD_COPY (CLRetinexImageHandler);
     SmartPtr<CLRetinexImageKernel>        _retinex_kernel;
     SmartPtr<CLRetinexScalerImageKernel>  _retinex_scaler_kernel;
-    SmartPtr<CLRetinexGaussImageKernel>   _retinex_gauss_kernel;
+    //SmartPtr<CLRetinexGaussImageKernel>   _retinex_gauss_kernel;
+
+    double                                _scaler_factor;
     SmartPtr<DrmBoBufferPool>             _scaler_buf_pool;
     SmartPtr<DrmBoBuffer>                 _scaler_buf1;
-    SmartPtr<DrmBoBuffer>                 _scaler_buf2;
-    double                                _scaler_factor;
+    SmartPtr<DrmBoBuffer>                 _gaussian_buf[XCAM_RETINEX_MAX_SCALE];
+
 };
 
 SmartPtr<CLImageHandler>

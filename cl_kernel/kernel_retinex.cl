@@ -3,6 +3,9 @@
  * input:    image2d_t as read only
  * output:   image2d_t as write only
  */
+
+//#define RETINEX_SCALE_SIZE 2
+
 typedef struct {
     float    gain;
     float    threshold;
@@ -49,7 +52,12 @@ __constant float log_table[256] = {
 
 __kernel void kernel_retinex (
     __read_only image2d_t input_y, __read_only image2d_t input_uv,
-    __read_only image2d_t ga_input,
+    __read_only image2d_t ga_input0,
+#if RETINEX_SCALE_SIZE > 1
+    __read_only image2d_t ga_input1,
+#elif RETINEX_SCALE_SIZE > 2
+    __read_only image2d_t ga_input2,
+#endif
     __write_only image2d_t output_y, __write_only image2d_t output_uv,
     CLRetinexConfig re_config)
 {
@@ -59,8 +67,8 @@ __kernel void kernel_retinex (
     sampler_t sampler_ga = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
     float4 y_out, uv_in;
-    float4 y_in, y_ga;
-    float4 y_lg;
+    float4 y_in, y_ga[RETINEX_SCALE_SIZE];
+    float4 y_in_lg, y_lg;
     int i;
     // copy UV
     if(y % 2 == 0) {
@@ -68,22 +76,42 @@ __kernel void kernel_retinex (
         write_imagef(output_uv, (int2)(x, y / 2), uv_in);
     }
 
+    y_in = read_imagef(input_y, sampler_orig, (int2)(x, y)) * 255.0f;
+    y_in_lg.x = log_table[convert_int(y_in.x)];
+    y_in_lg.y = log_table[convert_int(y_in.y)];
+    y_in_lg.z = log_table[convert_int(y_in.z)];
+    y_in_lg.w = log_table[convert_int(y_in.w)];
+
     float ga_x_step = 1.0f / re_config.width;
     float2 pos_ga = (float2)(x * 4.0f * ga_x_step, y / re_config.height);
-    y_ga.x = read_imagef(ga_input, sampler_ga, pos_ga).x * 255.0f;
+    y_ga[0].x = read_imagef(ga_input0, sampler_ga, pos_ga).x * 255.0f;
     pos_ga.x += ga_x_step;
-    y_ga.y = read_imagef(ga_input, sampler_ga, pos_ga).x * 255.0f;
+    y_ga[0].y = read_imagef(ga_input0, sampler_ga, pos_ga).x * 255.0f;
     pos_ga.x += ga_x_step;
-    y_ga.z = read_imagef(ga_input, sampler_ga, pos_ga).x * 255.0f;
+    y_ga[0].z = read_imagef(ga_input0, sampler_ga, pos_ga).x * 255.0f;
     pos_ga.x += ga_x_step;
-    y_ga.w = read_imagef(ga_input, sampler_ga, pos_ga).x * 255.0f;
-    y_in = read_imagef(input_y, sampler_orig, (int2)(x, y)) * 255.0f;
+    y_ga[0].w = read_imagef(ga_input0, sampler_ga, pos_ga).x * 255.0f;
 
-    y_lg.x = log_table[convert_int(y_in.x)] - log_table[convert_int(y_ga.x)];
-    y_lg.y = log_table[convert_int(y_in.y)] - log_table[convert_int(y_ga.y)];
-    y_lg.z = log_table[convert_int(y_in.z)] - log_table[convert_int(y_ga.z)];
-    y_lg.w = log_table[convert_int(y_in.w)] - log_table[convert_int(y_ga.w)];
+#if RETINEX_SCALE_SIZE > 1
+    y_ga[1].x = read_imagef(ga_input1, sampler_ga, pos_ga).x * 255.0f;
+    pos_ga.x += ga_x_step;
+    y_ga[1].y = read_imagef(ga_input1, sampler_ga, pos_ga).x * 255.0f;
+    pos_ga.x += ga_x_step;
+    y_ga[1].z = read_imagef(ga_input1, sampler_ga, pos_ga).x * 255.0f;
+    pos_ga.x += ga_x_step;
+    y_ga[1].w = read_imagef(ga_input1, sampler_ga, pos_ga).x * 255.0f;
+#endif
 
-    y_out = re_config.gain * y_in / 128.0f * (y_lg - re_config.log_min);
+    y_lg = (float4) (0.0f, 0.0f, 0.0f, 0.0f);
+#pragma unroll
+    for (int i = 0; i < RETINEX_SCALE_SIZE; ++i) {
+        y_lg.x += y_in_lg.x - log_table[convert_int(y_ga[i].x)];
+        y_lg.y += y_in_lg.y - log_table[convert_int(y_ga[i].y)];
+        y_lg.z += y_in_lg.z - log_table[convert_int(y_ga[i].z)];
+        y_lg.w += y_in_lg.w - log_table[convert_int(y_ga[i].w)];
+    }
+    y_lg = y_lg / (float)(RETINEX_SCALE_SIZE);
+
+    y_out = re_config.gain * (y_in + 20.0f) / 128.0f * (y_lg - re_config.log_min);
     write_imagef(output_y, (int2)(x, y), y_out);
 }
