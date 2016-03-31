@@ -43,6 +43,7 @@ protected:
 
 private:
     XCAM_DEAD_COPY (CLNewTonemappingImageKernel);
+    int                     _image_width;
     int                     _image_height;
     float                   _map_hist[65536];
     SmartPtr<CLBuffer>      _map_hist_buffer;

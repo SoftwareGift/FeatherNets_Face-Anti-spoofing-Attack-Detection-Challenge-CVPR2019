@@ -25,9 +25,9 @@ namespace XCam {
 CLNewTonemappingImageKernel::CLNewTonemappingImageKernel (SmartPtr<CLContext> &context,
         const char *name)
     : CLImageKernel (context, name)
+    , _image_width (960)
+    , _image_height (540)
 {
-    _image_height = 540;
-
     for(int i = 0; i < 65536; i++)
     {
         _map_hist[i] = i;
@@ -56,61 +56,36 @@ void Haleq(int *y, int *hist, int *hist_leq, int left, int right, int level, int
     int index = (index_left + index_right) / 2;
     hist_leq[index] = (int)(le + 0.5f);
 
-    if(level > 6) return;
+    if(level > 5) return;
 
     Haleq(y, hist, hist_leq, left, (int)(le + 0.5f), level + 1, index_left, index);
     Haleq(y, hist, hist_leq, (int)(le + 0.5f) + 1, right, level + 1, index + 1, index_right);
 }
 
-XCamReturn
-CLNewTonemappingImageKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_start_index, float* map_hist)
 {
-    SmartPtr<CLContext> context = get_context ();
-
-    const VideoBufferInfo & in_video_info = input->get_video_info ();
-
-    _image_in = new CLVaImage (context, input);
-    _image_out = new CLVaImage (context, output);
-    _image_height = in_video_info.aligned_height;
-
-    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _image_in->is_valid () && _image_out->is_valid (),
-        XCAM_RETURN_ERROR_MEM,
-        "cl image kernel(%s) in/out memory not available", get_kernel_name ());
-
-    SmartPtr<X3aStats> stats = input->find_3a_stats ();
-    XCAM_ASSERT (stats.ptr ());
-    XCam3AStats *stats_ptr = stats->get_stats ();
-    XCAM_ASSERT (stats_ptr);
-    int stats_totalnum = stats_ptr->info.width * stats_ptr->info.height;
-    int hist_bin_count = 1 << stats_ptr->info.bit_depth;
-    int y_max = 0;
+    int y_max;
     float y_avg = 0.0f;
 
     for(int i = hist_bin_count - 1; i >= 0; i--)
     {
-        if(stats_ptr->hist_y[i] > 0)
+        if(hist[i] > 0)
         {
             y_max = i;
             break;
         }
     }
 
-    for(int i = 0; i < hist_bin_count - 1; i++)
+    for(int i = 0; i < hist_bin_count; i++)
     {
-        y_avg += i * stats_ptr->hist_y[i];
+        y_avg += i * hist[i];
     }
 
     y_max = y_max + 1;
-    y_avg = y_avg / stats_totalnum;
+    y_avg = y_avg / pixel_num;
 
     int* hist_log = new int[hist_bin_count];
-    int* sort_y = new int[stats_totalnum + 1];
+    int* sort_y = new int[pixel_num + 1];
     float* map_index_leq = new float[hist_bin_count];
     int* map_index_log = new int[hist_bin_count];
 
@@ -119,7 +94,8 @@ CLNewTonemappingImageKernel::prepare_arguments (
         hist_log[i] = 0;
     }
 
-    int thres = hist_bin_count * (53 * hist_bin_count / 256) / (2 * y_avg + 1);
+    int thres = 2000 * 16;
+
     int y_max0 = (y_max > thres) ? thres : y_max;
     int y_max1 = (y_max - thres) > 0 ? (y_max - thres) : 0;
 
@@ -130,25 +106,27 @@ CLNewTonemappingImageKernel::prepare_arguments (
 
     float t0 = 0.01f * y_max0;
     float t1 = 0.01f * y_max1;
-    float max0_log = log(y_max0 + t0);
-    float max1_log = log(y_max1 + t1 + 0.01f);
+    float max0_log = log(y_max0 + t0 + 0.1f);
+    float max1_log = log(y_max1 + t1 + 0.1f);
     float t0_log = log(t0);
-    float t1_log = log(t1 + 0.01f);
+    float t1_log = log(t1);
     float factor0;
 
     if(y_max < thres)
-        factor0 = (hist_bin_count - 1) / (max0_log - t0_log + 0.01f);
+    {
+        factor0 = (hist_bin_count - 1) / (max0_log - t0_log);
+    }
     else
-        factor0 = y_max0 / (max0_log - t0_log + 0.01f);
+        factor0 = y_max0 / (max0_log - t0_log);
 
-    float factor1 = y_max1 / (max1_log - t1_log + 0.01f);
+    float factor1 = y_max1 / (max1_log - t1_log);
 
     if(y_max < thres)
     {
         for(int i = 0; i < y_max; i++)
         {
             int index = (int)((log(i + t0) - t0_log) * factor0 + 0.5f);
-            hist_log[index] += stats_ptr->hist_y[i];
+            hist_log[index] += hist[i];
             map_index_log[i] = index;
         }
     }
@@ -157,21 +135,23 @@ CLNewTonemappingImageKernel::prepare_arguments (
         for(int i = 0; i < y_max0; i++)
         {
             int index = (int)((log(i + t0) - t0_log) * factor0 + 0.5f);
-            hist_log[index] += stats_ptr->hist_y[i];
+            hist_log[index] += hist[i];
             map_index_log[i] = index;
         }
+
         for(int i = y_max0; i < y_max; i++)
         {
             int r = y_max - i;
             int index = (int)((log(r + t1) - t1_log) * factor1 + 0.5f);
             index = y_max - index;
-            hist_log[index] += stats_ptr->hist_y[i];
+            hist_log[index] += hist[i];
             map_index_log[i] = index;
         }
     }
 
     for(int i = y_max; i < hist_bin_count; i++)
     {
+        hist_log[map_index_log[y_max - 1]] += hist[i];
         map_index_log[i] = map_index_log[y_max - 1];
     }
 
@@ -193,21 +173,21 @@ CLNewTonemappingImageKernel::prepare_arguments (
 
     int map_leq_index[256];
 
-    Haleq(sort_y, hist_log, map_leq_index, 0, sort_y[stats_totalnum], 0, 0, 255);
+    Haleq(sort_y, hist_log, map_leq_index, 0, hist_bin_count - 1, 0, 0, 255);
 
     map_leq_index[255] = hist_bin_count;
     map_leq_index[0] = 0;
 
-    for(int i = 1; i < 256; i++)
+    for(int i = 1; i < 255; i++)
     {
+        if(i % 2 == 0) map_leq_index[i] = (map_leq_index[i - 1] + map_leq_index[i + 1]) / 2;
         if(map_leq_index[i] < map_leq_index[i - 1])
             map_leq_index[i] = map_leq_index[i - 1];
     }
 
-    int k;
     for(int i = 0; i < 255; i++)
     {
-        for(k = map_leq_index[i]; k < map_leq_index[i + 1]; k++)
+        for(int k = map_leq_index[i]; k < map_leq_index[i + 1]; k++)
         {
             map_index_leq[k] = (float)i;
         }
@@ -215,16 +195,83 @@ CLNewTonemappingImageKernel::prepare_arguments (
 
     for(int i = 0; i < hist_bin_count; i++)
     {
-        _map_hist[i] = map_index_leq[map_index_log[i]] / 255.0f;
+        map_hist[i + block_start_index] = map_index_leq[map_index_log[i]] / 255.0f;
     }
 
     delete[] hist_log;
     delete[] map_index_leq;
     delete[] map_index_log;
     delete[] sort_y;
+}
+
+XCamReturn
+CLNewTonemappingImageKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count,
+    CLWorkSize &work_size)
+{
+    SmartPtr<CLContext> context = get_context ();
+
+    const VideoBufferInfo & in_video_info = input->get_video_info ();
+
+    _image_in = new CLVaImage (context, input);
+    _image_out = new CLVaImage (context, output);
+    _image_width = in_video_info.aligned_width;
+    _image_height = in_video_info.aligned_height;
+
+    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _image_in->is_valid () && _image_out->is_valid (),
+        XCAM_RETURN_ERROR_MEM,
+        "cl image kernel(%s) in/out memory not available", get_kernel_name ());
+
+    SmartPtr<X3aStats> stats = input->find_3a_stats ();
+    XCam3AStats *stats_ptr = stats->get_stats ();
+
+    int block_factor = 4;
+    int width_per_block = stats_ptr->info.width / block_factor;
+    int height_per_block = stats_ptr->info.height / block_factor;
+    int height_last_block = height_per_block + stats_ptr->info.height % block_factor;
+    int hist_bin_count = 1 << stats_ptr->info.bit_depth;
+
+    int* hist_per_block = new int[hist_bin_count];
+
+    for(int block_row = 0; block_row < block_factor; block_row++)
+    {
+        for(int block_col = 0; block_col < block_factor; block_col++)
+        {
+            int block_start_index = (block_row * block_factor + block_col) * hist_bin_count;
+            int start_index = block_row * height_per_block * stats_ptr->info.width + block_col * width_per_block;
+
+            for(int i = 0; i < hist_bin_count; i++)
+            {
+                hist_per_block[i] = 0;
+            }
+
+            if(block_row == block_factor - 1)
+            {
+                height_per_block = height_last_block;
+            }
+
+            int block_totalnum = width_per_block * height_per_block;
+            for(int i = 0; i < height_per_block; i++)
+            {
+                for(int j = 0; j < width_per_block; j++)
+                {
+                    int y = stats_ptr->stats[start_index + i * stats_ptr->info.width + j].avg_y;
+                    hist_per_block[y]++;
+                }
+            }
+
+            Block_split_haleq(hist_per_block, hist_bin_count, block_totalnum, block_start_index, _map_hist);
+        }
+    }
+
+    delete[] hist_per_block;
 
     _map_hist_buffer = new CLBuffer(
-        context, sizeof(float) * hist_bin_count,
+        context, sizeof(float) * hist_bin_count * block_factor * block_factor,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_map_hist);
 
     //set args;
@@ -234,10 +281,12 @@ CLNewTonemappingImageKernel::prepare_arguments (
     args[1].arg_size = sizeof (cl_mem);
     args[2].arg_adress = &_map_hist_buffer->get_mem_id ();
     args[2].arg_size = sizeof (cl_mem);
-    args[3].arg_adress = &_image_height;
+    args[3].arg_adress = &_image_width;
     args[3].arg_size = sizeof (int);
+    args[4].arg_adress = &_image_height;
+    args[4].arg_size = sizeof (int);
 
-    arg_count = 4;
+    arg_count = 5;
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
