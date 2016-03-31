@@ -39,6 +39,7 @@
 #include "gstxcaminterface.h"
 #include "gstxcambufferpool.h"
 #include "x3a_analyzer_loader.h"
+#include "x3a_analyze_tuner.h"
 #include "smart_analyzer_loader.h"
 #include "smart_analysis_handler.h"
 #include "poll_thread.h"
@@ -218,7 +219,7 @@ gst_xcam_src_analyzer_get_type (void)
     static GType g_type = 0;
     static const GEnumValue analyzer_types[] = {
         {SIMPLE_ANALYZER, "simple 3A analyzer", "simple"},
-        {AIQ_ANALYZER, "aiq 3A analyzer", "aiq"},
+        {AIQ_TUNER_ANALYZER, "aiq 3A analyzer", "aiq"},
         {DYNAMIC_ANALYZER, "dynamic load 3A analyzer", "dynamic"},
         {HYBRID_ANALYZER, "hybrid 3A analyzer", "hybrid"},
         {0, NULL, NULL},
@@ -910,10 +911,15 @@ gst_xcam_src_start (GstBaseSrc *src)
 
     switch (xcamsrc->analyzer_type) {
 #if HAVE_IA_AIQ
-    case AIQ_ANALYZER:
+    case AIQ_TUNER_ANALYZER: {
         XCAM_LOG_INFO ("cpf: %s", xcamsrc->path_to_cpf);
-        analyzer = new X3aAnalyzerAiq (isp_controller, xcamsrc->path_to_cpf);
+        SmartPtr<X3aAnalyzer> aiq_analyzer = new X3aAnalyzerAiq (isp_controller, xcamsrc->path_to_cpf);
+        SmartPtr<X3aAnalyzeTuner> tuner_analyzer = new X3aAnalyzeTuner ();
+        XCAM_ASSERT (aiq_analyzer.ptr () && tuner_analyzer.ptr ());
+        tuner_analyzer->set_analyzer (aiq_analyzer);
+        analyzer = tuner_analyzer;
         break;
+    }
 #endif
     case DYNAMIC_ANALYZER: {
         XCAM_LOG_INFO ("dynamic 3a library: %s", xcamsrc->path_to_3alib);

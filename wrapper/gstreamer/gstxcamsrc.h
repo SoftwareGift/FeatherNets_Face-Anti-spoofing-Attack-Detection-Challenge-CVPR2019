@@ -70,7 +70,7 @@ typedef enum {
 
 typedef enum {
     SIMPLE_ANALYZER = 0,
-    AIQ_ANALYZER,
+    AIQ_TUNER_ANALYZER,
     DYNAMIC_ANALYZER,
     HYBRID_ANALYZER,
 } AnalyzerType;

@@ -23,10 +23,12 @@
 #define XCAM_CL_POST_IMAGE_PROCESSOR_H
 
 #include "xcam_utils.h"
+#include <base/xcam_3a_types.h>
 #include "cl_image_processor.h"
 
 namespace XCam {
 
+class CLTnrImageHandler;
 class CLRetinexImageHandler;
 class CLCscImageHandler;
 
@@ -40,13 +42,24 @@ public:
         OutSampleBayer,
     };
 
+    enum CLTnrMode {
+        TnrDisable = 0,
+        TnrYuv,
+    };
+
 public:
     explicit CLPostImageProcessor ();
     virtual ~CLPostImageProcessor ();
 
     bool set_output_format (uint32_t fourcc);
 
+    virtual bool set_tnr (CLTnrMode mode);
     virtual bool set_retinex (bool enable);
+
+protected:
+    virtual bool can_process_result (SmartPtr<X3aResult> &result);
+    virtual XCamReturn apply_3a_results (X3aResultList &results);
+    virtual XCamReturn apply_3a_result (SmartPtr<X3aResult> &result);
 
 private:
     virtual XCamReturn create_handlers ();
@@ -56,9 +69,12 @@ private:
 private:
     uint32_t                               _output_fourcc;
     OutSampleType                          _out_sample_type;
+
+    SmartPtr<CLTnrImageHandler>            _tnr;
     SmartPtr<CLRetinexImageHandler>        _retinex;
     SmartPtr<CLCscImageHandler>            _csc;
 
+    CLTnrMode                              _tnr_mode;
     bool                                   _enable_retinex;
 };
 

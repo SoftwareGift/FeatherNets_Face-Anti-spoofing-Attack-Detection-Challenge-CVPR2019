@@ -17,8 +17,7 @@
  *
  * Author: Wei Zong <wei.zong@intel.com>
  */
-#include "xcam_utils.h"
-#include "x3a_stats_pool.h"
+
 #include "cl_tnr_handler.h"
 
 namespace XCam {

@@ -22,8 +22,9 @@
 #define XCAM_CL_TNR_HANLDER_H
 
 #include "xcam_utils.h"
-#include "cl_image_handler.h"
 #include "base/xcam_3a_result.h"
+#include "x3a_stats_pool.h"
+#include "cl_image_handler.h"
 
 namespace XCam {
 

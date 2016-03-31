@@ -27,6 +27,7 @@
 #include "x3a_analyzer_simple.h"
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
+#include "x3a_analyze_tuner.h"
 #endif
 #if HAVE_LIBCL
 #include "cl_3a_image_processor.h"
@@ -254,7 +255,7 @@ MainDeviceManager::write_buf (const SmartPtr<VideoBuffer> &buf)
 
 typedef enum {
     AnalyzerTypeSimple = 0,
-    AnalyzerTypeAiq,
+    AnalyzerTypeAiqTuner,
     AnalyzerTypeDynamic,
     AnalyzerTypeHybrid,
 } AnalyzerType;
@@ -409,7 +410,7 @@ int main (int argc, char *argv[])
                 analyzer_type = AnalyzerTypeSimple;
 #if HAVE_IA_AIQ
             else if (!strcmp (optarg, "aiq"))
-                analyzer_type = AnalyzerTypeAiq;
+                analyzer_type = AnalyzerTypeAiqTuner;
             else if (!strcmp (optarg, "hybrid"))
                 analyzer_type = AnalyzerTypeHybrid;
 #endif
@@ -668,9 +669,14 @@ int main (int argc, char *argv[])
         analyzer = new X3aAnalyzerSimple ();
         break;
 #if HAVE_IA_AIQ
-    case AnalyzerTypeAiq:
-        analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
+    case AnalyzerTypeAiqTuner: {
+        SmartPtr<X3aAnalyzer> aiq_analyzer = new X3aAnalyzerAiq (isp_controller, DEFAULT_CPF_FILE);
+        SmartPtr<X3aAnalyzeTuner> tuner_analyzer = new X3aAnalyzeTuner ();
+        XCAM_ASSERT (aiq_analyzer.ptr () && tuner_analyzer.ptr ());
+        tuner_analyzer->set_analyzer (aiq_analyzer);
+        analyzer = tuner_analyzer;
         break;
+    }
     case AnalyzerTypeHybrid: {
         path_of_3a = DEFAULT_HYBRID_3A_LIB;
         loader = new X3aAnalyzerLoader (path_of_3a);
