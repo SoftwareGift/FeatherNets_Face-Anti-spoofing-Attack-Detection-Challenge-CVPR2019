@@ -61,23 +61,23 @@ CLNewWaveletDenoiseImageKernel::prepare_arguments (
     CLImageDesc cl_desc_in, cl_desc_out;
     cl_desc_in.format.image_channel_data_type = CL_UNORM_INT8;
     cl_desc_in.format.image_channel_order = CL_RGBA;
-    cl_desc_in.width = video_info_in.width / 4;
+    cl_desc_in.width = XCAM_ALIGN_UP (video_info_in.width, 4) / 4;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
 
     cl_desc_out.format.image_channel_data_type = CL_UNORM_INT8;
     cl_desc_out.format.image_channel_order = CL_RGBA;
-    cl_desc_out.width = video_info_out.width / 4;
+    cl_desc_out.width = XCAM_ALIGN_UP (video_info_out.width, 4) / 4;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
 
     _image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
     _image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
-    cl_desc_in.height = video_info_in.height / 2;
+    cl_desc_in.height = XCAM_ALIGN_UP (video_info_in.height, 2) / 2;
     cl_desc_in.row_pitch = video_info_in.strides[1];
 
-    cl_desc_out.height = video_info_out.height / 2;
+    cl_desc_out.height = XCAM_ALIGN_UP (video_info_out.height, 2) / 2;
     cl_desc_out.row_pitch = video_info_out.strides[1];
 
     _image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
@@ -206,13 +206,13 @@ CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &inpu
         for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
             decompBuffer = new CLWaveletDecompBuffer ();
             if (decompBuffer.ptr ()) {
-                decompBuffer->width = video_info.width >> layer;
-                decompBuffer->height = video_info.height >> layer;
+                decompBuffer->width = XCAM_ALIGN_UP (video_info.width, 1 << layer) >> layer;
+                decompBuffer->height = XCAM_ALIGN_UP (video_info.height, 1 << layer) >> layer;
 
                 decompBuffer->channel = CL_WAVELET_CHANNEL_Y;
                 decompBuffer->layer = layer;
 
-                cl_desc.width = decompBuffer->width / 4;
+                cl_desc.width = XCAM_ALIGN_UP (decompBuffer->width, 4) / 4;
                 cl_desc.height = decompBuffer->height;
                 cl_desc.format.image_channel_order = CL_RGBA;
                 cl_desc.format.image_channel_data_type = CL_UNORM_INT8;

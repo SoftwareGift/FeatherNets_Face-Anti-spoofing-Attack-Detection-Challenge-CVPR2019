@@ -153,7 +153,9 @@ print_help (const char *bin_name)
             "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise,"
             " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet-hat, wavelet-haar]\n"
             "\t -f input_format    specify a input format\n"
-            "\t -g output_format    specify a output format\n"
+            "\t -W image width     specify input image width\n"
+            "\t -H image height    specify input image height\n"
+            "\t -g output_format   specify a output format\n"
             "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
             "\t -i input     specify input file path\n"
             "\t -o output    specify output file path\n"
@@ -171,6 +173,8 @@ int main (int argc, char *argv[])
 {
     uint32_t input_format = 0;
     uint32_t output_format = V4L2_PIX_FMT_RGBA32;
+    uint32_t width = 1920;
+    uint32_t height = 1080;
     uint32_t buf_count = 0;
     int32_t kernel_loop_count = 0;
     const char *input_file = NULL, *output_file = NULL;
@@ -188,7 +192,7 @@ int main (int argc, char *argv[])
     CLHdrType hdr_type = CL_HDR_TYPE_RGB;
     bool enable_bnr = false;
 
-    while ((opt =  getopt(argc, argv, "f:i:o:t:p:c:d:g:bh")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:W:H:i:o:t:p:c:d:g:bh")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
@@ -210,6 +214,14 @@ int main (int argc, char *argv[])
                 input_format = V4L2_PIX_FMT_SGRBG12;
             else
                 print_help (bin_name);
+            break;
+        }
+        case 'W': {
+            width = atoi (optarg);
+            break;
+        }
+        case 'H': {
+            height = atoi (optarg);
             break;
         }
         case 'g': {
@@ -509,7 +521,7 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    input_buf_info.init (input_format, 1920, 1080);
+    input_buf_info.init (input_format, width, height);
     display = DrmDisplay::instance ();
     buf_pool = new DrmBoBufferPool (display);
     XCAM_ASSERT (buf_pool.ptr ());
