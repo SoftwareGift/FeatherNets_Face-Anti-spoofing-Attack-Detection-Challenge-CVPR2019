@@ -123,7 +123,12 @@ CLPostImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
             if (_enable_retinex) {
                 XCam3aResultTemporalNoiseReduction config;
                 xcam_mem_clear (config);
+                // isp processor
+                // config.gain = 0.12;
+
+                // cl processor
                 config.gain = 0.22;
+
                 config.threshold [0] = 0.00081;
                 config.threshold [1] = 0.00072;
                 _tnr->set_yuv_config (config);

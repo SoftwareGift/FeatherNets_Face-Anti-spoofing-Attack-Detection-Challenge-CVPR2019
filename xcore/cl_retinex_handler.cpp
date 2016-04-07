@@ -145,8 +145,8 @@ CLRetinexImageKernel::prepare_arguments (
             "cl image kernel(%s) gauss memory[%d] is invalid", get_kernel_name (), i);
     }
 
-    _retinex_config.log_min = -0.1f;
-    _retinex_config.log_max = 0.2f;
+    _retinex_config.log_min = -0.12f;
+    _retinex_config.log_max = 0.18f;
     _retinex_config.gain = 1.0f / (_retinex_config.log_max - _retinex_config.log_min);
     _retinex_config.width = (float)video_info_in.width;
     _retinex_config.height = (float)video_info_in.height;
@@ -376,11 +376,12 @@ create_cl_retinex_image_handler (SmartPtr<CLContext> &context)
         "Retinex handler create scaler kernel failed");
     retinex_handler->set_retinex_scaler_kernel (retinex_scaler_kernel);
 
+    uint32_t scale [2] = {2, 8};
+    float sigma [2] = {2.0f, 8.0f};
+
     for (uint32_t i = 0; i < XCAM_RETINEX_MAX_SCALE; ++i) {
         SmartPtr<CLImageKernel> retinex_gauss_kernel;
-        uint32_t scale = 2 * (i + 1);
-        float sigma = 2.0 * (i + 1);
-        retinex_gauss_kernel = create_kernel_retinex_gaussian (context, retinex_handler, i, scale, sigma);
+        retinex_gauss_kernel = create_kernel_retinex_gaussian (context, retinex_handler, i, scale [i], sigma [i]);
         XCAM_FAIL_RETURN (
             ERROR,
             retinex_gauss_kernel.ptr () && retinex_gauss_kernel->is_valid (),

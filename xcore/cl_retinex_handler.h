@@ -29,8 +29,8 @@
 #include "cl_image_scaler.h"
 #include "cl_gauss_handler.h"
 
-#define XCAM_RETINEX_MAX_SCALE 1
-#define XCAM_RETINEX_SCALER_FACTOR 0.4
+#define XCAM_RETINEX_MAX_SCALE 2
+#define XCAM_RETINEX_SCALER_FACTOR 0.5
 
 namespace XCam {
 
