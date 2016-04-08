@@ -64,7 +64,7 @@ void Haleq(int *y, int *hist, int *hist_leq, int left, int right, int level, int
 
 void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_start_index, float* map_hist)
 {
-    int y_max;
+    int y_max = 0;
     float y_avg = 0.0f;
 
     for(int i = hist_bin_count - 1; i >= 0; i--)
@@ -94,18 +94,12 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
         hist_log[i] = 0;
     }
 
-    int thres = 2000 * 16;
-
+    int thres = (int)(1500 * 1500 / (y_avg * y_avg) * 600);
     int y_max0 = (y_max > thres) ? thres : y_max;
     int y_max1 = (y_max - thres) > 0 ? (y_max - thres) : 0;
 
-    if(y_max < thres)
-    {
-        y_max0 = hist_bin_count - 1;
-    }
-
     float t0 = 0.01f * y_max0;
-    float t1 = 0.01f * y_max1;
+    float t1 = 0.001f * y_max1;
     float max0_log = log(y_max0 + t0 + 0.1f);
     float max1_log = log(y_max1 + t1 + 0.1f);
     float t0_log = log(t0);

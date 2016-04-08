@@ -65,7 +65,7 @@ __kernel void kernel_newtonemapping (
 
             d = sqrt(d);
 
-            wd = exp( -d / 100.0f);
+            wd = 100.0f / (d + 100.0f);
 
             haleq.x = hist_leq[start_index + (int)(src_y_data.x * 65535.0f + 0.5f) / 16];
             haleq.y = hist_leq[start_index + (int)(src_y_data.y * 65535.0f + 0.5f) / 16];
@@ -79,7 +79,7 @@ __kernel void kernel_newtonemapping (
 
     dst_y_data = total_haleq / total_wd;
 
-    float4 gain = (dst_y_data  + 0.01f) / (src_y_data + 0.01f);
+    float4 gain = (dst_y_data  + 0.0001f) / (src_y_data + 0.0001f);
     src_data_Gr = src_data_Gr * gain;
     src_data_R = src_data_R * gain;
     src_data_B = src_data_B * gain;
