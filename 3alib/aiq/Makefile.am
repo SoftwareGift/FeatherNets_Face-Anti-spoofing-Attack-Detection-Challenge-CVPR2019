@@ -2,14 +2,21 @@ plugin_LTLIBRARIES = libxcam_3a_aiq.la
 
 PTHREAD_LDFLAGS = -pthread
 
-XCAMSRC_CXXFLAGS = $(XCAM_CXXFLAGS)
-XCAMSRC_LIBS = \
+XCAMAIQ_CXXFLAGS = $(XCAM_CXXFLAGS)
+XCAMAIQ_LIBS = \
 		   $(NULL)
 
 if HAVE_LIBDRM
-XCAMSRC_CXXFLAGS += $(LIBDRM_CFLAGS)
-XCAMSRC_LIBS += $(LIBDRM_LIBS)
+XCAMAIQ_CXXFLAGS += $(LIBDRM_CFLAGS)
+XCAMAIQ_LIBS += $(LIBDRM_LIBS)
 endif
+
+if USE_LOCAL_ATOMISP
+XCAMAIQ_CXXFLAGS +=        \
+	-I$(top_srcdir)/ext/atomisp \
+	$(NULL)
+endif
+
 
 plugindir="$(libdir)/xcam"
 
@@ -19,12 +26,12 @@ libxcam_3a_aiq_la_SOURCES =                  \
 
 libxcam_3a_aiq_la_CXXFLAGS = -I$(top_builddir)/xcore    \
 			  -I$(top_builddir)/xcore/base	        \
-			  $(GST_CFLAGS) $(XCAMSRC_CXXFLAGS)	\
+			  $(GST_CFLAGS) $(XCAMAIQ_CXXFLAGS)	\
 			  -I$(top_builddir)/3alib               \
 			  $(NULL)
 
 
-libxcam_3a_aiq_la_LIBADD = $(XCAMSRC_LIBS)           \
+libxcam_3a_aiq_la_LIBADD = $(XCAMAIQ_LIBS)           \
 			  $(top_builddir)/xcore/libxcam_core.la \
 			  $(NULL)
 

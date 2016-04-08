@@ -30,7 +30,6 @@
 #include <base/xcam_3a_result.h>
 #include <base/xcam_3a_stats.h>
 
-#include <linux/atomisp.h>
 
 XCAM_BEGIN_DECLARE
 

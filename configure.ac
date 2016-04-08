@@ -102,6 +102,14 @@ if test "$enable_libcl" = "yes"; then
     PKG_CHECK_MODULES(LIBCL, [libcl], [HAVE_LIBCL=1], [HAVE_LIBCL=0])
 fi
 
+if test "$enable_libcl" = "yes" && test "$HAVE_LIBCL" -eq 0; then
+    PKG_CHECK_MODULES(LIBCL, [OpenCL], [HAVE_LIBCL=1], [HAVE_LIBCL=0])
+
+    if test "$HAVE_LIBCL" -eq 1; then
+        LIBCL_LIBS="$LIBCL_LIBS  -I/usr/local/lib/beignet -lcl"
+    fi
+fi
+
 # check AIQ
 ENABLE_IA_AIQ=0
 USE_LOCAL_AIQ=0

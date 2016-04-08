@@ -13,6 +13,12 @@ XCAMSRC_CXXFLAGS += $(LIBDRM_CFLAGS)
 XCAMSRC_LIBS += $(LIBDRM_LIBS)
 endif
 
+if USE_LOCAL_ATOMISP
+XCAMSRC_CXXFLAGS +=        \
+    -I$(top_srcdir)/ext/atomisp \
+    $(NULL)
+endif
+
 # Note: plugindir is set in configure
 plugindir="$(libdir)/gstreamer-1.0"
 

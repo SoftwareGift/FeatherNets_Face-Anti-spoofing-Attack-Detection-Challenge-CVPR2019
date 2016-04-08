@@ -1,8 +1,14 @@
 plugin_LTLIBRARIES = libxcam_sample_smart.la
 
-XCAMSRC_CXXFLAGS = $(XCAM_CXXFLAGS)
-XCAMSRC_LIBS = \
+XCAMSMART_CXXFLAGS = $(XCAM_CXXFLAGS)
+XCAMSMART_LIBS = \
 		   $(NULL)
+
+if USE_LOCAL_ATOMISP
+XCAMSMART_CXXFLAGS +=        \
+	-I$(top_srcdir)/ext/atomisp \
+	$(NULL)
+endif
 
 plugindir="$(libdir)/xcam/smartlib"
 
@@ -11,12 +17,12 @@ libxcam_sample_smart_la_SOURCES =               \
 			   $(NULL)
 
 libxcam_sample_smart_la_CXXFLAGS = -I$(top_builddir)/xcore         \
-			  $(GST_CFLAGS) $(XCAMSRC_CXXFLAGS)	\
+			  $(GST_CFLAGS) $(XCAMSMART_CXXFLAGS)	\
 			  -I$(top_builddir)/smartlib             \
 			  $(NULL)
 
 
-libxcam_sample_smart_la_LIBADD = $(XCAMSRC_LIBS)                   \
+libxcam_sample_smart_la_LIBADD = $(XCAMSMART_LIBS)                   \
 			  $(top_builddir)/xcore/libxcam_core.la \
 			  $(NULL)
 
