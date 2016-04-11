@@ -94,26 +94,26 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
         hist_log[i] = 0;
     }
 
-    int thres = (int)(1500 * 1500 / (y_avg * y_avg) * 600);
+    int thres = (int)(1500 * 1500 / (y_avg * y_avg + 1) * 600);
     int y_max0 = (y_max > thres) ? thres : y_max;
     int y_max1 = (y_max - thres) > 0 ? (y_max - thres) : 0;
 
-    float t0 = 0.01f * y_max0;
-    float t1 = 0.001f * y_max1;
-    float max0_log = log(y_max0 + t0 + 0.1f);
-    float max1_log = log(y_max1 + t1 + 0.1f);
+    float t0 = 0.01f * y_max0 + 0.001f;
+    float t1 = 0.001f * y_max1 + 0.001f;
+    float max0_log = log(y_max0 + t0);
+    float max1_log = log(y_max1 + t1);
     float t0_log = log(t0);
     float t1_log = log(t1);
     float factor0;
 
     if(y_max < thres)
     {
-        factor0 = (hist_bin_count - 1) / (max0_log - t0_log);
+        factor0 = (hist_bin_count - 1) / (max0_log - t0_log + 0.001f);
     }
     else
-        factor0 = y_max0 / (max0_log - t0_log);
+        factor0 = y_max0 / (max0_log - t0_log + 0.001f);
 
-    float factor1 = y_max1 / (max1_log - t1_log);
+    float factor1 = y_max1 / (max1_log - t1_log + 0.001f);
 
     if(y_max < thres)
     {
