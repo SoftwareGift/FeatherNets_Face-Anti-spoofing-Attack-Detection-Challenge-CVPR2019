@@ -376,8 +376,8 @@ create_cl_retinex_image_handler (SmartPtr<CLContext> &context)
         "Retinex handler create scaler kernel failed");
     retinex_handler->set_retinex_scaler_kernel (retinex_scaler_kernel);
 
-    uint32_t scale [2] = {2, 8};
-    float sigma [2] = {2.0f, 8.0f};
+    uint32_t scale [3] = {2, 8, 20};
+    float sigma [3] = {2.0f, 8.0f, 20.0f};
 
     for (uint32_t i = 0; i < XCAM_RETINEX_MAX_SCALE; ++i) {
         SmartPtr<CLImageKernel> retinex_gauss_kernel;

@@ -55,7 +55,8 @@ __kernel void kernel_retinex (
     __read_only image2d_t ga_input0,
 #if RETINEX_SCALE_SIZE > 1
     __read_only image2d_t ga_input1,
-#elif RETINEX_SCALE_SIZE > 2
+#endif
+#if RETINEX_SCALE_SIZE > 2
     __read_only image2d_t ga_input2,
 #endif
     __write_only image2d_t output_y, __write_only image2d_t output_uv,
@@ -101,6 +102,17 @@ __kernel void kernel_retinex (
     pos_ga.x += ga_x_step;
     y_ga[1].w = read_imagef(ga_input1, sampler_ga, pos_ga).x * 255.0f;
 #endif
+
+#if RETINEX_SCALE_SIZE > 2
+    y_ga[2].x = read_imagef(ga_input2, sampler_ga, pos_ga).x * 255.0f;
+    pos_ga.x += ga_x_step;
+    y_ga[2].y = read_imagef(ga_input2, sampler_ga, pos_ga).x * 255.0f;
+    pos_ga.x += ga_x_step;
+    y_ga[2].z = read_imagef(ga_input2, sampler_ga, pos_ga).x * 255.0f;
+    pos_ga.x += ga_x_step;
+    y_ga[2].w = read_imagef(ga_input2, sampler_ga, pos_ga).x * 255.0f;
+#endif
+
 
     y_lg = (float4) (0.0f, 0.0f, 0.0f, 0.0f);
 #pragma unroll
