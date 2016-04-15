@@ -946,6 +946,7 @@ gst_xcam_src_start (GstBaseSrc *src)
                 smart_analyzer->add_handler (*i_handler);
             }
         }
+        break;
     }
     case HYBRID_ANALYZER: {
         XCAM_LOG_INFO ("hybrid 3a library: %s", xcamsrc->path_to_3alib);
