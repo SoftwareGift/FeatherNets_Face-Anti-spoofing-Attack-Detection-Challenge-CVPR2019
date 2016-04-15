@@ -74,6 +74,11 @@ FrameSaver::FrameSaver (bool save, uint32_t interval, uint32_t count)
 {
 }
 
+FrameSaver::~FrameSaver ()
+{
+    close_file ();
+}
+
 void
 FrameSaver::save_frame (XCamVideoBuffer *buffer)
 {

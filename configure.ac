@@ -106,7 +106,8 @@ if test "$enable_libcl" = "yes" && test "$HAVE_LIBCL" -eq 0; then
     PKG_CHECK_MODULES(LIBCL, [OpenCL], [HAVE_LIBCL=1], [HAVE_LIBCL=0])
 
     if test "$HAVE_LIBCL" -eq 1; then
-        LIBCL_LIBS="$LIBCL_LIBS  -I/usr/local/lib/beignet -lcl"
+        LIBCL_LIBS="$LIBCL_LIBS -lcl"
+        LDFLAGS="$LDFLAGS -L/usr/local/lib/beignet"
     fi
 fi
 
