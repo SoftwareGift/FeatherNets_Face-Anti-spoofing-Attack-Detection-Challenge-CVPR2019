@@ -71,11 +71,6 @@ __kernel void kernel_retinex (
     float4 y_in, y_ga[RETINEX_SCALE_SIZE];
     float4 y_in_lg, y_lg;
     int i;
-    // copy UV
-    if(y % 2 == 0) {
-        uv_in = read_imagef(input_uv, sampler_orig, (int2)(x, y / 2));
-        write_imagef(output_uv, (int2)(x, y / 2), uv_in);
-    }
 
     y_in = read_imagef(input_y, sampler_orig, (int2)(x, y)) * 255.0f;
     y_in_lg.x = log_table[convert_int(y_in.x)];
@@ -124,6 +119,44 @@ __kernel void kernel_retinex (
     }
     y_lg = y_lg / (float)(RETINEX_SCALE_SIZE);
 
-    y_out = re_config.gain * (y_in + 20.0f) / 128.0f * (y_lg - re_config.log_min);
+    //y_out = re_config.gain * (y_in + 20.0f) / 128.0f * (y_lg - re_config.log_min);
+    y_out = re_config.gain * (y_ga[0] + 20.0f) / 128.0f * (y_lg - re_config.log_min);
     write_imagef(output_y, (int2)(x, y), y_out);
+
+    // copy UV
+    if(y % 2 == 0) {
+        float2 avg_y_out, avg_y_in, gain_y;
+        float4 uv_out, gain_uv;
+        y_in = y_in / 255.0f;
+        avg_y_in = (float2)((y_in.x + y_in.y) * 0.5f, (y_in.z + y_in.w) * 0.5f);
+        avg_y_out = (float2)((y_out.x + y_out.y) * 0.5f, (y_out.z + y_out.w) * 0.5f);
+        avg_y_out = clamp (avg_y_out, 0.0f, 1.0f);
+        avg_y_in = (avg_y_in > 0.5f) ? (1.0f - avg_y_in) : avg_y_in;
+        avg_y_out = (avg_y_out > 0.5f) ? (1.0f - avg_y_out) : avg_y_out;
+        gain_y = (avg_y_out + 0.1f) / (avg_y_in + 0.05f);
+        gain_y = gain_y * (avg_y_in * 2.0f + 1.0f);
+
+        uv_in = read_imagef(input_uv, sampler_orig, (int2)(x, y / 2)) - 0.5f;
+        float2 v_coef = 1.01f / (1.13f * uv_in.xz + 0.01f);
+        float2 v_gain_1 = v_coef - avg_y_in * v_coef;
+        float2 v_gain_2 = -v_coef;
+        float2 v_gain_min = (v_gain_1 < v_gain_2) ? v_gain_1 : v_gain_2;
+        float2 v_gain_max = (v_gain_1 < v_gain_2) ? v_gain_2 : v_gain_1;
+        v_gain_min = max (v_gain_min, 0.1f);
+        v_gain_max = max (v_gain_max, 0.1f);
+        gain_y = clamp (gain_y, v_gain_min, v_gain_max);
+
+        float2 u_coef = 1.01f / (2.03f * uv_in.yw + 0.01f);
+        float2 u_gain_1 = u_coef - avg_y_in * u_coef;
+        float2 u_gain_2 = -u_coef;
+        float2 u_gain_min = (u_gain_1 < u_gain_2) ? u_gain_1 : u_gain_2;
+        float2 u_gain_max = (u_gain_1 < u_gain_2) ? u_gain_2 : u_gain_1;
+        u_gain_min = max (u_gain_min, 0.1f);
+        u_gain_max = max (u_gain_max, 0.1f);
+        gain_y = clamp (gain_y, u_gain_min, u_gain_max);
+        gain_uv = (float4) (gain_y, gain_y);
+        //printf (" (%.2f) ", gain_uv.x);
+        uv_out = uv_in * gain_uv + 0.5f;
+        write_imagef(output_uv, (int2)(x, y / 2), uv_out);
+    }
 }
