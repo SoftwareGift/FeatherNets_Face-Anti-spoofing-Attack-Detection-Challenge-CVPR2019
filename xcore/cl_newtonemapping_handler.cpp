@@ -27,10 +27,17 @@ CLNewTonemappingImageKernel::CLNewTonemappingImageKernel (SmartPtr<CLContext> &c
     : CLImageKernel (context, name)
     , _image_width (960)
     , _image_height (540)
+    , _block_factor (4)
 {
     for(int i = 0; i < 65536; i++)
     {
         _map_hist[i] = i;
+    }
+
+    for(int i = 0; i < 4 * 4; i++)
+    {
+        _y_max[i] = 0.0f;
+        _y_avg[i] = 0.0f;
     }
 }
 
@@ -62,27 +69,26 @@ void Haleq(int *y, int *hist, int *hist_leq, int left, int right, int level, int
     Haleq(y, hist, hist_leq, (int)(le + 0.5f) + 1, right, level + 1, index + 1, index_right);
 }
 
-void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_start_index, float* map_hist)
+void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_start_index, float* y_max, float* y_avg, float* map_hist)
 {
-    int y_max = 0;
-    float y_avg = 0.0f;
+    int block_id = block_start_index / hist_bin_count;
 
     for(int i = hist_bin_count - 1; i >= 0; i--)
     {
         if(hist[i] > 0)
         {
-            y_max = i;
+            y_max[block_id] = i;
             break;
         }
     }
 
     for(int i = 0; i < hist_bin_count; i++)
     {
-        y_avg += i * hist[i];
+        y_avg[block_id] += i * hist[i];
     }
 
-    y_max = y_max + 1;
-    y_avg = y_avg / pixel_num;
+    y_max[block_id] = y_max[block_id] + 1;
+    y_avg[block_id] = y_avg[block_id] / pixel_num;
 
     int* hist_log = new int[hist_bin_count];
     int* sort_y = new int[pixel_num + 1];
@@ -94,9 +100,9 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
         hist_log[i] = 0;
     }
 
-    int thres = (int)(1500 * 1500 / (y_avg * y_avg + 1) * 600);
-    int y_max0 = (y_max > thres) ? thres : y_max;
-    int y_max1 = (y_max - thres) > 0 ? (y_max - thres) : 0;
+    int thres = (int)(1500 * 1500 / (y_avg[block_id] * y_avg[block_id] + 1) * 600);
+    int y_max0 = (y_max[block_id] > thres) ? thres : y_max[block_id];
+    int y_max1 = (y_max[block_id] - thres) > 0 ? (y_max[block_id] - thres) : 0;
 
     float t0 = 0.01f * y_max0 + 0.001f;
     float t1 = 0.001f * y_max1 + 0.001f;
@@ -106,7 +112,7 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
     float t1_log = log(t1);
     float factor0;
 
-    if(y_max < thres)
+    if(y_max[block_id] < thres)
     {
         factor0 = (hist_bin_count - 1) / (max0_log - t0_log + 0.001f);
     }
@@ -115,9 +121,9 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
 
     float factor1 = y_max1 / (max1_log - t1_log + 0.001f);
 
-    if(y_max < thres)
+    if(y_max[block_id] < thres)
     {
-        for(int i = 0; i < y_max; i++)
+        for(int i = 0; i < y_max[block_id]; i++)
         {
             int index = (int)((log(i + t0) - t0_log) * factor0 + 0.5f);
             hist_log[index] += hist[i];
@@ -133,20 +139,20 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
             map_index_log[i] = index;
         }
 
-        for(int i = y_max0; i < y_max; i++)
+        for(int i = y_max0; i < y_max[block_id]; i++)
         {
-            int r = y_max - i;
+            int r = y_max[block_id] - i;
             int index = (int)((log(r + t1) - t1_log) * factor1 + 0.5f);
-            index = y_max - index;
+            index = y_max[block_id] - index;
             hist_log[index] += hist[i];
             map_index_log[i] = index;
         }
     }
 
-    for(int i = y_max; i < hist_bin_count; i++)
+    for(int i = y_max[block_id]; i < hist_bin_count; i++)
     {
-        hist_log[map_index_log[y_max - 1]] += hist[i];
-        map_index_log[i] = map_index_log[y_max - 1];
+        hist_log[map_index_log[(int)y_max[block_id] - 1]] += hist[i];
+        map_index_log[i] = map_index_log[(int)y_max[block_id] - 1];
     }
 
     int sort_index = 1;
@@ -191,6 +197,9 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
     {
         map_hist[i + block_start_index] = map_index_leq[map_index_log[i]] / 255.0f;
     }
+
+    y_max[block_id] = y_max[block_id] / hist_bin_count;
+    y_avg[block_id] = y_avg[block_id] / hist_bin_count;
 
     delete[] hist_log;
     delete[] map_index_leq;
@@ -258,11 +267,19 @@ CLNewTonemappingImageKernel::prepare_arguments (
                 }
             }
 
-            Block_split_haleq(hist_per_block, hist_bin_count, block_totalnum, block_start_index, _map_hist);
+            Block_split_haleq(hist_per_block, hist_bin_count, block_totalnum, block_start_index, _y_max, _y_avg, _map_hist);
         }
     }
 
     delete[] hist_per_block;
+
+    _y_max_buffer = new CLBuffer(
+        context, sizeof(float) * block_factor * block_factor,
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_y_max);
+
+    _y_avg_buffer = new CLBuffer(
+        context, sizeof(float) * block_factor * block_factor,
+        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, &_y_avg);
 
     _map_hist_buffer = new CLBuffer(
         context, sizeof(float) * hist_bin_count * block_factor * block_factor,
@@ -273,14 +290,18 @@ CLNewTonemappingImageKernel::prepare_arguments (
     args[0].arg_size = sizeof (cl_mem);
     args[1].arg_adress = &_image_out->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_map_hist_buffer->get_mem_id ();
+    args[2].arg_adress = &_y_max_buffer->get_mem_id ();
     args[2].arg_size = sizeof (cl_mem);
-    args[3].arg_adress = &_image_width;
-    args[3].arg_size = sizeof (int);
-    args[4].arg_adress = &_image_height;
-    args[4].arg_size = sizeof (int);
+    args[3].arg_adress = &_y_avg_buffer->get_mem_id ();
+    args[3].arg_size = sizeof (cl_mem);
+    args[4].arg_adress = &_map_hist_buffer->get_mem_id ();
+    args[4].arg_size = sizeof (cl_mem);
+    args[5].arg_adress = &_image_width;
+    args[5].arg_size = sizeof (int);
+    args[6].arg_adress = &_image_height;
+    args[6].arg_size = sizeof (int);
 
-    arg_count = 5;
+    arg_count = 7;
 
     const CLImageDesc out_info = _image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;

@@ -11,7 +11,8 @@
 
 __kernel void kernel_newtonemapping (
     __read_only image2d_t input, __write_only image2d_t output,
-    __global float *hist_leq, int image_width, int image_height)
+    __global float *y_max, __global float *y_avg, __global float *hist_leq,
+    int image_width, int image_height)
 {
     int g_id_x = get_global_id (0);
     int g_id_y = get_global_id (1);
@@ -29,7 +30,7 @@ __kernel void kernel_newtonemapping (
     int row_per_block = image_height / BLOCK_FACTOR;
     int col_per_block = image_width / BLOCK_FACTOR;
     int row_block_id = g_id_y / row_per_block;
-    int col_block_id = g_id_x / col_per_block;
+    int col_block_id = g_id_x * 4 / col_per_block;
 
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
@@ -46,40 +47,48 @@ __kernel void kernel_newtonemapping (
     src_y_data = mad(src_data_B, 0.114f, src_y_data);
 
     float4 dst_y_data;
-    float4 d, wd, haleq;
-    float4 total_wd = 0.0f;
+    float4 d, wd, haleq, s, ws;
+    float4 total_w = 0.0f;
     float4 total_haleq = 0.0f;
+
+    float4 corrd_x = mad((float4)g_id_x, 4.0f, (float4)(0.0f, 1.0f, 2.0f, 3.0f));
+    float4 src_y = mad(src_y_data, 65535.0f, 0.5f) / 16.0f;
 
     for(int i = 0; i < BLOCK_FACTOR; i++)
     {
         for(int j = 0; j < BLOCK_FACTOR; j++)
         {
-            int center_x = col_per_block * j + col_per_block / 2;
-            int center_y = row_per_block * i + row_per_block / 2;
-            int start_index = (i * BLOCK_FACTOR + j) * 4096;
+            int center_x = mad24(col_per_block, j, col_per_block / 2);
+            int center_y = mad24(row_per_block, i, row_per_block / 2);
+            int start_index = mad24(i, BLOCK_FACTOR, j) * 4096;
 
-            d.x = (g_id_x * 4 - center_x) * (g_id_x * 4 - center_x) + (g_id_y - center_y) * (g_id_y - center_y);
-            d.y = (g_id_x * 4 + 1 - center_x) * (g_id_x * 4 + 1 - center_x) + (g_id_y - center_y) * (g_id_y - center_y);
-            d.z = (g_id_x * 4 + 2 - center_x) * (g_id_x * 4 + 2 - center_x) + (g_id_y - center_y) * (g_id_y - center_y);
-            d.w = (g_id_x * 4 + 3 - center_x) * (g_id_x * 4 + 3 - center_x) + (g_id_y - center_y) * (g_id_y - center_y);
+            float4 dy = (float4)((g_id_y - center_y) * (g_id_y - center_y));
+            float4 dx = corrd_x - (float4)center_x;
 
-            d = sqrt(d);
+            d = mad(dx, dx, dy);
 
-            wd = 100.0f / (d + 100.0f);
+            d = sqrt(d) + 100.0f;
+            //wd = 100.0f / (d + 100.0f);
 
-            haleq.x = hist_leq[start_index + (int)(src_y_data.x * 65535.0f + 0.5f) / 16];
-            haleq.y = hist_leq[start_index + (int)(src_y_data.y * 65535.0f + 0.5f) / 16];
-            haleq.z = hist_leq[start_index + (int)(src_y_data.z * 65535.0f + 0.5f) / 16];
-            haleq.w = hist_leq[start_index + (int)(src_y_data.w * 65535.0f + 0.5f) / 16];
+            s = fabs(src_y_data - (float4)y_avg[mad24(i, BLOCK_FACTOR, j)]) / (float4)y_max[mad24(i, BLOCK_FACTOR, j)] + 1.0f;
+            //ws = 1.0f / (s + 1.0f);
 
-            total_wd += wd;
-            total_haleq += haleq * wd;
+            float4 w = 100.0f / (d * s);
+            //w = wd * ws;
+
+            haleq.x = hist_leq[start_index + (int)src_y.x];
+            haleq.y = hist_leq[start_index + (int)src_y.y];
+            haleq.z = hist_leq[start_index + (int)src_y.z];
+            haleq.w = hist_leq[start_index + (int)src_y.w];
+
+            total_w = total_w + w;
+            total_haleq = mad(haleq, w, total_haleq);
         }
     }
 
-    dst_y_data = total_haleq / total_wd;
+    dst_y_data = total_haleq / total_w;
 
-    float4 gain = (dst_y_data  + 0.0001f) / (src_y_data + 0.0001f);
+    float4 gain = (dst_y_data + 0.0001f) / (src_y_data + 0.0001f);
     src_data_Gr = src_data_Gr * gain;
     src_data_R = src_data_R * gain;
     src_data_B = src_data_B * gain;

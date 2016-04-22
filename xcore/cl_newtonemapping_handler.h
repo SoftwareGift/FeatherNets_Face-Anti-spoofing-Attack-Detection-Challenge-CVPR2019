@@ -45,7 +45,12 @@ private:
     XCAM_DEAD_COPY (CLNewTonemappingImageKernel);
     int                     _image_width;
     int                     _image_height;
+    int                     _block_factor;
     float                   _map_hist[65536];
+    float                   _y_max[16];
+    float                   _y_avg[16];
+    SmartPtr<CLBuffer>      _y_max_buffer;
+    SmartPtr<CLBuffer>      _y_avg_buffer;
     SmartPtr<CLBuffer>      _map_hist_buffer;
 };
 
