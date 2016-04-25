@@ -69,6 +69,13 @@ enum TestHandlerType {
     TestHandlerHaarWavelet,
 };
 
+enum PsnrType {
+    PSNRY = 0,
+    PSNRR,
+    PSNRG,
+    PSNRB,
+};
+
 struct TestFileHandle {
     FILE *fp;
     TestFileHandle ()
@@ -134,6 +141,53 @@ write_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
 }
 
 static XCamReturn
+calculate_psnr (SmartPtr<DrmBoBuffer> &psnr_cur, SmartPtr<DrmBoBuffer> &psnr_ref, PsnrType psnr_type, float &psnr)
+{
+    const VideoBufferInfo info = psnr_cur->get_video_info ();
+    VideoBufferPlanarInfo planar;
+    uint8_t *cur_mem = NULL, *ref_mem = NULL;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    int8_t interval = 1, index = 0;
+    if (PSNRY == psnr_type) {
+        interval = 1;
+        index = 0;
+    } else if (PSNRR == psnr_type) {
+        interval = 4;
+        index = 0;
+    } else if (PSNRG == psnr_type) {
+        interval = 4;
+        index = 1;
+    } else if (PSNRB == psnr_type) {
+        interval = 4;
+        index = 2;
+    }
+
+    cur_mem = psnr_cur->map ();
+    ref_mem = psnr_ref->map ();
+    if (!cur_mem || !ref_mem) {
+        XCAM_LOG_ERROR ("calculate_psnr map buffer failed");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
+    uint32_t sum = 0, pos = 0;
+    info.get_planar_info (planar, 0);
+    for (uint32_t i = 0; i < planar.height; i++) {
+        for (uint32_t j = 0; j < planar.width / interval; j++) {
+            pos = i * planar.width + j * interval + index;
+            sum += (cur_mem [pos] - ref_mem [pos]) * (cur_mem [pos] - ref_mem [pos]);
+        }
+    }
+    float mse = (float) sum / (planar.height * planar.width / interval) + 0.000001f;
+    psnr = 10 * log10 (255 * 255 / mse);
+
+    psnr_cur->unmap ();
+    psnr_ref->unmap ();
+
+    return ret;
+}
+
+static XCamReturn
 kernel_loop(SmartPtr<CLImageHandler> &image_handler, SmartPtr<DrmBoBuffer> &input_buf, SmartPtr<DrmBoBuffer> &output_buf, uint32_t kernel_loop_count)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -159,12 +213,14 @@ print_help (const char *bin_name)
             "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
             "\t -i input     specify input file path\n"
             "\t -o output    specify output file path\n"
+            "\t -r refer     specify reference file path\n"
             "\t -p count     specify cl kernel loop count\n"
             "\t -c csc_type  specify csc type, default:rgba2nv12\n"
             "\t              select from [rgbatonv12, rgbatolab, rgba64torgba, yuyvtorgba, nv12torgba]\n"
             "\t -d hdr_type  specify hdr type, default:rgb\n"
             "\t              select from [rgb, lab]\n"
             "\t -b           enable bayer-nr, default: disable\n"
+            "\t -P           enable psnr calculation, default: disable\n"
             "\t -h           help\n"
             , bin_name);
 }
@@ -177,8 +233,8 @@ int main (int argc, char *argv[])
     uint32_t height = 1080;
     uint32_t buf_count = 0;
     int32_t kernel_loop_count = 0;
-    const char *input_file = NULL, *output_file = NULL;
-    TestFileHandle input_fp, output_fp;
+    const char *input_file = NULL, *output_file = NULL, *refer_file = NULL;
+    TestFileHandle input_fp, output_fp, refer_fp;
     const char *bin_name = argv[0];
     TestHandlerType handler_type = TestHandlerUnknown;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -191,14 +247,18 @@ int main (int argc, char *argv[])
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
     CLHdrType hdr_type = CL_HDR_TYPE_RGB;
     bool enable_bnr = false;
+    bool enable_psnr = false;
 
-    while ((opt =  getopt(argc, argv, "f:W:H:i:o:t:p:c:d:g:bh")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:W:H:i:o:r:t:p:c:d:g:bPh")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
             break;
         case 'o':
             output_file = optarg;
+            break;
+        case 'r':
+            refer_file = optarg;
             break;
 
         case 'f': {
@@ -314,6 +374,10 @@ int main (int argc, char *argv[])
             enable_bnr = true;
             break;
 
+        case 'P':
+            enable_psnr = true;
+            break;
+
         case 'h':
             print_help (bin_name);
             return 0;
@@ -324,14 +388,17 @@ int main (int argc, char *argv[])
         }
     }
 
-    if (!input_format || !input_file || !output_file || handler_type == TestHandlerUnknown) {
+    if (!input_format || !input_file || !output_file || (enable_psnr && !refer_file) || handler_type == TestHandlerUnknown) {
         print_help (bin_name);
         return -1;
     }
 
     input_fp.fp = fopen (input_file, "rb");
     output_fp.fp = fopen (output_file, "wb");
-    if (!input_fp.fp || !output_fp.fp) {
+    if (enable_psnr) {
+        refer_fp.fp = fopen (refer_file, "rb");
+    }
+    if (!input_fp.fp || !output_fp.fp || (enable_psnr && !refer_fp.fp)) {
         XCAM_LOG_ERROR ("open input/output file failed");
         return -1;
     }
@@ -533,6 +600,7 @@ int main (int argc, char *argv[])
         return -1;
     }
 
+    SmartPtr<DrmBoBuffer> psnr_cur, psnr_ref;
     while (!feof (input_fp.fp)) {
         SmartPtr<DrmBoBuffer> input_buf, output_buf;
         SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
@@ -557,9 +625,58 @@ int main (int argc, char *argv[])
 
         ret = write_buf (output_buf, output_fp);
         CHECK (ret, "read buffer from %s failed", output_file);
+        psnr_cur = output_buf;
 
         ++buf_count;
     }
+
     XCAM_LOG_INFO ("processed %d buffers successfully", buf_count);
+
+    if (enable_psnr) {
+        buf_pool = new DrmBoBufferPool (display);
+        XCAM_ASSERT (buf_pool.ptr ());
+        buf_pool->set_video_info (input_buf_info);
+        if (!buf_pool->reserve (6)) {
+            XCAM_LOG_ERROR ("init buffer pool failed");
+            return -1;
+        }
+
+        SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
+        psnr_ref = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
+        XCAM_ASSERT (psnr_ref.ptr ());
+
+        ret = read_buf (psnr_ref, refer_fp);
+        CHECK (ret, "read buffer from %s failed", refer_file);
+
+        float psnr = 0.0f;
+        ret = calculate_psnr (psnr_cur, psnr_ref, PSNRY, psnr);
+        CHECK (ret, "calculate PSNR_Y failed");
+        XCAM_LOG_INFO ("PSNR_Y: %.2f", psnr);
+
+        image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
+        XCAM_ASSERT (image_handler.ptr ());
+
+        SmartPtr<DrmBoBuffer> psnr_cur_output, psnr_ref_output;
+        ret = image_handler->execute (psnr_cur, psnr_cur_output);
+        CHECK (ret, "execute kernels failed");
+        XCAM_ASSERT (psnr_cur_output.ptr ());
+
+        ret = image_handler->execute (psnr_ref, psnr_ref_output);
+        CHECK (ret, "execute kernels failed");
+        XCAM_ASSERT (psnr_ref_output.ptr ());
+
+        ret = calculate_psnr (psnr_cur_output, psnr_ref_output, PSNRR, psnr);
+        CHECK (ret, "calculate PSNR_R failed");
+        XCAM_LOG_INFO ("PSNR_R: %.2f", psnr);
+
+        ret = calculate_psnr (psnr_cur_output, psnr_ref_output, PSNRG, psnr);
+        CHECK (ret, "calculate PSNR_G failed");
+        XCAM_LOG_INFO ("PSNR_G: %.2f", psnr);
+
+        ret = calculate_psnr (psnr_cur_output, psnr_ref_output, PSNRB, psnr);
+        CHECK (ret, "calculate PSNR_B failed");
+        XCAM_LOG_INFO ("PSNR_B: %.2f", psnr);
+    }
+
     return 0;
 }
