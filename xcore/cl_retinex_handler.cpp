@@ -25,6 +25,11 @@
 #include "cl_device.h"
 #include "cl_image_bo_buffer.h"
 
+static uint32_t retinex_gauss_scale [3] = {2, 8, 20}; //{20, 60, 150};
+static float retinex_gauss_sigma [3] = {2.0f, 8.0f, 20.0f}; //{12.0f, 40.0f, 120.0f};
+static float retinex_config_log_min = -0.12f; // -0.18f
+static float retinex_config_log_max = 0.18f;  //0.2f
+
 namespace XCam {
 
 CLRetinexScalerImageKernel::CLRetinexScalerImageKernel (SmartPtr<CLContext> &context,
@@ -145,8 +150,8 @@ CLRetinexImageKernel::prepare_arguments (
             "cl image kernel(%s) gauss memory[%d] is invalid", get_kernel_name (), i);
     }
 
-    _retinex_config.log_min = -0.12f;
-    _retinex_config.log_max = 0.18f;
+    _retinex_config.log_min = retinex_config_log_min;
+    _retinex_config.log_max = retinex_config_log_max;
     _retinex_config.gain = 1.0f / (_retinex_config.log_max - _retinex_config.log_min);
     _retinex_config.width = (float)video_info_in.width;
     _retinex_config.height = (float)video_info_in.height;
@@ -198,6 +203,7 @@ CLRetinexImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 
     _image_in_uv.release ();
     _image_out_uv.release ();
+
     return CLImageKernel::post_execute (output);
 }
 
@@ -376,12 +382,10 @@ create_cl_retinex_image_handler (SmartPtr<CLContext> &context)
         "Retinex handler create scaler kernel failed");
     retinex_handler->set_retinex_scaler_kernel (retinex_scaler_kernel);
 
-    uint32_t scale [3] = {2, 8, 20};
-    float sigma [3] = {2.0f, 8.0f, 20.0f};
-
     for (uint32_t i = 0; i < XCAM_RETINEX_MAX_SCALE; ++i) {
         SmartPtr<CLImageKernel> retinex_gauss_kernel;
-        retinex_gauss_kernel = create_kernel_retinex_gaussian (context, retinex_handler, i, scale [i], sigma [i]);
+        retinex_gauss_kernel = create_kernel_retinex_gaussian (
+                                   context, retinex_handler, i, retinex_gauss_scale [i], retinex_gauss_sigma [i]);
         XCAM_FAIL_RETURN (
             ERROR,
             retinex_gauss_kernel.ptr () && retinex_gauss_kernel->is_valid (),
