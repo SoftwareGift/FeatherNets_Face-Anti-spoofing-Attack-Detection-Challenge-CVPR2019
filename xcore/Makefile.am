@@ -143,6 +143,7 @@ xcam_sources +=              \
 	cl_tnr_handler.cpp	     \
 	cl_ee_handler.cpp	     \
 	cl_dpc_handler.cpp	     \
+	cl_defog_dcp_handler.cpp \
 	priority_buffer_queue.cpp	 \
 	cl_bnr_handler.cpp	     \
 	cl_bayer_pipe_handler.cpp    \
