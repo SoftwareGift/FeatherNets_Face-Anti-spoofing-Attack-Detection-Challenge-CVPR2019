@@ -25,6 +25,7 @@
 #include "cl_tnr_handler.h"
 #include "cl_retinex_handler.h"
 #include "cl_csc_handler.h"
+#include "cl_defog_dcp_handler.h"
 
 #define XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE 6
 #define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 12
@@ -36,7 +37,7 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _out_sample_type (OutSampleYuv)
     , _tnr_mode (TnrYuv)
-    , _enable_retinex (false)
+    , _defog_mode (CLPostImageProcessor::DefogDisabled)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -120,7 +121,7 @@ CLPostImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
         XCAM_ASSERT (tnr_res.ptr ());
         if (_tnr.ptr ()) {
-            if (_enable_retinex) {
+            if (_defog_mode != CLPostImageProcessor::DefogDisabled) {
                 XCam3aResultTemporalNoiseReduction config;
                 xcam_mem_clear (config);
                 // isp processor
@@ -155,7 +156,7 @@ CLPostImageProcessor::create_handlers ()
 
     XCAM_ASSERT (context.ptr ());
 
-    /* retinex */
+    /* defog: retinex */
     image_handler = create_cl_retinex_image_handler (context);
     _retinex = image_handler.dynamic_cast_ptr<CLRetinexImageHandler> ();
     XCAM_FAIL_RETURN (
@@ -163,13 +164,26 @@ CLPostImageProcessor::create_handlers ()
         _retinex.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create retinex handler failed");
-    _retinex->set_kernels_enable (_enable_retinex);
+    _retinex->set_kernels_enable (_defog_mode == CLPostImageProcessor::DefogRetinex);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
+    /* defog: dark channel prior */
+    image_handler = create_cl_defog_dcp_image_handler (context);
+    _defog_dcp = image_handler.dynamic_cast_ptr<CLDefogDcpImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _retinex.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create retinex handler failed");
+    _defog_dcp->set_kernels_enable (_defog_mode == CLPostImageProcessor::DefogDarkChannelPrior);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
     /* Temporal Noise Reduction */
-    if (_enable_retinex) {
+    if (_defog_mode != CLPostImageProcessor::DefogDisabled) {
         switch (_tnr_mode) {
         case TnrYuv: {
             image_handler = create_cl_tnr_image_handler (context, CL_TNR_TYPE_YUV);
@@ -222,9 +236,9 @@ CLPostImageProcessor::set_tnr (CLTnrMode mode)
 }
 
 bool
-CLPostImageProcessor::set_retinex (bool enable)
+CLPostImageProcessor::set_defog_mode (CLDefogMode mode)
 {
-    _enable_retinex = enable;
+    _defog_mode = mode;
 
     STREAM_LOCK;
 

@@ -56,6 +56,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _wavelet_channel (CL_WAVELET_CHANNEL_UV)
     , _snr_mode (0)
 {
+    keep_attached_buf (true);
     XCAM_LOG_DEBUG ("CL3aImageProcessor constructed");
 }
 

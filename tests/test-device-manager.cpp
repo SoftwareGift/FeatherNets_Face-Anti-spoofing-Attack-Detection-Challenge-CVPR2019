@@ -316,9 +316,10 @@ void print_help (const char *bin_name)
             "\t --enable-ee   enable YEENR\n"
             "\t --enable-bnr  enable bayer noise reduction\n"
             "\t --enable-dpc  enable defect pixel correction\n"
-            "\t --enable-retinex  enable retinex\n"
-            "\t --wavelet-mode  specify wavelet mode\n"
-            "\t --pipeline    pipe mode\n"
+            "\t --defog-mode mode   enable defog\n"
+            "\t               select from [disabled, retinex, dcp], default is [disabled]\n"
+            "\t --wavelet-mode mode specify wavelet mode\n"
+            "\t --pipeline mode   pipe mode\n"
             "\t               select from [basic, advance, extreme], default is [basic]\n"
             "\t --disable-post disable cl post image processor\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
@@ -365,7 +366,7 @@ int main (int argc, char *argv[])
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
     bool wdr_type = false;
-    bool retinex_type = false;
+    uint32_t defog_type = 0;
     CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
     uint32_t wavelet_channel = CL_WAVELET_CHANNEL_UV;
 
@@ -389,7 +390,7 @@ int main (int argc, char *argv[])
         {"enable-ee", no_argument, NULL, 'E'},
         {"enable-bnr", no_argument, NULL, 'B'},
         {"enable-dpc", no_argument, NULL, 'D'},
-        {"enable-retinex", no_argument, NULL, 'X'},
+        {"defog-mode", required_argument, NULL, 'X'},
         {"wavelet-mode", required_argument, NULL, 'V'},
         {"usb", required_argument, NULL, 'U'},
         {"resolution", required_argument, NULL, 'R'},
@@ -529,7 +530,18 @@ int main (int argc, char *argv[])
             break;
         }
         case 'X': {
-            retinex_type = true;
+            XCAM_ASSERT (optarg);
+            defog_type = true;
+            if (!strcmp (optarg, "disabled"))
+                defog_type = CLPostImageProcessor::DefogDisabled;
+            else if (!strcmp (optarg, "retinex"))
+                defog_type = CLPostImageProcessor::DefogRetinex;
+            else if (!strcmp (optarg, "dcp"))
+                defog_type = CLPostImageProcessor::DefogDarkChannelPrior;
+            else {
+                print_help (bin_name);
+                return -1;
+            }
             break;
         }
         case 'V': {
@@ -778,7 +790,7 @@ int main (int argc, char *argv[])
     if (have_cl_post_processor) {
         cl_post_processor = new CLPostImageProcessor ();
 
-        cl_post_processor->set_retinex (retinex_type);
+        cl_post_processor->set_defog_mode ((CLPostImageProcessor::CLDefogMode)defog_type);
 
         if (need_display) {
             cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);

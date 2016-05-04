@@ -79,6 +79,7 @@ bool CLBufferNotifyThread::loop ()
 CLImageProcessor::CLImageProcessor (const char* name)
     : ImageProcessor (name ? name : "CLImageProcessor")
     , _seq_num (0)
+    , _keep_attached_buffer (false)
 {
     _context = CLDevice::instance ()->get_context ();
     XCAM_ASSERT (_context.ptr());
@@ -96,6 +97,12 @@ CLImageProcessor::CLImageProcessor (const char* name)
 CLImageProcessor::~CLImageProcessor ()
 {
     XCAM_LOG_DEBUG ("CLImageProcessor destructed");
+}
+
+void
+CLImageProcessor::keep_attached_buf(bool flag)
+{
+    _keep_attached_buffer = flag;
 }
 
 bool
@@ -247,7 +254,7 @@ CLImageProcessor::process_cl_buffer_queue ()
 
     // buffer processed by all handlers, done
     if (!p_buf->handler.ptr ()) {
-        if (out_data.ptr ())
+        if (!_keep_attached_buffer && out_data.ptr ())
             out_data->clear_attached_buffers ();
 
         XCAM_OBJ_PROFILING_START;

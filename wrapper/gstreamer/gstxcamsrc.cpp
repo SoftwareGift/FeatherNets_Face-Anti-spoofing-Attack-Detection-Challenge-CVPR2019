@@ -902,7 +902,7 @@ gst_xcam_src_start (GstBaseSrc *src)
 
     if(xcamsrc->enable_retinex)
     {
-        cl_post_processor->set_retinex (true);
+        cl_post_processor->set_defog_mode (CLPostImageProcessor::DefogRetinex);
     }
 
     device_manager->add_image_processor (cl_post_processor);
@@ -1057,7 +1057,7 @@ translate_format_to_xcam (GstVideoFormat format)
     case GST_VIDEO_FORMAT_Y42B:
         return V4L2_PIX_FMT_YUV422P;
 
-    //RGB
+        //RGB
     case GST_VIDEO_FORMAT_RGBx:
         return V4L2_PIX_FMT_RGB32;
     case GST_VIDEO_FORMAT_BGRx:

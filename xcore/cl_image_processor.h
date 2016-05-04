@@ -45,6 +45,8 @@ public:
     explicit CLImageProcessor (const char* name = NULL);
     virtual ~CLImageProcessor ();
 
+    void keep_attached_buf (bool flag);
+
     bool add_handler (SmartPtr<CLImageHandler> &handler);
     ImageHandlerList::iterator handlers_begin ();
     ImageHandlerList::iterator handlers_end ();
@@ -83,6 +85,7 @@ private:
     SmartPtr<CLBufferNotifyThread> _done_buf_thread;
     SafeList<DrmBoBuffer>          _done_buffer_queue;
     uint32_t                       _seq_num;
+    bool                           _keep_attached_buffer;  //default false
     XCAM_OBJ_PROFILING_DEFINES;
 };
 

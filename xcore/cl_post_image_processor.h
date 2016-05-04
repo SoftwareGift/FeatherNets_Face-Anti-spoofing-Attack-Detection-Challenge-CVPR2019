@@ -31,6 +31,7 @@ namespace XCam {
 class CLTnrImageHandler;
 class CLRetinexImageHandler;
 class CLCscImageHandler;
+class CLDefogDcpImageHandler;
 
 class CLPostImageProcessor
     : public CLImageProcessor
@@ -47,6 +48,12 @@ public:
         TnrYuv,
     };
 
+    enum CLDefogMode {
+        DefogDisabled = 0,
+        DefogRetinex,
+        DefogDarkChannelPrior,
+    };
+
 public:
     explicit CLPostImageProcessor ();
     virtual ~CLPostImageProcessor ();
@@ -54,7 +61,7 @@ public:
     bool set_output_format (uint32_t fourcc);
 
     virtual bool set_tnr (CLTnrMode mode);
-    virtual bool set_retinex (bool enable);
+    virtual bool set_defog_mode (CLDefogMode mode);
 
 protected:
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
@@ -72,10 +79,11 @@ private:
 
     SmartPtr<CLTnrImageHandler>            _tnr;
     SmartPtr<CLRetinexImageHandler>        _retinex;
+    SmartPtr<CLDefogDcpImageHandler>       _defog_dcp;
     SmartPtr<CLCscImageHandler>            _csc;
 
     CLTnrMode                              _tnr_mode;
-    bool                                   _enable_retinex;
+    CLDefogMode                            _defog_mode;
 };
 
 };

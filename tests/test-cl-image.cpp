@@ -42,6 +42,7 @@
 #include "cl_gauss_handler.h"
 #include "cl_wavelet_denoise_handler.h"
 #include "cl_newwavelet_denoise_handler.h"
+#include "cl_defog_dcp_handler.h"
 
 using namespace XCam;
 
@@ -67,6 +68,7 @@ enum TestHandlerType {
     TestHandlerGauss,
     TestHandlerHatWavelet,
     TestHandlerHaarWavelet,
+    TestHandlerDefogDcp,
 };
 
 enum PsnrType {
@@ -205,7 +207,7 @@ print_help (const char *bin_name)
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
             "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise,"
-            " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet-hat, wavelet-haar]\n"
+            " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet-hat, wavelet-haar, dcp]\n"
             "\t -f input_format    specify a input format\n"
             "\t -W image width     specify input image width\n"
             "\t -H image height    specify input image height\n"
@@ -339,6 +341,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerHatWavelet;
             else if (!strcasecmp (optarg, "wavelet-haar"))
                 handler_type = TestHandlerHaarWavelet;
+            else if (!strcasecmp (optarg, "dcp"))
+                handler_type = TestHandlerDefogDcp;
             else
                 print_help (bin_name);
             break;
@@ -577,6 +581,11 @@ int main (int argc, char *argv[])
         wavelet_config.threshold[1] = 0.5;
         wavelet_config.decomposition_levels = 4;
         wavelet->set_denoise_config (wavelet_config);
+        break;
+    }
+    case TestHandlerDefogDcp: {
+        image_handler = create_cl_defog_dcp_image_handler (context);
+        XCAM_ASSERT (image_handler.ptr ());
         break;
     }
     default:
