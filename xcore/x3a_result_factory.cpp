@@ -133,6 +133,9 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
     case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
         result = create_wavelet_noise_reduction ((XCam3aResultWaveletNoiseReduction*)from);
         break;
+    case XCAM_3A_RESULT_FACE_DETECTION:
+        result = create_face_detection ((XCamFDResult*)from);
+        break;
     default:
         XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", type);
         break;
@@ -265,6 +268,12 @@ SmartPtr<X3aWaveletNoiseReduction>
 X3aResultFactory::create_wavelet_noise_reduction (XCam3aResultWaveletNoiseReduction *from)
 {
     XCAM_3A_RESULT_FACTORY (X3aWaveletNoiseReduction, XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION, from);
+}
+
+SmartPtr<X3aFaceDetectionResult>
+X3aResultFactory::create_face_detection (XCamFDResult *from)
+{
+    XCAM_3A_RESULT_FACTORY (X3aFaceDetectionResult, XCAM_3A_RESULT_FACE_DETECTION, from);
 }
 };
 

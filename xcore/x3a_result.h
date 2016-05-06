@@ -24,6 +24,7 @@
 #include "xcam_utils.h"
 #include "smartptr.h"
 #include <base/xcam_3a_result.h>
+#include <base/xcam_smart_result.h>
 #include <list>
 
 namespace XCam {
@@ -146,6 +147,7 @@ typedef X3aStandardResultT<XCam3aResultBayerNoiseReduction> X3aBayerNoiseReducti
 typedef X3aStandardResultT<XCam3aResultBrightness>      X3aBrightnessResult;
 typedef X3aStandardResultT<XCam3aResultTemporalNoiseReduction> X3aTemporalNoiseReduction;
 typedef X3aStandardResultT<XCam3aResultWaveletNoiseReduction> X3aWaveletNoiseReduction;
+typedef X3aStandardResultT<XCamFDResult> X3aFaceDetectionResult;
 };
 
 #endif //XCAM_3A_RESULT_H

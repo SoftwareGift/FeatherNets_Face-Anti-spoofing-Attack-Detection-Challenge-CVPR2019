@@ -78,12 +78,14 @@ public:
     bool set_output_format (uint32_t fourcc);
     bool set_capture_stage (CaptureStage capture_stage);
     bool set_3a_stats_bits (uint32_t bits);
+    bool set_scaler_factor (const double factor);
 
     virtual bool set_hdr (uint32_t mode);
     virtual bool set_denoise (uint32_t mode);
     virtual bool set_gamma (bool enable);
     virtual bool set_macc (bool enable);
     virtual bool set_dpc (bool enable);
+    virtual bool set_scaler (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
     virtual bool set_wavelet (CLWaveletBasis basis, uint32_t channel);
     virtual bool set_tonemapping (CLTonemappingMode wdr_mode);
@@ -108,6 +110,7 @@ private:
 private:
     uint32_t                            _output_fourcc;
     uint32_t                            _3a_stats_bits;
+    double                              _scaler_factor;
     PipelineProfile                     _pipeline_profile;
     CaptureStage                        _capture_stage;
     CLTonemappingMode                   _wdr_mode;
@@ -132,6 +135,7 @@ private:
     bool                                _enable_gamma;
     bool                                _enable_macc;
     bool                                _enable_dpc;
+    bool                                _enable_scaler;
     CLWaveletBasis                      _wavelet_basis;
     uint32_t                            _wavelet_channel;
     uint32_t                            _snr_mode; // spatial nr mode

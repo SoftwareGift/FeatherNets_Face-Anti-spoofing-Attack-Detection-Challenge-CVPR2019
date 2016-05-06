@@ -35,7 +35,6 @@
 #include "cl_newwavelet_denoise_handler.h"
 
 #define XCAM_CL_3A_IMAGE_MAX_POOL_SIZE 6
-#define XCAM_CL_3A_IMAGE_SCALER_FACTOR 1.0
 
 namespace XCam {
 
@@ -43,6 +42,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     : CLImageProcessor ("CL3aImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _3a_stats_bits (8)
+    , _scaler_factor (1.0)
     , _pipeline_profile (BasicPipelineProfile)
     , _capture_stage (TonemappingStage)
     , _wdr_mode (WDRdisabled)
@@ -51,6 +51,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_gamma (true)
     , _enable_macc (true)
     , _enable_dpc (false)
+    , _enable_scaler (false)
     , _wavelet_basis (CL_WAVELET_DISABLED)
     , _wavelet_channel (CL_WAVELET_CHANNEL_UV)
     , _snr_mode (0)
@@ -103,6 +104,14 @@ CL3aImageProcessor::set_3a_stats_bits (uint32_t bits)
         XCAM_LOG_WARNING ("cl image processor 3a stats doesn't support %d-bits", bits);
         return false;
     }
+    return true;
+}
+
+bool
+CL3aImageProcessor::set_scaler_factor (const double factor)
+{
+    _scaler_factor = factor;
+
     return true;
 }
 
@@ -439,10 +448,10 @@ CL3aImageProcessor::create_handlers ()
         _scaler.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create scaler handler failed");
-    _scaler->set_scaler_factor (XCAM_CL_3A_IMAGE_SCALER_FACTOR);
+    _scaler->set_scaler_factor (_scaler_factor);
     _scaler->set_buffer_callback (_stats_callback);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    image_handler->set_kernels_enable (false);
+    image_handler->set_kernels_enable (_enable_scaler);
     add_handler (image_handler);
 
     XCAM_FAIL_RETURN (
@@ -572,6 +581,16 @@ bool
 CL3aImageProcessor::set_tonemapping (CLTonemappingMode wdr_mode)
 {
     _wdr_mode = wdr_mode;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CL3aImageProcessor::set_scaler (bool enable)
+{
+    _enable_scaler = enable;
 
     STREAM_LOCK;
 

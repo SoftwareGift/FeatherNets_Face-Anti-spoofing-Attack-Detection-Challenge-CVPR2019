@@ -1,4 +1,4 @@
-plugin_LTLIBRARIES = libxcam_sample_smart.la
+noinst_LTLIBRARIES = libxcam_sample_smart.la
 
 XCAMSMART_CXXFLAGS = $(XCAM_CXXFLAGS)
 XCAMSMART_LIBS = \
