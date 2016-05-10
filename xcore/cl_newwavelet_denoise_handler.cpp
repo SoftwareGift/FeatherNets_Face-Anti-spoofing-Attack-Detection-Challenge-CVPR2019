@@ -17,16 +17,367 @@
  *
  * Author: Wei Zong <wei.zong@intel.com>
  */
+
 #include "xcam_utils.h"
 #include "cl_context.h"
 #include "cl_device.h"
 #include "cl_newwavelet_denoise_handler.h"
 
 #define WAVELET_DECOMPOSITION_LEVELS 4
+#define WAVELET_BAYES_SHRINK 0
 
 namespace XCam {
 
-CLNewWaveletDenoiseImageKernel::CLNewWaveletDenoiseImageKernel (SmartPtr<CLContext> &context,
+CLWaveletNoiseEstimateKernel::CLWaveletNoiseEstimateKernel (
+    SmartPtr<CLContext> &context,
+    const char *name,
+    SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
+    uint32_t channel,
+    uint32_t subband,
+    uint32_t layer)
+    : CLImageKernel (context, name)
+    , _decomposition_levels (WAVELET_DECOMPOSITION_LEVELS)
+    , _channel (channel)
+    , _subband (subband)
+    , _current_layer (layer)
+    , _handler (handler)
+{
+}
+
+SmartPtr<CLImage>
+CLWaveletNoiseEstimateKernel::get_input_buffer (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (output);
+    const VideoBufferInfo & video_info = input->get_video_info ();
+
+    SmartPtr<CLImage> image;
+    SmartPtr<CLWaveletDecompBuffer> buffer = _handler->get_decomp_buffer (_channel, _current_layer);
+
+    if (_subband == CL_WAVELET_SUBBAND_HL) {
+        image = buffer->hl[0];
+    } else if (_subband == CL_WAVELET_SUBBAND_LH) {
+        image = buffer->lh[0];
+    } else if (_subband == CL_WAVELET_SUBBAND_HH) {
+        image = buffer->hh[0];
+    } else {
+        image = buffer->ll;
+    }
+
+    if ((_current_layer == 1) && (_subband == CL_WAVELET_SUBBAND_HH)) {
+        estimate_noise_variance (video_info, buffer->hh[0], buffer->noise_variance);
+        _handler->set_estimated_noise_variation (buffer->noise_variance);
+    } else {
+        _handler->get_estimated_noise_variation (buffer->noise_variance);
+    }
+    return image;
+}
+
+SmartPtr<CLImage>
+CLWaveletNoiseEstimateKernel::get_output_buffer (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (input);
+    XCAM_UNUSED (output);
+
+    SmartPtr<CLImage> image;
+    SmartPtr<CLWaveletDecompBuffer> buffer = _handler->get_decomp_buffer (_channel, _current_layer);
+
+    if (_subband == CL_WAVELET_SUBBAND_HL) {
+        image = buffer->hl[1];
+    } else if (_subband == CL_WAVELET_SUBBAND_LH) {
+        image = buffer->lh[1];
+    } else if (_subband == CL_WAVELET_SUBBAND_HH) {
+        image = buffer->hh[1];
+    } else {
+        image = buffer->ll;
+    }
+    return image;
+}
+
+XCamReturn
+CLWaveletNoiseEstimateKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count,
+    CLWorkSize &work_size)
+{
+    SmartPtr<CLContext> context = get_context ();
+    const VideoBufferInfo & video_info_out = output->get_video_info ();
+
+    _image_in = get_input_buffer (input, output);
+    _image_out = get_output_buffer (input, output);
+
+    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _image_in->is_valid () && _image_out->is_valid (),
+        XCAM_RETURN_ERROR_MEM,
+        "cl image kernel(%s) in/out memory not available", get_kernel_name ());
+
+    //set args;
+    args[0].arg_adress = &_image_in->get_mem_id ();
+    args[0].arg_size = sizeof (cl_mem);
+    args[1].arg_adress = &_image_out->get_mem_id ();
+    args[1].arg_size = sizeof (cl_mem);
+    arg_count = 2;
+
+    work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
+    work_size.local[0] = 8;
+    work_size.local[1] = 4;
+    if (_channel == CL_WAVELET_CHANNEL_Y) {
+        work_size.global[0] = XCAM_ALIGN_UP ((video_info_out.width >> _current_layer) / 4, work_size.local[0]);
+        work_size.global[1] = XCAM_ALIGN_UP ((video_info_out.height >> _current_layer) / 4, work_size.local[1]);
+    } else if (_channel == CL_WAVELET_CHANNEL_UV) {
+        work_size.global[0] = XCAM_ALIGN_UP ((video_info_out.width >> _current_layer) / 4, work_size.local[0]);
+        work_size.global[1] = XCAM_ALIGN_UP ((video_info_out.height >> (_current_layer + 1)) / 4, work_size.local[1]);
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLWaveletNoiseEstimateKernel::estimate_noise_variance (const VideoBufferInfo & video_info, SmartPtr<CLImage> image, float* noise_var)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    SmartPtr<CLEvent> map_event = new CLEvent;
+    void *buf_ptr = NULL;
+
+    CLImageDesc cl_desc;
+    CLImage::video_info_2_cl_image_desc (video_info, cl_desc);
+
+    uint32_t width = XCAM_ALIGN_UP (video_info.width, 2) >> 1;
+    uint32_t height = XCAM_ALIGN_UP (video_info.height, 2) >> 1;
+
+    if (_channel == CL_WAVELET_CHANNEL_UV) {
+        height = height >> 1;
+    }
+
+    size_t origin[3] = {0, 0, 0};
+    size_t row_pitch = cl_desc.row_pitch;
+    size_t slice_pitch = 0;
+    size_t region[3] = {width >> 2, height, 1};
+
+    ret = image->enqueue_map (buf_ptr,
+                              origin, region,
+                              &row_pitch, &slice_pitch,
+                              CL_MEM_READ_ONLY,
+                              CLEvent::EmptyList,
+                              map_event);
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("wavelet noise variance buffer enqueue map failed");
+    }
+    XCAM_ASSERT (map_event->get_event_id ());
+
+    ret = map_event->wait ();
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("wavelet noise variance buffer enqueue map event wait failed");
+    }
+
+    uint8_t* pixel = (uint8_t*)buf_ptr;
+    uint32_t pixel_count = width * height;
+    uint32_t pixel_sum = 0;
+
+    uint32_t median_thresh = pixel_count >> 1;
+    float median = 0;
+    float noise_std_deviation = 0;
+
+    uint32_t hist_bin_count = 1 << video_info.color_bits;
+    uint32_t hist_y[128] = {0};
+    uint32_t hist_u[128] = {0};
+    uint32_t hist_v[128] = {0};
+
+    if (_channel == CL_WAVELET_CHANNEL_Y) {
+        for (uint32_t i = 0; i < pixel_count; i++) {
+            if (pixel[i] <= 127) {
+                hist_y[127 - pixel[i]]++;
+            } else {
+                hist_y[pixel[i] - 127]++;
+            }
+        }
+        pixel_sum = 0;
+        median = 0;
+        for (uint32_t i = 0; i < (hist_bin_count - 1); i++) {
+            pixel_sum += hist_y[i];
+            if (pixel_sum >= median_thresh) {
+                median = i;
+                break;
+            }
+        }
+        noise_std_deviation = median / 0.6745;
+        noise_var[0] = noise_std_deviation * noise_std_deviation;
+    }
+    if (_channel == CL_WAVELET_CHANNEL_UV) {
+        for (uint32_t i = 0; i < pixel_count - 1; i += 2) {
+            if (pixel[i] <= 127) {
+                hist_u[127 - pixel[i]]++;
+            } else {
+                hist_u[pixel[i] - 127]++;
+            }
+            if (pixel[i + 1] <= 127) {
+                hist_v[127 - pixel[i + 1]]++;
+            } else {
+                hist_v[pixel[i + 1] - 127]++;
+            }
+        }
+        pixel_sum = 0;
+        median = 0;
+        for (uint32_t i = 0; i < (hist_bin_count - 1); i++) {
+            pixel_sum += hist_u[i];
+            if (pixel_sum >= median_thresh >> 2) {
+                median = i;
+                break;
+            }
+        }
+        noise_std_deviation = median / 0.6745;
+        noise_var[1] = noise_std_deviation * noise_std_deviation;
+
+        pixel_sum = 0;
+        median = 0;
+        for (uint32_t i = 0; i < (hist_bin_count - 1); i++) {
+            pixel_sum += hist_v[i];
+            if (pixel_sum >= median_thresh >> 2) {
+                median = i;
+                break;
+            }
+        }
+        noise_std_deviation = median / 0.6745;
+        noise_var[2] = noise_std_deviation * noise_std_deviation;
+    }
+
+    map_event.release ();
+
+    SmartPtr<CLEvent> unmap_event = new CLEvent;
+    ret = image->enqueue_unmap (buf_ptr, CLEvent::EmptyList, unmap_event);
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("wavelet noise variance buffer enqueue unmap failed");
+    }
+    XCAM_ASSERT (unmap_event->get_event_id ());
+
+    ret = unmap_event->wait ();
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("wavelet noise variance buffer enqueue unmap event wait failed");
+    }
+    unmap_event.release ();
+
+    return ret;
+}
+
+CLWaveletThresholdingKernel::CLWaveletThresholdingKernel (
+    SmartPtr<CLContext> &context,
+    const char *name,
+    SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
+    uint32_t channel,
+    uint32_t layer)
+    : CLImageKernel (context, name, true)
+    , _decomposition_levels (WAVELET_DECOMPOSITION_LEVELS)
+    , _channel (channel)
+    , _current_layer (layer)
+    , _hard_threshold (0.1)
+    , _soft_threshold (0.5)
+    , _handler (handler)
+{
+    xcam_mem_clear (_noise_variance);
+}
+
+XCamReturn
+CLWaveletThresholdingKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count,
+    CLWorkSize &work_size)
+{
+    XCAM_UNUSED (output);
+
+    SmartPtr<CLContext> context = get_context ();
+
+    const VideoBufferInfo & video_info_in = input->get_video_info ();
+
+    _decomposition_levels = WAVELET_DECOMPOSITION_LEVELS;
+    _soft_threshold = _handler->get_denoise_config ().threshold[0];
+    _hard_threshold = _handler->get_denoise_config ().threshold[1];
+
+    //set args;
+    work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
+    work_size.local[0] = 8;
+    work_size.local[1] = 4;
+    if (_channel == CL_WAVELET_CHANNEL_Y) {
+        work_size.global[0] = XCAM_ALIGN_UP ((video_info_in.width >> _current_layer) / 4 , work_size.local[0]);
+        work_size.global[1] = XCAM_ALIGN_UP (video_info_in.height >> _current_layer, work_size.local[1]);
+    } else if (_channel == CL_WAVELET_CHANNEL_UV) {
+        work_size.global[0] = XCAM_ALIGN_UP ((video_info_in.width >> _current_layer) / 4 , work_size.local[0]);
+        work_size.global[1] = XCAM_ALIGN_UP (video_info_in.height >> (_current_layer + 1), work_size.local[1]);
+    }
+
+    SmartPtr<CLWaveletDecompBuffer> buffer;
+    buffer = _handler->get_decomp_buffer (_channel, _current_layer);
+
+    if (_channel == CL_WAVELET_CHANNEL_Y) {
+        _noise_variance[0] = buffer->noise_variance[0];
+        _noise_variance[1] = buffer->noise_variance[0];
+    } else {
+        _noise_variance[0] = buffer->noise_variance[1];
+        _noise_variance[1] = buffer->noise_variance[2];
+    }
+#if 0
+    static uint32_t frame_count = 0;
+    static bool saved = false;
+    frame_count++;
+    if ( !saved && (frame_count > 800) &&
+            (_channel == CL_WAVELET_CHANNEL_Y) &&
+            (_current_layer == 1)) {
+        SmartPtr<CLImage> save_image = buffer->ll;
+        _handler->dump_coeff (save_image, video_info_in, _channel, _current_layer, CL_WAVELET_SUBBAND_LL);
+        saved = true;
+    }
+#endif
+    if (_channel == CL_WAVELET_CHANNEL_Y) {
+        args[0].arg_adress = &_noise_variance[0];
+        args[0].arg_size = sizeof (_noise_variance[0]);
+        args[1].arg_adress = &_noise_variance[0];
+        args[1].arg_size = sizeof (_noise_variance[0]);
+    } else {
+        args[0].arg_adress = &_noise_variance[0];
+        args[0].arg_size = sizeof (_noise_variance[0]);
+        args[1].arg_adress = &_noise_variance[1];
+        args[1].arg_size = sizeof (_noise_variance[1]);
+    }
+    args[2].arg_adress = &buffer->hl[0]->get_mem_id ();
+    args[2].arg_size = sizeof (cl_mem);
+    args[3].arg_adress = &buffer->hl[1]->get_mem_id ();
+    args[3].arg_size = sizeof (cl_mem);
+    args[4].arg_adress = &buffer->hl[2]->get_mem_id ();
+    args[4].arg_size = sizeof (cl_mem);
+
+    args[5].arg_adress = &buffer->lh[0]->get_mem_id ();
+    args[5].arg_size = sizeof (cl_mem);
+    args[6].arg_adress = &buffer->lh[1]->get_mem_id ();
+    args[6].arg_size = sizeof (cl_mem);
+    args[7].arg_adress = &buffer->lh[2]->get_mem_id ();
+    args[7].arg_size = sizeof (cl_mem);
+
+    args[8].arg_adress = &buffer->hh[0]->get_mem_id ();
+    args[8].arg_size = sizeof (cl_mem);
+    args[9].arg_adress = &buffer->hh[1]->get_mem_id ();
+    args[9].arg_size = sizeof (cl_mem);
+    args[10].arg_adress = &buffer->hh[2]->get_mem_id ();
+    args[10].arg_size = sizeof (cl_mem);
+
+    args[11].arg_adress = &_current_layer;
+    args[11].arg_size = sizeof (_current_layer);
+
+    args[12].arg_adress = &_decomposition_levels;
+    args[12].arg_size = sizeof (_decomposition_levels);
+
+    args[13].arg_adress = &_hard_threshold;
+    args[13].arg_size = sizeof (_hard_threshold);
+
+    args[14].arg_adress = &_soft_threshold;
+    args[14].arg_size = sizeof (_soft_threshold);
+
+    arg_count = 15;
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+CLWaveletTransformKernel::CLWaveletTransformKernel (SmartPtr<CLContext> &context,
         const char *name,
         SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
         CLWaveletFilterBank fb,
@@ -44,7 +395,7 @@ CLNewWaveletDenoiseImageKernel::CLNewWaveletDenoiseImageKernel (SmartPtr<CLConte
 }
 
 XCamReturn
-CLNewWaveletDenoiseImageKernel::prepare_arguments (
+CLWaveletTransformKernel::prepare_arguments (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
     CLArgument args[], uint32_t &arg_count,
     CLWorkSize &work_size)
@@ -132,12 +483,30 @@ CLNewWaveletDenoiseImageKernel::prepare_arguments (
 
     args[1].arg_adress = &buffer->ll->get_mem_id ();
     args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &buffer->hl->get_mem_id ();
+#if WAVELET_BAYES_SHRINK
+    if (_filter_bank == CL_WAVELET_HAAR_ANALYSIS) {
+        args[2].arg_adress = &buffer->hl[0]->get_mem_id ();
+        args[2].arg_size = sizeof (cl_mem);
+        args[3].arg_adress = &buffer->lh[0]->get_mem_id ();
+        args[3].arg_size = sizeof (cl_mem);
+        args[4].arg_adress = &buffer->hh[0]->get_mem_id ();
+        args[4].arg_size = sizeof (cl_mem);
+    } else if (_filter_bank == CL_WAVELET_HAAR_SYNTHESIS) {
+        args[2].arg_adress = &buffer->hl[2]->get_mem_id ();
+        args[2].arg_size = sizeof (cl_mem);
+        args[3].arg_adress = &buffer->lh[2]->get_mem_id ();
+        args[3].arg_size = sizeof (cl_mem);
+        args[4].arg_adress = &buffer->hh[2]->get_mem_id ();
+        args[4].arg_size = sizeof (cl_mem);
+    }
+#else
+    args[2].arg_adress = &buffer->hl[0]->get_mem_id ();
     args[2].arg_size = sizeof (cl_mem);
-    args[3].arg_adress = &buffer->lh->get_mem_id ();
+    args[3].arg_adress = &buffer->lh[0]->get_mem_id ();
     args[3].arg_size = sizeof (cl_mem);
-    args[4].arg_adress = &buffer->hh->get_mem_id ();
+    args[4].arg_adress = &buffer->hh[0]->get_mem_id ();
     args[4].arg_size = sizeof (cl_mem);
+#endif
 
     args[5].arg_adress = &_current_layer;
     args[5].arg_size = sizeof (_current_layer);
@@ -156,15 +525,8 @@ CLNewWaveletDenoiseImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-
-XCamReturn
-CLNewWaveletDenoiseImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    return CLImageKernel::post_execute (output);
-}
-
 SmartPtr<CLWaveletDecompBuffer>
-CLNewWaveletDenoiseImageKernel::get_decomp_buffer (uint32_t channel, int layer)
+CLWaveletTransformKernel::get_decomp_buffer (uint32_t channel, int layer)
 {
     SmartPtr<CLWaveletDecompBuffer> buffer;
     if (_handler.ptr ()) {
@@ -185,6 +547,7 @@ CLNewWaveletDenoiseImageHandler::CLNewWaveletDenoiseImageHandler (const char *na
     _config.decomposition_levels = 5;
     _config.threshold[0] = 0.5;
     _config.threshold[1] = 5.0;
+    xcam_mem_clear (_noise_variance);
 }
 
 XCamReturn
@@ -211,16 +574,28 @@ CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &inpu
 
                 decompBuffer->channel = CL_WAVELET_CHANNEL_Y;
                 decompBuffer->layer = layer;
+                decompBuffer->noise_variance[0] = 0;
 
                 cl_desc.width = XCAM_ALIGN_UP (decompBuffer->width, 4) / 4;
                 cl_desc.height = decompBuffer->height;
+                cl_desc.slice_pitch = 0;
                 cl_desc.format.image_channel_order = CL_RGBA;
                 cl_desc.format.image_channel_data_type = CL_UNORM_INT8;
 
                 decompBuffer->ll = new CLImage2D (context, cl_desc);
-                decompBuffer->hl = new CLImage2D (context, cl_desc);
-                decompBuffer->lh = new CLImage2D (context, cl_desc);
-                decompBuffer->hh = new CLImage2D (context, cl_desc);
+
+                decompBuffer->hl[0] = new CLImage2D (context, cl_desc);
+                decompBuffer->lh[0] = new CLImage2D (context, cl_desc);
+                decompBuffer->hh[0] = new CLImage2D (context, cl_desc);
+
+                decompBuffer->hl[1] = new CLImage2D (context, cl_desc);
+                decompBuffer->lh[1] = new CLImage2D (context, cl_desc);
+                decompBuffer->hh[1] = new CLImage2D (context, cl_desc);
+
+                decompBuffer->hl[2] = new CLImage2D (context, cl_desc);
+                decompBuffer->lh[2] = new CLImage2D (context, cl_desc);
+                decompBuffer->hh[2] = new CLImage2D (context, cl_desc);
+
                 _decompBufferList.push_back (decompBuffer);
             } else {
                 XCAM_LOG_ERROR ("create Y decomposition buffer failed!");
@@ -233,21 +608,34 @@ CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &inpu
         for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
             decompBuffer = new CLWaveletDecompBuffer ();
             if (decompBuffer.ptr ()) {
-                decompBuffer->width = video_info.width >> layer;
-                decompBuffer->height = video_info.height >> (layer + 1);
+                decompBuffer->width = XCAM_ALIGN_UP (video_info.width, 1 << layer) >> layer;
+                decompBuffer->height = XCAM_ALIGN_UP (video_info.height, 1 << (layer + 1)) >> (layer + 1);
 
                 decompBuffer->channel = CL_WAVELET_CHANNEL_UV;
                 decompBuffer->layer = layer;
+                decompBuffer->noise_variance[1] = 0;
+                decompBuffer->noise_variance[2] = 0;
 
-                cl_desc.width = decompBuffer->width / 4;
+                cl_desc.width = XCAM_ALIGN_UP (decompBuffer->width, 4) / 4;
                 cl_desc.height = decompBuffer->height;
+                cl_desc.slice_pitch = 0;
                 cl_desc.format.image_channel_order = CL_RGBA;
                 cl_desc.format.image_channel_data_type = CL_UNORM_INT8;
 
                 decompBuffer->ll = new CLImage2D (context, cl_desc);
-                decompBuffer->hl = new CLImage2D (context, cl_desc);
-                decompBuffer->lh = new CLImage2D (context, cl_desc);
-                decompBuffer->hh = new CLImage2D (context, cl_desc);
+
+                decompBuffer->hl[0] = new CLImage2D (context, cl_desc);
+                decompBuffer->lh[0] = new CLImage2D (context, cl_desc);
+                decompBuffer->hh[0] = new CLImage2D (context, cl_desc);
+
+                decompBuffer->hl[1] = new CLImage2D (context, cl_desc);
+                decompBuffer->lh[1] = new CLImage2D (context, cl_desc);
+                decompBuffer->hh[1] = new CLImage2D (context, cl_desc);
+
+                decompBuffer->hl[2] = new CLImage2D (context, cl_desc);
+                decompBuffer->lh[2] = new CLImage2D (context, cl_desc);
+                decompBuffer->hh[2] = new CLImage2D (context, cl_desc);
+
                 _decompBufferList.push_back (decompBuffer);
             } else {
                 XCAM_LOG_ERROR ("create UV decomposition buffer failed!");
@@ -280,14 +668,101 @@ CLNewWaveletDenoiseImageHandler::get_decomp_buffer (uint32_t channel, int layer)
     return buffer;
 }
 
-SmartPtr<CLNewWaveletDenoiseImageKernel>
-create_kernel_haar_transform (SmartPtr<CLContext> &context,
-                              SmartPtr<CLNewWaveletDenoiseImageHandler> handler,
-                              uint32_t channel,
-                              uint32_t layer)
+void
+CLNewWaveletDenoiseImageHandler::set_estimated_noise_variation (float* noise_var)
+{
+    if (noise_var == NULL) {
+        XCAM_LOG_ERROR ("invailade input noise variation!");
+        return;
+    }
+    _noise_variance[0] = noise_var[0];
+    _noise_variance[1] = noise_var[1];
+    _noise_variance[2] = noise_var[2];
+}
+
+void
+CLNewWaveletDenoiseImageHandler::get_estimated_noise_variation (float* noise_var)
+{
+    if (noise_var == NULL) {
+        XCAM_LOG_ERROR ("invailade input parameters!");
+        return;
+    }
+    noise_var[0] = _noise_variance[0];
+    noise_var[1] = _noise_variance[1];
+    noise_var[2] = _noise_variance[2];
+}
+
+void
+CLNewWaveletDenoiseImageHandler::dump_coeff (SmartPtr<CLImage> image, const VideoBufferInfo & video_info, uint32_t channel, uint32_t layer, uint32_t subband)
+{
+    FILE *_file;
+
+    void *buf_ptr = NULL;
+    SmartPtr<CLEvent> map_event = new CLEvent;
+
+    CLImageDesc cl_desc;
+    CLImage::video_info_2_cl_image_desc (video_info, cl_desc);
+
+    uint32_t width = XCAM_ALIGN_UP (video_info.width, 2) >> layer;
+    uint32_t height = XCAM_ALIGN_UP (video_info.height, 2) >> layer;
+
+    if (channel == CL_WAVELET_CHANNEL_UV) {
+        height = height >> 1;
+    }
+
+    size_t origin[3] = {0, 0, 0};
+    size_t row_pitch = cl_desc.row_pitch;
+    size_t slice_pitch = 0;
+    size_t region[3] = {width >> 2, height, 1};
+
+    image->enqueue_map (buf_ptr,
+                        origin, region,
+                        &row_pitch, &slice_pitch,
+                        CL_MEM_READ_ONLY,
+                        CLEvent::EmptyList,
+                        map_event);
+    XCAM_ASSERT (map_event->get_event_id ());
+
+    map_event->wait ();
+
+    uint8_t* pixel = (uint8_t*)buf_ptr;
+    uint32_t pixel_count = width * height;
+
+    char file_name[512];
+    snprintf (file_name, sizeof(file_name),
+              "wavelet_"
+              "channel%d_"
+              "layer%d_"
+              "subband%d_"
+              "width%dxheight%d"
+              ".raw",
+              channel, layer, subband, width, height);
+    _file = fopen(file_name, "wb");
+
+    if (fwrite (pixel, pixel_count, 1, _file) <= 0) {
+        XCAM_LOG_WARNING ("write frame failed.");
+    }
+    if (_file)
+        fclose (_file);
+
+    map_event.release ();
+
+    SmartPtr<CLEvent> unmap_event = new CLEvent;
+    image->enqueue_unmap (buf_ptr, CLEvent::EmptyList, unmap_event);
+    XCAM_ASSERT (unmap_event->get_event_id ());
+
+    unmap_event->wait ();
+    unmap_event.release ();
+}
+
+SmartPtr<CLWaveletTransformKernel>
+create_kernel_haar_decomposition (SmartPtr<CLContext> &context,
+                                  SmartPtr<CLNewWaveletDenoiseImageHandler> handler,
+                                  uint32_t channel,
+                                  uint32_t layer)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<CLNewWaveletDenoiseImageKernel> haar_transform_kernel;
+    SmartPtr<CLWaveletTransformKernel> haar_decomp_kernel;
 
     char build_options[1024];
     xcam_mem_clear (build_options);
@@ -298,51 +773,53 @@ create_kernel_haar_transform (SmartPtr<CLContext> &context,
               (channel == CL_WAVELET_CHANNEL_Y ? 1 : 0),
               (channel == CL_WAVELET_CHANNEL_UV ? 1 : 0));
 
-    XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_wavelet_haar_transform)
-#include "kernel_wavelet_haar_transform.clx"
+    XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_wavelet_haar_decomposition)
+#include "kernel_wavelet_haar_decomposition.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
-    haar_transform_kernel = new CLNewWaveletDenoiseImageKernel (context, "kernel_wavelet_haar_transform",
+    haar_decomp_kernel = new CLWaveletTransformKernel (context, "kernel_wavelet_haar_decomposition",
             handler, CL_WAVELET_HAAR_ANALYSIS, channel, layer);
 
-    ret = haar_transform_kernel->load_from_source (
-              kernel_wavelet_haar_transform_body, strlen (kernel_wavelet_haar_transform_body),
+    ret = haar_decomp_kernel->load_from_source (
+              kernel_wavelet_haar_decomposition_body, strlen (kernel_wavelet_haar_decomposition_body),
               NULL, NULL,
               build_options);
     XCAM_FAIL_RETURN (
         WARNING,
         ret == XCAM_RETURN_NO_ERROR,
         NULL,
-        "CL image handler(%s) load source failed", haar_transform_kernel->get_kernel_name());
+        "CL image handler(%s) load source failed", haar_decomp_kernel->get_kernel_name());
 
-    XCAM_ASSERT (haar_transform_kernel->is_valid ());
+    XCAM_ASSERT (haar_decomp_kernel->is_valid ());
 
-    return haar_transform_kernel;
+    return haar_decomp_kernel;
 }
 
-SmartPtr<CLNewWaveletDenoiseImageKernel>
+SmartPtr<CLWaveletTransformKernel>
 create_kernel_haar_reconstruction (SmartPtr<CLContext> &context,
                                    SmartPtr<CLNewWaveletDenoiseImageHandler> handler,
                                    uint32_t channel,
                                    uint32_t layer)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<CLNewWaveletDenoiseImageKernel> haar_reconstruction_kernel;
+    SmartPtr<CLWaveletTransformKernel> haar_reconstruction_kernel;
 
     char build_options[1024];
     xcam_mem_clear (build_options);
 
     snprintf (build_options, sizeof (build_options),
               " -DWAVELET_DENOISE_Y=%d "
-              " -DWAVELET_DENOISE_UV=%d ",
+              " -DWAVELET_DENOISE_UV=%d "
+              " -DWAVELET_BAYES_SHRINK=%d",
               (channel == CL_WAVELET_CHANNEL_Y ? 1 : 0),
-              (channel == CL_WAVELET_CHANNEL_UV ? 1 : 0));
+              (channel == CL_WAVELET_CHANNEL_UV ? 1 : 0),
+              (1 == WAVELET_BAYES_SHRINK ? 1 : 0));
 
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_wavelet_haar_reconstruction)
 #include "kernel_wavelet_haar_reconstruction.clx"
     XCAM_CL_KERNEL_FUNC_END;
 
-    haar_reconstruction_kernel = new CLNewWaveletDenoiseImageKernel (context, "kernel_wavelet_haar_reconstruction",
+    haar_reconstruction_kernel = new CLWaveletTransformKernel (context, "kernel_wavelet_haar_reconstruction",
             handler, CL_WAVELET_HAAR_SYNTHESIS, channel, layer);
 
     ret = haar_reconstruction_kernel->load_from_source (
@@ -360,12 +837,86 @@ create_kernel_haar_reconstruction (SmartPtr<CLContext> &context,
     return haar_reconstruction_kernel;
 }
 
+SmartPtr<CLWaveletNoiseEstimateKernel>
+create_kernel_noise_estimation (
+    SmartPtr<CLContext> &context,
+    SmartPtr<CLNewWaveletDenoiseImageHandler> handler,
+    uint32_t channel, uint32_t subband, uint32_t layer)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    SmartPtr<CLWaveletNoiseEstimateKernel> estimation_kernel;
+
+    char build_options[1024];
+    xcam_mem_clear (build_options);
+
+    snprintf (build_options, sizeof (build_options),
+              " -DWAVELET_DENOISE_Y=%d "
+              " -DWAVELET_DENOISE_UV=%d ",
+              (channel == CL_WAVELET_CHANNEL_Y ? 1 : 0),
+              (channel == CL_WAVELET_CHANNEL_UV ? 1 : 0));
+
+    estimation_kernel = new CLWaveletNoiseEstimateKernel (context, "kernel_wavelet_coeff_variance", handler, channel, subband, layer);
+    {
+        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_wavelet_coeff_variance)
+#include "kernel_wavelet_coeff_variance.clx"
+        XCAM_CL_KERNEL_FUNC_END;
+        ret = estimation_kernel->load_from_source (
+                  kernel_wavelet_coeff_variance_body, strlen (kernel_wavelet_coeff_variance_body),
+                  NULL, NULL,
+                  build_options);
+        XCAM_FAIL_RETURN (
+            WARNING,
+            ret == XCAM_RETURN_NO_ERROR,
+            NULL,
+            "CL image handler(%s) load source failed", estimation_kernel->get_kernel_name());
+    }
+    return estimation_kernel;
+}
+
+SmartPtr<CLWaveletThresholdingKernel>
+create_kernel_thresholding (
+    SmartPtr<CLContext> &context,
+    SmartPtr<CLNewWaveletDenoiseImageHandler> handler,
+    uint32_t channel, uint32_t layer)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    SmartPtr<CLWaveletThresholdingKernel> threshold_kernel;
+
+    char build_options[1024];
+    xcam_mem_clear (build_options);
+
+    snprintf (build_options, sizeof (build_options),
+              " -DWAVELET_DENOISE_Y=%d "
+              " -DWAVELET_DENOISE_UV=%d ",
+              (channel == CL_WAVELET_CHANNEL_Y ? 1 : 0),
+              (channel == CL_WAVELET_CHANNEL_UV ? 1 : 0));
+
+    threshold_kernel = new CLWaveletThresholdingKernel (context,
+            "kernel_wavelet_coeff_thresholding",
+            handler, channel, layer);
+    {
+        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_wavelet_coeff_thresholding)
+#include "kernel_wavelet_coeff_thresholding.clx"
+        XCAM_CL_KERNEL_FUNC_END;
+        ret = threshold_kernel->load_from_source (
+                  kernel_wavelet_coeff_thresholding_body, strlen (kernel_wavelet_coeff_thresholding_body),
+                  NULL, NULL,
+                  build_options);
+        XCAM_FAIL_RETURN (
+            WARNING,
+            ret == XCAM_RETURN_NO_ERROR,
+            NULL,
+            "CL image handler(%s) load source failed", threshold_kernel->get_kernel_name());
+    }
+    return threshold_kernel;
+}
+
 SmartPtr<CLImageHandler>
 create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel)
 {
     SmartPtr<CLNewWaveletDenoiseImageHandler> wavelet_handler;
-    SmartPtr<CLNewWaveletDenoiseImageKernel> haar_transform_kernel;
-    SmartPtr<CLNewWaveletDenoiseImageKernel> haar_reconstruction_kernel;
+    SmartPtr<CLWaveletTransformKernel> haar_decomposition_kernel;
+    SmartPtr<CLWaveletTransformKernel> haar_reconstruction_kernel;
 
     wavelet_handler = new CLNewWaveletDenoiseImageHandler ("cl_handler_newwavelet_denoise", channel);
     XCAM_ASSERT (wavelet_handler.ptr ());
@@ -373,10 +924,33 @@ create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32
     if (channel & CL_WAVELET_CHANNEL_Y) {
         for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
             SmartPtr<CLImageKernel> image_kernel =
-                create_kernel_haar_transform (context, wavelet_handler, CL_WAVELET_CHANNEL_Y, layer);
+                create_kernel_haar_decomposition (context, wavelet_handler, CL_WAVELET_CHANNEL_Y, layer);
             wavelet_handler->add_kernel (image_kernel);
         }
 
+#if WAVELET_BAYES_SHRINK
+        for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
+            SmartPtr<CLImageKernel> image_kernel;
+
+            image_kernel = create_kernel_noise_estimation (context, wavelet_handler,
+                           CL_WAVELET_CHANNEL_Y, CL_WAVELET_SUBBAND_HH, layer);
+            wavelet_handler->add_kernel (image_kernel);
+
+            image_kernel = create_kernel_noise_estimation (context, wavelet_handler,
+                           CL_WAVELET_CHANNEL_Y, CL_WAVELET_SUBBAND_LH, layer);
+            wavelet_handler->add_kernel (image_kernel);
+
+            image_kernel = create_kernel_noise_estimation (context, wavelet_handler,
+                           CL_WAVELET_CHANNEL_Y, CL_WAVELET_SUBBAND_HL, layer);
+            wavelet_handler->add_kernel (image_kernel);
+        }
+
+        for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
+            SmartPtr<CLImageKernel> image_kernel;
+            image_kernel = create_kernel_thresholding (context, wavelet_handler, CL_WAVELET_CHANNEL_Y, layer);
+            wavelet_handler->add_kernel (image_kernel);
+        }
+#endif
         for (int layer = WAVELET_DECOMPOSITION_LEVELS; layer >= 1; layer--) {
             SmartPtr<CLImageKernel> image_kernel =
                 create_kernel_haar_reconstruction (context, wavelet_handler, CL_WAVELET_CHANNEL_Y, layer);
@@ -387,10 +961,31 @@ create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32
     if (channel & CL_WAVELET_CHANNEL_UV) {
         for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
             SmartPtr<CLImageKernel> image_kernel =
-                create_kernel_haar_transform (context, wavelet_handler, CL_WAVELET_CHANNEL_UV, layer);
+                create_kernel_haar_decomposition (context, wavelet_handler, CL_WAVELET_CHANNEL_UV, layer);
             wavelet_handler->add_kernel (image_kernel);
         }
+#if WAVELET_BAYES_SHRINK
+        for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
+            SmartPtr<CLImageKernel> image_kernel;
 
+            image_kernel = create_kernel_noise_estimation (context, wavelet_handler,
+                           CL_WAVELET_CHANNEL_UV, CL_WAVELET_SUBBAND_HH, layer);
+            wavelet_handler->add_kernel (image_kernel);
+
+            image_kernel = create_kernel_noise_estimation (context, wavelet_handler,
+                           CL_WAVELET_CHANNEL_UV, CL_WAVELET_SUBBAND_LH, layer);
+            wavelet_handler->add_kernel (image_kernel);
+
+            image_kernel = create_kernel_noise_estimation (context, wavelet_handler,
+                           CL_WAVELET_CHANNEL_UV, CL_WAVELET_SUBBAND_HL, layer);
+            wavelet_handler->add_kernel (image_kernel);
+        }
+        for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
+            SmartPtr<CLImageKernel> image_kernel;
+            image_kernel = create_kernel_thresholding (context, wavelet_handler, CL_WAVELET_CHANNEL_UV, layer);
+            wavelet_handler->add_kernel (image_kernel);
+        }
+#endif
         for (int layer = WAVELET_DECOMPOSITION_LEVELS; layer >= 1; layer--) {
             SmartPtr<CLImageKernel> image_kernel =
                 create_kernel_haar_reconstruction (context, wavelet_handler, CL_WAVELET_CHANNEL_UV, layer);

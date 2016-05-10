@@ -7,6 +7,10 @@
  * decomLevels: wavelet decomposition levels
  * threshold:   hard/soft denoise thresholding
  */
+
+__constant float uv_threshConst[5] = { 0.3129, 0.13319, 0.06643, 0.03513, 0.02143 };
+__constant float y_threshConst[5] = { 0.06129, 0.027319, 0.012643, 0.006513, 0.003443 };
+
 __kernel void kernel_wavelet_haar_reconstruction (__write_only image2d_t output,
         __read_only image2d_t ll, __read_only image2d_t hl,
         __read_only image2d_t lh, __read_only image2d_t hh,
@@ -17,6 +21,8 @@ __kernel void kernel_wavelet_haar_reconstruction (__write_only image2d_t output,
     int y = get_global_id (1);
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
+    float thresh = 0.0;
+
     float4 line_ll;
     float4 line_hl;
     float4 line_lh;
@@ -26,6 +32,29 @@ __kernel void kernel_wavelet_haar_reconstruction (__write_only image2d_t output,
     line_hl = read_imagef(hl, sampler, (int2)(x, y)) - 0.5f;
     line_lh = read_imagef(lh, sampler, (int2)(x, y)) - 0.5f;
     line_hh = read_imagef(hh, sampler, (int2)(x, y)) - 0.5f;
+
+#if WAVELET_DENOISE_Y
+    thresh = hardThresh * y_threshConst[layer - 1];
+#endif
+
+#if WAVELET_DENOISE_UV
+    thresh = hardThresh * uv_threshConst[layer - 1];
+#endif
+
+#if !WAVELET_BAYES_SHRINK
+    // thresholding
+    line_hl = (line_hl < -thresh) ? line_hl + (thresh - thresh * softThresh) : line_hl;
+    line_hl = (line_hl > thresh) ? line_hl - (thresh - thresh * softThresh) : line_hl;
+    line_hl = (line_hl > -thresh && line_hl < thresh) ? line_hl * softThresh : line_hl;
+
+    line_lh = (line_lh < -thresh) ? line_lh + (thresh - thresh * softThresh) : line_lh;
+    line_lh = (line_lh > thresh) ? line_lh - (thresh - thresh * softThresh) : line_lh;
+    line_lh = (line_lh > -thresh && line_lh < thresh) ? line_lh * softThresh : line_lh;
+
+    line_hh = (line_hh < -thresh) ? line_hh + (thresh - thresh * softThresh) : line_hh;
+    line_hh = (line_hh > thresh) ? line_hh - (thresh - thresh * softThresh) : line_hh;
+    line_hh = (line_hh > -thresh && line_hh < thresh) ? line_hh * softThresh : line_hh;
+#endif
 
 #if WAVELET_DENOISE_Y
     // row reconstruction

@@ -642,6 +642,58 @@ CLContext::enqueue_map_buffer (
     return XCAM_RETURN_NO_ERROR;
 }
 
+
+XCamReturn
+CLContext::enqueue_map_image (
+    cl_mem buf_id, void *&ptr,
+    const size_t *origin,
+    const size_t *region,
+    size_t *image_row_pitch,
+    size_t *image_slice_pitch,
+    bool block,
+    cl_map_flags map_flags,
+    CLEventList &events_wait,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLCommandQueue> cmd_queue;
+    cl_command_queue cmd_queue_id = NULL;
+    cl_event *event_out_id = NULL;
+    cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
+    uint32_t num_of_events_wait = 0;
+    cl_int errcode = CL_SUCCESS;
+    void *out_ptr = NULL;
+
+    cmd_queue = get_default_cmd_queue ();
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
+    num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
+    if (event_out.ptr ())
+        event_out_id = &event_out->get_event_id ();
+
+    XCAM_ASSERT (_context_id);
+    XCAM_ASSERT (cmd_queue_id);
+
+    out_ptr = clEnqueueMapImage (
+                  cmd_queue_id, buf_id,
+                  (block ? CL_BLOCKING : CL_NON_BLOCKING),
+                  map_flags,
+                  origin,
+                  region,
+                  image_row_pitch,
+                  image_slice_pitch,
+                  num_of_events_wait, (num_of_events_wait ? events_id_wait : NULL),
+                  event_out_id,
+                  &errcode);
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        out_ptr && errcode == CL_SUCCESS,
+        XCAM_RETURN_ERROR_CL,
+        "cl enqueue map buffer failed with error_code:%d", errcode);
+
+    ptr = out_ptr;
+    return XCAM_RETURN_NO_ERROR;
+}
+
 XCamReturn
 CLContext::enqueue_unmap (
     cl_mem mem_id,

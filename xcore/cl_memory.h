@@ -162,6 +162,14 @@ public:
         const VideoBufferInfo & video_info,
         CLImageDesc &cl_desc);
 
+    XCamReturn enqueue_map (
+        void *&ptr,
+        size_t *origin, size_t *region,
+        size_t *row_pitch, size_t *slice_pitch,
+        cl_map_flags map_flags = CL_MEM_READ_WRITE,
+        CLEventList &event_waits = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+
 protected:
     explicit CLImage (SmartPtr<CLContext> &context);
     void init_desc_by_image ();

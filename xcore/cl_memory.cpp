@@ -495,6 +495,34 @@ CLImage::init_desc_by_image ()
     _image_desc.size = mem_size;
 }
 
+XCamReturn
+CLImage::enqueue_map (
+    void *&ptr,
+    size_t *origin, size_t *region,
+    size_t *row_pitch, size_t *slice_pitch,
+    cl_map_flags map_flags,
+    CLEventList &event_waits,
+    SmartPtr<CLEvent> &event_out)
+{
+    SmartPtr<CLContext> context = get_context ();
+    cl_mem mem_id = get_mem_id ();
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    XCAM_ASSERT (is_valid ());
+    if (!is_valid ())
+        return XCAM_RETURN_ERROR_PARAM;
+
+    ret = context->enqueue_map_image (mem_id, ptr, origin, region, row_pitch, slice_pitch, true, map_flags, event_waits, event_out);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "enqueue_map failed ");
+
+    set_mapped_ptr (ptr);
+    return ret;
+}
+
 CLVaImage::CLVaImage (
     SmartPtr<CLContext> &context,
     SmartPtr<DrmBoBuffer> &bo,

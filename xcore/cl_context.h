@@ -48,6 +48,7 @@ class CLContext {
     friend class CLMemory;
     friend class CLBuffer;
     friend class CLVaBuffer;
+    friend class CLImage;
     friend class CLVaImage;
     friend class CLImage2D;
     friend class CLImage2DArray;
@@ -131,6 +132,17 @@ private:
     XCamReturn enqueue_map_buffer (
         cl_mem buf_id, void *&ptr,
         uint32_t offset, uint32_t size,
+        bool block = true,
+        cl_map_flags map_flags = CL_MEM_READ_WRITE,
+        CLEventList &events_wait = CLEvent::EmptyList,
+        SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+
+    XCamReturn enqueue_map_image (
+        cl_mem buf_id, void *&ptr,
+        const size_t *origin,
+        const size_t *region,
+        size_t *image_row_pitch,
+        size_t *image_slice_pitch,
         bool block = true,
         cl_map_flags map_flags = CL_MEM_READ_WRITE,
         CLEventList &events_wait = CLEvent::EmptyList,
