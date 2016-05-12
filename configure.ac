@@ -107,7 +107,8 @@ if test "$enable_libcl" = "yes" && test "$HAVE_LIBCL" -eq 0; then
 
     if test "$HAVE_LIBCL" -eq 1; then
         LIBCL_LIBS="$LIBCL_LIBS -lcl"
-        LDFLAGS="$LDFLAGS -L/usr/local/lib/beignet"
+        LDFLAGS="$LDFLAGS -L/usr/local/lib/beignet -L/usr/local/lib/x86_64-linux-gnu/beignet"
+        LIBS="$LIBS -lcl"
     fi
 fi
 
@@ -118,10 +119,51 @@ if test "$enable_aiq" = "yes"; then
     ENABLE_IA_AIQ=1
     PKG_CHECK_MODULES(IA_AIQ, ia_imaging,
         PKG_CHECK_EXISTS(ia_imaging >= 2.7,
-            AC_DEFINE(HAVE_AIQ_2_7, 1, [defined if ia_imaging >= v2.0_007 is found])
+            AC_DEFINE(HAVE_AIQ_2_7, 1, [defined if module ia_imaging >= v2.0_007 is found])
         ),
         [USE_LOCAL_AIQ=1]
     )
+
+    if test "$USE_LOCAL_AIQ" -eq 1; then
+        #check HAVE_AIQ_2_7
+        AC_CACHE_CHECK([for ext/ia_imaging >=v2.0_007],
+            ac_cv_have_aiq_2_7, [
+            saved_CPPFLAGS="$CPPFLAGS"
+            CPPFLAGS="$CPPFLAGS -I./ext/ia_imaging/include"
+            saved_LIBS="$LIBS"
+            LIBS="$LIBS"
+            AC_COMPILE_IFELSE(
+                [AC_LANG_PROGRAM(
+                    [[#include <stdint.h>
+                      #include <stdio.h>
+                      #include "ia_aiq_types.h"
+                    ]],
+                    [[ia_aiq_ae_results ae_result;
+                      ae_result.flashes = NULL;
+                    ]]
+                   )],
+                [ac_cv_have_aiq_2_7="yes"],
+                [ac_cv_have_aiq_2_7="no"]
+            )
+            CPPFLAGS="$saved_CPPFLAGS"
+            LIBS="$saved_LIBS"
+        ])
+
+        if test "$ac_cv_have_aiq_2_7" = "yes"; then
+            AC_DEFINE(HAVE_AIQ_2_7, 1, [defined if ia_imaging >= v2.0_007 is found])
+        fi
+    fi
+
+    if test "$USE_LOCAL_AIQ" -eq 0; then
+        IA_IMAGING_CFLAGS="$IA_AIQ_CFLAGS"
+        IA_IMAGING_LIBS="$IA_AIQ_LIBS"
+    else
+        IA_IMAGING_CFLAGS="-I\$(top_srcdir)/ext/ia_imaging/include"
+        IA_IMAGING_LIBS="-L\$(top_srcdir)/ext/ia_imaging/lib -lia_aiq -lia_isp_2_2 -lia_cmc_parser -lia_mkn -lia_nvm -lia_exc -lia_log"
+    fi
+    AC_SUBST(IA_IMAGING_CFLAGS)
+    AC_SUBST(IA_IMAGING_LIBS)
+    LIBS="$LIBS $IA_IMAGING_LIBS"
 fi
 
 # check 3a lib build

@@ -10,27 +10,6 @@ if DEBUG
 endif
 
 if ENABLE_IA_AIQ
-if USE_LOCAL_AIQ
-IA_IMAGING_CFLAGS =  \
-	-I$(top_srcdir)/ext/ia_imaging/include \
-	$(NULL)
-
-IA_IMAGING_LIBS =            \
-	-L$(top_srcdir)/ext/ia_imaging/lib \
-	-lia_aiq                 \
-	-lia_isp_2_2             \
-	-lia_cmc_parser          \
-	-lia_mkn                 \
-	-lia_nvm                 \
-	-lia_tools               \
-	-lia_log                 \
-	$(NULL)
-
-else
-IA_IMAGING_CFLAGS =  $(IA_AIQ_CFLAGS)
-IA_IMAGING_LIBS =  $(IA_AIQ_LIBS)
-endif
-
 XCAM_CORE_CXXFLAGS +=             \
 	$(IA_IMAGING_CFLAGS)     \
 	$(NULL)
