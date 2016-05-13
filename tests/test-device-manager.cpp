@@ -25,6 +25,7 @@
 #include "isp_controller.h"
 #include "isp_image_processor.h"
 #include "x3a_analyzer_simple.h"
+#include "smart_analyzer_loader.h"
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
 #include "x3a_analyze_tuner.h"
@@ -338,6 +339,7 @@ int main (int argc, char *argv[])
     SmartPtr<V4l2SubDevice> event_device;
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
+    SmartPtr<SmartAnalyzer> smart_analyzer;
     SmartPtr<X3aAnalyzerLoader> loader;
     const char *path_of_3a;
     SmartPtr<ImageProcessor> isp_processor;
@@ -704,6 +706,21 @@ int main (int argc, char *argv[])
         loader = new X3aAnalyzerLoader (path_of_3a);
         analyzer = loader->load_dynamic_analyzer (loader);
         CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
+
+        // Create smart analyzer from dynamic libraries
+        SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
+        if (!smart_handlers.empty () ) {
+            smart_analyzer = new SmartAnalyzer ();
+            if (!smart_analyzer.ptr ()) {
+                XCAM_LOG_INFO ("load smart analyzer(%s) failed", DEFAULT_SMART_ANALYSIS_LIB_DIR);
+                break;
+            }
+            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
+            for (; i_handler != smart_handlers.end (); ++i_handler) {
+                XCAM_ASSERT ((*i_handler).ptr ());
+                smart_analyzer->add_handler (*i_handler);
+            }
+        }
         break;
     }
     default:
@@ -761,6 +778,13 @@ int main (int argc, char *argv[])
     if (analyzer.ptr())
         device_manager->set_3a_analyzer (analyzer);
 
+    if (smart_analyzer.ptr ()) {
+        if (smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_WARNING ("analyzer(%s) prepare handlers failed", smart_analyzer->get_name ());
+        }
+        device_manager->set_smart_analyzer (smart_analyzer);
+    }
+
     if (have_cl_processor)
         isp_processor = new IspExposureImageProcessor (isp_controller);
     else
@@ -787,6 +811,11 @@ int main (int argc, char *argv[])
         cl_processor->set_profile (pipeline_mode);
         analyzer->set_parameter_brightness((brightness_level - 128) / 128.0);
         device_manager->add_image_processor (cl_processor);
+
+        if (smart_analyzer.ptr ()) {
+            cl_processor->set_scaler (true);
+            cl_processor->set_scaler_factor (640.0 / frame_width);
+        }
     }
 
     if (have_cl_post_processor) {
