@@ -273,7 +273,19 @@ X3aResultFactory::create_wavelet_noise_reduction (XCam3aResultWaveletNoiseReduct
 SmartPtr<X3aFaceDetectionResult>
 X3aResultFactory::create_face_detection (XCamFDResult *from)
 {
-    XCAM_3A_RESULT_FACTORY (X3aFaceDetectionResult, XCAM_3A_RESULT_FACE_DETECTION, from);
+    uint32_t type = xcam_3a_result_type (from);
+    if (type != XCAM_3A_RESULT_FACE_DETECTION) {
+        XCAM_ASSERT (false);
+        XCAM_LOG_WARNING ("X3aResultFactory create face detection failed with wrong type");
+    }
+
+    X3aFaceDetectionResult *fd_res = new X3aFaceDetectionResult (
+        XCAM_3A_RESULT_FACE_DETECTION,
+        from->head.process_type,
+        from->face_num * sizeof (XCamFaceInfo));
+    fd_res->set_standard_result (*from);
+
+    return fd_res;
 }
 };
 

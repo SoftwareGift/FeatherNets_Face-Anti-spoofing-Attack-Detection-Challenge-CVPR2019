@@ -225,7 +225,7 @@ DeviceManager::start ()
             if (_smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
                 XCAM_LOG_INFO ("prepare smart analyzer handler failed");
             }
-            //_smart_analyzer->set_results_callback (this);
+            _smart_analyzer->set_results_callback (this);
             if (_smart_analyzer->init (width, height, framerate) != XCAM_RETURN_NO_ERROR) {
                 XCAM_LOG_INFO ("initialize smart analyzer failed");
             }

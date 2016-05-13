@@ -104,31 +104,46 @@ class X3aStandardResultT
     : public X3aResult
 {
 public:
-    explicit X3aStandardResultT (uint32_t type, XCamImageProcessType process_type = XCAM_IMAGE_PROCESS_ALWAYS)
+    explicit X3aStandardResultT (uint32_t type, XCamImageProcessType process_type = XCAM_IMAGE_PROCESS_ALWAYS, uint32_t extra_size = 0)
         : X3aResult (type, process_type)
+        , _result (NULL)
+        , _extra_size (extra_size)
     {
-        set_ptr((void*)&_result);
-        _result.head.type = (XCam3aResultType)type;
-        _result.head.process_type = _process_type;
-        _result.head.version = XCAM_VERSION;
+        _result = (StandardResult *) xcam_malloc0 (sizeof (StandardResult) + _extra_size);
+        XCAM_ASSERT (_result);
+        set_ptr ((void*) _result);
+        _result->head.type = (XCam3aResultType) type;
+        _result->head.process_type = _process_type;
+        _result->head.version = XCAM_VERSION;
     }
-    ~X3aStandardResultT () {}
+    ~X3aStandardResultT () {
+        xcam_free (_result);
+    }
 
     void set_standard_result (StandardResult &res) {
         uint32_t offset = sizeof (XCam3aResultHead);
         XCAM_ASSERT (sizeof (StandardResult) >= offset);
-        memcpy ((uint8_t*)(&_result) + offset, (uint8_t*)(&res) + offset, sizeof (StandardResult) - offset);
+
+        if (_extra_size > 0) {
+            memcpy ((uint8_t*)(_result) + offset, (uint8_t*)(&res) + offset, _extra_size);
+        } else {
+            memcpy ((uint8_t*)(_result) + offset, (uint8_t*)(&res) + offset, sizeof (StandardResult) - offset);
+        }
     }
 
     StandardResult &get_standard_result () {
-        return _result;
+        return *_result;
     }
     const StandardResult &get_standard_result () const {
+        return *_result;
+    }
+    StandardResult *get_standard_result_ptr (){
         return _result;
     }
 
 private:
-    StandardResult _result;
+    StandardResult *_result;
+    uint32_t        _extra_size;
 };
 
 typedef X3aStandardResultT<XCam3aResultWhiteBalance>   X3aWhiteBalanceResult;
@@ -147,7 +162,7 @@ typedef X3aStandardResultT<XCam3aResultBayerNoiseReduction> X3aBayerNoiseReducti
 typedef X3aStandardResultT<XCam3aResultBrightness>      X3aBrightnessResult;
 typedef X3aStandardResultT<XCam3aResultTemporalNoiseReduction> X3aTemporalNoiseReduction;
 typedef X3aStandardResultT<XCam3aResultWaveletNoiseReduction> X3aWaveletNoiseReduction;
-typedef X3aStandardResultT<XCamFDResult> X3aFaceDetectionResult;
+typedef X3aStandardResultT<XCamFDResult>               X3aFaceDetectionResult;
 };
 
 #endif //XCAM_3A_RESULT_H

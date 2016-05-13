@@ -136,6 +136,7 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
     case XCAM_3A_RESULT_EDGE_ENHANCEMENT:
     case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
+    case XCAM_3A_RESULT_FACE_DETECTION:
         return true;
 
     default:
@@ -298,6 +299,14 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         if (_newwavelet.ptr()) {
             _newwavelet->set_denoise_config (wavelet_res->get_standard_result ());
         }
+        break;
+    }
+
+    case XCAM_3A_RESULT_FACE_DETECTION: {
+        SmartPtr<X3aFaceDetectionResult> fd_res = result.dynamic_cast_ptr<X3aFaceDetectionResult> ();
+        XCAM_ASSERT (fd_res.ptr ());
+
+        XCamFDResult *fd = fd_res->get_standard_result_ptr ();
 
         break;
     }
