@@ -945,8 +945,10 @@ gst_xcam_src_start (GstBaseSrc *src)
                 XCAM_ASSERT ((*i_handler).ptr ());
                 smart_analyzer->add_handler (*i_handler);
             }
+#if HAVE_LIBCL
             cl_processor->set_scaler (true);
             cl_processor->set_scaler_factor (640.0 / DEFAULT_VIDEO_WIDTH);
+#endif
         }
         break;
     }

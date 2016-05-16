@@ -90,10 +90,10 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
     y_max[block_id] = y_max[block_id] + 1;
     y_avg[block_id] = y_avg[block_id] / pixel_num;
 
-    int* hist_log = new int[hist_bin_count];
-    int* sort_y = new int[pixel_num + 1];
-    float* map_index_leq = new float[hist_bin_count];
-    int* map_index_log = new int[hist_bin_count];
+    int* hist_log = new int[hist_bin_count] ();
+    int* sort_y = new int[pixel_num + 1] ();
+    float* map_index_leq = new float[hist_bin_count] ();
+    int* map_index_log = new int[hist_bin_count] ();
 
     for(int i = 0; i < hist_bin_count; i++)
     {
@@ -230,7 +230,18 @@ CLNewTonemappingImageKernel::prepare_arguments (
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     SmartPtr<X3aStats> stats = input->find_3a_stats ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        stats.ptr (),
+        XCAM_RETURN_ERROR_MEM,
+        "prepare_arguments find_3a_stats failed");
+
     XCam3AStats *stats_ptr = stats->get_stats ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        stats_ptr,
+        XCAM_RETURN_ERROR_MEM,
+        "prepare_arguments get_stats failed");
 
     int block_factor = 4;
     int width_per_block = stats_ptr->info.width / block_factor;
@@ -238,7 +249,7 @@ CLNewTonemappingImageKernel::prepare_arguments (
     int height_last_block = height_per_block + stats_ptr->info.height % block_factor;
     int hist_bin_count = 1 << stats_ptr->info.bit_depth;
 
-    int* hist_per_block = new int[hist_bin_count];
+    int* hist_per_block = new int[hist_bin_count] ();
 
     for(int block_row = 0; block_row < block_factor; block_row++)
     {

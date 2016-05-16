@@ -50,6 +50,7 @@ CLGaussImageKernel::set_gaussian (uint32_t radius, float sigma)
     _g_table_buffer.release ();
     _g_radius = radius;
     _g_table = (float*) xcam_malloc0 (scale * scale * sizeof (_g_table[0]));
+    XCAM_ASSERT (_g_table);
 
     for(i = 0; i < scale; i++)  {
         for(j = 0; j < scale; j++) {
