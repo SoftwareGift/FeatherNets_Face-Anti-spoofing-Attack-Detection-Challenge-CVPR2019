@@ -8,7 +8,7 @@
  * threshold:   hard/soft denoise thresholding
  */
 
-__constant float uv_threshConst[5] = { 0.3129, 0.13319, 0.06643, 0.03513, 0.02143 };
+__constant float uv_threshConst[5] = { 0.1659, 0.06719, 0.03343, 0.01713, 0.01043 };
 __constant float y_threshConst[5] = { 0.06129, 0.027319, 0.012643, 0.006513, 0.003443 };
 
 __kernel void kernel_wavelet_haar_reconstruction (__write_only image2d_t output,

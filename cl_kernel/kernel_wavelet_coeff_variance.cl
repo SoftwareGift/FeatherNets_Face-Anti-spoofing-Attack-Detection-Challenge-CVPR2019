@@ -5,7 +5,7 @@
  * output: Wavelet coefficients variance
  */
 
-__kernel void kernel_wavelet_coeff_variance (__read_only image2d_t input, __write_only image2d_t output)
+__kernel void kernel_wavelet_coeff_variance (__read_only image2d_t input, __write_only image2d_t output, int layer)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
@@ -23,37 +23,39 @@ __kernel void kernel_wavelet_coeff_variance (__read_only image2d_t input, __writ
     float4 line_sum[8];
     float4 line_var[4];
 
-    line0[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y - 2)) - 0.5;
-    line0[1] = read_imagef(input, sampler, (int2)(x, 4 * y - 2)) - 0.5;
-    line0[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y - 2)) - 0.5;
+    float offset = 0.5;
 
-    line1[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y - 1)) - 0.5;
-    line1[1] = read_imagef(input, sampler, (int2)(x, 4 * y - 1)) - 0.5;
-    line1[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y - 1)) - 0.5;
+    line0[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y - 2)) - offset);
+    line0[1] = (read_imagef(input, sampler, (int2)(x, 4 * y - 2)) - offset);
+    line0[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y - 2)) - offset);
 
-    line2[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y)) - 0.5;
-    line2[1] = read_imagef(input, sampler, (int2)(x, 4 * y)) - 0.5;
-    line2[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y)) - 0.5;
+    line1[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y - 1)) - offset);
+    line1[1] = (read_imagef(input, sampler, (int2)(x, 4 * y - 1)) - offset);
+    line1[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y - 1)) - offset);
 
-    line3[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y + 1)) - 0.5;
-    line3[1] = read_imagef(input, sampler, (int2)(x, 2 * 4 * y + 1)) - 0.5;
-    line3[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y + 1)) - 0.5;
+    line2[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y)) - offset);
+    line2[1] = (read_imagef(input, sampler, (int2)(x, 4 * y)) - offset);
+    line2[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y)) - offset);
 
-    line4[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y + 2)) - 0.5;
-    line4[1] = read_imagef(input, sampler, (int2)(x, 4 * y + 2)) - 0.5;
-    line4[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y + 2)) - 0.5;
+    line3[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y + 1)) - offset);
+    line3[1] = (read_imagef(input, sampler, (int2)(x, 2 * 4 * y + 1)) - offset);
+    line3[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y + 1)) - offset);
 
-    line5[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y + 3)) - 0.5;
-    line5[1] = read_imagef(input, sampler, (int2)(x, 4 * y + 3)) - 0.5;
-    line5[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y + 3)) - 0.5;
+    line4[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y + 2)) - offset);
+    line4[1] = (read_imagef(input, sampler, (int2)(x, 4 * y + 2)) - offset);
+    line4[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y + 2)) - offset);
 
-    line6[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y + 4)) - 0.5;
-    line6[1] = read_imagef(input, sampler, (int2)(x, 4 * y + 4)) - 0.5;
-    line6[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y + 4)) - 0.5;
+    line5[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y + 3)) - offset);
+    line5[1] = (read_imagef(input, sampler, (int2)(x, 4 * y + 3)) - offset);
+    line5[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y + 3)) - offset);
 
-    line7[0] = read_imagef(input, sampler, (int2)(x - 1, 4 * y + 5)) - 0.5;
-    line7[1] = read_imagef(input, sampler, (int2)(x, 4 * y + 5)) - 0.5;
-    line7[2] = read_imagef(input, sampler, (int2)(x + 1, 4 * y + 5)) - 0.5;
+    line6[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y + 4)) - offset);
+    line6[1] = (read_imagef(input, sampler, (int2)(x, 4 * y + 4)) - offset);
+    line6[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y + 4)) - offset);
+
+    line7[0] = (read_imagef(input, sampler, (int2)(x - 1, 4 * y + 5)) - offset);
+    line7[1] = (read_imagef(input, sampler, (int2)(x, 4 * y + 5)) - offset);
+    line7[2] = (read_imagef(input, sampler, (int2)(x + 1, 4 * y + 5)) - offset);
 
 #if WAVELET_DENOISE_Y
 
@@ -191,12 +193,10 @@ __kernel void kernel_wavelet_coeff_variance (__read_only image2d_t input, __writ
                   + line7[1] * line7[1]
                   + (float4)(line7[1].s23, line7[2].s01) * (float4)(line7[1].s23, line7[2].s01)
                   + line7[2] * line7[2];
-
     line_var[0] = (line_sum[0] + line_sum[1] + line_sum[2] + line_sum[3] + line_sum[4]) / 25;
     line_var[1] = (line_sum[1] + line_sum[2] + line_sum[3] + line_sum[4] + line_sum[5]) / 25;
     line_var[2] = (line_sum[2] + line_sum[3] + line_sum[4] + line_sum[5] + line_sum[6]) / 25;
     line_var[3] = (line_sum[3] + line_sum[4] + line_sum[5] + line_sum[6] + line_sum[7]) / 25;
-
 #endif
 
     write_imagef(output, (int2)(x, 4 * y), line_var[0]);
