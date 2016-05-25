@@ -99,6 +99,7 @@ private:
     uint32_t  _channel;
     uint32_t  _subband;
     uint32_t  _current_layer;
+    float     _analog_gain;
 
     SmartPtr<CLNewWaveletDenoiseImageHandler> _handler;
 };

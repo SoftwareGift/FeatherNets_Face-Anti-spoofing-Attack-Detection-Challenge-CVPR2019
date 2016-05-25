@@ -40,6 +40,7 @@ CLWaveletNoiseEstimateKernel::CLWaveletNoiseEstimateKernel (
     , _channel (channel)
     , _subband (subband)
     , _current_layer (layer)
+    , _analog_gain (-1.0)
     , _handler (handler)
 {
 }
@@ -52,6 +53,7 @@ CLWaveletNoiseEstimateKernel::get_input_buffer (SmartPtr<DrmBoBuffer> &input, Sm
 
     SmartPtr<CLImage> image;
     SmartPtr<CLWaveletDecompBuffer> buffer = _handler->get_decomp_buffer (_channel, _current_layer);
+    XCAM_ASSERT (buffer.ptr ());
 
     if (_subband == CL_WAVELET_SUBBAND_HL) {
         image = buffer->hl[0];
@@ -63,9 +65,17 @@ CLWaveletNoiseEstimateKernel::get_input_buffer (SmartPtr<DrmBoBuffer> &input, Sm
         image = buffer->ll;
     }
 
-    if ((_current_layer == 1) && (_subband == CL_WAVELET_SUBBAND_HH)) {
-        estimate_noise_variance (video_info, buffer->hh[0], buffer->noise_variance);
-        _handler->set_estimated_noise_variation (buffer->noise_variance);
+    float current_analog_gain = _handler->get_denoise_config ().analog_gain;
+    if ((_analog_gain == -1.0f) ||
+            (abs(_analog_gain - current_analog_gain) > 10)) {
+        _analog_gain = current_analog_gain;
+
+        if ((_current_layer == 1) && (_subband == CL_WAVELET_SUBBAND_HH)) {
+            estimate_noise_variance (video_info, buffer->hh[0], buffer->noise_variance);
+            _handler->set_estimated_noise_variation (buffer->noise_variance);
+        } else {
+            _handler->get_estimated_noise_variation (buffer->noise_variance);
+        }
     } else {
         _handler->get_estimated_noise_variation (buffer->noise_variance);
     }
@@ -80,6 +90,7 @@ CLWaveletNoiseEstimateKernel::get_output_buffer (SmartPtr<DrmBoBuffer> &input, S
 
     SmartPtr<CLImage> image;
     SmartPtr<CLWaveletDecompBuffer> buffer = _handler->get_decomp_buffer (_channel, _current_layer);
+    XCAM_ASSERT (buffer.ptr ());
 
     if (_subband == CL_WAVELET_SUBBAND_HL) {
         image = buffer->hl[1];
@@ -296,11 +307,7 @@ CLWaveletThresholdingKernel::prepare_arguments (
     work_size.global[0] = XCAM_ALIGN_UP (cl_width , work_size.local[0]);
     work_size.global[1] = XCAM_ALIGN_UP (cl_height, work_size.local[1]);
 
-    float weight = _current_layer;
-    if (_current_layer > 2) {
-        weight = (2 << (_current_layer + 1));
-    }
-
+    float weight = 0.25;
     if (_channel == CL_WAVELET_CHANNEL_Y) {
         _noise_variance[0] = buffer->noise_variance[0] / weight;
         _noise_variance[1] = buffer->noise_variance[0] / weight;
@@ -719,7 +726,7 @@ CLNewWaveletDenoiseImageHandler::dump_coeff (SmartPtr<CLImage> image, uint32_t c
 
     char file_name[512];
     snprintf (file_name, sizeof(file_name),
-              "wavelet_coeff_"
+              "wavelet_cl_coeff_"
               "channel%d_"
               "layer%d_"
               "subband%d_"
@@ -729,12 +736,12 @@ CLNewWaveletDenoiseImageHandler::dump_coeff (SmartPtr<CLImage> image, uint32_t c
               channel, layer, subband, (uint32_t)row_pitch, cl_width, cl_height);
     file = fopen(file_name, "wb");
 
-    if (fwrite (pixel, pixel_count, 1, file) <= 0) {
-        XCAM_LOG_WARNING ("write frame failed.");
-    }
-    if (file)
+    if (file != NULL) {
+        if (fwrite (pixel, pixel_count, 1, file) <= 0) {
+            XCAM_LOG_WARNING ("write frame failed.");
+        }
         fclose (file);
-
+    }
     map_event.release ();
 
     SmartPtr<CLEvent> unmap_event = new CLEvent;

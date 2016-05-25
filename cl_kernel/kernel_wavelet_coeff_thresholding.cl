@@ -43,9 +43,9 @@ __kernel void kernel_wavelet_coeff_thresholding (float noise_var1, float noise_v
     input_lh = read_imagef(in_lh, sampler, (int2)(x, y)) - 0.5f;
     input_hh = read_imagef(in_hh, sampler, (int2)(x, y)) - 0.5f;
 
-    coeff_var_hl = 65025 * read_imagef(var_hl, sampler, (int2)(x, y));
-    coeff_var_lh = 65025 * read_imagef(var_lh, sampler, (int2)(x, y));
-    coeff_var_hh = 65025 * read_imagef(var_hh, sampler, (int2)(x, y));
+    coeff_var_hl = 65025 * (1 << 2 * layer) * read_imagef(var_hl, sampler, (int2)(x, y));
+    coeff_var_lh = 65025 * (1 << 2 * layer) * read_imagef(var_lh, sampler, (int2)(x, y));
+    coeff_var_hh = 65025 * (1 << 2 * layer) * read_imagef(var_hh, sampler, (int2)(x, y));
 
     stddev_hl = coeff_var_hl - noise_var;
     stddev_hl = (stddev_hl > 0) ? sqrt(stddev_hl) : 0.000001;
@@ -56,9 +56,9 @@ __kernel void kernel_wavelet_coeff_thresholding (float noise_var1, float noise_v
     stddev_hh = coeff_var_hh - noise_var;
     stddev_hh = (stddev_hh > 0) ? sqrt(stddev_hh) : 0.000001;
 
-    thresh_hl = (noise_var / stddev_hl) / 255;
-    thresh_lh = (noise_var / stddev_lh) / 255;
-    thresh_hh = (noise_var / stddev_hh) / 255;
+    thresh_hl = (noise_var / stddev_hl) / (255 * (1 << layer));
+    thresh_lh = (noise_var / stddev_lh) / (255 * (1 << layer));
+    thresh_hh = (noise_var / stddev_hh) / (255 * (1 << layer));
 
     // Soft thresholding
     output_hl = (fabs(input_hl) < thresh_hl) ? 0 : ((input_hl > 0) ? fabs(input_hl) - thresh_hl : thresh_hl - fabs(input_hl));

@@ -569,6 +569,7 @@ int main (int argc, char *argv[])
         wavelet_config.threshold[0] = 0.2;
         wavelet_config.threshold[1] = 0.5;
         wavelet_config.decomposition_levels = 4;
+        wavelet_config.analog_gain = 10;
         wavelet->set_denoise_config (wavelet_config);
         break;
     }
@@ -580,6 +581,7 @@ int main (int argc, char *argv[])
         wavelet_config.threshold[0] = 0.2;
         wavelet_config.threshold[1] = 0.5;
         wavelet_config.decomposition_levels = 4;
+        wavelet_config.analog_gain = 10;
         wavelet->set_denoise_config (wavelet_config);
         break;
     }
