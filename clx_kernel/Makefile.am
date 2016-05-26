@@ -38,6 +38,7 @@ clx_kernel_sources = \
 	kernel_wavelet_haar_reconstruction.clx  \
 	kernel_wavelet_coeff_variance.clx \
 	kernel_wavelet_coeff_thresholding.clx \
+	kernel_wire_frame.clx         \
 	$(NULL)
 
 cl_quote_sh = \

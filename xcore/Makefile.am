@@ -137,6 +137,7 @@ xcam_sources +=              \
 	cl_gauss_handler.cpp	     \
 	cl_wavelet_denoise_handler.cpp	     \
 	cl_newwavelet_denoise_handler.cpp	 \
+	cl_wire_frame_handler.cpp \
 	$(NULL)
 endif
 

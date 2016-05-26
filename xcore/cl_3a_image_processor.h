@@ -38,6 +38,7 @@ class CLNewTonemappingImageHandler;
 class CLImageScaler;
 class CLWaveletDenoiseImageHandler;
 class CLNewWaveletDenoiseImageHandler;
+class CLWireFrameImageHandler;
 
 #define ENABLE_YEENR_HANDLER 0
 
@@ -79,6 +80,9 @@ public:
     bool set_capture_stage (CaptureStage capture_stage);
     bool set_3a_stats_bits (uint32_t bits);
     bool set_scaler_factor (const double factor);
+    double get_scaler_factor () const {
+        return _scaler_factor;
+    }
 
     virtual bool set_hdr (uint32_t mode);
     virtual bool set_denoise (uint32_t mode);
@@ -124,6 +128,7 @@ private:
 #endif
     SmartPtr<CLWaveletDenoiseImageHandler>   _wavelet;
     SmartPtr<CLNewWaveletDenoiseImageHandler>   _newwavelet;
+    SmartPtr<CLWireFrameImageHandler>   _wire_frame;
 
     // simple 3a bayer pipeline
     SmartPtr<CLBayerBasicImageHandler>  _bayer_basic_pipe;
