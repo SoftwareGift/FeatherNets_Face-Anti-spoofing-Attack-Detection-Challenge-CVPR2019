@@ -672,9 +672,11 @@ CLImage2D::CLImage2D (
 CLImage2D::CLImage2D (
     SmartPtr<CLContext> &context,
     const CLImageDesc &cl_desc,
-    cl_mem_flags  flags)
+    cl_mem_flags  flags,
+    SmartPtr<CLBuffer> bind_buf)
     : CLImage (context)
 {
+    _bind_buf = bind_buf;
     init_image_2d (context, cl_desc, flags);
 }
 
@@ -697,6 +699,16 @@ bool CLImage2D::init_image_2d (
     cl_desc.num_mip_levels = 0;
     cl_desc.num_samples = 0;
     cl_desc.buffer = NULL;
+    if (_bind_buf.ptr ()) {
+        if (desc.row_pitch)
+            cl_desc.image_row_pitch = desc.row_pitch;
+        else {
+            cl_desc.image_row_pitch = calculate_pixel_bytes(desc.format) * desc.width;
+        }
+        XCAM_ASSERT (cl_desc.image_row_pitch);
+        cl_desc.buffer = _bind_buf->get_mem_id ();
+        XCAM_ASSERT (cl_desc.buffer);
+    }
 
     mem_id = context->create_image (flags, desc.format, cl_desc);
     if (mem_id == NULL) {

@@ -226,7 +226,8 @@ public:
     explicit CLImage2D (
         SmartPtr<CLContext> &context,
         const CLImageDesc &cl_desc,
-        cl_mem_flags  flags = CL_MEM_READ_WRITE);
+        cl_mem_flags  flags = CL_MEM_READ_WRITE,
+        SmartPtr<CLBuffer> bind_buf = NULL);
 
     ~CLImage2D () {}
 
@@ -237,6 +238,9 @@ private:
         cl_mem_flags  flags);
 
     XCAM_DEAD_COPY (CLImage2D);
+
+private:
+    SmartPtr<CLBuffer> _bind_buf;
 };
 
 class CLImage2DArray
