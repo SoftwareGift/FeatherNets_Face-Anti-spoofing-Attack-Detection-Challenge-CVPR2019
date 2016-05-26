@@ -53,6 +53,7 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_macc (true)
     , _enable_dpc (false)
     , _enable_scaler (false)
+    , _enable_wireframe (false)
     , _wavelet_basis (CL_WAVELET_DISABLED)
     , _wavelet_channel (CL_WAVELET_CHANNEL_UV)
     , _snr_mode (0)
@@ -473,7 +474,7 @@ CL3aImageProcessor::create_handlers ()
         _wire_frame.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create wire frame handler failed");
-    _wire_frame->set_kernels_enable (_enable_scaler);
+    _wire_frame->set_kernels_enable (_enable_wireframe);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
@@ -615,6 +616,16 @@ bool
 CL3aImageProcessor::set_scaler (bool enable)
 {
     _enable_scaler = enable;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CL3aImageProcessor::set_wireframe (bool enable)
+{
+    _enable_wireframe = enable;
 
     STREAM_LOCK;
 

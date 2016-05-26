@@ -322,6 +322,7 @@ void print_help (const char *bin_name)
             "\t --enable-retinex  enable retinex\n"
             "\t --wavelet-mode specify wavelet denoise mode, default is off\n"
             "\t                select from [0:disable, 1:Hat Y, 2:Hat UV, 3:Haar Y, 4:Haar UV, 5:Haar YUV]\n"
+            "\t --enable-wireframe  enable wire frame\n"
             "\t --pipeline    pipe mode\n"
             "\t               select from [basic, advance, extreme], default is [basic]\n"
             "\t --disable-post disable cl post image processor\n"
@@ -373,6 +374,7 @@ int main (int argc, char *argv[])
     uint32_t defog_type = 0;
     CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
     uint32_t wavelet_channel = CL_WAVELET_CHANNEL_UV;
+    bool wireframe_type = false;
 
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
@@ -396,6 +398,7 @@ int main (int argc, char *argv[])
         {"enable-dpc", no_argument, NULL, 'D'},
         {"defog-mode", required_argument, NULL, 'X'},
         {"wavelet-mode", required_argument, NULL, 'V'},
+        {"enable-wireframe", no_argument, NULL, 'F'},
         {"usb", required_argument, NULL, 'U'},
         {"resolution", required_argument, NULL, 'R'},
         {"sync", no_argument, NULL, 'Y'},
@@ -572,6 +575,10 @@ int main (int argc, char *argv[])
             } else {
                 wavelet_mode = CL_WAVELET_DISABLED;
             }
+            break;
+        }
+        case 'F': {
+            wireframe_type = true;
             break;
         }
         case 'D': {
@@ -802,6 +809,7 @@ int main (int argc, char *argv[])
         cl_processor->set_tonemapping(wdr_mode);
         cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
         cl_processor->set_wavelet (wavelet_mode, wavelet_channel);
+        cl_processor->set_wireframe (wireframe_type);
         cl_processor->set_capture_stage (capture_stage);
 
         if (wdr_type) {

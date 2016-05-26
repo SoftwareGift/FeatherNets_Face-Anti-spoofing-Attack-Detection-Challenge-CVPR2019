@@ -74,6 +74,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
 #define DEFAULT_PROP_WDR_MODE           NONE_WDR
 #define DEFAULT_PROP_WAVELET_MODE       CL_WAVELET_DISABLED
+#define DEFAULT_PROP_ENABLE_WIREFRAME   FALSE
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
 #define DEFAULT_PROP_CL_PIPE_PROFILE    0
 
@@ -276,6 +277,7 @@ enum {
     PROP_ENABLE_USB,
     PROP_WAVELET_MODE,
     PROP_ENABLE_RETINEX,
+    PROP_ENABLE_WIREFRAME,
     PROP_FAKE_INPUT
 };
 
@@ -393,6 +395,11 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                               DEFAULT_PROP_ENABLE_RETINEX, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
+        gobject_class, PROP_ENABLE_WIREFRAME,
+        g_param_spec_boolean ("enable-wireframe", "enable wire frame", "Enable wire frame",
+                              DEFAULT_PROP_ENABLE_WIREFRAME, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
         gobject_class, PROP_MEM_MODE,
         g_param_spec_enum ("io-mode", "memory mode", "Memory mode",
                            GST_TYPE_XCAM_SRC_MEM_MODE, DEFAULT_PROP_MEM_MODE,
@@ -495,6 +502,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
     xcamsrc->wavelet_mode = NONE_WAVELET;
     xcamsrc->enable_retinex = DEFAULT_PROP_ENABLE_RETINEX;
+    xcamsrc->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
     xcamsrc->time_offset = -1;
@@ -572,6 +580,10 @@ gst_xcam_src_get_property (
 
     case PROP_ENABLE_RETINEX:
         g_value_set_boolean (value, src->enable_retinex);
+        break;
+
+    case PROP_ENABLE_WIREFRAME:
+        g_value_set_boolean (value, src->enable_wireframe);
         break;
 
     case PROP_MEM_MODE:
@@ -685,6 +697,9 @@ gst_xcam_src_set_property (
         break;
     case PROP_WAVELET_MODE:
         src->wavelet_mode = (WaveletModeType)g_value_get_enum (value);
+        break;
+    case PROP_ENABLE_WIREFRAME:
+        src->enable_wireframe = g_value_get_boolean (value);
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
@@ -886,6 +901,8 @@ gst_xcam_src_start (GstBaseSrc *src)
                 cl_processor->set_wavelet (CL_WAVELET_DISABLED, CL_WAVELET_CHANNEL_UV);
             }
         }
+
+        cl_processor->set_wireframe (xcamsrc->enable_wireframe);
 
         cl_processor->set_profile ((CL3aImageProcessor::PipelineProfile)xcamsrc->cl_pipe_profile);
         device_manager->add_image_processor (cl_processor);

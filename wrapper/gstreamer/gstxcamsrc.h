@@ -92,6 +92,7 @@ struct _GstXCamSrc
     gboolean                     enable_3a;
     gboolean                     enable_usb;
     gboolean                     enable_retinex;
+    gboolean                     enable_wireframe;
     char                        *path_to_fake;
 
     gboolean                     time_offset_ready;

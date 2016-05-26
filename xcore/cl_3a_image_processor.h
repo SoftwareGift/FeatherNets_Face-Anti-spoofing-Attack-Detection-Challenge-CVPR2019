@@ -90,6 +90,7 @@ public:
     virtual bool set_macc (bool enable);
     virtual bool set_dpc (bool enable);
     virtual bool set_scaler (bool enable);
+    virtual bool set_wireframe (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
     virtual bool set_wavelet (CLWaveletBasis basis, uint32_t channel);
     virtual bool set_tonemapping (CLTonemappingMode wdr_mode);
@@ -141,6 +142,7 @@ private:
     bool                                _enable_macc;
     bool                                _enable_dpc;
     bool                                _enable_scaler;
+    bool                                _enable_wireframe;
     CLWaveletBasis                      _wavelet_basis;
     uint32_t                            _wavelet_channel;
     uint32_t                            _snr_mode; // spatial nr mode
