@@ -67,7 +67,7 @@ CLWaveletNoiseEstimateKernel::get_input_buffer (SmartPtr<DrmBoBuffer> &input, Sm
 
     float current_analog_gain = _handler->get_denoise_config ().analog_gain;
     if ((_analog_gain == -1.0f) ||
-            (abs(_analog_gain - current_analog_gain) > 10)) {
+            (abs(_analog_gain - current_analog_gain) > 0.02)) {
         _analog_gain = current_analog_gain;
 
         if ((_current_layer == 1) && (_subband == CL_WAVELET_SUBBAND_HH)) {
@@ -196,7 +196,8 @@ CLWaveletNoiseEstimateKernel::estimate_noise_variance (const VideoBufferInfo & v
     if (_channel == CL_WAVELET_CHANNEL_Y) {
         for (uint32_t i = 0; i < image_width; i++) {
             for (uint32_t j = 0; j < image_height; j++) {
-                hist_y[abs(pixel[i + j * row_pitch] - 127)]++;
+                uint8_t base = (pixel[i + j * row_pitch] <= 127) ? 127 : 128;
+                hist_y[abs(pixel[i + j * row_pitch] - base)]++;
             }
         }
         pixel_sum = 0;
@@ -214,8 +215,10 @@ CLWaveletNoiseEstimateKernel::estimate_noise_variance (const VideoBufferInfo & v
     if (_channel == CL_WAVELET_CHANNEL_UV) {
         for (uint32_t i = 0; i < (image_width / 2); i++) {
             for (uint32_t j = 0; j < image_height; j++) {
-                hist_u[abs(pixel[2 * i + j * row_pitch] - 127)]++;
-                hist_v[abs(pixel[2 * i + 1 + j * row_pitch] - 127)]++;
+                uint8_t base = (pixel[2 * i + j * row_pitch] <= 127) ? 127 : 128;
+                hist_u[abs(pixel[2 * i + j * row_pitch] - base)]++;
+                base = (pixel[2 * i + 1 + j * row_pitch] <= 127) ? 127 : 128;
+                hist_v[abs(pixel[2 * i + 1 + j * row_pitch] - base)]++;
             }
         }
         pixel_sum = 0;

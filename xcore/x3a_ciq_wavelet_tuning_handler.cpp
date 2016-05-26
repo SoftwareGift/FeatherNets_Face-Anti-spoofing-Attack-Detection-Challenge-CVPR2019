@@ -92,7 +92,7 @@ X3aCiqWaveletTuningHandler::analyze (X3aResultList &output)
 
     config.decomposition_levels = 1;
 
-    config.analog_gain = analog_gain;
+    config.analog_gain = analog_gain / X3A_CIQ_GAIN_MAX;
     XCAM_LOG_DEBUG ("Calculate Wavelet noise reduction config: soft threshold(%f), hard threshold(%f), decomposition levels(%d)",
                     config.threshold[0], config.threshold[1], config.decomposition_levels);
 
