@@ -444,6 +444,7 @@ int main (int argc, char *argv[])
             device_manager->enable_save_file (true);
             break;
         case 'n':
+            XCAM_ASSERT (optarg);
             device_manager->set_interval (atoi(optarg));
             break;
 #if HAVE_LIBCL
@@ -452,6 +453,7 @@ int main (int argc, char *argv[])
             break;
 #endif
         case 'f':
+            XCAM_ASSERT (optarg);
             CHECK_EXP ((strlen(optarg) == 4), "invalid pixel format\n");
             pixel_format = v4l2_fourcc ((unsigned)optarg[0],
                                         (unsigned)optarg[1],
@@ -470,6 +472,7 @@ int main (int argc, char *argv[])
             }
             break;
         case 'b':
+            XCAM_ASSERT (optarg);
             brightness_level = atoi(optarg);
             if(brightness_level < 0 || brightness_level > 256) {
                 print_help (bin_name);
@@ -480,6 +483,7 @@ int main (int argc, char *argv[])
             need_display = true;
             break;
         case 'U':
+            XCAM_ASSERT (optarg);
             have_usbcam = true;
             usb_device_name = strndup(optarg, XCAM_MAX_STR_SIZE);
             XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", XCAM_STR(usb_device_name.ptr ()));
@@ -501,6 +505,7 @@ int main (int argc, char *argv[])
             break;
         }
         case 'i':
+            XCAM_ASSERT (optarg);
             device_manager->set_frame_save(atoi(optarg));
             break;
         case 'Y':
@@ -646,10 +651,9 @@ int main (int argc, char *argv[])
         }
 #endif
         case 'r': {
-            if (optarg) {
-                XCAM_LOG_INFO ("use raw image %s as input source", optarg);
-                path_to_fake = strndup(optarg, XCAM_MAX_STR_SIZE);
-            }
+            XCAM_ASSERT (optarg);
+            XCAM_LOG_INFO ("use raw image %s as input source", optarg);
+            path_to_fake = strndup(optarg, XCAM_MAX_STR_SIZE);
             break;
         }
         case 'h':

@@ -214,7 +214,7 @@ SmartAnalysisHandler::post_aync_results (
             handler = i_h->second;
     }
 
-    if (handler.ptr ()) {
+    if (!handler.ptr ()) {
         XCAM_LOG_WARNING ("can't find a proper smart analyzer handler, please check context pointer");
         return XCAM_RETURN_ERROR_PARAM;
     }
@@ -234,7 +234,7 @@ SmartAnalysisHandler::post_smart_results (const XCamVideoBuffer *buffer, XCam3aR
         "smart handler convert results failed in async mode");
 
     if (_analyzer)
-        _analyzer->post_smart_results (result_list, (buffer ? InvalidTimestamp : buffer->timestamp));
+        _analyzer->post_smart_results (result_list, (buffer ? buffer->timestamp : InvalidTimestamp));
 
     return XCAM_RETURN_NO_ERROR;
 }

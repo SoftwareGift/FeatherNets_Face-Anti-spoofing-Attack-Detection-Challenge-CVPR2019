@@ -90,15 +90,11 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
     y_max[block_id] = y_max[block_id] + 1;
     y_avg[block_id] = y_avg[block_id] / pixel_num;
 
-    int* hist_log = new int[hist_bin_count] ();
-    int* sort_y = new int[pixel_num + 1] ();
-    float* map_index_leq = new float[hist_bin_count] ();
-    int* map_index_log = new int[hist_bin_count] ();
-
-    for(int i = 0; i < hist_bin_count; i++)
-    {
-        hist_log[i] = 0;
-    }
+    int *hist_log = (int *) xcam_malloc0 (hist_bin_count * sizeof (int));
+    int *sort_y = (int *) xcam_malloc0 ((pixel_num + 1) * sizeof (int));
+    int *map_index_leq = (int *) xcam_malloc0 (hist_bin_count * sizeof (int));
+    int *map_index_log = (int *) xcam_malloc0 (hist_bin_count * sizeof (int));
+    XCAM_ASSERT (hist_log && sort_y && map_index_leq && map_index_log);
 
     int thres = (int)(1500 * 1500 / (y_avg[block_id] * y_avg[block_id] + 1) * 600);
     int y_max0 = (y_max[block_id] > thres) ? thres : y_max[block_id];
@@ -201,10 +197,14 @@ void Block_split_haleq(int* hist, int hist_bin_count, int pixel_num, int block_s
     y_max[block_id] = y_max[block_id] / hist_bin_count;
     y_avg[block_id] = y_avg[block_id] / hist_bin_count;
 
-    delete[] hist_log;
-    delete[] map_index_leq;
-    delete[] map_index_log;
-    delete[] sort_y;
+    xcam_free (hist_log);
+    hist_log = NULL;
+    xcam_free (map_index_leq);
+    map_index_leq = NULL;
+    xcam_free (map_index_log);
+    map_index_log = NULL;
+    xcam_free (sort_y);
+    sort_y = NULL;
 }
 
 XCamReturn
@@ -249,7 +249,8 @@ CLNewTonemappingImageKernel::prepare_arguments (
     int height_last_block = height_per_block + stats_ptr->info.height % block_factor;
     int hist_bin_count = 1 << stats_ptr->info.bit_depth;
 
-    int* hist_per_block = new int[hist_bin_count] ();
+    int *hist_per_block = (int *) xcam_malloc0 (hist_bin_count * sizeof (int));
+    XCAM_ASSERT (hist_per_block);
 
     for(int block_row = 0; block_row < block_factor; block_row++)
     {
@@ -282,7 +283,8 @@ CLNewTonemappingImageKernel::prepare_arguments (
         }
     }
 
-    delete[] hist_per_block;
+    xcam_free (hist_per_block);
+    hist_per_block = NULL;
 
     _y_max_buffer = new CLBuffer(
         context, sizeof(float) * block_factor * block_factor,
