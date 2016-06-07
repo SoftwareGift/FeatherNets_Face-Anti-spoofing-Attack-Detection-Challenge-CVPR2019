@@ -129,6 +129,7 @@ private:
     uint32_t  _current_layer;
     float     _hard_threshold;
     float     _soft_threshold;
+    float     _anolog_gain_weight;
     SmartPtr<CLNewWaveletDenoiseImageHandler> _handler;
     float     _noise_variance[2];
 };

@@ -11,7 +11,7 @@ __kernel void kernel_wavelet_coeff_thresholding (float noise_var1, float noise_v
         __read_only image2d_t in_lh, __read_only image2d_t var_lh, __write_only image2d_t out_lh,
         __read_only image2d_t in_hh, __read_only image2d_t var_hh, __write_only image2d_t out_hh,
         int layer, int decomLevels,
-        float hardThresh, float softThresh)
+        float hardThresh, float softThresh, float ag_weight)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
@@ -56,9 +56,9 @@ __kernel void kernel_wavelet_coeff_thresholding (float noise_var1, float noise_v
     stddev_hh = coeff_var_hh - noise_var;
     stddev_hh = (stddev_hh > 0) ? sqrt(stddev_hh) : 0.000001;
 
-    thresh_hl = (noise_var / stddev_hl) / (255 * (1 << layer));
-    thresh_lh = (noise_var / stddev_lh) / (255 * (1 << layer));
-    thresh_hh = (noise_var / stddev_hh) / (255 * (1 << layer));
+    thresh_hl = (ag_weight * noise_var / stddev_hl) / (255 * (1 << layer));
+    thresh_lh = (ag_weight * noise_var / stddev_lh) / (255 * (1 << layer));
+    thresh_hh = (ag_weight * noise_var / stddev_hh) / (255 * (1 << layer));
 
     // Soft thresholding
     output_hl = (fabs(input_hl) < thresh_hl) ? 0 : ((input_hl > 0) ? fabs(input_hl) - thresh_hl : thresh_hl - fabs(input_hl));

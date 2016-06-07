@@ -65,12 +65,12 @@ CLWaveletNoiseEstimateKernel::get_input_buffer (SmartPtr<DrmBoBuffer> &input, Sm
         image = buffer->ll;
     }
 
-    float current_analog_gain = _handler->get_denoise_config ().analog_gain;
+    float current_ag = _handler->get_denoise_config ().analog_gain;
     if ((_analog_gain == -1.0f) ||
-            (abs(_analog_gain - current_analog_gain) > 0.02)) {
-        _analog_gain = current_analog_gain;
+            (fabs(_analog_gain - current_ag) > 0.2)) {
 
         if ((_current_layer == 1) && (_subband == CL_WAVELET_SUBBAND_HH)) {
+            _analog_gain = current_ag;
             estimate_noise_variance (video_info, buffer->hh[0], buffer->noise_variance);
             _handler->set_estimated_noise_variation (buffer->noise_variance);
         } else {
@@ -137,7 +137,7 @@ CLWaveletNoiseEstimateKernel::prepare_arguments (
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 8;
-    work_size.local[1] = 4;
+    work_size.local[1] = 8;
     work_size.global[0] = XCAM_ALIGN_UP (cl_width, work_size.local[0]);
     work_size.global[1] = XCAM_ALIGN_UP (cl_height, work_size.local[1]);
 
@@ -276,6 +276,7 @@ CLWaveletThresholdingKernel::CLWaveletThresholdingKernel (
     , _current_layer (layer)
     , _hard_threshold (0.1)
     , _soft_threshold (0.5)
+    , _anolog_gain_weight (1.0)
     , _handler (handler)
 {
     xcam_mem_clear (_noise_variance);
@@ -295,6 +296,7 @@ CLWaveletThresholdingKernel::prepare_arguments (
     _decomposition_levels = WAVELET_DECOMPOSITION_LEVELS;
     _soft_threshold = _handler->get_denoise_config ().threshold[0];
     _hard_threshold = _handler->get_denoise_config ().threshold[1];
+    _anolog_gain_weight = 1.0 + 100 *  _handler->get_denoise_config ().analog_gain;
 
     SmartPtr<CLWaveletDecompBuffer> buffer;
     buffer = _handler->get_decomp_buffer (_channel, _current_layer);
@@ -310,13 +312,13 @@ CLWaveletThresholdingKernel::prepare_arguments (
     work_size.global[0] = XCAM_ALIGN_UP (cl_width , work_size.local[0]);
     work_size.global[1] = XCAM_ALIGN_UP (cl_height, work_size.local[1]);
 
-    float weight = 0.25;
+    float weight = 4;
     if (_channel == CL_WAVELET_CHANNEL_Y) {
-        _noise_variance[0] = buffer->noise_variance[0] / weight;
-        _noise_variance[1] = buffer->noise_variance[0] / weight;
+        _noise_variance[0] = buffer->noise_variance[0] * weight;
+        _noise_variance[1] = buffer->noise_variance[0] * weight;
     } else {
-        _noise_variance[0] = buffer->noise_variance[1] / weight;
-        _noise_variance[1] = buffer->noise_variance[2] / weight;
+        _noise_variance[0] = buffer->noise_variance[1] * weight;
+        _noise_variance[1] = buffer->noise_variance[2] * weight;
     }
 #if 0
     {
@@ -368,7 +370,10 @@ CLWaveletThresholdingKernel::prepare_arguments (
     args[14].arg_adress = &_soft_threshold;
     args[14].arg_size = sizeof (_soft_threshold);
 
-    arg_count = 15;
+    args[15].arg_adress = &_anolog_gain_weight;
+    args[15].arg_size = sizeof (_anolog_gain_weight);
+
+    arg_count = 16;
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -586,6 +591,24 @@ CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &inpu
                 decompBuffer->hl[0] = new CLImage2D (context, cl_desc);
                 decompBuffer->lh[0] = new CLImage2D (context, cl_desc);
                 decompBuffer->hh[0] = new CLImage2D (context, cl_desc);
+                /*
+                                uint32_t width = decompBuffer->width / 4;
+                                uint32_t height = decompBuffer->height;
+                                SmartPtr<CLBuffer> hh_buffer = new CLBuffer (
+                                    context, sizeof(uint8_t) * width * height,
+                                    CL_MEM_READ_WRITE, NULL);
+                                CLImageDesc hh_desc;
+                                hh_desc.format = {CL_RGBA, CL_UNORM_INT8};
+                                hh_desc.width = width;
+                                hh_desc.height = height;
+                                hh_desc.row_pitch = sizeof(uint8_t) * width;
+                                hh_desc.slice_pitch = 0;
+                                hh_desc.size = 0;
+                                hh_desc.array_size = 0;
+
+                                decompBuffer->hh[0] = new CLImage2D (
+                                    context, hh_desc, 0, hh_buffer);
+                */
 
                 cl_desc.format.image_channel_data_type = CL_UNORM_INT16;
                 decompBuffer->hl[1] = new CLImage2D (context, cl_desc);
@@ -630,7 +653,23 @@ CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &inpu
                 decompBuffer->hl[0] = new CLImage2D (context, cl_desc);
                 decompBuffer->lh[0] = new CLImage2D (context, cl_desc);
                 decompBuffer->hh[0] = new CLImage2D (context, cl_desc);
-
+                /*
+                                uint32_t width = decompBuffer->width / 4;
+                                uint32_t height = decompBuffer->height;
+                                SmartPtr<CLBuffer> hh_buffer = new CLBuffer (
+                                    context, sizeof(uint8_t) * width * height,
+                                    CL_MEM_READ_WRITE, NULL);
+                                CLImageDesc hh_desc;
+                                hh_desc.format = {CL_RGBA, CL_UNORM_INT8};
+                                hh_desc.width = width;
+                                hh_desc.height = height;
+                                hh_desc.row_pitch = sizeof(uint8_t) * width;
+                                hh_desc.slice_pitch = 0;
+                                hh_desc.size = 0;
+                                hh_desc.array_size = 0;
+                                decompBuffer->hh[0] = new CLImage2D (
+                                    context, hh_desc, 0, hh_buffer);
+                */
                 cl_desc.format.image_channel_data_type = CL_UNORM_INT16;
                 decompBuffer->hl[1] = new CLImage2D (context, cl_desc);
                 decompBuffer->lh[1] = new CLImage2D (context, cl_desc);
