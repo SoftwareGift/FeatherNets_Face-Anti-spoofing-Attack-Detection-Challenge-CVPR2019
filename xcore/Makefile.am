@@ -34,6 +34,7 @@ xcam_sources =               \
 	smart_analyzer_loader.cpp \
 	buffer_pool.cpp          \
 	device_manager.cpp       \
+	pipe_manager.cpp         \
 	dynamic_analyzer.cpp     \
 	smart_analyzer.cpp       \
 	smart_analysis_handler.cpp \
@@ -186,6 +187,7 @@ nobase_libxcam_coreinclude_HEADERS =  \
 	base/xcam_smart_description.h \
 	base/xcam_smart_result.h   \
 	device_manager.h           \
+	pipe_manager.h             \
 	handler_interface.h        \
 	image_processor.h          \
 	safe_list.h                \
