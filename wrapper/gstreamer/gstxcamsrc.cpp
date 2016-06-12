@@ -56,8 +56,8 @@ using namespace GstXCam;
 #define CAPTURE_DEVICE_VIDEO    "/dev/video3"
 #define DEFAULT_EVENT_DEVICE    "/dev/v4l-subdev6"
 #define DEFAULT_CPF_FILE_NAME   "/etc/atomisp/imx185.cpf"
-#define DEFAULT_DYNAMIC_3A_LIB  "/usr/lib/xcam/libxcam_3a_aiq.so"
-#define DEFAULT_SMART_ANALYSIS_LIB_DIR "/usr/lib/xcam/smartlib"
+#define DEFAULT_DYNAMIC_3A_LIB  "/usr/lib/xcam/plugins/3a/libxcam_3a_aiq.so"
+#define DEFAULT_SMART_ANALYSIS_LIB_DIR "/usr/lib/xcam/plugins/smart"
 
 #define V4L2_CAPTURE_MODE_STILL 0x2000
 #define V4L2_CAPTURE_MODE_VIDEO 0x4000

@@ -253,18 +253,22 @@ AC_CONFIG_FILES([Makefile
                  clx_kernel/Makefile
                  clx_bin/Makefile
                  xcore/Makefile
+                 modules/Makefile
+                 modules/isp/Makefile
+                 modules/ocl/Makefile
                  wrapper/Makefile
                  wrapper/gstreamer/Makefile
                  wrapper/gstreamer/interface/Makefile
-                 3alib/Makefile
-                 3alib/aiq/Makefile
-                 3alib/hybrid/Makefile
-                 smartlib/Makefile
+                 plugins/Makefile
+                 plugins/3a/hybrid/Makefile
+                 plugins/3a/aiq/Makefile
+                 plugins/3a/Makefile
+                 plugins/smart/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc
                 ])
- 
+
 AC_OUTPUT
 
 if test "$USE_LOCAL_AIQ" -eq 1; then use_local_aiq="yes"; else  use_local_aiq="no"; fi

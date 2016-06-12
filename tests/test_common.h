@@ -48,9 +48,9 @@
 #define DEFAULT_EVENT_DEVICE   "/dev/v4l-subdev6"
 #define DEFAULT_CPF_FILE       "/etc/atomisp/imx185.cpf"
 #define DEFAULT_SAVE_FILE_NAME "capture_buffer"
-#define DEFAULT_DYNAMIC_3A_LIB "/usr/lib/xcam/libxcam_3a_aiq.so"
-#define DEFAULT_HYBRID_3A_LIB "/usr/lib/xcam/libxcam_3a_hybrid.so"
-#define DEFAULT_SMART_ANALYSIS_LIB_DIR "/usr/lib/xcam/smartlib"
+#define DEFAULT_DYNAMIC_3A_LIB "/usr/lib/xcam/plugins/3a/libxcam_3a_aiq.so"
+#define DEFAULT_HYBRID_3A_LIB "/usr/lib/xcam/plugins/3a/libxcam_3a_hybrid.so"
+#define DEFAULT_SMART_ANALYSIS_LIB_DIR "/usr/lib/xcam/plugins/smart"
 
 
 #define FPS_CALCULATION(objname, count)                     \

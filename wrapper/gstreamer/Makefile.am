@@ -31,18 +31,23 @@ libgstxcamsrc_la_SOURCES =                  \
 			   $(NULL)
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
-libgstxcamsrc_la_CXXFLAGS = -I$(top_builddir)/xcore -I$(top_builddir)/xcore/base   \
-			   $(GST_CFLAGS) $(XCAMSRC_CXXFLAGS)	\
-			  -I$(top_builddir)/wrapper/gstreamer   \
-			  -I$(top_builddir)/wrapper/gstreamer/interface \
+libgstxcamsrc_la_CXXFLAGS = \
+			  $(GST_CFLAGS) $(XCAMSRC_CXXFLAGS)              \
+			  -I$(top_builddir)/xcore                        \
+			  -I$(top_builddir)/modules/isp                  \
+			  -I$(top_builddir)/modules/ocl                  \
+			  -I$(top_builddir)/wrapper/gstreamer            \
+			  -I$(top_builddir)/wrapper/gstreamer/interface  \
 			  $(NULL)
 
 
 libgstxcamsrc_la_LIBADD = $(XCAMSRC_LIBS)          \
 			  $(top_builddir)/wrapper/gstreamer/interface/libgstxcaminterface.la	    \
-			  $(top_builddir)/xcore/libxcam_core.la \
-			  $(GST_ALLOCATOR_LIBS)                 \
-			  $(GST_VIDEO_LIBS)                     \
+			  $(top_builddir)/xcore/libxcam_core.la       \
+			  $(top_builddir)/modules/isp/libxcam_isp.la  \
+			  $(top_builddir)/modules/ocl/libxcam_ocl.la  \
+			  $(GST_ALLOCATOR_LIBS)                       \
+			  $(GST_VIDEO_LIBS)                           \
 			  $(GST_LIBS)
 
 libgstxcamsrc_la_LDFLAGS =                          \
