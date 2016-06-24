@@ -4,6 +4,8 @@
  * output:   image2d_t as write only
  */
 
+#pragma OPENCL FP_CONTRACT OFF
+
 //#define USE_BUFFER_OBJECT 0
 
 unsigned int get_sector_id (float u, float v)
