@@ -1,5 +1,5 @@
 /*
- * x3a_analyzer_loader.cpp - x3a analyzer loader
+ * dynamic_analyzer_loader.cpp - dynamic analyzer loader
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -19,25 +19,24 @@
  *         Zong Wei  <wei.zong@intel.com>
  */
 
-#include "x3a_analyzer_loader.h"
+#include "dynamic_analyzer_loader.h"
 #include "dynamic_analyzer.h"
 #include "handler_interface.h"
-#include "hybrid_analyzer.h"
 #include <dlfcn.h>
 
 namespace XCam {
 
-X3aAnalyzerLoader::X3aAnalyzerLoader (const char *lib_path, const char *symbol)
+DynamicAnalyzerLoader::DynamicAnalyzerLoader (const char *lib_path, const char *symbol)
     : AnalyzerLoader (lib_path, symbol)
 {
 }
 
-X3aAnalyzerLoader::~X3aAnalyzerLoader ()
+DynamicAnalyzerLoader::~DynamicAnalyzerLoader ()
 {
 }
 
 SmartPtr<X3aAnalyzer>
-X3aAnalyzerLoader::load_dynamic_analyzer (SmartPtr<X3aAnalyzerLoader> &self)
+DynamicAnalyzerLoader::load_analyzer (SmartPtr<AnalyzerLoader> &self)
 {
     XCAM_ASSERT (self.ptr () == this);
 
@@ -55,32 +54,8 @@ X3aAnalyzerLoader::load_dynamic_analyzer (SmartPtr<X3aAnalyzerLoader> &self)
     return analyzer;
 }
 
-SmartPtr<X3aAnalyzer>
-X3aAnalyzerLoader::load_hybrid_analyzer (SmartPtr<X3aAnalyzerLoader> &self,
-        SmartPtr<IspController> &isp,
-        const char *cpf_path)
-{
-    XCAM_ASSERT (self.ptr () == this);
-
-    SmartPtr<X3aAnalyzer> analyzer;
-
-#if HAVE_IA_AIQ
-    XCam3ADescription *desc = (XCam3ADescription*)load_library (get_lib_path ());
-    analyzer = new HybridAnalyzer (desc, self, isp, cpf_path);
-#endif
-
-    if (!analyzer.ptr ()) {
-        XCAM_LOG_WARNING ("create HybridAnalyzer from lib failed");
-        close_handle ();
-        return NULL;
-    }
-
-    XCAM_LOG_INFO ("analyzer(%s) created from 3a lib", XCAM_STR (analyzer->get_name()));
-    return analyzer;
-}
-
 void *
-X3aAnalyzerLoader::load_symbol (void* handle)
+DynamicAnalyzerLoader::load_symbol (void* handle)
 {
     XCam3ADescription *desc = NULL;
 

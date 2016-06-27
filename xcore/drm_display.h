@@ -24,7 +24,6 @@
 #include "xcam_utils.h"
 #include "smartptr.h"
 #include "xcam_mutex.h"
-#include "atomisp_device.h"
 #include "v4l2_buffer_proxy.h"
 
 extern "C" {
@@ -45,7 +44,6 @@ extern "C" {
 
 namespace XCam {
 
-class AtomispDevice;
 class DrmBoData;
 class DrmBoBufferPool;
 class DrmBoBuffer;

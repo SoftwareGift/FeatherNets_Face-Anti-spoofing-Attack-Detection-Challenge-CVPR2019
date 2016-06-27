@@ -69,8 +69,7 @@ FakePollThread::stop ()
     if (_buf_pool.ptr ())
         _buf_pool->stop ();
 
-    PollThread::stop ();
-    return XCAM_RETURN_NO_ERROR;
+    return PollThread::stop ();;
 }
 
 XCamReturn

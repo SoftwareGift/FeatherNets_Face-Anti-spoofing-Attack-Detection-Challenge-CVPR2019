@@ -22,6 +22,7 @@
 #define XCAM_HYBRID_ANALYZER_H
 
 #include "dynamic_analyzer.h"
+#include "hybrid_analyzer_loader.h"
 
 namespace XCam {
 class IspController;
@@ -35,7 +36,7 @@ class HybridAnalyzer
 {
 public:
     explicit HybridAnalyzer (XCam3ADescription *desc,
-                             SmartPtr<X3aAnalyzerLoader> &loader,
+                             SmartPtr<AnalyzerLoader> &loader,
                              SmartPtr<IspController> &isp,
                              const char *cpf_path);
     ~HybridAnalyzer ();

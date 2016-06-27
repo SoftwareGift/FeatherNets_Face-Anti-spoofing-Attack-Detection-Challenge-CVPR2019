@@ -23,7 +23,7 @@
 
 namespace XCam {
 
-DynamicAnalyzer::DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<X3aAnalyzerLoader> &loader, const char *name)
+DynamicAnalyzer::DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<AnalyzerLoader> &loader, const char *name)
     : X3aAnalyzer (name)
     , _desc (desc)
     , _context (NULL)

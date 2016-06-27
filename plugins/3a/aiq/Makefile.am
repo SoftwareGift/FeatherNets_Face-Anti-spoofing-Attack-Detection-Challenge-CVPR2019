@@ -31,8 +31,9 @@ libxcam_3a_aiq_la_CXXFLAGS = \
     $(NULL)
 
 libxcam_3a_aiq_la_LIBADD = \
-    $(XCAMAIQ_LIBS)                        \
-    $(top_builddir)/xcore/libxcam_core.la  \
+    $(XCAMAIQ_LIBS)                             \
+    $(top_builddir)/modules/isp/libxcam_isp.la  \
+    $(top_builddir)/xcore/libxcam_core.la       \
     $(NULL)
 
 libxcam_3a_aiq_la_LDFLAGS = \

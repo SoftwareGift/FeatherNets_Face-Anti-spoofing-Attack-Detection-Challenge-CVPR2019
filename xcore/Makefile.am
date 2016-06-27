@@ -8,12 +8,12 @@ XCAM_CORE_LIBS = -ldl  \
 
 xcam_sources = \
     analyzer_loader.cpp                 \
-    x3a_analyzer_loader.cpp             \
     smart_analyzer_loader.cpp           \
     buffer_pool.cpp                     \
     device_manager.cpp                  \
     pipe_manager.cpp                    \
     dynamic_analyzer.cpp                \
+    dynamic_analyzer_loader.cpp         \
     smart_analyzer.cpp                  \
     smart_analysis_handler.cpp          \
     fake_poll_thread.cpp                \
@@ -47,10 +47,6 @@ xcam_sources = \
     x3a_ciq_wavelet_tuning_handler.cpp  \
     $(NULL)
 
-XCAM_CORE_CXXFLAGS += \
-    -I$(top_builddir)/modules/isp  \
-    $(NULL)
-
 if HAVE_LIBDRM
 XCAM_CORE_CXXFLAGS += $(LIBDRM_CFLAGS)
 XCAM_CORE_LIBS += \
@@ -80,7 +76,6 @@ libxcam_core_la_LDFLAGS = \
 
 libxcam_core_la_LIBADD = \
     $(XCAM_CORE_LIBS)                           \
-    $(top_builddir)/modules/isp/libxcam_isp.la  \
     $(NULL)
 
 libxcam_coreincludedir = $(includedir)/xcam

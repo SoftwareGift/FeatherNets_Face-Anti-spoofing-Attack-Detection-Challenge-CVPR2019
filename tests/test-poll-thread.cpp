@@ -224,7 +224,6 @@ int main (int argc, const char *argv[])
 
     poll_thread->set_capture_device(device);
     poll_thread->set_event_device(event_device);
-    poll_thread->set_isp_controller(isp_controller);
     poll_thread->set_poll_callback(poll_cb);
 
     signal(SIGINT, dev_stop_handler);

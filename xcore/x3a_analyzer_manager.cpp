@@ -18,20 +18,14 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-
 #include "x3a_analyzer_manager.h"
 #include "x3a_analyzer_simple.h"
-#if HAVE_IA_AIQ
-#include "x3a_analyzer_aiq.h"
-#endif
-#include "x3a_analyzer_loader.h"
-
 #include <sys/types.h>
 #include <dirent.h>
 
 namespace XCam {
 
-#define XCAM_DEFAULT_3A_LIB_DIR "/usr/lib/xcam"
+#define XCAM_DEFAULT_3A_LIB_DIR "/usr/lib/xcam/plugins/3a"
 
 SmartPtr<X3aAnalyzerManager> X3aAnalyzerManager::_instance(NULL);
 Mutex X3aAnalyzerManager::_mutex;
@@ -103,10 +97,10 @@ X3aAnalyzerManager::load_analyzer_from_binary (const char *path)
     XCAM_ASSERT (path);
 
     _loader.release ();
-    _loader = new X3aAnalyzerLoader (path);
+    _loader = new DynamicAnalyzerLoader (path);
 
     SmartPtr<AnalyzerLoader> loader = _loader.dynamic_cast_ptr<AnalyzerLoader> ();
-    analyzer = _loader->load_dynamic_analyzer (_loader);
+    analyzer = _loader->load_analyzer (loader);
 
     if (analyzer.ptr ())
         return analyzer;

@@ -25,6 +25,7 @@
 #include "isp_controller.h"
 #include "isp_image_processor.h"
 #include "x3a_analyzer_simple.h"
+#include "analyzer_loader.h"
 #include "smart_analyzer_loader.h"
 #if HAVE_IA_AIQ
 #include "x3a_analyzer_aiq.h"
@@ -40,8 +41,9 @@
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #endif
-#include "x3a_analyzer_loader.h"
-#include "poll_thread.h"
+#include "dynamic_analyzer_loader.h"
+#include "hybrid_analyzer_loader.h"
+#include "isp_poll_thread.h"
 #include "fake_poll_thread.h"
 #include <base/xcam_3a_types.h>
 #include <unistd.h>
@@ -341,7 +343,7 @@ int main (int argc, char *argv[])
     SmartPtr<IspController> isp_controller;
     SmartPtr<X3aAnalyzer> analyzer;
     SmartPtr<SmartAnalyzer> smart_analyzer;
-    SmartPtr<X3aAnalyzerLoader> loader;
+    SmartPtr<AnalyzerLoader> loader;
     const char *path_of_3a;
     SmartPtr<ImageProcessor> isp_processor;
     AnalyzerType  analyzer_type = AnalyzerTypeSimple;
@@ -711,16 +713,20 @@ int main (int argc, char *argv[])
     }
     case AnalyzerTypeHybrid: {
         path_of_3a = DEFAULT_HYBRID_3A_LIB;
-        loader = new X3aAnalyzerLoader (path_of_3a);
-        analyzer = loader->load_hybrid_analyzer (loader, isp_controller, DEFAULT_CPF_FILE);
+        SmartPtr<HybridAnalyzerLoader> hybrid_loader = new HybridAnalyzerLoader (path_of_3a);
+        hybrid_loader->set_cpf_path (DEFAULT_CPF_FILE);
+        hybrid_loader->set_isp_controller (isp_controller);
+        loader = hybrid_loader.dynamic_cast_ptr<AnalyzerLoader> ();
+        analyzer = hybrid_loader->load_analyzer (loader);
         CHECK_EXP (analyzer.ptr (), "load hybrid 3a lib(%s) failed", path_of_3a);
         break;
     }
 #endif
     case AnalyzerTypeDynamic: {
         path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
-        loader = new X3aAnalyzerLoader (path_of_3a);
-        analyzer = loader->load_dynamic_analyzer (loader);
+        SmartPtr<DynamicAnalyzerLoader> dynamic_loader = new DynamicAnalyzerLoader (path_of_3a);
+        loader = dynamic_loader.dynamic_cast_ptr<AnalyzerLoader> ();
+        analyzer = dynamic_loader->load_analyzer (loader);
         CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
 
         // Create smart analyzer from dynamic libraries
@@ -790,7 +796,6 @@ int main (int argc, char *argv[])
     }
 
     device_manager->set_capture_device (device);
-    device_manager->set_isp_controller (isp_controller);
     if (analyzer.ptr())
         device_manager->set_3a_analyzer (analyzer);
 
@@ -850,8 +855,11 @@ int main (int argc, char *argv[])
     SmartPtr<PollThread> poll_thread;
     if (path_to_fake.ptr ())
         poll_thread = new FakePollThread (path_to_fake.ptr ());
-    else
-        poll_thread = new PollThread ();
+    else {
+        SmartPtr<IspPollThread> isp_poll_thread = new IspPollThread ();
+        isp_poll_thread->set_isp_controller (isp_controller);
+        poll_thread = isp_poll_thread;
+    }
     device_manager->set_poll_thread (poll_thread);
 
     ret = device_manager->start ();

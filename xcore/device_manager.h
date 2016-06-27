@@ -74,7 +74,6 @@ public:
 
     bool set_capture_device (SmartPtr<V4l2Device> device);
     bool set_event_device (SmartPtr<V4l2SubDevice> device);
-    bool set_isp_controller (SmartPtr<IspController> controller);
     bool set_3a_analyzer (SmartPtr<X3aAnalyzer> analyzer);
     bool set_smart_analyzer (SmartPtr<SmartAnalyzer> analyzer);
     bool add_image_processor (SmartPtr<ImageProcessor> processor);
@@ -131,7 +130,6 @@ protected:
     SmartPtr<V4l2Device>             _device;
     SmartPtr<V4l2SubDevice>          _subdevice;
     SmartPtr<PollThread>             _poll_thread;
-    SmartPtr<IspController>          _isp_controller;
 
     /* 3A calculation and image processing*/
     bool                             _has_3a;

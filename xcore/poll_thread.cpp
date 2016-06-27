@@ -20,7 +20,6 @@
 
 #include "poll_thread.h"
 #include "xcam_thread.h"
-#include "x3a_statistics_queue.h"
 #include <unistd.h>
 
 namespace XCam {
@@ -97,7 +96,6 @@ PollThread::~PollThread ()
     XCAM_LOG_DEBUG ("~PollThread destructed");
 }
 
-
 bool
 PollThread::set_capture_device (SmartPtr<V4l2Device> &dev)
 {
@@ -111,14 +109,6 @@ PollThread::set_event_device (SmartPtr<V4l2SubDevice> &dev)
 {
     XCAM_ASSERT (!_event_dev.ptr());
     _event_dev = dev;
-    return true;
-}
-
-bool
-PollThread::set_isp_controller (SmartPtr<IspController>  &isp)
-{
-    XCAM_ASSERT (!_isp_controller.ptr());
-    _isp_controller = isp;
     return true;
 }
 
@@ -138,10 +128,8 @@ PollThread::set_stats_callback (StatsCallback *callback)
     return true;
 }
 
-
 XCamReturn PollThread::start ()
 {
-    _3a_stats_pool = new X3aStatisticsQueue;
     if (_event_dev.ptr () && !_event_loop->start ()) {
         return XCAM_RETURN_ERROR_THREAD;
     }
@@ -154,83 +142,32 @@ XCamReturn PollThread::start ()
 
 XCamReturn PollThread::stop ()
 {
-    if (_3a_stats_pool.ptr ())
-        _3a_stats_pool->stop ();
-
     _event_loop->stop ();
     _capture_loop->stop ();
 
-    // can't release now, stats buffer may still in use
-    //_3a_stats_pool.release ();
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 PollThread::init_3a_stats_pool ()
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    struct atomisp_parm parameters;
-
-    xcam_mem_clear (parameters);
-    ret = _isp_controller->get_isp_parameter (parameters);
-    if (ret != XCAM_RETURN_NO_ERROR ) {
-        XCAM_LOG_WARNING ("get isp parameters failed");
-        return ret;
-    }
-    if (!parameters.info.width || !parameters.info.height) {
-        XCAM_LOG_WARNING ("get isp parameters width or height wrong");
-        return XCAM_RETURN_ERROR_ISP;
-    }
-    _3a_stats_pool.dynamic_cast_ptr<X3aStatisticsQueue>()->set_grid_info (parameters.info);
-    if (!_3a_stats_pool->reserve (6)) {
-        XCAM_LOG_WARNING ("init_3a_stats_pool failed to reserve stats buffer.");
-        return XCAM_RETURN_ERROR_MEM;
-    }
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 PollThread::capture_3a_stats (SmartPtr<X3aStats> &stats)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<X3aIspStatistics> new_stats =
-        _3a_stats_pool->get_buffer (_3a_stats_pool).dynamic_cast_ptr<X3aIspStatistics> ();
+    XCAM_UNUSED (stats);
 
-    if (!new_stats.ptr()) {
-        XCAM_LOG_WARNING ("request stats buffer failed.");
-        return XCAM_RETURN_ERROR_MEM;
-    }
-
-    ret = _isp_controller->get_3a_statistics (new_stats);
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_WARNING ("get 3a stats from ISP failed");
-        return ret;
-    }
-
-    if (!new_stats->fill_standard_stats ()) {
-        XCAM_LOG_WARNING ("isp 3a stats failed to fill standard stats but continued");
-    }
-
-    stats = new_stats;
-    return ret;
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 PollThread::handle_events (struct v4l2_event &event)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    switch (event.type) {
-    case V4L2_EVENT_ATOMISP_3A_STATS_READY:
-        ret = handle_3a_stats_event (event);
-        break;
-    case V4L2_EVENT_FRAME_SYNC:
-        break;
-    default:
-        ret = XCAM_RETURN_ERROR_UNKNOWN;
-        break;
-    }
+    XCAM_UNUSED (event);
 
-    return ret;
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn

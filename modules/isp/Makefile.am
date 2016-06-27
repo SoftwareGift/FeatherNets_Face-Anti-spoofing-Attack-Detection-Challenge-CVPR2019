@@ -1,4 +1,4 @@
-module_LTLIBRARIES = libxcam_isp.la
+lib_LTLIBRARIES = libxcam_isp.la
 
 PTHREAD_LDFLAGS = -pthread
 
@@ -25,6 +25,7 @@ endif
 xcam_isp_sources = \
     aiq3a_utils.cpp            \
     atomisp_device.cpp         \
+    isp_poll_thread.cpp        \
     isp_image_processor.cpp    \
     isp_controller.cpp         \
     isp_config_translator.cpp  \
@@ -33,9 +34,10 @@ xcam_isp_sources = \
 
 if ENABLE_IA_AIQ
 xcam_isp_sources += \
-    aiq_handler.cpp       \
-    hybrid_analyzer.cpp   \
-    x3a_analyzer_aiq.cpp  \
+    aiq_handler.cpp             \
+    hybrid_analyzer.cpp         \
+    hybrid_analyzer_loader.cpp  \
+    x3a_analyzer_aiq.cpp        \
     $(NULL)
 endif
 
@@ -46,8 +48,6 @@ XCAMISP_LIBS += \
     $(LIBDRM_LIBS)  \
     $(NULL)
 endif
-
-moduledir="$(libdir)/xcam"
 
 libxcam_isp_la_SOURCES = \
     $(xcam_isp_sources)  \

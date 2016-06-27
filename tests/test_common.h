@@ -1,5 +1,5 @@
 /*
- * test_utils.h - test utils
+ * test_common.h - test common
  *
  *  Copyright (c) 2015 Intel Corporation
  *

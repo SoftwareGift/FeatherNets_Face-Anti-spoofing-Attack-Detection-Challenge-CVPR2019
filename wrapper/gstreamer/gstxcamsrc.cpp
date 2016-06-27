@@ -38,11 +38,12 @@
 #include "gstxcamsrc.h"
 #include "gstxcaminterface.h"
 #include "gstxcambufferpool.h"
-#include "x3a_analyzer_loader.h"
+#include "dynamic_analyzer_loader.h"
+#include "hybrid_analyzer_loader.h"
 #include "x3a_analyze_tuner.h"
 #include "smart_analyzer_loader.h"
 #include "smart_analysis_handler.h"
-#include "poll_thread.h"
+#include "isp_poll_thread.h"
 #include "fake_poll_thread.h"
 #include "fake_v4l2_device.h"
 
@@ -860,7 +861,6 @@ gst_xcam_src_start (GstBaseSrc *src)
     }
 
     isp_controller = new IspController (capture_device);
-    device_manager->set_isp_controller (isp_controller);
 
     switch (xcamsrc->image_processor_type) {
 #if HAVE_LIBCL
@@ -943,9 +943,9 @@ gst_xcam_src_start (GstBaseSrc *src)
 #endif
     case DYNAMIC_ANALYZER: {
         XCAM_LOG_INFO ("dynamic 3a library: %s", xcamsrc->path_to_3alib);
-        SmartPtr<X3aAnalyzerLoader> loader = new X3aAnalyzerLoader (xcamsrc->path_to_3alib);
-
-        analyzer = loader->load_dynamic_analyzer (loader);
+        SmartPtr<DynamicAnalyzerLoader> dynamic_loader = new DynamicAnalyzerLoader (xcamsrc->path_to_3alib);
+        SmartPtr<AnalyzerLoader> loader = dynamic_loader.dynamic_cast_ptr<AnalyzerLoader> ();
+        analyzer = dynamic_loader->load_analyzer (loader);
         if (!analyzer.ptr ()) {
             XCAM_LOG_ERROR ("load dynamic analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
             return FALSE;
@@ -976,8 +976,11 @@ gst_xcam_src_start (GstBaseSrc *src)
     }
     case HYBRID_ANALYZER: {
         XCAM_LOG_INFO ("hybrid 3a library: %s", xcamsrc->path_to_3alib);
-        SmartPtr<X3aAnalyzerLoader> loader = new X3aAnalyzerLoader (xcamsrc->path_to_3alib);
-        analyzer = loader->load_hybrid_analyzer (loader, isp_controller, xcamsrc->path_to_cpf);
+        SmartPtr<HybridAnalyzerLoader> hybrid_loader = new HybridAnalyzerLoader (xcamsrc->path_to_3alib);
+        hybrid_loader->set_cpf_path (DEFAULT_CPF_FILE_NAME);
+        hybrid_loader->set_isp_controller (isp_controller);
+        SmartPtr<AnalyzerLoader> loader = hybrid_loader.dynamic_cast_ptr<AnalyzerLoader> ();
+        analyzer = hybrid_loader->load_analyzer (loader);
         if (!analyzer.ptr ()) {
             XCAM_LOG_ERROR ("load hybrid analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
             return FALSE;
@@ -1011,9 +1014,13 @@ gst_xcam_src_start (GstBaseSrc *src)
 
     if (xcamsrc->path_to_fake)
         poll_thread = new FakePollThread (xcamsrc->path_to_fake);
-    else
-        poll_thread = new PollThread ();
+    else {
+        SmartPtr<IspPollThread> isp_poll_thread = new IspPollThread ();
+        isp_poll_thread->set_isp_controller (isp_controller);
+        poll_thread = isp_poll_thread;
+    }
     device_manager->set_poll_thread (poll_thread);
+
     return TRUE;
 }
 

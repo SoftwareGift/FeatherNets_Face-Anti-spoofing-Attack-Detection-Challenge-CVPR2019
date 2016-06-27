@@ -23,10 +23,11 @@
 
 #include "xcam_utils.h"
 #include "x3a_analyzer.h"
+#include "dynamic_analyzer_loader.h"
 
 namespace XCam {
 
-class X3aAnalyzerLoader;
+class DynamicAnalyzerLoader;
 
 class X3aAnalyzerManager
 {
@@ -50,7 +51,7 @@ private:
     static SmartPtr<X3aAnalyzerManager> _instance;
     static Mutex                        _mutex;
 
-    SmartPtr<X3aAnalyzerLoader>         _loader;
+    SmartPtr<DynamicAnalyzerLoader>     _loader;
 };
 };
 #endif //XCAM_3A_ANALYZER_MANAGER_H

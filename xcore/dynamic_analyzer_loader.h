@@ -1,5 +1,5 @@
 /*
- * x3a_analyzer_loader.h - x3a analyzer loader
+ * dynamic_analyzer_loader.h - dynamic analyzer loader
  *
  *  Copyright (c) 2015 Intel Corporation
  *
@@ -19,8 +19,8 @@
  *         Zong Wei  <wei.zong@intel.com>
  */
 
-#ifndef XCAM_3A_ANALYZER_LOADER_H
-#define XCAM_3A_ANALYZER_LOADER_H
+#ifndef XCAM_DYNAMIC_ANALYZER_LOADER_H
+#define XCAM_DYNAMIC_ANALYZER_LOADER_H
 
 #include <base/xcam_common.h>
 #include <base/xcam_3a_description.h>
@@ -28,29 +28,24 @@
 #include "smartptr.h"
 
 namespace XCam {
-class IspController;
-class HybridAnalyzer;
 class X3aAnalyzer;
 
-class X3aAnalyzerLoader
+class DynamicAnalyzerLoader
     : public AnalyzerLoader
 {
 public:
-    X3aAnalyzerLoader (const char *lib_path, const char *symbol = XCAM_3A_LIB_DESCRIPTION);
-    virtual ~X3aAnalyzerLoader ();
+    DynamicAnalyzerLoader (const char *lib_path, const char *symbol = XCAM_3A_LIB_DESCRIPTION);
+    virtual ~DynamicAnalyzerLoader ();
 
-    SmartPtr<X3aAnalyzer> load_dynamic_analyzer (SmartPtr<X3aAnalyzerLoader> &self);
-    SmartPtr<X3aAnalyzer> load_hybrid_analyzer (SmartPtr<X3aAnalyzerLoader> &self,
-            SmartPtr<IspController> &isp,
-            const char *cpf_path);
+    virtual SmartPtr<X3aAnalyzer> load_analyzer (SmartPtr<AnalyzerLoader> &self);
 
 protected:
     virtual void *load_symbol (void* handle);
 
 private:
-    XCAM_DEAD_COPY(X3aAnalyzerLoader);
+    XCAM_DEAD_COPY(DynamicAnalyzerLoader);
 };
 
 };
 
-#endif //XCAM_3A_ANALYZER_LOADER_H
+#endif // XCAM_DYNAMIC_ANALYZER_LOADER_H

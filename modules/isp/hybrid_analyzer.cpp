@@ -27,12 +27,12 @@
 
 namespace XCam {
 HybridAnalyzer::HybridAnalyzer (XCam3ADescription *desc,
-                                SmartPtr<X3aAnalyzerLoader> &loader,
-                                SmartPtr<IspController> &isp,
-                                const char *cpf_path)
-    : DynamicAnalyzer (desc, loader, "HybridAnalyzer"),
-      _isp (isp),
-      _cpf_path (cpf_path)
+                                   SmartPtr<AnalyzerLoader> &loader,
+                                   SmartPtr<IspController> &isp,
+                                   const char *cpf_path)
+    : DynamicAnalyzer (desc, loader, "HybridAnalyzer")
+    , _isp (isp)
+    , _cpf_path (cpf_path)
 {
     _analyzer_aiq = new X3aAnalyzerAiq (isp, cpf_path);
     XCAM_ASSERT (_analyzer_aiq.ptr ());

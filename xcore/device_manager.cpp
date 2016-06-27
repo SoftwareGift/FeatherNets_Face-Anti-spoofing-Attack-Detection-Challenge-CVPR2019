@@ -23,11 +23,6 @@
 #include "xcam_thread.h"
 #include "x3a_image_process_center.h"
 #include "x3a_analyzer_manager.h"
-#include "isp_image_processor.h"
-#include "isp_controller.h"
-#if HAVE_IA_AIQ
-#include "x3a_analyzer_aiq.h"
-#endif
 
 #define XCAM_FAILED_STOP(exp, msg, ...)                 \
     if ((exp) != XCAM_RETURN_NO_ERROR) {                \
@@ -114,17 +109,6 @@ DeviceManager::set_event_device (SmartPtr<V4l2SubDevice> device)
 }
 
 bool
-DeviceManager::set_isp_controller (SmartPtr<IspController> controller)
-{
-    if (is_running())
-        return false;
-
-    XCAM_ASSERT (controller.ptr () && !_isp_controller.ptr ());
-    _isp_controller = controller;
-    return true;
-}
-
-bool
 DeviceManager::set_3a_analyzer (SmartPtr<X3aAnalyzer> analyzer)
 {
     if (is_running())
@@ -189,11 +173,6 @@ DeviceManager::start ()
         XCAM_FAILED_STOP (ret = _subdevice->start(), "start event device failed");
     }
 
-    //suppose _device and _subdevice already started
-    if (!_isp_controller.ptr ())
-        _isp_controller = new IspController (_device);
-    XCAM_ASSERT (_isp_controller.ptr());
-
     if (_has_3a) {
         // Initialize and start analyzer
         uint32_t width = 0, height = 0;
@@ -234,12 +213,8 @@ DeviceManager::start ()
             }
         }
 
-        // Initialize and start image processors
-        if (!_3a_process_center->has_processors()) {
-            // default processor
-            SmartPtr<ImageProcessor> default_processor = new IspImageProcessor (_isp_controller);
-            XCAM_ASSERT (default_processor.ptr ());
-            _3a_process_center->insert_processor (default_processor);
+        if (!_3a_process_center->has_processors ()) {
+            XCAM_LOG_ERROR ("image processors empty");
         }
 
         _3a_process_center->set_image_callback(this);
@@ -252,7 +227,6 @@ DeviceManager::start ()
     _poll_thread->set_capture_device (_device);
     if (_subdevice.ptr ())
         _poll_thread->set_event_device (_subdevice);
-    _poll_thread->set_isp_controller (_isp_controller);
     _poll_thread->set_poll_callback (this);
     _poll_thread->set_stats_callback (this);
 
@@ -289,7 +263,6 @@ DeviceManager::stop ()
 
     _device->stop ();
 
-    _isp_controller.release ();
     _poll_thread.release ();
 
     XCAM_LOG_DEBUG ("Device manager stopped");

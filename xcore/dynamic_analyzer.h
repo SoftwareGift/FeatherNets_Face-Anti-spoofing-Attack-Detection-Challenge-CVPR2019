@@ -22,11 +22,11 @@
 #define XCAM_DYNAMIC_ANALYZER_H
 
 #include <base/xcam_3a_description.h>
-#include "x3a_analyzer_loader.h"
 #include "x3a_analyzer.h"
 #include "x3a_stats_pool.h"
 #include "handler_interface.h"
 #include "x3a_result_factory.h"
+#include "analyzer_loader.h"
 
 namespace XCam {
 
@@ -39,7 +39,7 @@ class DynamicAnalyzer
     : public X3aAnalyzer
 {
 public:
-    DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<X3aAnalyzerLoader> &loader, const char *name = "DynamicAnalyzer");
+    DynamicAnalyzer (XCam3ADescription *desc, SmartPtr<AnalyzerLoader> &loader, const char *name = "DynamicAnalyzer");
     ~DynamicAnalyzer ();
 
     virtual XCamReturn configure_3a ();
@@ -71,11 +71,11 @@ private:
     XCAM_DEAD_COPY (DynamicAnalyzer);
 
 private:
-    XCam3ADescription           *_desc;
-    XCam3AContext               *_context;
-    SmartPtr<X3aStats>           _cur_stats;
-    SmartPtr<DynamicCommonHandler> _common_handler;
-    SmartPtr<X3aAnalyzerLoader>    _loader;
+    XCam3ADescription                  *_desc;
+    XCam3AContext                      *_context;
+    SmartPtr<X3aStats>                 _cur_stats;
+    SmartPtr<DynamicCommonHandler>     _common_handler;
+    SmartPtr<AnalyzerLoader>           _loader;
 };
 
 class DynamicAeHandler

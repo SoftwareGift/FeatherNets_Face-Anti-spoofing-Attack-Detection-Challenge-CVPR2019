@@ -10,5 +10,5 @@ else
 CLX_BIN_DIR =
 endif
 
-SUBDIRS = $(CLX_KERNEL_DIR) $(CLX_BIN_DIR) modules xcore plugins \
+SUBDIRS = xcore $(CLX_KERNEL_DIR) $(CLX_BIN_DIR) modules plugins \
           wrapper tests pkgconfig

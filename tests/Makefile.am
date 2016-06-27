@@ -49,13 +49,11 @@ test_cl_image_SOURCES = test-cl-image.cpp
 test_cl_image_CXXFLAGS = \
 	$(tests_cxxflags)              \
 	-I$(top_builddir)/xcore        \
-	-I$(top_builddir)/modules/isp  \
 	-I$(top_builddir)/modules/ocl  \
 	$(NULL)
 
 test_cl_image_LDADD = \
 	$(top_builddir)/xcore/libxcam_core.la       \
-	$(top_builddir)/modules/isp/libxcam_isp.la  \
 	$(top_builddir)/modules/ocl/libxcam_ocl.la  \
 	$(NULL)
 

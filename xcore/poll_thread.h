@@ -27,12 +27,9 @@
 #include "v4l2_buffer_proxy.h"
 #include "x3a_stats_pool.h"
 #include "v4l2_device.h"
-#include "isp_controller.h"
 #include "stats_callback_interface.h"
 
 namespace XCam {
-
-class X3aStats;
 
 class PollCallback
 {
@@ -49,7 +46,6 @@ private:
 
 class V4l2Device;
 class V4l2SubDevice;
-class X3aStatisticsQueue;
 class EventPollThread;
 class CapturePollThread;
 
@@ -64,7 +60,6 @@ public:
 
     bool set_capture_device (SmartPtr<V4l2Device> &dev);
     bool set_event_device (SmartPtr<V4l2SubDevice> &sub_dev);
-    bool set_isp_controller (SmartPtr<IspController>  &isp);
     bool set_poll_callback (PollCallback *callback);
     bool set_stats_callback (StatsCallback *callback);
 
@@ -75,13 +70,12 @@ protected:
     XCamReturn poll_subdev_event_loop ();
     virtual XCamReturn poll_buffer_loop ();
 
-    XCamReturn handle_events (struct v4l2_event &event);
+    virtual XCamReturn handle_events (struct v4l2_event &event);
     XCamReturn handle_3a_stats_event (struct v4l2_event &event);
 
 private:
     virtual XCamReturn init_3a_stats_pool ();
-    XCamReturn capture_3a_stats (SmartPtr<X3aStats> &stats);
-
+    virtual XCamReturn capture_3a_stats (SmartPtr<X3aStats> &stats);
 
 private:
     XCAM_DEAD_COPY (PollThread);
@@ -94,10 +88,7 @@ private:
     SmartPtr<CapturePollThread>      _capture_loop;
 
     SmartPtr<V4l2SubDevice>          _event_dev;
-    SmartPtr<X3aStatsPool>           _3a_stats_pool;
-
     SmartPtr<V4l2Device>             _capture_dev;
-    SmartPtr<IspController>          _isp_controller;
 
     PollCallback                    *_poll_callback;
     StatsCallback                   *_stats_callback;

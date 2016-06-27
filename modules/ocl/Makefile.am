@@ -1,4 +1,4 @@
-module_LTLIBRARIES = libxcam_ocl.la
+lib_LTLIBRARIES = libxcam_ocl.la
 
 PTHREAD_LDFLAGS = -pthread
 
@@ -69,8 +69,6 @@ xcam_ocl_sources = \
     priority_buffer_queue.cpp          \
     $(NULL)
 
-moduledir="$(libdir)/xcam"
-
 libxcam_ocl_la_SOURCES = \
     $(xcam_ocl_sources)    \
     $(NULL)
@@ -78,7 +76,6 @@ libxcam_ocl_la_SOURCES = \
 libxcam_ocl_la_CXXFLAGS = \
     $(XCAMOCL_CXXFLAGS)            \
     -I$(top_builddir)/xcore        \
-    -I$(top_builddir)/modules/isp  \
     -I$(top_builddir)/modules/ocl  \
     $(NULL)
 
