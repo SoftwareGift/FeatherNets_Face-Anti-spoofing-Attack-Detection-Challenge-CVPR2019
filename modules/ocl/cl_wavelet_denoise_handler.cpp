@@ -126,7 +126,7 @@ CLWaveletDenoiseImageKernel::prepare_arguments (
     args[11].arg_adress = &_soft_threshold;
     args[11].arg_size = sizeof (_soft_threshold);
 
-    if (_channel & CL_WAVELET_CHANNEL_UV) {
+    if (_channel & CL_IMAGE_CHANNEL_UV) {
         work_size.global[0] = video_info_in.width / 16;
         work_size.global[1] = video_info_in.height / 2;
     } else {
@@ -208,7 +208,7 @@ create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t 
         ret = wavelet_kernel->load_from_source (
                   kernel_wavelet_denoise_body, strlen (kernel_wavelet_denoise_body),
                   NULL, NULL,
-                  (channel & CL_WAVELET_CHANNEL_UV) ? "-DWAVELET_DENOISE_UV=1" : "-DWAVELET_DENOISE_UV=0");
+                  (channel & CL_IMAGE_CHANNEL_UV) ? "-DWAVELET_DENOISE_UV=1" : "-DWAVELET_DENOISE_UV=0");
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,

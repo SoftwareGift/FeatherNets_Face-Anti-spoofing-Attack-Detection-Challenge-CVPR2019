@@ -321,7 +321,7 @@ void print_help (const char *bin_name)
             "\t               select from [disabled, retinex, dcp], default is [disabled]\n"
             "\t --enable-retinex  enable retinex\n"
             "\t --wavelet-mode specify wavelet denoise mode, default is off\n"
-            "\t                select from [0:disable, 1:Hat Y, 2:Hat UV, 3:Haar Y, 4:Haar UV, 5:Haar YUV]\n"
+            "\t                select from [0:disable, 1:Hat Y, 2:Hat UV, 3:Haar Y, 4:Haar UV, 5:Haar YUV, 6:Haar Bayes Shrink]\n"
             "\t --enable-wireframe  enable wire frame\n"
             "\t --pipeline    pipe mode\n"
             "\t               select from [basic, advance, extreme], default is [basic]\n"
@@ -373,7 +373,8 @@ int main (int argc, char *argv[])
     bool wdr_type = false;
     uint32_t defog_type = 0;
     CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
-    uint32_t wavelet_channel = CL_WAVELET_CHANNEL_UV;
+    uint32_t wavelet_channel = CL_IMAGE_CHANNEL_UV;
+    bool wavelet_bayes_shrink = false;
     bool wireframe_type = false;
 
     int32_t brightness_level = 128;
@@ -564,19 +565,23 @@ int main (int argc, char *argv[])
             }
             if (atoi(optarg) == 1) {
                 wavelet_mode = CL_WAVELET_HAT;
-                wavelet_channel = CL_WAVELET_CHANNEL_Y;
+                wavelet_channel = CL_IMAGE_CHANNEL_Y;
             } else if (atoi(optarg) == 2) {
                 wavelet_mode = CL_WAVELET_HAT;
-                wavelet_channel = CL_WAVELET_CHANNEL_UV;
+                wavelet_channel = CL_IMAGE_CHANNEL_UV;
             } else if (atoi(optarg) == 3) {
                 wavelet_mode = CL_WAVELET_HAAR;
-                wavelet_channel = CL_WAVELET_CHANNEL_Y;
+                wavelet_channel = CL_IMAGE_CHANNEL_Y;
             } else if (atoi(optarg) == 4) {
                 wavelet_mode = CL_WAVELET_HAAR;
-                wavelet_channel = CL_WAVELET_CHANNEL_UV;
+                wavelet_channel = CL_IMAGE_CHANNEL_UV;
             } else if (atoi(optarg) == 5) {
                 wavelet_mode = CL_WAVELET_HAAR;
-                wavelet_channel = CL_WAVELET_CHANNEL_UV | CL_WAVELET_CHANNEL_Y;
+                wavelet_channel = CL_IMAGE_CHANNEL_UV | CL_IMAGE_CHANNEL_Y;
+            } else if (atoi(optarg) == 6) {
+                wavelet_mode = CL_WAVELET_HAAR;
+                wavelet_channel = CL_IMAGE_CHANNEL_UV | CL_IMAGE_CHANNEL_Y;
+                wavelet_bayes_shrink = true;
             } else {
                 wavelet_mode = CL_WAVELET_DISABLED;
             }
@@ -812,7 +817,7 @@ int main (int argc, char *argv[])
         cl_processor->set_denoise (denoise_type);
         cl_processor->set_tonemapping(wdr_mode);
         cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
-        cl_processor->set_wavelet (wavelet_mode, wavelet_channel);
+        cl_processor->set_wavelet (wavelet_mode, wavelet_channel, wavelet_bayes_shrink);
         cl_processor->set_wireframe (wireframe_type);
         cl_processor->set_capture_stage (capture_stage);
 

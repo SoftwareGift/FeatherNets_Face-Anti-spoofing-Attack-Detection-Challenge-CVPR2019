@@ -40,9 +40,9 @@ enum CLWaveletBasis {
     CL_WAVELET_HAAR,
 };
 
-enum CLWaveletChannel {
-    CL_WAVELET_CHANNEL_Y = 1,
-    CL_WAVELET_CHANNEL_UV = 1 << 1,
+enum CLImageChannel {
+    CL_IMAGE_CHANNEL_Y = 1,
+    CL_IMAGE_CHANNEL_UV = 1 << 1,
 };
 
 inline double

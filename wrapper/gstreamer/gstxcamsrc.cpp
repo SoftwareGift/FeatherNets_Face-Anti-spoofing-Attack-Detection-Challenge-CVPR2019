@@ -201,6 +201,7 @@ gst_xcam_src_wavelet_mode_get_type (void)
         {HARR_WAVELET_Y, "Haar wavelet Y", "haar Y"},
         {HARR_WAVELET_UV, "Haar wavelet UV", "haar UV"},
         {HARR_WAVELET_YUV, "Haar wavelet YUV", "haar YUV"},
+        {HARR_WAVELET_BAYES, "Haar wavelet bayes shrink", "haar Bayes"},
         {0, NULL, NULL},
     };
 
@@ -888,17 +889,19 @@ gst_xcam_src_start (GstBaseSrc *src)
 
         if (NONE_WAVELET != xcamsrc->wavelet_mode) {
             if (HAT_WAVELET_Y == xcamsrc->wavelet_mode) {
-                cl_processor->set_wavelet (CL_WAVELET_HAT, CL_WAVELET_CHANNEL_Y);
+                cl_processor->set_wavelet (CL_WAVELET_HAT, CL_IMAGE_CHANNEL_Y, false);
             } else if (HAT_WAVELET_UV == xcamsrc->wavelet_mode) {
-                cl_processor->set_wavelet (CL_WAVELET_HAT, CL_WAVELET_CHANNEL_UV);
+                cl_processor->set_wavelet (CL_WAVELET_HAT, CL_IMAGE_CHANNEL_UV, false);
             } else if (HARR_WAVELET_Y == xcamsrc->wavelet_mode) {
-                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_WAVELET_CHANNEL_Y);
+                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_Y, false);
             } else if (HARR_WAVELET_UV == xcamsrc->wavelet_mode) {
-                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_WAVELET_CHANNEL_UV);
+                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_UV, false);
             } else if (HARR_WAVELET_YUV == xcamsrc->wavelet_mode) {
-                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_WAVELET_CHANNEL_UV | CL_WAVELET_CHANNEL_Y);
+                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_UV | CL_IMAGE_CHANNEL_Y, false);
+            } else if (HARR_WAVELET_BAYES == xcamsrc->wavelet_mode) {
+                cl_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_UV | CL_IMAGE_CHANNEL_Y, true);
             } else {
-                cl_processor->set_wavelet (CL_WAVELET_DISABLED, CL_WAVELET_CHANNEL_UV);
+                cl_processor->set_wavelet (CL_WAVELET_DISABLED, CL_IMAGE_CHANNEL_UV, false);
             }
         }
 
@@ -1078,7 +1081,7 @@ translate_format_to_xcam (GstVideoFormat format)
     case GST_VIDEO_FORMAT_Y42B:
         return V4L2_PIX_FMT_YUV422P;
 
-        //RGB
+    //RGB
     case GST_VIDEO_FORMAT_RGBx:
         return V4L2_PIX_FMT_RGB32;
     case GST_VIDEO_FORMAT_BGRx:

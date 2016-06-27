@@ -144,7 +144,8 @@ public:
                                        SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
                                        CLWaveletFilterBank fb,
                                        uint32_t channel,
-                                       uint32_t layer);
+                                       uint32_t layer,
+                                       bool bayes_shrink);
 
     SmartPtr<CLWaveletDecompBuffer> get_decomp_buffer (uint32_t channel, int layer);
 
@@ -164,6 +165,7 @@ private:
     uint32_t  _decomposition_levels;
     uint32_t  _channel;
     uint32_t  _current_layer;
+    bool      _bayes_shrink;
     float     _hard_threshold;
     float     _soft_threshold;
 
@@ -204,7 +206,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel);
+create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel, bool bayes_shrink);
 
 };
 

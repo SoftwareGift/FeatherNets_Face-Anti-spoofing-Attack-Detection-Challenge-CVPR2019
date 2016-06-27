@@ -66,6 +66,7 @@ typedef enum {
     HARR_WAVELET_Y,
     HARR_WAVELET_UV,
     HARR_WAVELET_YUV,
+    HARR_WAVELET_BAYES,
 } WaveletModeType;
 
 typedef enum {

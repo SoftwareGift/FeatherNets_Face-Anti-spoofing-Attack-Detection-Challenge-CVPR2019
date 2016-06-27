@@ -561,7 +561,7 @@ int main (int argc, char *argv[])
         break;
     }
     case TestHandlerHatWavelet: {
-        image_handler = create_cl_wavelet_denoise_image_handler (context, CL_WAVELET_CHANNEL_UV);
+        image_handler = create_cl_wavelet_denoise_image_handler (context, CL_IMAGE_CHANNEL_UV);
         SmartPtr<CLWaveletDenoiseImageHandler> wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
         XCAM_ASSERT (wavelet.ptr ());
         XCam3aResultWaveletNoiseReduction wavelet_config;
@@ -574,7 +574,7 @@ int main (int argc, char *argv[])
         break;
     }
     case TestHandlerHaarWavelet: {
-        image_handler = create_cl_newwavelet_denoise_image_handler (context, CL_WAVELET_CHANNEL_UV | CL_WAVELET_CHANNEL_Y);
+        image_handler = create_cl_newwavelet_denoise_image_handler (context, CL_IMAGE_CHANNEL_UV | CL_IMAGE_CHANNEL_Y, false);
         SmartPtr<CLNewWaveletDenoiseImageHandler> wavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
         XCAM_ASSERT (wavelet.ptr ());
         XCam3aResultWaveletNoiseReduction wavelet_config;

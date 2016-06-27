@@ -92,7 +92,7 @@ public:
     virtual bool set_scaler (bool enable);
     virtual bool set_wireframe (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
-    virtual bool set_wavelet (CLWaveletBasis basis, uint32_t channel);
+    virtual bool set_wavelet (CLWaveletBasis basis, uint32_t channel, bool bayes_shrink);
     virtual bool set_tonemapping (CLTonemappingMode wdr_mode);
 
     PipelineProfile get_profile () const {
@@ -145,6 +145,7 @@ private:
     bool                                _enable_wireframe;
     CLWaveletBasis                      _wavelet_basis;
     uint32_t                            _wavelet_channel;
+    bool                                _wavelet_bayes_shrink;
     uint32_t                            _snr_mode; // spatial nr mode
 };
 

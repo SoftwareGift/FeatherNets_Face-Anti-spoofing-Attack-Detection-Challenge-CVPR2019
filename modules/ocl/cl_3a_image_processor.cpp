@@ -55,7 +55,8 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _enable_scaler (false)
     , _enable_wireframe (false)
     , _wavelet_basis (CL_WAVELET_DISABLED)
-    , _wavelet_channel (CL_WAVELET_CHANNEL_UV)
+    , _wavelet_channel (CL_IMAGE_CHANNEL_UV)
+    , _wavelet_bayes_shrink (false)
     , _snr_mode (0)
 {
     keep_attached_buf (true);
@@ -433,7 +434,7 @@ CL3aImageProcessor::create_handlers ()
         break;
     }
     case CL_WAVELET_HAAR: {
-        image_handler = create_cl_newwavelet_denoise_image_handler (context, _wavelet_channel);
+        image_handler = create_cl_newwavelet_denoise_image_handler (context, _wavelet_channel, _wavelet_bayes_shrink);
         _newwavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
         XCAM_FAIL_RETURN (
             WARNING,
@@ -561,10 +562,11 @@ CL3aImageProcessor::set_gamma (bool enable)
 }
 
 bool
-CL3aImageProcessor::set_wavelet (CLWaveletBasis basis, uint32_t channel)
+CL3aImageProcessor::set_wavelet (CLWaveletBasis basis, uint32_t channel, bool bayes_shrink)
 {
     _wavelet_basis = basis;
-    _wavelet_channel = (CLWaveletChannel)channel;
+    _wavelet_channel = (CLImageChannel)channel;
+    _wavelet_bayes_shrink = bayes_shrink;
 
     STREAM_LOCK;
 
