@@ -49,11 +49,11 @@ public:
     XCamReturn start ();
     XCamReturn stop ();
 
-protected:
     virtual XCamReturn push_buffer (SmartPtr<VideoBuffer> &buf);
-    virtual void post_buffer (const SmartPtr<VideoBuffer> &buf) = 0;
 
 protected:
+    virtual void post_buffer (const SmartPtr<VideoBuffer> &buf) = 0;
+
     // virtual functions derived from PollCallback
     virtual XCamReturn scaled_image_ready (const SmartPtr<BufferProxy> &buffer);
 

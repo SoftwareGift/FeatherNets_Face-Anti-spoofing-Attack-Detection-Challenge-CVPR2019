@@ -1,7 +1,11 @@
 noinst_PROGRAMS = test-device-manager test-poll-thread
 
 if HAVE_LIBCL
-noinst_PROGRAMS += test-cl-image test-binary-kernel
+noinst_PROGRAMS += \
+    test-cl-image       \
+    test-binary-kernel  \
+    test-pipe-manager   \
+    $(NULL)
 endif
 
 tests_cxxflags = $(XCAM_CXXFLAGS)
@@ -65,6 +69,18 @@ test_binary_kernel_CXXFLAGS = \
 	$(NULL)
 
 test_binary_kernel_LDADD = \
+	$(top_builddir)/xcore/libxcam_core.la       \
+	$(top_builddir)/modules/ocl/libxcam_ocl.la  \
+	$(NULL)
+
+test_pipe_manager_SOURCES = test-pipe-manager.cpp
+test_pipe_manager_CXXFLAGS = \
+	$(tests_cxxflags)              \
+	-I$(top_builddir)/xcore        \
+	-I$(top_builddir)/modules/ocl  \
+	$(NULL)
+
+test_pipe_manager_LDADD = \
 	$(top_builddir)/xcore/libxcam_core.la       \
 	$(top_builddir)/modules/ocl/libxcam_ocl.la  \
 	$(NULL)

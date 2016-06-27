@@ -34,8 +34,13 @@ class StatsCallback {
 public:
     StatsCallback () {}
     virtual ~StatsCallback() {}
-    virtual XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats) = 0;
-    virtual XCamReturn dvs_stats_ready () = 0;
+    virtual XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats) {
+        XCAM_UNUSED (stats);
+        return XCAM_RETURN_NO_ERROR;
+    }
+    virtual XCamReturn dvs_stats_ready () {
+        return XCAM_RETURN_NO_ERROR;
+    }
     virtual XCamReturn scaled_image_ready (const SmartPtr<BufferProxy> &buffer) = 0;
 
 private:
