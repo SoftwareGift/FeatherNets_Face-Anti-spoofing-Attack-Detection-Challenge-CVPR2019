@@ -173,7 +173,7 @@ private:
 };
 
 class CLNewWaveletDenoiseImageHandler
-    : public CLCloneImageHandler
+    : public CLImageHandler
 {
     typedef std::list<SmartPtr<CLWaveletDecompBuffer>> CLWaveletDecompBufferList;
 

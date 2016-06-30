@@ -544,7 +544,7 @@ CLWaveletTransformKernel::get_decomp_buffer (uint32_t channel, int layer)
 }
 
 CLNewWaveletDenoiseImageHandler::CLNewWaveletDenoiseImageHandler (const char *name, uint32_t channel)
-    : CLCloneImageHandler (name)
+    : CLImageHandler (name)
     , _channel (channel)
 {
     _config.decomposition_levels = 5;
@@ -557,7 +557,7 @@ XCamReturn
 CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    CLCloneImageHandler::prepare_output_buf(input, output);
+    CLImageHandler::prepare_output_buf(input, output);
 
     SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
     const VideoBufferInfo & video_info = input->get_video_info ();
@@ -1035,15 +1035,6 @@ create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32
                 create_kernel_haar_reconstruction (context, wavelet_handler, CL_IMAGE_CHANNEL_UV, layer, bayes_shrink);
             wavelet_handler->add_kernel (image_kernel);
         }
-    }
-
-    if ((channel & CL_IMAGE_CHANNEL_Y) &&
-            (channel & CL_IMAGE_CHANNEL_UV)) {
-        wavelet_handler->set_clone_flags (SwappedBuffer::SwapY | SwappedBuffer::SwapUV);
-    } else if (channel & CL_IMAGE_CHANNEL_UV) {
-        wavelet_handler->set_clone_flags (SwappedBuffer::SwapUV);
-    } else if (channel & CL_IMAGE_CHANNEL_Y) {
-        wavelet_handler->set_clone_flags (SwappedBuffer::SwapY);
     }
 
     return wavelet_handler;
