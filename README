@@ -19,12 +19,15 @@ Features:
        Gamma correction, MACC, color space, demosaicing, noise reduction,
        edge enhancement.
     - Advanced features
-       - Noise reduction: simple bilateral NR, temporal NR, wavelet NR
+       - Noise reduction: simple bilateral NR, temporal NR, wavelet NR,
+         adaptive NR with Bayesian shrinkage.
        - WDR: gaussian-based tone-mapping, histogram adjustment tone-mapping
        - Fog removal: retinex algorithm.
   * Capture features support memory type of mmap and dma buffer.
   * Support 3rd party 3A lib which can be loaded dynamically.
+       - hybrid 3a plugin
   * Image processing based on both ISP and Open CL.
   * Support 3a analysis tuning framework for different features
   * Support smart analysis framework
+       - Face detection interface/plugin
   * Support as gstreamer plugin <xcamsrc>

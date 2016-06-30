@@ -1,3 +1,39 @@
+2016/06/30: release libxcam version 0.6.0
+ * enable block-split version of histogram based WDR tone-mapping algorithm.
+   - divide image into several blocks and apply bidirectional log based
+     function on luminance to improve the contrast inside each block.
+   - apply weight function based on distance between target pixel and center
+     pixel of each neighbor block to smooth and eliminate block boundaries.
+   - apply weight function based on pixel intensity deviation between neighbor
+     blocks keep differentiation and weaken boundaries.
+   - image quality is improved and more details in both over-exposured and
+     under-exposured area can be shown clearly on screen.
+
+ * Bayesian wavelet shrinkage for adaptive noise filtering.
+    - enable adaptive noise filtering based on Bayesian shrinkage estimation
+    - estimate the image’s background noise level by analyzing.
+      wavelet coefficient.
+    - optimize the threshold T which minimizes the Bayesian risk,
+      i.e, the expected value of the mean square error.
+
+ * Haar wavelet tuning improvement.
+    - fine tuning the threshold statistic data for ultra-low light condition.
+      to prevent edge from over smoothing.
+
+ * face detection supports.
+   - enable face detection framework and support FD plugins.
+   - enable wire-frame to track faces.
+
+ * fog removal improvement based on Retinex algorithm.
+   - support multi-scale algorithm to reduce halo effects.
+   - tune parameters to keep brightness and clear edge.
+   - improve saturation based on chroma enhancement.
+
+ * image processing service framework.
+   - add pipe-manager to support smart-analysis and post image processor.
+   - separate major code into different modules, e.g. xcore/isp/ocl/3a.
+   - support NV12 stream as fake input instead of camera sensor.
+
 2016/03/28: release libxcam version 0.5.0
  * enable new WDR tone mapping based on histogram adjustment.
     - apply bidirectional log based function on luminance to improve
