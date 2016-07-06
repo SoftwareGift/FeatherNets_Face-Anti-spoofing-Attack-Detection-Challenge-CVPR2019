@@ -166,8 +166,8 @@ void print_help (const char *bin_name)
 {
     printf ("Usage: %s [--format=NV12] [--width==1080] ...\n"
             "\t --format        specify output pixel format, default is NV12\n"
-            "\t --width         specify input image width, default is 1080\n"
-            "\t --height        specify input image height, default is 1920\n"
+            "\t --width         specify input image width, default is 1920\n"
+            "\t --height        specify input image height, default is 1080\n"
             "\t --fake-input    specify the path of image as fake source\n"
             "\t --defog-mode    specify defog mode\n"
             "\t                 select from [disabled, retinex, dcp], default is [disabled]\n"
@@ -317,13 +317,14 @@ int main (int argc, char *argv[])
         XCAM_LOG_ERROR ("init drm buffer pool failed");
         return -1;
     }
-    SmartPtr<DrmBoBuffer> drm_bo_buf = drm_buf_pool->get_buffer (drm_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
-    if (!drm_bo_buf.ptr ()) {
-        XCAM_LOG_ERROR ("get drm buffer failed");
-        return -1;
-    }
 
     while (!is_stop) {
+        SmartPtr<DrmBoBuffer> drm_bo_buf = drm_buf_pool->get_buffer (drm_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+        if (!drm_bo_buf.ptr ()) {
+            XCAM_LOG_ERROR ("get drm buffer failed");
+            return -1;
+        }
+
         ret = read_buf (drm_bo_buf, input_fp);
         if (ret == XCAM_RETURN_BYPASS) {
             ret = read_buf (drm_bo_buf, input_fp);
