@@ -106,5 +106,7 @@
 
 // align must be a interger of power 2
 #define XCAM_ALIGN_UP(value, align) (((value)+((align)-1))&(~((align)-1)))
+#define XCAM_ALIGN_DOWN(value, align) ((value)&(~((align)-1)))
+#define XCAM_ALIGN_AROUND(value, align) (((value)+(align)/2)/(align)*(align))
 
 #endif //XCAM_DEFS_H

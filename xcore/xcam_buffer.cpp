@@ -46,6 +46,13 @@ xcam_video_buffer_info_reset (
     info->aligned_height = aligned_height;
 
     switch (format) {
+    case V4L2_PIX_FMT_GREY:
+        info->color_bits = 8;
+        info->components = 1;
+        info->strides [0] = aligned_width;
+        info->offsets [0] = 0;
+        image_size = info->strides [0] * aligned_height;
+        break;
     case V4L2_PIX_FMT_NV12:
         info->color_bits = 8;
         info->components = 2;
@@ -222,6 +229,7 @@ xcam_video_buffer_get_planar_info (
         }
         break;
 
+    case V4L2_PIX_FMT_GREY:
     case V4L2_PIX_FMT_YUYV:
     case V4L2_PIX_FMT_RGB565:
     case V4L2_PIX_FMT_SBGGR8:

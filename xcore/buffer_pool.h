@@ -70,6 +70,9 @@ public:
     bool copy_attaches (const SmartPtr<BufferProxy>& buf);
     void clear_attached_buffers ();
 
+    template <typename BufType>
+    SmartPtr<BufType> find_typed_attach ();
+
 protected:
     SmartPtr<BufferData> &get_buffer_data () {
         return _data;
@@ -86,6 +89,19 @@ private:
     SmartPtr<BufferPool>       _pool;
     SmartPtr<VideoBuffer>      _parent;
 };
+
+template <typename BufType>
+SmartPtr<BufType> BufferProxy::find_typed_attach ()
+{
+    for (VideoBufferList::iterator iter = _attached_bufs.begin ();
+            iter != _attached_bufs.end (); ++iter) {
+        SmartPtr<BufType> buf = (*iter).dynamic_cast_ptr<BufType> ();
+        if (buf.ptr ())
+            return buf;
+    }
+
+    return NULL;
+}
 
 class BufferPool {
     friend class BufferProxy;
