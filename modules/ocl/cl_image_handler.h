@@ -50,7 +50,7 @@ class CLImageKernel
     : public CLKernel
 {
 public:
-    explicit CLImageKernel (SmartPtr<CLContext> &context, const char *name, bool enable = true);
+    explicit CLImageKernel (SmartPtr<CLContext> &context, const char *name = NULL, bool enable = true);
     virtual ~CLImageKernel ();
 
     void set_enable (bool enable) {
@@ -82,8 +82,11 @@ private:
     bool                _enable;
 };
 
+class CLMultiImageHandler;
 class CLImageHandler
 {
+    friend class CLMultiImageHandler;
+
 public:
     typedef std::list<SmartPtr<CLImageKernel>> KernelList;
     enum BufferPoolType {
@@ -112,6 +115,13 @@ public:
         XCAM_ASSERT (size);
         _buf_pool_size = size;
     }
+    void disable_buf_pool (bool flag) {
+        _disable_buf_pool = flag;
+    }
+
+    bool is_buf_pool_disabled () const {
+        return _disable_buf_pool;
+    }
 
     bool enable_buf_pool_swap_flags (
         uint32_t flags,
@@ -131,10 +141,14 @@ protected:
 
     // if derive prepare_output_buf, then prepare_buffer_pool_video_info is not involked
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
     XCamReturn create_buffer_pool (const VideoBufferInfo &video_info);
     SmartPtr<BufferPool> &get_buffer_pool () {
         return _buf_pool;
     }
+
+    bool append_kernels (SmartPtr<CLImageHandler> handler);
 
 private:
     XCAM_DEAD_COPY (CLImageHandler);
@@ -144,6 +158,7 @@ private:
     KernelList                 _kernels;
     SmartPtr<BufferPool>       _buf_pool;
     BufferPoolType             _buf_pool_type;
+    bool                       _disable_buf_pool;
     uint32_t                   _buf_pool_size;
     uint32_t                   _buf_swap_flags;
     uint32_t                   _buf_swap_init_order;

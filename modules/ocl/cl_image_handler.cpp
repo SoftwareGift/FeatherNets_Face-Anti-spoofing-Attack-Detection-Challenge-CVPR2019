@@ -142,6 +142,7 @@ CLImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 CLImageHandler::CLImageHandler (const char *name)
     : _name (NULL)
     , _buf_pool_type (CLImageHandler::CLBoPoolType)
+    , _disable_buf_pool (false)
     , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
     , _buf_swap_flags ((uint32_t)(SwappedBuffer::OrderY0Y1) | (uint32_t)(SwappedBuffer::OrderUV0UV1))
     , _buf_swap_init_order (SwappedBuffer::OrderY0Y1)
@@ -263,10 +264,20 @@ XCamReturn CLImageHandler::prepare_buffer_pool_video_info (
 }
 
 XCamReturn
+CLImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_ASSERT (input.ptr () && output.ptr ());
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     SmartPtr<BufferProxy> new_buf;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    if (_disable_buf_pool)
+        return XCAM_RETURN_NO_ERROR;
 
     if (!_buf_pool.ptr ()) {
         VideoBufferInfo output_video_info;
@@ -336,8 +347,13 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
         (ret = prepare_output_buf (input, output)) == XCAM_RETURN_NO_ERROR,
         ret,
         "cl_image_handler (%s) prepare output buf failed", XCAM_STR (_name));
-
     XCAM_ASSERT (output.ptr ());
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        (ret = prepare_parameters (input, output)) == XCAM_RETURN_NO_ERROR,
+        ret,
+        "cl_image_handler (%s) prepare parameters failed", XCAM_STR (_name));
 
     for (KernelList::iterator i_kernel = _kernels.begin ();
             i_kernel != _kernels.end (); ++i_kernel) {
@@ -391,7 +407,18 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
 
     XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
 
+    if (ret != XCAM_RETURN_NO_ERROR)
+        return ret;
+
+    ret = execute_done (output);
     return ret;
+}
+
+XCamReturn
+CLImageHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (output);
+    return XCAM_RETURN_NO_ERROR;
 }
 
 void
@@ -429,6 +456,14 @@ CLImageHandler::get_3a_result (XCam3aResultType type)
         }
     }
     return res;
+}
+
+bool
+CLImageHandler::append_kernels (SmartPtr<CLImageHandler> handler)
+{
+    XCAM_ASSERT (!handler->_kernels.empty ());
+    _kernels.insert (_kernels.end (), handler->_kernels.begin (), handler->_kernels.end ());
+    return true;
 }
 
 CLCloneImageHandler::CLCloneImageHandler (const char *name)

@@ -229,6 +229,10 @@ public:
         cl_mem_flags  flags = CL_MEM_READ_WRITE,
         SmartPtr<CLBuffer> bind_buf = NULL);
 
+    SmartPtr<CLBuffer> get_bind_buf () {
+        return _bind_buf;
+    }
+
     ~CLImage2D () {}
 
 private:

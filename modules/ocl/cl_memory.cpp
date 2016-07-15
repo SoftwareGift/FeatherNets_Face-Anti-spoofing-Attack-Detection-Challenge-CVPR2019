@@ -364,6 +364,10 @@ CLImage::video_info_2_cl_image_desc (
             " **** XCAM_PIX_FMT_RGB48 need check with cl implementation ****");
         return false;
         break;
+    case V4L2_PIX_FMT_GREY:
+        image_desc.format.image_channel_order = CL_R;
+        image_desc.format.image_channel_data_type = CL_UNORM_INT8;
+        break;
 
     case XCAM_PIX_FMT_RGBA64:
         image_desc.format.image_channel_order = CL_RGBA;
@@ -385,7 +389,7 @@ CLImage::video_info_2_cl_image_desc (
         image_desc.format.image_channel_order = CL_BGRA;
         image_desc.format.image_channel_data_type = CL_UNORM_INT8;
         break;
-    // cl doesn'tn support ARGB32 up to now, how about consider V4L2_PIX_FMT_RGBA32
+        // cl doesn'tn support ARGB32 up to now, how about consider V4L2_PIX_FMT_RGBA32
     case V4L2_PIX_FMT_RGB32:
     case V4L2_PIX_FMT_ARGB32:
     case V4L2_PIX_FMT_XRGB32:
