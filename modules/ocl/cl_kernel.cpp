@@ -27,14 +27,16 @@
 
 namespace XCam {
 
-CLKernel::CLKernel(SmartPtr<CLContext> &context, const char *name)
+typedef std::map<std::string, SmartPtr<CLKernel> > KernelMap;
+
+CLKernel::CLKernel (SmartPtr<CLContext> &context, const char *name)
     : _name (NULL)
     , _kernel_id (NULL)
     , _context (context)
     , _work_dim (0)
 {
     XCAM_ASSERT (context.ptr ());
-    XCAM_ASSERT (name);
+    //XCAM_ASSERT (name);
 
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
@@ -52,7 +54,87 @@ CLKernel::~CLKernel ()
 void
 CLKernel::destroy ()
 {
-    _context->destroy_kernel_id (_kernel_id);
+    if (!_parent_kernel.ptr ())
+        _context->destroy_kernel_id (_kernel_id);
+}
+
+static void
+get_string_key_id (const char *str, uint32_t len, uint8_t key_id[8])
+{
+    uint32_t key[2];
+    uint32_t *ptr = (uint32_t*)(str);
+    uint32_t aligned_len = 0;
+    uint32_t i = 0;
+
+    xcam_mem_clear (key);
+    if (!len)
+        len = strlen (str);
+    aligned_len = XCAM_ALIGN_DOWN (len, 8);
+
+    for (i = 0; i < aligned_len; ++i) {
+        key[0] ^= ptr[0];
+        key[1] ^= ptr[1];
+        ptr += 2;
+    }
+    memcpy (key_id, key, 8);
+    len -= aligned_len;
+    str += aligned_len;
+    for (i = 0; i < len; ++i) {
+        key_id[i] ^= (uint8_t)str[i];
+    }
+}
+
+XCamReturn
+CLKernel::build_kernel (const XCamKernelInfo& info, const char* options)
+{
+    static KernelMap kernel_map;
+    static Mutex map_mutex;
+
+    KernelMap::iterator i_kernel;
+    SmartPtr<CLKernel> single_kernel;
+    char key_str[1024];
+    uint8_t body_key[8];
+    std::string key;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    XCAM_FAIL_RETURN (ERROR, info.kernel_name, XCAM_RETURN_ERROR_PARAM, "build kernel failed since kernel name null");
+
+    xcam_mem_clear (body_key);
+    get_string_key_id (info.kernel_body, info.kernel_body_len, body_key);
+    snprintf (
+        key_str, sizeof(key_str),
+        "%s#%02x%02x%02x%02x%02x%02x%02x%02x#%s",
+        info.kernel_name,
+        body_key[0], body_key[1], body_key[2], body_key[3], body_key[4], body_key[5], body_key[6], body_key[7],
+        XCAM_STR(options));
+    key = key_str;
+
+    {
+        SmartLock locker (map_mutex);
+        i_kernel = kernel_map.find (key);
+        if (i_kernel == kernel_map.end ()) {
+            SmartPtr<CLContext>  context = get_context ();
+            single_kernel = new CLKernel (context, info.kernel_name);
+            XCAM_ASSERT (single_kernel.ptr ());
+            ret = single_kernel->load_from_source (info.kernel_body, strlen (info.kernel_body), NULL, NULL, options);
+            XCAM_FAIL_RETURN (
+                ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+                "build kernel(%s) from source failed", key_str);
+            //kernel_map.insert (std::make_pair (key, single_kernel));
+            kernel_map[key] = single_kernel;
+        } else
+            single_kernel = i_kernel->second;
+    }
+
+    XCAM_FAIL_RETURN (
+        ERROR, (single_kernel.ptr () && single_kernel->is_valid ()), XCAM_RETURN_ERROR_UNKNOWN,
+        "build kernel(%s) failed, unknown error", key_str);
+
+    ret = this->clone (single_kernel);
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+        "load kernel(%s) from kernel failed", key_str);
+    return ret;
 }
 
 XCamReturn
@@ -128,6 +210,22 @@ CLKernel::load_from_binary (const uint8_t *binary, size_t length)
         "cl kernel(%s) load from binary failed", XCAM_STR (_name));
 
     _kernel_id = new_kernel_id;
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLKernel::clone (SmartPtr<CLKernel> kernel)
+{
+    XCAM_FAIL_RETURN (
+        WARNING,
+        kernel.ptr () && kernel->is_valid (),
+        XCAM_RETURN_ERROR_CL,
+        "cl kernel(%s) load from kernel failed", XCAM_STR (_name));
+    _kernel_id = kernel->get_kernel_id ();
+    _parent_kernel = kernel;
+    if (!_name && kernel->get_kernel_name ()) {
+        _name = strndup (kernel->get_kernel_name (), XCAM_MAX_STR_SIZE);
+    }
     return XCAM_RETURN_NO_ERROR;
 }
 
