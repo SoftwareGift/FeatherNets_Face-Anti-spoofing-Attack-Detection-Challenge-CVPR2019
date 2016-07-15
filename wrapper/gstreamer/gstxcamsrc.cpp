@@ -1431,6 +1431,8 @@ gst_xcam_src_set_temporal_noise_reduction_level (GstXCam3A *xcam3a, guint8 level
     else {
         ret = false;
     }
+#else
+    XCAM_UNUSED (mode);
 #endif
     return (gboolean)ret;
 }
@@ -1518,8 +1520,11 @@ gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode)
     if (cl_image_processor.ptr ())
         return (gboolean) cl_image_processor->set_hdr (mode);
     else
+        return false;
+#else
+    XCAM_UNUSED (mode);
+    return true;
 #endif
-        return FALSE;
 }
 
 static gboolean
@@ -1536,8 +1541,11 @@ gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint32 mode)
         return ret;
     }
     else
+        return false;
+#else
+    XCAM_UNUSED (mode);
+    return true;
 #endif
-        return FALSE;
 }
 
 static gboolean
@@ -1551,8 +1559,11 @@ gst_xcam_src_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable)
     if (cl_image_processor.ptr ())
         return cl_image_processor->set_gamma (enable);
     else
-#endif
         return false;
+#else
+    XCAM_UNUSED (enable);
+    return true;
+#endif
 }
 
 static gboolean
@@ -1566,8 +1577,11 @@ gst_xcam_src_set_dpc_mode (GstXCam3A *xcam3a, gboolean enable)
     if (cl_image_processor.ptr ())
         return cl_image_processor->set_dpc (enable);
     else
-#endif
         return false;
+#else
+    XCAM_UNUSED (enable);
+    return true;
+#endif
 }
 
 static gboolean

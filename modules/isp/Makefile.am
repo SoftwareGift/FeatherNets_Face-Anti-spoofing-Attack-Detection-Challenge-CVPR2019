@@ -23,13 +23,17 @@ XCAMISP_LIBS += \
 endif
 
 xcam_isp_sources = \
-    aiq3a_utils.cpp            \
-    atomisp_device.cpp         \
-    isp_poll_thread.cpp        \
-    isp_image_processor.cpp    \
-    isp_controller.cpp         \
-    isp_config_translator.cpp  \
-    x3a_isp_config.cpp         \
+    aiq3a_utils.cpp             \
+    atomisp_device.cpp          \
+    isp_poll_thread.cpp         \
+    isp_image_processor.cpp     \
+    isp_controller.cpp          \
+    isp_config_translator.cpp   \
+    x3a_isp_config.cpp          \
+    sensor_descriptor.cpp       \
+    x3a_statistics_queue.cpp    \
+    libtbd.c                    \
+    xcam_cpf_reader.c           \
     $(NULL)
 
 if ENABLE_IA_AIQ
@@ -58,6 +62,8 @@ libxcam_isp_la_CXXFLAGS = \
     -I$(top_builddir)/xcore        \
     -I$(top_builddir)/modules/isp  \
     $(NULL)
+
+libxcam_isp_la_CFLAGS = $(libxcam_isp_la_CXXFLAGS)
 
 libxcam_isp_la_LIBADD = \
     $(XCAMISP_LIBS)  \

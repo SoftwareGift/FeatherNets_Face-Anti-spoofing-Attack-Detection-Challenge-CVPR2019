@@ -21,8 +21,6 @@
 #ifndef XCAM_3A_ANALYZE_TUNER_H
 #define XCAM_3A_ANALYZE_TUNER_H
 
-#include <linux/atomisp.h>
-
 namespace XCam {
 
 class X3aCiqTuningHandler;

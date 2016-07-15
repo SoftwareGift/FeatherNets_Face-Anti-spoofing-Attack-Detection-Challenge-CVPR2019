@@ -27,7 +27,6 @@
 #endif
 #include <base/xcam_common.h>
 #include <linux/videodev2.h>
-#include <linux/atomisp.h>
 #include <stdint.h>
 #include <unistd.h>
 

@@ -567,7 +567,7 @@ tbd_error_t tbd_infoprint(void *a_data_ptr, size_t a_data_size
     header_ptr = a_data_ptr;
 
     fprintf(a_outfile, "Data tag:      0x%08x (\'%c\' \'%c\' \'%c\' \'%c\')\n", header_ptr->tag, ((char *)(&header_ptr->tag))[0], ((char *)(&header_ptr->tag))[1], ((char *)(&header_ptr->tag))[2], ((char *)(&header_ptr->tag))[3]);
-    fprintf(a_outfile, "Data size:     %d (0x%x), buffer size %d (0x%x)\n", header_ptr->size, header_ptr->size, a_data_size, a_data_size);
+    fprintf(a_outfile, "Data size:     %d (0x%x), buffer size %d (0x%x)\n", header_ptr->size, header_ptr->size, (uint32_t)a_data_size, (uint32_t)a_data_size);
     fprintf(a_outfile, "Data version:  0x%08x\n", header_ptr->version);
     fprintf(a_outfile, "Data revision: 0x%08x\n", header_ptr->revision);
     fprintf(a_outfile, "Data config:   0x%08x\n", header_ptr->config_bits);
@@ -592,7 +592,7 @@ tbd_error_t tbd_infoprint(void *a_data_ptr, size_t a_data_size
         total_data += record_size - sizeof(tbd_record_header_t);
 
         fprintf(a_outfile, "Record size:     %d (0x%x)\n", record_size, record_size);
-        fprintf(a_outfile, "Size w/o header: %d (0x%x)\n", record_size - sizeof(tbd_record_header_t), record_size - sizeof(tbd_record_header_t));
+        fprintf(a_outfile, "Size w/o header: %d (0x%x)\n", record_size - (uint32_t)sizeof(tbd_record_header_t), record_size - (uint32_t)sizeof(tbd_record_header_t));
         fprintf(a_outfile, "Record class:    %d", record_class);
         switch (record_class) {
         case tbd_class_any:

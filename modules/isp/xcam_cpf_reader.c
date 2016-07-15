@@ -79,7 +79,7 @@ read_cpf_file (const char *cpf_file, uint8_t **buf)
 
     *buf = (uint8_t*) xcam_new0 (size);
     XCAM_ASSERT (*buf);
-    if (fread (*buf, 1, size, fp) != size)
+    if (fread (*buf, 1, size, fp) != (size_t) size)
         goto read_error;
 
     fclose (fp);
@@ -146,7 +146,7 @@ xcam_cpf_read (const char *cpf_file, XCamCpfBlob *aiq_cpf, XCamCpfBlob *hal_cpf)
     /* fetch HAL */
     if (hal_cpf) {
         if (tbd_get_record (cpf_buf, tbd_class_hal, tbd_format_any,
-                            (void**)&blob, (size_t*)&blob_size) != tbd_err_none) {
+                            (void**)&blob, &blob_size) != tbd_err_none) {
             XCAM_LOG_WARNING ("CPF doesn't have HAL record.");
             // ignore HAL, not necessary
         } else if (blob && blob_size > 0) {

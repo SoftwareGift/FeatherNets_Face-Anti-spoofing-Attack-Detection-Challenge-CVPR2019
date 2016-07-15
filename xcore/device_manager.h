@@ -29,7 +29,6 @@
 #include "smart_analyzer.h"
 #include "x3a_image_process_center.h"
 #include "image_processor.h"
-#include "x3a_statistics_queue.h"
 #include "poll_thread.h"
 #include "stats_callback_interface.h"
 

@@ -352,7 +352,9 @@ int main (int argc, char *argv[])
     SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance();
 #endif
 
+    bool have_cl_processor = false;
 #if HAVE_LIBCL
+    bool have_cl_post_processor = true;
     SmartPtr<CL3aImageProcessor> cl_processor;
     SmartPtr<CLPostImageProcessor> cl_post_processor;
     uint32_t hdr_type = CL_HDR_DISABLE;
@@ -364,20 +366,21 @@ int main (int argc, char *argv[])
     CL3aImageProcessor::CaptureStage capture_stage = CL3aImageProcessor::TonemappingStage;
     CL3aImageProcessor::CLTonemappingMode wdr_mode = CL3aImageProcessor::WDRdisabled;
 #endif
-    bool have_cl_processor = false;
-    bool have_cl_post_processor = true;
     bool need_display = false;
     enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
     const char *bin_name = argv[0];
     int opt;
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
+
+#if HAVE_LIBCL
     bool wdr_type = false;
     uint32_t defog_type = 0;
     CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
     uint32_t wavelet_channel = CL_IMAGE_CHANNEL_UV;
     bool wavelet_bayes_shrink = false;
     bool wireframe_type = false;
+#endif
 
     int32_t brightness_level = 128;
     bool    have_usbcam = 0;
@@ -763,6 +766,7 @@ int main (int argc, char *argv[])
         frame_rate = 30;
         device->set_framerate (frame_rate, 1);
     }
+#if HAVE_LIBCL
     else {
         frame_rate = 25;
         device->set_framerate (frame_rate, 1);
@@ -771,6 +775,7 @@ int main (int argc, char *argv[])
             wdr_type = false;
         }
     }
+#endif
     ret = device->open ();
     CHECK (ret, "device(%s) open failed", device->get_device_name());
     ret = device->set_format (frame_width, frame_height, pixel_format, V4L2_FIELD_NONE, frame_width * 2);
@@ -865,6 +870,7 @@ int main (int argc, char *argv[])
     ret = device_manager->start ();
     CHECK (ret, "device manager start failed");
 
+#if HAVE_LIBCL
     // hard code exposure range and max gain for imx185 WDR
     if (wdr_type) {
         if (frame_rate == 30)
@@ -873,6 +879,7 @@ int main (int argc, char *argv[])
             analyzer->set_ae_exposure_time_range (80 * 1320 * 1000 / 37125, 1120 * 1320 * 1000 / 37125);
         analyzer->set_ae_max_analog_gain (3.98); // 12dB
     }
+#endif
 
     // wait for interruption
     {

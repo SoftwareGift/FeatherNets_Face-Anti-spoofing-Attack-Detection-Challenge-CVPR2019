@@ -23,7 +23,7 @@
 
 #include "xcam_utils.h"
 #include "x3a_analyzer.h"
-#include <linux/atomisp.h>
+#include "x3a_stats_pool.h"
 
 namespace XCam {
 

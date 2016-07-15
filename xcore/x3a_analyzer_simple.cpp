@@ -19,8 +19,6 @@
  */
 
 #include "x3a_analyzer_simple.h"
-#include "x3a_statistics_queue.h"
-#include <linux/atomisp.h>
 
 namespace XCam {
 

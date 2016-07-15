@@ -22,7 +22,6 @@ xcam_sources = \
     image_file_handle.cpp               \
     poll_thread.cpp                     \
     swapped_buffer.cpp                  \
-    sensor_descriptor.cpp               \
     uvc_device.cpp                      \
     v4l2_buffer_proxy.cpp               \
     v4l2_device.cpp                     \
@@ -35,12 +34,9 @@ xcam_sources = \
     x3a_stats_pool.cpp                  \
     x3a_result.cpp                      \
     x3a_result_factory.cpp              \
-    x3a_statistics_queue.cpp            \
     xcam_common.cpp                     \
     xcam_buffer.cpp                     \
     xcam_thread.cpp                     \
-    libtbd.c                            \
-    xcam_cpf_reader.c                   \
     x3a_analyze_tuner.cpp               \
     x3a_ciq_tuning_handler.cpp          \
     x3a_ciq_tnr_tuning_handler.cpp      \
@@ -76,7 +72,7 @@ libxcam_core_la_LDFLAGS = \
     $(NULL)
 
 libxcam_core_la_LIBADD = \
-    $(XCAM_CORE_LIBS)                           \
+    $(XCAM_CORE_LIBS)  \
     $(NULL)
 
 libxcam_coreincludedir = $(includedir)/xcam
