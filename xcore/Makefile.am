@@ -19,6 +19,7 @@ xcam_sources = \
     fake_poll_thread.cpp                \
     handler_interface.cpp               \
     image_processor.cpp                 \
+    image_file_handle.cpp               \
     poll_thread.cpp                     \
     swapped_buffer.cpp                  \
     sensor_descriptor.cpp               \
@@ -94,6 +95,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     pipe_manager.h                 \
     handler_interface.h            \
     image_processor.h              \
+    image_file_handle.h            \
     safe_list.h                    \
     smartptr.h                     \
     swapped_buffer.h               \
