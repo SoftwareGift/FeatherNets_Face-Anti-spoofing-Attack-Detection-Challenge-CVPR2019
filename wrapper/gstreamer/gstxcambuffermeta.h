@@ -21,9 +21,10 @@
 #ifndef GST_XCAM_BUFFER_META_H
 #define GST_XCAM_BUFFER_META_H
 
-#include "main_dev_manager.h"
-
+#include <gst/gst.h>
 #include <gst/gstmeta.h>
+
+#include <video_buffer.h>
 
 using namespace XCam;
 
