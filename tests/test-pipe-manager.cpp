@@ -7,7 +7,7 @@
   * you may not use this file except in compliance with the License.
   * You may obtain a copy of the License at
   *
-  * 	 http://www.apache.org/licenses/LICENSE-2.0
+  *      http://www.apache.org/licenses/LICENSE-2.0
   *
   * Unless required by applicable law or agreed to in writing, software
   * distributed under the License is distributed on an "AS IS" BASIS,
@@ -170,6 +170,7 @@ void print_help (const char *bin_name)
             "\t --height        specify input image height, default is 1080\n"
             "\t --fake-input    specify the path of image as fake source\n"
             "\t --defog-mode    specify defog mode\n"
+            "\t --3d-denoise    specify 3D Denoise mode\n"
             "\t                 select from [disabled, retinex, dcp], default is [disabled]\n"
             "\t -p              enable local display\n"
             "\t -h              help\n"
@@ -195,6 +196,8 @@ int main (int argc, char *argv[])
     FileFP input_fp;
 
     uint32_t defog_mode = 0;
+    uint32_t denoise_3d_mode = 0;
+    uint8_t denoise_3d_ref_count = 3;
 
     int opt;
     const char *short_opts = "ph";
@@ -204,6 +207,7 @@ int main (int argc, char *argv[])
         {"height", required_argument, NULL, 'H'},
         {"fake-input", required_argument, NULL, 'A'},
         {"defog-mode", required_argument, NULL, 'D'},
+        {"3d-denoise", required_argument, NULL, 'N'},
         {NULL, 0, NULL, 0}
     };
 
@@ -242,6 +246,20 @@ int main (int argc, char *argv[])
                 defog_mode = CLPostImageProcessor::DefogRetinex;
             else if (!strcmp (optarg, "dcp"))
                 defog_mode = CLPostImageProcessor::DefogDarkChannelPrior;
+            else {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+        }
+        case 'N': {
+            XCAM_ASSERT (optarg);
+            if (!strcmp (optarg, "disabled"))
+                denoise_3d_mode = CLPostImageProcessor::Denoise3DDisabled;
+            else if (!strcmp (optarg, "yuv"))
+                denoise_3d_mode = CLPostImageProcessor::Denoise3DYuv;
+            else if (!strcmp (optarg, "uv"))
+                denoise_3d_mode = CLPostImageProcessor::Denoise3DUV;
             else {
                 print_help (bin_name);
                 return -1;
@@ -301,6 +319,8 @@ int main (int argc, char *argv[])
 
     cl_post_processor = new CLPostImageProcessor ();
     cl_post_processor->set_defog_mode ((CLPostImageProcessor::CLDefogMode) defog_mode);
+    cl_post_processor->set_3ddenoise_mode ((CLPostImageProcessor::CL3DDenoiseMode)denoise_3d_mode, denoise_3d_ref_count);
+
     if (need_display) {
         cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
     }

@@ -43,6 +43,7 @@
 #include "cl_wavelet_denoise_handler.h"
 #include "cl_newwavelet_denoise_handler.h"
 #include "cl_defog_dcp_handler.h"
+#include "cl_3d_denoise_handler.h"
 
 using namespace XCam;
 
@@ -69,6 +70,7 @@ enum TestHandlerType {
     TestHandlerHatWavelet,
     TestHandlerHaarWavelet,
     TestHandlerDefogDcp,
+    TestHandler3DDenoise,
 };
 
 enum PsnrType {
@@ -343,6 +345,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerHaarWavelet;
             else if (!strcasecmp (optarg, "dcp"))
                 handler_type = TestHandlerDefogDcp;
+            else if (!strcasecmp (optarg, "3d-denoise"))
+                handler_type = TestHandler3DDenoise;
             else
                 print_help (bin_name);
             break;
@@ -588,6 +592,20 @@ int main (int argc, char *argv[])
     case TestHandlerDefogDcp: {
         image_handler = create_cl_defog_dcp_image_handler (context);
         XCAM_ASSERT (image_handler.ptr ());
+        break;
+    }
+    case TestHandler3DDenoise: {
+        image_handler = create_cl_3d_denoise_image_handler (context, CL_IMAGE_CHANNEL_Y | CL_IMAGE_CHANNEL_UV);
+        SmartPtr<CL3DDenoiseImageHandler> denoise = image_handler.dynamic_cast_ptr<CL3DDenoiseImageHandler> ();
+        XCAM_ASSERT (denoise.ptr ());
+        XCam3aResultTemporalNoiseReduction denoise_config;
+        xcam_mem_clear (denoise_config);
+        denoise_config.threshold[0] = 0.05;
+        denoise_config.threshold[1] = 0.05;
+        denoise_config.gain = 0.6;
+        denoise->set_denoise_config (denoise_config);
+        denoise->set_ref_framecount (3);
+        XCAM_ASSERT (denoise.ptr ());
         break;
     }
     default:

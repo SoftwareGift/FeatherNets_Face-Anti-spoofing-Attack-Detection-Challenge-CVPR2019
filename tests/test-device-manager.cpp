@@ -376,6 +376,8 @@ int main (int argc, char *argv[])
 #if HAVE_LIBCL
     bool wdr_type = false;
     uint32_t defog_type = 0;
+    uint32_t denoise_3d_mode = 0;
+    uint8_t denoise_3d_ref_count = 3;
     CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
     uint32_t wavelet_channel = CL_IMAGE_CHANNEL_UV;
     bool wavelet_bayes_shrink = false;
@@ -404,6 +406,7 @@ int main (int argc, char *argv[])
         {"enable-dpc", no_argument, NULL, 'D'},
         {"defog-mode", required_argument, NULL, 'X'},
         {"wavelet-mode", required_argument, NULL, 'V'},
+        {"3d-denoise", required_argument, NULL, 'N'},
         {"enable-wireframe", no_argument, NULL, 'F'},
         {"usb", required_argument, NULL, 'U'},
         {"resolution", required_argument, NULL, 'R'},
@@ -589,6 +592,21 @@ int main (int argc, char *argv[])
                 wavelet_bayes_shrink = true;
             } else {
                 wavelet_mode = CL_WAVELET_DISABLED;
+            }
+            break;
+        }
+        case 'N': {
+            XCAM_ASSERT (optarg);
+            denoise_3d_mode = true;
+            if (!strcmp (optarg, "disabled"))
+                denoise_3d_mode = CLPostImageProcessor::Denoise3DDisabled;
+            else if (!strcmp (optarg, "yuv"))
+                denoise_3d_mode = CLPostImageProcessor::Denoise3DYuv;
+            else if (!strcmp (optarg, "uv"))
+                denoise_3d_mode = CLPostImageProcessor::Denoise3DUV;
+            else {
+                print_help (bin_name);
+                return -1;
             }
             break;
         }
@@ -849,6 +867,8 @@ int main (int argc, char *argv[])
         cl_post_processor = new CLPostImageProcessor ();
 
         cl_post_processor->set_defog_mode ((CLPostImageProcessor::CLDefogMode)defog_type);
+
+        cl_post_processor->set_3ddenoise_mode ((CLPostImageProcessor::CL3DDenoiseMode)denoise_3d_mode, denoise_3d_ref_count);
 
         if (need_display) {
             cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);

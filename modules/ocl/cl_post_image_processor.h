@@ -32,6 +32,7 @@ class CLTnrImageHandler;
 class CLRetinexImageHandler;
 class CLCscImageHandler;
 class CLDefogDcpImageHandler;
+class CL3DDenoiseImageHandler;
 
 class CLPostImageProcessor
     : public CLImageProcessor
@@ -54,6 +55,12 @@ public:
         DefogDarkChannelPrior,
     };
 
+    enum CL3DDenoiseMode {
+        Denoise3DDisabled = 0,
+        Denoise3DYuv,
+        Denoise3DUV,
+    };
+
 public:
     explicit CLPostImageProcessor ();
     virtual ~CLPostImageProcessor ();
@@ -62,6 +69,7 @@ public:
 
     virtual bool set_tnr (CLTnrMode mode);
     virtual bool set_defog_mode (CLDefogMode mode);
+    virtual bool set_3ddenoise_mode (CL3DDenoiseMode mode, uint8_t ref_frame_count);
 
 protected:
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
@@ -81,9 +89,12 @@ private:
     SmartPtr<CLRetinexImageHandler>        _retinex;
     SmartPtr<CLDefogDcpImageHandler>       _defog_dcp;
     SmartPtr<CLCscImageHandler>            _csc;
+    SmartPtr<CL3DDenoiseImageHandler>      _3d_denoise;
 
     CLTnrMode                              _tnr_mode;
     CLDefogMode                            _defog_mode;
+    CL3DDenoiseMode                        _3d_denoise_mode;
+    uint8_t                                _3d_denoise_ref_count;
 };
 
 };

@@ -32,6 +32,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_COPY_MODE          COPY_MODE_CPU
 #define DEFAULT_PROP_DEFOG_MODE         DEFOG_NONE
+#define DEFAULT_PROP_3D_DENOISE_MODE    DENOISE_3D_NONE
 
 XCAM_BEGIN_DECLARE
 
@@ -39,7 +40,8 @@ enum {
     PROP_0,
     PROP_BUFFERCOUNT,
     PROP_COPY_MODE,
-    PROP_DEFOG_MODE
+    PROP_DEFOG_MODE,
+    PROP_DENOISE_3D_MODE
 };
 
 #define GST_TYPE_XCAM_FILTER_COPY_MODE (gst_xcam_filter_copy_mode_get_type ())
@@ -77,6 +79,27 @@ gst_xcam_filter_defog_mode_get_type (void)
     if (g_once_init_enter (&g_type)) {
         const GType type =
             g_enum_register_static ("GstXCamFilterDefogModeType", defog_mode_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
+#define GST_TYPE_XCAM_FILTER_3D_DENOISE_MODE (gst_xcam_filter_3d_denoise_mode_get_type ())
+static GType
+gst_xcam_filter_3d_denoise_mode_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue denoise_3d_mode_types [] = {
+        {DENOISE_3D_NONE, "3D Denoise disabled", "none"},
+        {DENOISE_3D_YUV, "3D Denoise yuv", "yuv"},
+        {DENOISE_3D_UV, "3D Denoise uv", "uv"},
+        {0, NULL, NULL}
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamFilter3DDenoiseModeType", denoise_3d_mode_types);
         g_once_init_leave (&g_type, type);
     }
 
@@ -148,6 +171,12 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
                            GST_TYPE_XCAM_FILTER_DEFOG_MODE, DEFAULT_PROP_DEFOG_MODE,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+    g_object_class_install_property (
+        gobject_class, PROP_DENOISE_3D_MODE,
+        g_param_spec_enum ("denoise-3d", "3D Denoise mode", "3D Denoise mode",
+                           GST_TYPE_XCAM_FILTER_3D_DENOISE_MODE, DEFAULT_PROP_3D_DENOISE_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Filter",
                                           "Filter/Effect/Video",
@@ -155,9 +184,9 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
                                           "Wind Yuan <feng.yuan@intel.com> & Yinhang Liu <yinhangx.liu@intel.com>");
 
     gst_element_class_add_pad_template (element_class,
-        gst_static_pad_template_get (&gst_xcam_src_factory));
+                                        gst_static_pad_template_get (&gst_xcam_src_factory));
     gst_element_class_add_pad_template (element_class,
-        gst_static_pad_template_get (&gst_xcam_sink_factory));
+                                        gst_static_pad_template_get (&gst_xcam_sink_factory));
 
     basetrans_class->start = GST_DEBUG_FUNCPTR (gst_xcam_filter_start);
     basetrans_class->stop = GST_DEBUG_FUNCPTR (gst_xcam_filter_stop);
@@ -173,6 +202,8 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->buf_count = DEFAULT_PROP_BUFFERCOUNT;
     xcamfilter->copy_mode = DEFAULT_PROP_COPY_MODE;
     xcamfilter->defog_mode = DEFAULT_PROP_DEFOG_MODE;
+    xcamfilter->denoise_3d_mode = DEFAULT_PROP_3D_DENOISE_MODE;
+    xcamfilter->denoise_3d_ref_count = 3;
 
     XCAM_CONSTRUCTOR (xcamfilter->pipe_manager, SmartPtr<MainPipeManager>);
     xcamfilter->pipe_manager = new MainPipeManager;
@@ -208,6 +239,9 @@ gst_xcam_filter_set_property (GObject *object, guint prop_id, const GValue *valu
     case PROP_DEFOG_MODE:
         xcamfilter->defog_mode = (DefogModeType) g_value_get_enum (value);
         break;
+    case PROP_DENOISE_3D_MODE:
+        xcamfilter->denoise_3d_mode = (Denoise3DModeType) g_value_get_enum (value);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -228,6 +262,9 @@ gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GPa
         break;
     case PROP_DEFOG_MODE:
         g_value_set_enum (value, xcamfilter->defog_mode);
+        break;
+    case PROP_DENOISE_3D_MODE:
+        g_value_set_enum (value, xcamfilter->denoise_3d_mode);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -267,6 +304,9 @@ gst_xcam_filter_start (GstBaseTransform *trans)
     image_processor = new CLPostImageProcessor ();
     XCAM_ASSERT (image_processor.ptr ());
     image_processor->set_defog_mode ((CLPostImageProcessor::CLDefogMode) xcamfilter->defog_mode);
+    image_processor->set_3ddenoise_mode (
+        (CLPostImageProcessor::CL3DDenoiseMode) xcamfilter->denoise_3d_mode, xcamfilter->denoise_3d_ref_count);
+
     pipe_manager->add_image_processor (image_processor);
     pipe_manager->set_image_processor (image_processor);
 
@@ -328,7 +368,7 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
     GstVideoInfo in_info, out_info;
 
     if (!gst_video_info_from_caps (&in_info, incaps) ||
-        !gst_video_info_from_caps (&out_info, outcaps)) {
+            !gst_video_info_from_caps (&out_info, outcaps)) {
         XCAM_LOG_WARNING ("fail to parse incaps or outcaps");
         return false;
     }
@@ -355,7 +395,7 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
     SmartPtr<DrmBoBufferPool> buf_pool = xcamfilter->buf_pool;
     XCAM_ASSERT (buf_pool.ptr ());
     if (!buf_pool->set_video_info (buf_info) ||
-        !buf_pool->reserve (xcamfilter->buf_count)) {
+            !buf_pool->reserve (xcamfilter->buf_count)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
         return false;
     }

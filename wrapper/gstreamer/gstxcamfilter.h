@@ -50,6 +50,12 @@ typedef enum {
     DEFOG_DCP
 } DefogModeType;
 
+typedef enum {
+    DENOISE_3D_NONE = 0,
+    DENOISE_3D_YUV,
+    DENOISE_3D_UV
+} Denoise3DModeType;
+
 typedef struct _GstXCamFilter      GstXCamFilter;
 typedef struct _GstXCamFilterClass GstXCamFilterClass;
 
@@ -60,6 +66,8 @@ struct _GstXCamFilter
     uint32_t                     buf_count;
     CopyMode                     copy_mode;
     DefogModeType                defog_mode;
+    Denoise3DModeType            denoise_3d_mode;
+    uint8_t                      denoise_3d_ref_count;
 
     GstAllocator                 *allocator;
     GstVideoInfo                 gst_video_info;

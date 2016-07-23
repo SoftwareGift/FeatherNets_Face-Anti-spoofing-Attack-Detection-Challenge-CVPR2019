@@ -26,6 +26,7 @@
 #include "cl_retinex_handler.h"
 #include "cl_csc_handler.h"
 #include "cl_defog_dcp_handler.h"
+#include "cl_3d_denoise_handler.h"
 
 #define XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE 6
 #define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 12
@@ -38,6 +39,8 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _out_sample_type (OutSampleYuv)
     , _tnr_mode (TnrYuv)
     , _defog_mode (CLPostImageProcessor::DefogDisabled)
+    , _3d_denoise_mode (CLPostImageProcessor::Denoise3DDisabled)
+    , _3d_denoise_ref_count (3)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -137,6 +140,9 @@ CLPostImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
                 _tnr->set_yuv_config (tnr_res->get_standard_result ());
             }
         }
+        if (_3d_denoise.ptr ()) {
+            _3d_denoise->set_denoise_config (tnr_res->get_standard_result ());
+        }
         break;
     }
     default:
@@ -208,6 +214,30 @@ CLPostImageProcessor::create_handlers ()
         }
     }
 
+    /* 3D noise reduction */
+    if (_3d_denoise_mode != CLPostImageProcessor::Denoise3DDisabled) {
+        uint32_t denoise_channel = CL_IMAGE_CHANNEL_UV;
+
+        if (_3d_denoise_mode == CLPostImageProcessor::Denoise3DUV) {
+            denoise_channel = CL_IMAGE_CHANNEL_UV;
+        } else if (_3d_denoise_mode == CLPostImageProcessor::Denoise3DYuv) {
+            denoise_channel = CL_IMAGE_CHANNEL_Y | CL_IMAGE_CHANNEL_UV;
+        }
+
+        image_handler = create_cl_3d_denoise_image_handler (context, denoise_channel);
+        _3d_denoise = image_handler.dynamic_cast_ptr<CL3DDenoiseImageHandler> ();
+        _3d_denoise->set_ref_framecount (_3d_denoise_ref_count);
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _3d_denoise.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CL3aImageProcessor create 3D noise reduction handler failed");
+        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+        image_handler->set_kernels_enable (true);
+        add_handler (image_handler);
+    }
+
     /* csc (nv12torgba) */
     image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
     _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
@@ -239,6 +269,17 @@ bool
 CLPostImageProcessor::set_defog_mode (CLDefogMode mode)
 {
     _defog_mode = mode;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CLPostImageProcessor::set_3ddenoise_mode (CL3DDenoiseMode mode, uint8_t ref_frame_count)
+{
+    _3d_denoise_mode = mode;
+    _3d_denoise_ref_count = ref_frame_count;
 
     STREAM_LOCK;
 

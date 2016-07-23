@@ -66,6 +66,7 @@ xcam_ocl_sources = \
     cl_wavelet_denoise_handler.cpp     \
     cl_newwavelet_denoise_handler.cpp  \
     cl_wire_frame_handler.cpp          \
+    cl_3d_denoise_handler.cpp          \
     priority_buffer_queue.cpp          \
     $(NULL)
 
