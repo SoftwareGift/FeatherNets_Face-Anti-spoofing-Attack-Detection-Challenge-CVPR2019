@@ -951,28 +951,6 @@ gst_xcam_src_start (GstBaseSrc *src)
             XCAM_LOG_ERROR ("load dynamic analyzer(%s) failed, please check.", xcamsrc->path_to_3alib);
             return FALSE;
         }
-
-        // Create smart analyzer from dynamic libraries
-        SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
-        if (!smart_handlers.empty () ) {
-            smart_analyzer = new SmartAnalyzer ();
-            if (!smart_analyzer.ptr ()) {
-                XCAM_LOG_INFO ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
-                break;
-            }
-            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
-            for (; i_handler != smart_handlers.end ();  ++i_handler)
-            {
-                XCAM_ASSERT ((*i_handler).ptr ());
-                smart_analyzer->add_handler (*i_handler);
-            }
-#if HAVE_LIBCL
-            if (cl_post_processor.ptr () && xcamsrc->enable_wireframe) {
-                cl_post_processor->set_scaler (true);
-                cl_post_processor->set_scaler_factor (640.0 / DEFAULT_VIDEO_WIDTH);
-            }
-#endif
-        }
         break;
     }
     case HYBRID_ANALYZER: {
@@ -992,6 +970,22 @@ gst_xcam_src_start (GstBaseSrc *src)
         analyzer = new X3aAnalyzerSimple ();
         break;
     }
+
+    SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
+    if (!smart_handlers.empty ()) {
+        smart_analyzer = new SmartAnalyzer ();
+        if (smart_analyzer.ptr ()) {
+            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
+            for (; i_handler != smart_handlers.end ();	++i_handler)
+            {
+                XCAM_ASSERT ((*i_handler).ptr ());
+                smart_analyzer->add_handler (*i_handler);
+            }
+        } else {
+            XCAM_LOG_WARNING ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
+        }
+    }
+
     XCAM_ASSERT (analyzer.ptr ());
     if (analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_ERROR ("analyzer(%s) prepare handlers failed", analyzer->get_name ());
@@ -1006,6 +1000,12 @@ gst_xcam_src_start (GstBaseSrc *src)
     device_manager->set_3a_analyzer (analyzer);
 
     if (smart_analyzer.ptr ()) {
+#if HAVE_LIBCL
+        if (cl_post_processor.ptr () && xcamsrc->enable_wireframe) {
+            cl_post_processor->set_scaler (true);
+            cl_post_processor->set_scaler_factor (640.0 / DEFAULT_VIDEO_WIDTH);
+        }
+#endif
         if (smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
             XCAM_LOG_INFO ("analyzer(%s) prepare handlers failed", smart_analyzer->get_name ());
             return TRUE;

@@ -751,21 +751,6 @@ int main (int argc, char *argv[])
         loader = dynamic_loader.dynamic_cast_ptr<AnalyzerLoader> ();
         analyzer = dynamic_loader->load_analyzer (loader);
         CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
-
-        // Create smart analyzer from dynamic libraries
-        SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
-        if (!smart_handlers.empty () ) {
-            smart_analyzer = new SmartAnalyzer ();
-            if (!smart_analyzer.ptr ()) {
-                XCAM_LOG_INFO ("load smart analyzer(%s) failed", DEFAULT_SMART_ANALYSIS_LIB_DIR);
-                break;
-            }
-            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
-            for (; i_handler != smart_handlers.end (); ++i_handler) {
-                XCAM_ASSERT ((*i_handler).ptr ());
-                smart_analyzer->add_handler (*i_handler);
-            }
-        }
         break;
     }
     default:
@@ -774,6 +759,23 @@ int main (int argc, char *argv[])
     }
     XCAM_ASSERT (analyzer.ptr ());
     analyzer->set_sync_mode (sync_mode);
+
+#if HAVE_LIBCL
+    SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
+    if (!smart_handlers.empty ()) {
+        smart_analyzer = new SmartAnalyzer ();
+        if (smart_analyzer.ptr ()) {
+            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
+            for (; i_handler != smart_handlers.end ();	++i_handler)
+            {
+                XCAM_ASSERT ((*i_handler).ptr ());
+                smart_analyzer->add_handler (*i_handler);
+            }
+        } else {
+            XCAM_LOG_WARNING ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
+        }
+    }
+#endif
 
     signal(SIGINT, dev_stop_handler);
 
