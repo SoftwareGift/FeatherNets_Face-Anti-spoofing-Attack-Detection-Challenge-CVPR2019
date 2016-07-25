@@ -474,7 +474,6 @@ copy_xcambuf_to_gstbuf (GstVideoInfo gstinfo, SmartPtr<VideoBuffer> xcambuf, Gst
     gst_buffer_unmap (tmpbuf, &mapinfo);
     xcambuf->unmap ();
 
-    GST_BUFFER_TIMESTAMP (tmpbuf) = xcambuf->get_timestamp () * 1000;
     *gstbuf = tmpbuf;
 
     return GST_FLOW_OK;
@@ -510,7 +509,6 @@ append_xcambuf_to_gstbuf (GstAllocator *allocator, SmartPtr<VideoBuffer> xcambuf
         offsets,
         (gint *) (xcaminfo.strides));
 
-    GST_BUFFER_TIMESTAMP (tmpbuf) = xcambuf->get_timestamp () * 1000;
     *gstbuf = tmpbuf;
 
     return GST_FLOW_OK;
@@ -544,7 +542,6 @@ static GstFlowReturn
 gst_xcam_filter_prepare_output_buffer (GstBaseTransform *trans, GstBuffer *input, GstBuffer **outbuf)
 {
     GstXCamFilter *xcamfilter = GST_XCAM_FILTER (trans);
-    XCAM_UNUSED (input);
 
     GstFlowReturn ret = GST_FLOW_OK;
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
@@ -560,6 +557,8 @@ gst_xcam_filter_prepare_output_buffer (GstBaseTransform *trans, GstBuffer *input
         GstAllocator *allocator = xcamfilter->allocator;
         ret = append_xcambuf_to_gstbuf (allocator, video_buf, outbuf);
     }
+
+    GST_BUFFER_TIMESTAMP (*outbuf) = GST_BUFFER_TIMESTAMP (input);
 
     return ret;
 }
