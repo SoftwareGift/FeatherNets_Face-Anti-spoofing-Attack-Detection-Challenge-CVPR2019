@@ -74,6 +74,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
 #define DEFAULT_PROP_WDR_MODE           NONE_WDR
+#define DEFAULT_PROP_3D_DENOISE_MODE    DENOISE_3D_NONE
 #define DEFAULT_PROP_WAVELET_MODE       CL_WAVELET_DISABLED
 #define DEFAULT_PROP_ENABLE_WIREFRAME   FALSE
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
@@ -190,6 +191,27 @@ gst_xcam_src_wdr_mode_get_type (void)
     return g_type;
 }
 
+#define GST_TYPE_XCAM_SRC_3D_DENOISE_MODE (gst_xcam_src_3d_denoise_mode_get_type ())
+static GType
+gst_xcam_src_3d_denoise_mode_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue denoise_3d_mode_types [] = {
+        {DENOISE_3D_NONE, "3D Denoise disabled", "none"},
+        {DENOISE_3D_YUV, "3D Denoise yuv", "yuv"},
+        {DENOISE_3D_UV, "3D Denoise uv", "uv"},
+        {0, NULL, NULL}
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamSrc3DDenoiseModeType", denoise_3d_mode_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
 #define GST_TYPE_XCAM_SRC_WAVELET_MODE (gst_xcam_src_wavelet_mode_get_type ())
 static GType
 gst_xcam_src_wavelet_mode_get_type (void)
@@ -279,6 +301,7 @@ enum {
     PROP_ENABLE_USB,
     PROP_WAVELET_MODE,
     PROP_ENABLE_RETINEX,
+    PROP_DENOISE_3D_MODE,
     PROP_ENABLE_WIREFRAME,
     PROP_FAKE_INPUT
 };
@@ -397,6 +420,12 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                               DEFAULT_PROP_ENABLE_RETINEX, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
+        gobject_class, PROP_DENOISE_3D_MODE,
+        g_param_spec_enum ("denoise-3d", "3D Denoise mode", "3D Denoise mode",
+                           GST_TYPE_XCAM_SRC_3D_DENOISE_MODE, DEFAULT_PROP_3D_DENOISE_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
         gobject_class, PROP_ENABLE_WIREFRAME,
         g_param_spec_boolean ("enable-wireframe", "enable wire frame", "Enable wire frame",
                               DEFAULT_PROP_ENABLE_WIREFRAME, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
@@ -504,6 +533,8 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
     xcamsrc->wavelet_mode = NONE_WAVELET;
     xcamsrc->enable_retinex = DEFAULT_PROP_ENABLE_RETINEX;
+    xcamsrc->denoise_3d_mode = DEFAULT_PROP_3D_DENOISE_MODE;
+    xcamsrc->denoise_3d_ref_count = 3;
     xcamsrc->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
@@ -582,6 +613,10 @@ gst_xcam_src_get_property (
 
     case PROP_ENABLE_RETINEX:
         g_value_set_boolean (value, src->enable_retinex);
+        break;
+
+    case PROP_DENOISE_3D_MODE:
+        g_value_set_enum (value, src->denoise_3d_mode);
         break;
 
     case PROP_ENABLE_WIREFRAME:
@@ -667,7 +702,9 @@ gst_xcam_src_set_property (
     case PROP_ENABLE_RETINEX:
         src->enable_retinex = g_value_get_boolean (value);
         break;
-
+    case PROP_DENOISE_3D_MODE:
+        src->denoise_3d_mode = (Denoise3DModeType) g_value_get_enum (value);
+        break;
     case PROP_MEM_MODE:
         src->mem_type = (enum v4l2_memory)g_value_get_enum (value);
         break;
@@ -905,6 +942,9 @@ gst_xcam_src_start (GstBaseSrc *src)
     {
         cl_post_processor->set_defog_mode (CLPostImageProcessor::DefogRetinex);
     }
+
+    cl_post_processor->set_3ddenoise_mode (
+        (CLPostImageProcessor::CL3DDenoiseMode) xcamsrc->denoise_3d_mode, xcamsrc->denoise_3d_ref_count);
 
     if (NONE_WAVELET != xcamsrc->wavelet_mode) {
         if (HAT_WAVELET_Y == xcamsrc->wavelet_mode) {

@@ -70,6 +70,12 @@ typedef enum {
 } WaveletModeType;
 
 typedef enum {
+    DENOISE_3D_NONE = 0,
+    DENOISE_3D_YUV,
+    DENOISE_3D_UV
+} Denoise3DModeType;
+
+typedef enum {
     SIMPLE_ANALYZER = 0,
     AIQ_TUNER_ANALYZER,
     DYNAMIC_ANALYZER,
@@ -93,6 +99,8 @@ struct _GstXCamSrc
     gboolean                     enable_3a;
     gboolean                     enable_usb;
     gboolean                     enable_retinex;
+    Denoise3DModeType            denoise_3d_mode;
+    uint8_t                      denoise_3d_ref_count;
     gboolean                     enable_wireframe;
     char                        *path_to_fake;
 
