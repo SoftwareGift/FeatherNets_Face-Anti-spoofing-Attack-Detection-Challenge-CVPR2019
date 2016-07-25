@@ -32,7 +32,9 @@ using namespace GstXCam;
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_COPY_MODE          COPY_MODE_CPU
 #define DEFAULT_PROP_DEFOG_MODE         DEFOG_NONE
+#define DEFAULT_PROP_WAVELET_MODE       NONE_WAVELET
 #define DEFAULT_PROP_3D_DENOISE_MODE    DENOISE_3D_NONE
+#define DEFAULT_PROP_ENABLE_WIREFRAME   FALSE
 
 XCAM_BEGIN_DECLARE
 
@@ -41,7 +43,9 @@ enum {
     PROP_BUFFERCOUNT,
     PROP_COPY_MODE,
     PROP_DEFOG_MODE,
-    PROP_DENOISE_3D_MODE
+    PROP_WAVELET_MODE,
+    PROP_DENOISE_3D_MODE,
+    PROP_ENABLE_WIREFRAME
 };
 
 #define GST_TYPE_XCAM_FILTER_COPY_MODE (gst_xcam_filter_copy_mode_get_type ())
@@ -79,6 +83,31 @@ gst_xcam_filter_defog_mode_get_type (void)
     if (g_once_init_enter (&g_type)) {
         const GType type =
             g_enum_register_static ("GstXCamFilterDefogModeType", defog_mode_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
+#define GST_TYPE_XCAM_FILTER_WAVELET_MODE (gst_xcam_filter_wavelet_mode_get_type ())
+static GType
+gst_xcam_filter_wavelet_mode_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue wavelet_mode_types[] = {
+        {NONE_WAVELET, "Wavelet disabled", "none"},
+        {HAT_WAVELET_Y, "Hat wavelet Y", "hat Y"},
+        {HAT_WAVELET_UV, "Hat wavelet UV", "hat UV"},
+        {HARR_WAVELET_Y, "Haar wavelet Y", "haar Y"},
+        {HARR_WAVELET_UV, "Haar wavelet UV", "haar UV"},
+        {HARR_WAVELET_YUV, "Haar wavelet YUV", "haar YUV"},
+        {HARR_WAVELET_BAYES, "Haar wavelet bayes shrink", "haar Bayes"},
+        {0, NULL, NULL},
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamFilterWaveletModeType", wavelet_mode_types);
         g_once_init_leave (&g_type, type);
     }
 
@@ -172,10 +201,21 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
+        gobject_class, PROP_WAVELET_MODE,
+        g_param_spec_enum ("wavelet-mode", "wavelet mode", "Wavelet Mode",
+                           GST_TYPE_XCAM_FILTER_WAVELET_MODE, DEFAULT_PROP_WAVELET_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
         gobject_class, PROP_DENOISE_3D_MODE,
         g_param_spec_enum ("denoise-3d", "3D Denoise mode", "3D Denoise mode",
                            GST_TYPE_XCAM_FILTER_3D_DENOISE_MODE, DEFAULT_PROP_3D_DENOISE_MODE,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_ENABLE_WIREFRAME,
+        g_param_spec_boolean ("enable-wireframe", "enable wire frame", "Enable wire frame",
+                              DEFAULT_PROP_ENABLE_WIREFRAME, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Filter",
@@ -202,8 +242,10 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->buf_count = DEFAULT_PROP_BUFFERCOUNT;
     xcamfilter->copy_mode = DEFAULT_PROP_COPY_MODE;
     xcamfilter->defog_mode = DEFAULT_PROP_DEFOG_MODE;
+    xcamfilter->wavelet_mode = DEFAULT_PROP_WAVELET_MODE;
     xcamfilter->denoise_3d_mode = DEFAULT_PROP_3D_DENOISE_MODE;
     xcamfilter->denoise_3d_ref_count = 3;
+    xcamfilter->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
 
     XCAM_CONSTRUCTOR (xcamfilter->pipe_manager, SmartPtr<MainPipeManager>);
     xcamfilter->pipe_manager = new MainPipeManager;
@@ -239,8 +281,14 @@ gst_xcam_filter_set_property (GObject *object, guint prop_id, const GValue *valu
     case PROP_DEFOG_MODE:
         xcamfilter->defog_mode = (DefogModeType) g_value_get_enum (value);
         break;
+    case PROP_WAVELET_MODE:
+        xcamfilter->wavelet_mode = (WaveletModeType) g_value_get_enum (value);
+        break;
     case PROP_DENOISE_3D_MODE:
         xcamfilter->denoise_3d_mode = (Denoise3DModeType) g_value_get_enum (value);
+        break;
+    case PROP_ENABLE_WIREFRAME:
+        xcamfilter->enable_wireframe = g_value_get_boolean (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -263,8 +311,14 @@ gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GPa
     case PROP_DEFOG_MODE:
         g_value_set_enum (value, xcamfilter->defog_mode);
         break;
+    case PROP_WAVELET_MODE:
+        g_value_set_enum (value, xcamfilter->wavelet_mode);
+        break;
     case PROP_DENOISE_3D_MODE:
         g_value_set_enum (value, xcamfilter->denoise_3d_mode);
+        break;
+    case PROP_ENABLE_WIREFRAME:
+        g_value_set_boolean (value, xcamfilter->enable_wireframe);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -303,9 +357,33 @@ gst_xcam_filter_start (GstBaseTransform *trans)
 
     image_processor = new CLPostImageProcessor ();
     XCAM_ASSERT (image_processor.ptr ());
+    image_processor->set_stats_callback (pipe_manager);
     image_processor->set_defog_mode ((CLPostImageProcessor::CLDefogMode) xcamfilter->defog_mode);
+
+    if (NONE_WAVELET != xcamfilter->wavelet_mode) {
+        if (HAT_WAVELET_Y == xcamfilter->wavelet_mode) {
+            image_processor->set_wavelet (CL_WAVELET_HAT, CL_IMAGE_CHANNEL_Y, false);
+        } else if (HAT_WAVELET_UV == xcamfilter->wavelet_mode) {
+            image_processor->set_wavelet (CL_WAVELET_HAT, CL_IMAGE_CHANNEL_UV, false);
+        } else if (HARR_WAVELET_Y == xcamfilter->wavelet_mode) {
+            image_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_Y, false);
+        } else if (HARR_WAVELET_UV == xcamfilter->wavelet_mode) {
+            image_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_UV, false);
+        } else if (HARR_WAVELET_YUV == xcamfilter->wavelet_mode) {
+            image_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_UV | CL_IMAGE_CHANNEL_Y, false);
+        } else if (HARR_WAVELET_BAYES == xcamfilter->wavelet_mode) {
+            image_processor->set_wavelet (CL_WAVELET_HAAR, CL_IMAGE_CHANNEL_UV | CL_IMAGE_CHANNEL_Y, true);
+        } else {
+            image_processor->set_wavelet (CL_WAVELET_DISABLED, CL_IMAGE_CHANNEL_UV, false);
+        }
+    }
+
     image_processor->set_3ddenoise_mode (
         (CLPostImageProcessor::CL3DDenoiseMode) xcamfilter->denoise_3d_mode, xcamfilter->denoise_3d_ref_count);
+
+    image_processor->set_wireframe (xcamfilter->enable_wireframe);
+    if (smart_analyzer.ptr () && xcamfilter->enable_wireframe)
+        image_processor->set_scaler (true);
 
     pipe_manager->add_image_processor (image_processor);
     pipe_manager->set_image_processor (image_processor);
@@ -381,6 +459,8 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     SmartPtr<CLPostImageProcessor> processor = pipe_manager->get_image_processor();
     XCAM_ASSERT (pipe_manager.ptr () && processor.ptr ());
+    if (processor->is_scaled ())
+        processor->set_scaler_factor (640.0 / GST_VIDEO_INFO_WIDTH (&in_info));
     if (!processor->set_output_format (V4L2_PIX_FMT_NV12))
         return false;
 

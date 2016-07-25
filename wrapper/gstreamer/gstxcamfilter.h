@@ -51,6 +51,16 @@ typedef enum {
 } DefogModeType;
 
 typedef enum {
+    NONE_WAVELET = 0,
+    HAT_WAVELET_Y,
+    HAT_WAVELET_UV,
+    HARR_WAVELET_Y,
+    HARR_WAVELET_UV,
+    HARR_WAVELET_YUV,
+    HARR_WAVELET_BAYES
+} WaveletModeType;
+
+typedef enum {
     DENOISE_3D_NONE = 0,
     DENOISE_3D_YUV,
     DENOISE_3D_UV
@@ -66,8 +76,10 @@ struct _GstXCamFilter
     uint32_t                     buf_count;
     CopyMode                     copy_mode;
     DefogModeType                defog_mode;
+    WaveletModeType              wavelet_mode;
     Denoise3DModeType            denoise_3d_mode;
     uint8_t                      denoise_3d_ref_count;
+    gboolean                     enable_wireframe;
 
     GstAllocator                 *allocator;
     GstVideoInfo                 gst_video_info;

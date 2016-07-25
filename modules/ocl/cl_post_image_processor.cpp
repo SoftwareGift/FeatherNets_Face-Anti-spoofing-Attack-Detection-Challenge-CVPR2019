@@ -24,9 +24,13 @@
 
 #include "cl_tnr_handler.h"
 #include "cl_retinex_handler.h"
-#include "cl_csc_handler.h"
 #include "cl_defog_dcp_handler.h"
+#include "cl_wavelet_denoise_handler.h"
+#include "cl_newwavelet_denoise_handler.h"
 #include "cl_3d_denoise_handler.h"
+#include "cl_image_scaler.h"
+#include "cl_wire_frame_handler.h"
+#include "cl_csc_handler.h"
 
 #define XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE 6
 #define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 12
@@ -37,10 +41,16 @@ CLPostImageProcessor::CLPostImageProcessor ()
     : CLImageProcessor ("CLPostImageProcessor")
     , _output_fourcc (V4L2_PIX_FMT_NV12)
     , _out_sample_type (OutSampleYuv)
+    , _scaler_factor (1.0)
     , _tnr_mode (TnrYuv)
     , _defog_mode (CLPostImageProcessor::DefogDisabled)
+    , _wavelet_basis (CL_WAVELET_DISABLED)
+    , _wavelet_channel (CL_IMAGE_CHANNEL_UV)
+    , _wavelet_bayes_shrink (false)
     , _3d_denoise_mode (CLPostImageProcessor::Denoise3DDisabled)
     , _3d_denoise_ref_count (3)
+    , _enable_scaler (false)
+    , _enable_wireframe (false)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -77,6 +87,21 @@ CLPostImageProcessor::set_output_format (uint32_t fourcc)
     return true;
 }
 
+void
+CLPostImageProcessor::set_stats_callback (const SmartPtr<StatsCallback> &callback)
+{
+    XCAM_ASSERT (callback.ptr ());
+    _stats_callback = callback;
+}
+
+bool
+CLPostImageProcessor::set_scaler_factor (const double factor)
+{
+    _scaler_factor = factor;
+
+    return true;
+}
+
 bool
 CLPostImageProcessor::can_process_result (SmartPtr < X3aResult > & result)
 {
@@ -85,6 +110,8 @@ CLPostImageProcessor::can_process_result (SmartPtr < X3aResult > & result)
 
     switch (result->get_type ()) {
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
+    case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
+    case XCAM_3A_RESULT_FACE_DETECTION:
         return true;
     default:
         return false;
@@ -145,6 +172,26 @@ CLPostImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         }
         break;
     }
+    case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION: {
+        SmartPtr<X3aWaveletNoiseReduction> wavelet_res = result.dynamic_cast_ptr<X3aWaveletNoiseReduction> ();
+        XCAM_ASSERT (wavelet_res.ptr ());
+        if (_wavelet.ptr()) {
+            _wavelet->set_denoise_config (wavelet_res->get_standard_result ());
+        }
+        if (_newwavelet.ptr()) {
+            _newwavelet->set_denoise_config (wavelet_res->get_standard_result ());
+        }
+        break;
+    }
+    case XCAM_3A_RESULT_FACE_DETECTION: {
+        SmartPtr<X3aFaceDetectionResult> fd_res = result.dynamic_cast_ptr<X3aFaceDetectionResult> ();
+        XCAM_ASSERT (fd_res.ptr ());
+        if (_wireframe.ptr ()) {
+            _wireframe->set_wire_frame_config (fd_res->get_standard_result_ptr (), get_scaler_factor ());
+        }
+        break;
+    }
+
     default:
         XCAM_LOG_WARNING ("CLPostImageProcessor unknow 3a result: %d", res_type);
         break;
@@ -214,6 +261,42 @@ CLPostImageProcessor::create_handlers ()
         }
     }
 
+    /* wavelet denoise */
+    switch (_wavelet_basis) {
+    case CL_WAVELET_HAT: {
+        image_handler = create_cl_wavelet_denoise_image_handler (context, _wavelet_channel);
+        _wavelet = image_handler.dynamic_cast_ptr<CLWaveletDenoiseImageHandler> ();
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _wavelet.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CLPostImageProcessor create wavelet denoise handler failed");
+        _wavelet->set_kernels_enable (true);
+        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
+        add_handler (image_handler);
+        break;
+    }
+    case CL_WAVELET_HAAR: {
+        image_handler = create_cl_newwavelet_denoise_image_handler (context, _wavelet_channel, _wavelet_bayes_shrink);
+        _newwavelet = image_handler.dynamic_cast_ptr<CLNewWaveletDenoiseImageHandler> ();
+        XCAM_FAIL_RETURN (
+            WARNING,
+            _newwavelet.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CLPostImageProcessor create new wavelet denoise handler failed");
+        _newwavelet->set_kernels_enable (true);
+        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
+        add_handler (image_handler);
+        break;
+    }
+    case CL_WAVELET_DISABLED:
+    default :
+        XCAM_LOG_DEBUG ("unknown or disable wavelet (%d)", _wavelet_basis);
+        break;
+    }
+
     /* 3D noise reduction */
     if (_3d_denoise_mode != CLPostImageProcessor::Denoise3DDisabled) {
         uint32_t denoise_channel = CL_IMAGE_CHANNEL_UV;
@@ -237,6 +320,33 @@ CLPostImageProcessor::create_handlers ()
         image_handler->set_kernels_enable (true);
         add_handler (image_handler);
     }
+
+    /* image scaler */
+    image_handler = create_cl_image_scaler_handler (context, V4L2_PIX_FMT_NV12);
+    _scaler = image_handler.dynamic_cast_ptr<CLImageScaler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _scaler.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create scaler handler failed");
+    _scaler->set_scaler_factor (_scaler_factor);
+    _scaler->set_buffer_callback (_stats_callback);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_kernels_enable (_enable_scaler);
+    add_handler (image_handler);
+
+    /* wire frame */
+    image_handler = create_cl_wire_frame_image_handler (context);
+    _wireframe = image_handler.dynamic_cast_ptr<CLWireFrameImageHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _wireframe.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create wire frame handler failed");
+    _wireframe->set_kernels_enable (_enable_wireframe);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
+    add_handler (image_handler);
 
     /* csc (nv12torgba) */
     image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
@@ -276,10 +386,42 @@ CLPostImageProcessor::set_defog_mode (CLDefogMode mode)
 }
 
 bool
+CLPostImageProcessor::set_wavelet (CLWaveletBasis basis, uint32_t channel, bool bayes_shrink)
+{
+    _wavelet_basis = basis;
+    _wavelet_channel = (CLImageChannel) channel;
+    _wavelet_bayes_shrink = bayes_shrink;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
 CLPostImageProcessor::set_3ddenoise_mode (CL3DDenoiseMode mode, uint8_t ref_frame_count)
 {
     _3d_denoise_mode = mode;
     _3d_denoise_ref_count = ref_frame_count;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CLPostImageProcessor::set_scaler (bool enable)
+{
+    _enable_scaler = enable;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CLPostImageProcessor::set_wireframe (bool enable)
+{
+    _enable_wireframe = enable;
 
     STREAM_LOCK;
 
