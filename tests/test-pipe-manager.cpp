@@ -176,6 +176,8 @@ void print_help (const char *bin_name)
             "\t --3d-denoise       specify 3D Denoise mode\n"
             "\t                    select from [disabled, yuv, uv], default is [disabled]\n"
             "\t --enable-wireframe enable wire frame\n"
+            "\t --display-mode     display mode\n"
+            "\t                    select from [primary, overlay], default is [primary]\n"
             "\t -p                 enable local display\n"
             "\t -h                 help\n"
             , bin_name);
@@ -196,6 +198,7 @@ int main (int argc, char *argv[])
     uint32_t image_width = 1920;
     uint32_t image_height = 1080;
     bool need_display = false;
+    DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
     const char *input_path = NULL;
     FileFP input_fp;
 
@@ -218,6 +221,7 @@ int main (int argc, char *argv[])
         {"wavelet-mode", required_argument, NULL, 'V'},
         {"3d-denoise", required_argument, NULL, 'N'},
         {"enable-wireframe", no_argument, NULL, 'I'},
+        {"display-mode", required_argument, NULL, 'P'},
         {NULL, 0, NULL, 0}
     };
 
@@ -310,6 +314,18 @@ int main (int argc, char *argv[])
             enable_wireframe = true;
             break;
         }
+        case 'P': {
+            XCAM_ASSERT (optarg);
+            if (!strcmp (optarg, "primary"))
+                display_mode = DRM_DISPLAY_MODE_PRIMARY;
+            else if (!strcmp (optarg, "overlay"))
+                display_mode = DRM_DISPLAY_MODE_OVERLAY;
+            else {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+        }
         case 'p':
             need_display = true;
             break;
@@ -338,7 +354,7 @@ int main (int argc, char *argv[])
     pipe_manager->set_image_height (image_height);
     if (need_display) {
         pipe_manager->enable_display (true);
-        pipe_manager->set_display_mode (DRM_DISPLAY_MODE_PRIMARY);
+        pipe_manager->set_display_mode (display_mode);
     }
 
     SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
