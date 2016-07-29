@@ -20,7 +20,7 @@ Features:
        edge enhancement.
     - Advanced features
        - Noise reduction: simple bilateral NR, temporal NR, wavelet NR,
-         adaptive NR with Bayesian shrinkage.
+         adaptive NR with Bayesian shrinkage, 3D-NR.
        - WDR: gaussian-based tone-mapping, histogram adjustment tone-mapping
        - Fog removal: retinex algorithm.
   * Capture features support memory type of mmap and dma buffer.
@@ -30,4 +30,6 @@ Features:
   * Support 3a analysis tuning framework for different features
   * Support smart analysis framework
        - Face detection interface/plugin
-  * Support as gstreamer plugin <xcamsrc>
+  * Support as gstreamer plugin
+       - xcamsrc, capture from usb/isp camera, process 3a/basic/advanced features.
+       - xcamfilter, improve image quality by advanced features and smart analysis.

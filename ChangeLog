@@ -1,3 +1,20 @@
+2016/07/29: release libxcam version 0.6.1
+* enable 3D noise reduction, performance stay tuned.
+   - suppress image noise in both temporal and spatial domain.
+   - the algorithm applies denoise filter based on pixel-block differences
+     in neighbor blocks and previous frames.
+   - the processed image is much more clean and preserves motion objects
+     edge in low-light conditions.
+
+ * support gst xcamfilter plugin which is independent from camera source.
+   - xcamfilter plugin can work with gstreamer source plugins,
+     e.g. videotestsrc/filesrc/v4l2src.
+   - xcamfilter features support defog/wireframe/waveletNR/3d-denoise.
+   - sink pad supports format NV12, src pad supports DMA buffer-sharing
+     for performace if links to HW plugin(encoder).
+   - wireframe/scaler/waveletNR moved to post image processor which can
+     co-work with isp processor(as pre-image processor)
+
 2016/06/30: release libxcam version 0.6.0
  * enable block-split version of histogram based WDR tone-mapping algorithm.
    - divide image into several blocks and apply bidirectional log based
