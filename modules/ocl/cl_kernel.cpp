@@ -71,7 +71,7 @@ get_string_key_id (const char *str, uint32_t len, uint8_t key_id[8])
         len = strlen (str);
     aligned_len = XCAM_ALIGN_DOWN (len, 8);
 
-    for (i = 0; i < aligned_len; ++i) {
+    for (i = 0; i < aligned_len / 8; ++i) {
         key[0] ^= ptr[0];
         key[1] ^= ptr[1];
         ptr += 2;
