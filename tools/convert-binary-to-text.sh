@@ -12,7 +12,7 @@ if [ $# -ne 2 ]; then
 fi
 
 od -A n -t x1 -v $BINARY_FILE | \
-    awk '
+    gawk '
     BEGIN { print "{" }
     {
         printf "   "
@@ -24,8 +24,8 @@ od -A n -t x1 -v $BINARY_FILE | \
     ' > $TEXT_FILE.tmp
 
 ret=$?
-if [ $ret != 0 ] ; then
-    echo "Convert $BINARY_FILE to $TEXT_FILE fail"
+if [ $ret != 0 ]; then
+    echo "Convert $BINARY_FILE to $TEXT_FILE faild"
     rm -f $TEXT_FILE.tmp
     exit 1
 fi

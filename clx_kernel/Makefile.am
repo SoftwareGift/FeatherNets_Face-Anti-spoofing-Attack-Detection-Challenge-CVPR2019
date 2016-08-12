@@ -42,14 +42,14 @@ clx_kernel_sources = \
 	kernel_3d_denoise.clx         \
 	$(NULL)
 
-cl_quote_sh = \
-	$(top_srcdir)/tools/cl_double_quotation.sh
+cl_quotation_sh = \
+	$(top_srcdir)/tools/cl-double-quotation.sh
 
 cl_kernel_dir = $(top_srcdir)/cl_kernel
 
 all-local: $(clx_kernel_sources)
 
 $(clx_kernel_sources): %.clx: $(cl_kernel_dir)/%.cl
-	@$(cl_quote_sh) $< $@
+	@$(cl_quotation_sh) $< $@
 
 CLEANFILES = $(clx_kernel_sources)

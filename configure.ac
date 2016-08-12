@@ -112,6 +112,13 @@ if test "$enable_libcl" = "yes" && test "$HAVE_LIBCL" -eq 0; then
     fi
 fi
 
+if test "$HAVE_LIBCL" -eq 1; then
+    AC_CHECK_PROGS([GAWK], [gawk], [no])
+    if test "x$GAWK" = "xno"; then
+        AC_MSG_ERROR([gawk not found])
+    fi
+fi
+
 # check AIQ
 ENABLE_IA_AIQ=0
 USE_LOCAL_AIQ=0
