@@ -1286,6 +1286,7 @@ gst_xcam_src_fill (GstPushSrc *basesrc, GstBuffer *buf)
     GST_BUFFER_TIMESTAMP (buf) += src->time_offset;
     //GST_BUFFER_DURATION (buf) = src->duration;
 
+    FPS_CALCULATION (gstxcamsrc, 30);
     return GST_FLOW_OK;
 }
 
