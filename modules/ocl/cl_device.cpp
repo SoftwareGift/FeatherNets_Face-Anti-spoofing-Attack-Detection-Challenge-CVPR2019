@@ -66,6 +66,23 @@ CLDevice::get_context ()
     return _default_context;
 }
 
+void *
+CLDevice::get_extension_function (const char *func_name)
+{
+    XCAM_ASSERT (func_name);
+    void *ext_func = NULL;
+
+#if defined (CL_VERSION_1_2) && (CL_VERSION_1_2 == 1)
+    ext_func = (void *) clGetExtensionFunctionAddressForPlatform (_platform_id, func_name);
+#else
+    ext_func = (void *) clGetExtensionFunctionAddress (func_name);
+#endif
+    if (!ext_func)
+        XCAM_LOG_ERROR ("ocl driver get extension function (%s) failed", func_name);
+
+    return ext_func;
+}
+
 void
 CLDevice::terminate ()
 {

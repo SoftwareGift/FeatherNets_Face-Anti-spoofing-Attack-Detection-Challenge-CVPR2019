@@ -63,6 +63,7 @@ public:
     }
 
     SmartPtr<CLContext> get_context ();
+    void *get_extension_function (const char *func_name);
     void terminate ();
 
 private:
