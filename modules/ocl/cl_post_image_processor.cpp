@@ -307,9 +307,8 @@ CLPostImageProcessor::create_handlers ()
             denoise_channel = CL_IMAGE_CHANNEL_Y | CL_IMAGE_CHANNEL_UV;
         }
 
-        image_handler = create_cl_3d_denoise_image_handler (context, denoise_channel);
+        image_handler = create_cl_3d_denoise_image_handler (context, denoise_channel, _3d_denoise_ref_count);
         _3d_denoise = image_handler.dynamic_cast_ptr<CL3DDenoiseImageHandler> ();
-        _3d_denoise->set_ref_framecount (_3d_denoise_ref_count);
         XCAM_FAIL_RETURN (
             WARNING,
             _3d_denoise.ptr (),

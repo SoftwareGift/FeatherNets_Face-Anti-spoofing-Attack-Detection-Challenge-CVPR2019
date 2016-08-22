@@ -534,7 +534,7 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->wavelet_mode = NONE_WAVELET;
     xcamsrc->enable_retinex = DEFAULT_PROP_ENABLE_RETINEX;
     xcamsrc->denoise_3d_mode = DEFAULT_PROP_3D_DENOISE_MODE;
-    xcamsrc->denoise_3d_ref_count = 3;
+    xcamsrc->denoise_3d_ref_count = 2;
     xcamsrc->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
@@ -1016,7 +1016,7 @@ gst_xcam_src_start (GstBaseSrc *src)
         smart_analyzer = new SmartAnalyzer ();
         if (smart_analyzer.ptr ()) {
             SmartHandlerList::iterator i_handler = smart_handlers.begin ();
-            for (; i_handler != smart_handlers.end ();	++i_handler)
+            for (; i_handler != smart_handlers.end ();  ++i_handler)
             {
                 XCAM_ASSERT ((*i_handler).ptr ());
                 smart_analyzer->add_handler (*i_handler);

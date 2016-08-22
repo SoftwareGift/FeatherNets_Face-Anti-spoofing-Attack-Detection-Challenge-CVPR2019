@@ -244,7 +244,7 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->defog_mode = DEFAULT_PROP_DEFOG_MODE;
     xcamfilter->wavelet_mode = DEFAULT_PROP_WAVELET_MODE;
     xcamfilter->denoise_3d_mode = DEFAULT_PROP_3D_DENOISE_MODE;
-    xcamfilter->denoise_3d_ref_count = 3;
+    xcamfilter->denoise_3d_ref_count = 2;
     xcamfilter->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
 
     XCAM_CONSTRUCTOR (xcamfilter->pipe_manager, SmartPtr<MainPipeManager>);

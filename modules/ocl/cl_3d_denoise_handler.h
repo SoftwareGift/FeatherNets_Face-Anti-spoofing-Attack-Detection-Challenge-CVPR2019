@@ -57,14 +57,15 @@ protected:
 private:
     XCAM_DEAD_COPY (CL3DDenoiseImageKernel);
 
-    uint32_t _channel;
-    float    _gain;
-    float    _thr_y;
-    float    _thr_uv;
-    uint8_t  _ref_count;
-    SmartPtr<CL3DDenoiseImageHandler> _handler;
+    uint32_t                           _channel;
+    float                              _gain;
+    float                              _thr_y;
+    float                              _thr_uv;
+    uint8_t                            _ref_count;
+    SmartPtr<CL3DDenoiseImageHandler>  _handler;
 
-    CLImagePtrList _image_in_list;
+    CLImagePtrList                     _image_in_list;
+    SmartPtr<CLImage>                  _image_out_prev;
 };
 
 class CL3DDenoiseImageHandler
@@ -87,12 +88,12 @@ private:
     XCAM_DEAD_COPY (CL3DDenoiseImageHandler);
 
 private:
-    uint8_t _ref_count;
-    XCam3aResultTemporalNoiseReduction _config;
+    uint8_t                             _ref_count;
+    XCam3aResultTemporalNoiseReduction  _config;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_3d_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel);
+create_cl_3d_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel, uint8_t ref_count);
 
 };
 

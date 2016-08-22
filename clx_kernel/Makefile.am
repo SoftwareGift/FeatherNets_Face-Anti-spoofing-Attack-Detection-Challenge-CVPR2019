@@ -40,6 +40,7 @@ clx_kernel_sources = \
 	kernel_wavelet_coeff_thresholding.clx \
 	kernel_wire_frame.clx         \
 	kernel_3d_denoise.clx         \
+	kernel_3d_denoise_slm.clx         \
 	$(NULL)
 
 cl_quotation_sh = \

@@ -595,7 +595,8 @@ int main (int argc, char *argv[])
         break;
     }
     case TestHandler3DDenoise: {
-        image_handler = create_cl_3d_denoise_image_handler (context, CL_IMAGE_CHANNEL_Y | CL_IMAGE_CHANNEL_UV);
+        uint8_t ref_count = 2;
+        image_handler = create_cl_3d_denoise_image_handler (context, CL_IMAGE_CHANNEL_Y | CL_IMAGE_CHANNEL_UV, ref_count);
         SmartPtr<CL3DDenoiseImageHandler> denoise = image_handler.dynamic_cast_ptr<CL3DDenoiseImageHandler> ();
         XCAM_ASSERT (denoise.ptr ());
         XCam3aResultTemporalNoiseReduction denoise_config;
@@ -604,7 +605,6 @@ int main (int argc, char *argv[])
         denoise_config.threshold[1] = 0.05;
         denoise_config.gain = 0.6;
         denoise->set_denoise_config (denoise_config);
-        denoise->set_ref_framecount (3);
         XCAM_ASSERT (denoise.ptr ());
         break;
     }

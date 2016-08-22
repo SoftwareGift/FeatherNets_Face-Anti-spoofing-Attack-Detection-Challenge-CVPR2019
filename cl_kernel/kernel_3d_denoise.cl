@@ -3,401 +3,278 @@
  *     3D Noise Reduction
  * gain:        The parameter determines the filtering strength for the reference block
  * threshold:   Noise variances of observed image
+ * restoredPrev: The previous restored image, image2d_t as read only
  * output:      restored image, image2d_t as write only
  * input:       observed image, image2d_t as read only
  * inputPrev1:  reference image, image2d_t as read only
  * inputPrev2:  reference image, image2d_t as read only
  */
 
-#define GROUP_WIDTH          8
-#define GROUP_HEIGHT         1
+#ifndef REFERENCE_FRAME_COUNT
+#define REFERENCE_FRAME_COUNT 2
+#endif
 
-#define BLOCK_WIDTH          3
-#define BLOCK_HEIGHT         8
+#ifndef ENABLE_IIR_FILERING
+#define ENABLE_IIR_FILERING 1
+#endif
 
-void __gen_ocl_force_simd8(void);
+#ifndef WORKGROUP_WIDTH
+#define WORKGROUP_WIDTH    2
+#endif
 
-inline void weighted_average_subblock (
-    __read_only image2d_t input, __write_only image2d_t output, float* sum_weight,
-    bool load_abserved_block, float4* observed_block, float4* restored_block,
-    float gain, float threshold, int row_batch, int col_batch)
+#ifndef WORKGROUP_HEIGHT
+#define WORKGROUP_HEIGHT   32
+#endif
+
+#define REF_BLOCK_X_OFFSET  1
+#define REF_BLOCK_Y_OFFSET  4
+
+#define REF_BLOCK_WIDTH     (WORKGROUP_WIDTH + 2 * REF_BLOCK_X_OFFSET)
+#define REF_BLOCK_HEIGHT    (WORKGROUP_HEIGHT + 2 * REF_BLOCK_Y_OFFSET)
+
+inline int2 subgroup_pos(const int sg_id, const int sg_lid)
 {
+    int2 pos;
+    pos.x = mad24(2, sg_id % 2, sg_lid % 2);
+    pos.y = mad24(4, sg_id / 2, sg_lid / 2);
 
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+    return pos;
+}
 
+inline void average_slice(float8 ref,
+                          float8 observe,
+                          float8* restore,
+                          float2* sum_weight,
+                          float gain,
+                          float threshold,
+                          uint sg_id,
+                          uint sg_lid)
+{
+    float8 grad = 0.0f;
+    float8 gradient = 0.0f;
+    float8 dist = 0.0f;
+    float8 distance = 0.0f;
+    float weight = 0.0f;
+
+    // calculate & cumulate gradient
+    if (sg_lid % 2 == 0) {
+        grad = intel_sub_group_shuffle(ref, 4);
+    } else {
+        grad = intel_sub_group_shuffle(ref, 5);
+    }
+    gradient = (float8)(grad.s1, grad.s1, grad.s1, grad.s1, grad.s5, grad.s5, grad.s5, grad.s5);
+
+    grad = ((gradient - ref) + (gradient - grad)) * 0.00392157f;
+    //grad = mad(-2, gradient, (ref + grad)) * 0.00392157f;
+    grad.s0 = (grad.s0 + grad.s1 + grad.s2 + grad.s3);
+    grad.s4 = (grad.s4 + grad.s5 + grad.s6 + grad.s7);
+
+    // calculate distance
+    dist = (observe - ref) * 0.00392157f;
+    dist = dist * dist;
+
+    float8 dist_shuffle[8];
+    dist_shuffle[0] = (intel_sub_group_shuffle(dist, 0));
+    dist_shuffle[1] = (intel_sub_group_shuffle(dist, 1));
+    dist_shuffle[2] = (intel_sub_group_shuffle(dist, 2));
+    dist_shuffle[3] = (intel_sub_group_shuffle(dist, 3));
+    dist_shuffle[4] = (intel_sub_group_shuffle(dist, 4));
+    dist_shuffle[5] = (intel_sub_group_shuffle(dist, 5));
+    dist_shuffle[6] = (intel_sub_group_shuffle(dist, 6));
+    dist_shuffle[7] = (intel_sub_group_shuffle(dist, 7));
+
+    if (sg_lid % 2 == 0) {
+        distance = dist_shuffle[0];
+        distance += dist_shuffle[2];
+        distance += dist_shuffle[4];
+        distance += dist_shuffle[6];
+    }
+    else {
+        distance = dist_shuffle[1];
+        distance += dist_shuffle[3];
+        distance += dist_shuffle[5];
+        distance += dist_shuffle[7];
+    }
+
+    // cumulate distance
+    dist.s0 = (distance.s0 + distance.s1 + distance.s2 + distance.s3);
+    dist.s4 = (distance.s4 + distance.s5 + distance.s6 + distance.s7);
+    gain = (grad.s0 < threshold) ? gain : 2.0f * gain;
+    weight = native_exp(gain * dist.s0);
+    (*restore).lo = mad(weight, ref.lo, (*restore).lo);
+    (*sum_weight).lo = (*sum_weight).lo + weight;
+
+    gain = (grad.s4 < threshold) ? gain : 2.0f * gain;
+    weight = native_exp(gain * dist.s4);
+    (*restore).hi = mad(weight, ref.hi, (*restore).hi);
+    (*sum_weight).hi = (*sum_weight).hi + weight;
+}
+
+inline void weighted_average (__read_only image2d_t input,
+                              bool load_observe,
+                              float8* observe,
+                              float8* restore,
+                              float2* sum_weight,
+                              float gain,
+                              float threshold,
+                              uint sg_id,
+                              uint sg_lid)
+{
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+
+    int local_id_x = get_local_id(0);
+    int local_id_y = get_local_id(1);
     const int group_id_x = get_group_id(0);
     const int group_id_y = get_group_id(1);
-    const int local_id_x = get_local_id(0);
-    const int local_id_y = get_local_id(1);
 
-    int2 coord_read = (int2)( group_id_x * GROUP_WIDTH * BLOCK_WIDTH, group_id_y * GROUP_HEIGHT * BLOCK_HEIGHT);
-    int2 coord_write = (int2)( group_id_x * GROUP_WIDTH * BLOCK_WIDTH, group_id_y * GROUP_HEIGHT * BLOCK_HEIGHT);
+    __local uchar8 local_ref_cache[REF_BLOCK_HEIGHT * REF_BLOCK_WIDTH];
 
-    uint subgroup_size = get_sub_group_size ();
-    uint cur_id = get_sub_group_local_id ();
-    int left_id = (cur_id == 0) ? 0 : cur_id - 1;
-    int right_id = (cur_id == subgroup_size - 1) ? subgroup_size - 1 : cur_id + 1;
+    int start_x = mad24(group_id_x, WORKGROUP_WIDTH, -REF_BLOCK_X_OFFSET);
+    int start_y = mad24(group_id_y, WORKGROUP_HEIGHT, -REF_BLOCK_Y_OFFSET);
 
-    uint8 ref_subgroup[2];
-    uint8 middle_block[2];
+    int i = local_id_x + local_id_y * WORKGROUP_WIDTH;
+    for ( int j = i; j < (REF_BLOCK_HEIGHT * REF_BLOCK_WIDTH);
+            j += (WORKGROUP_HEIGHT * WORKGROUP_WIDTH) ) {
+        int corrd_x = start_x + (j % REF_BLOCK_WIDTH);
+        int corrd_y = start_y + (j / REF_BLOCK_WIDTH);
 
-    float4 ref_block[16][3];
-
-    float4 dist = 0.0f;
-    float weight[2] = {0.0f, 0.0f};
-
-    // middle
-    for (int i = 0; i < 2; i++) {
-        middle_block[i] = intel_sub_group_block_read8 (input, coord_read);
-        coord_read.y += BLOCK_HEIGHT;
+        local_ref_cache[j] = as_uchar8( convert_ushort4(read_imageui(input,
+                                        sampler,
+                                        (int2)(corrd_x, corrd_y))));
     }
-    ref_block[0][1] = convert_float4(as_uchar4(middle_block[0].s0));
-    ref_block[1][1] = convert_float4(as_uchar4(middle_block[0].s1));
-    ref_block[2][1] = convert_float4(as_uchar4(middle_block[0].s2));
-    ref_block[3][1] = convert_float4(as_uchar4(middle_block[0].s3));
-    ref_block[4][1] = convert_float4(as_uchar4(middle_block[0].s4));
-    ref_block[5][1] = convert_float4(as_uchar4(middle_block[0].s5));
-    ref_block[6][1] = convert_float4(as_uchar4(middle_block[0].s6));
-    ref_block[7][1] = convert_float4(as_uchar4(middle_block[0].s7));
+    barrier(CLK_LOCAL_MEM_FENCE);
 
-    ref_block[8][1] = convert_float4(as_uchar4(middle_block[1].s0));
-    ref_block[9][1] = convert_float4(as_uchar4(middle_block[1].s1));
-    ref_block[10][1] = convert_float4(as_uchar4(middle_block[1].s2));
-    ref_block[11][1] = convert_float4(as_uchar4(middle_block[1].s3));
-    ref_block[12][1] = convert_float4(as_uchar4(middle_block[1].s4));
-    ref_block[13][1] = convert_float4(as_uchar4(middle_block[1].s5));
-    ref_block[14][1] = convert_float4(as_uchar4(middle_block[1].s6));
-    ref_block[15][1] = convert_float4(as_uchar4(middle_block[1].s7));
-
-    // left
-    coord_read.y -= 2 * BLOCK_HEIGHT;
-    for (int i = 0; i < 2; i++) {
-        ref_subgroup[i] = intel_sub_group_shuffle(middle_block[i], left_id);
-        coord_read.y += BLOCK_HEIGHT;
-    }
-    ref_block[0][0] = convert_float4(as_uchar4(ref_subgroup[0].s0));
-    ref_block[1][0] = convert_float4(as_uchar4(ref_subgroup[0].s1));
-    ref_block[2][0] = convert_float4(as_uchar4(ref_subgroup[0].s2));
-    ref_block[3][0] = convert_float4(as_uchar4(ref_subgroup[0].s3));
-    ref_block[4][0] = convert_float4(as_uchar4(ref_subgroup[0].s4));
-    ref_block[5][0] = convert_float4(as_uchar4(ref_subgroup[0].s5));
-    ref_block[6][0] = convert_float4(as_uchar4(ref_subgroup[0].s6));
-    ref_block[7][0] = convert_float4(as_uchar4(ref_subgroup[0].s7));
-
-    ref_block[8][0] = convert_float4(as_uchar4(ref_subgroup[1].s0));
-    ref_block[9][0] = convert_float4(as_uchar4(ref_subgroup[1].s1));
-    ref_block[10][0] = convert_float4(as_uchar4(ref_subgroup[1].s2));
-    ref_block[11][0] = convert_float4(as_uchar4(ref_subgroup[1].s3));
-    ref_block[12][0] = convert_float4(as_uchar4(ref_subgroup[1].s4));
-    ref_block[13][0] = convert_float4(as_uchar4(ref_subgroup[1].s5));
-    ref_block[14][0] = convert_float4(as_uchar4(ref_subgroup[1].s6));
-    ref_block[15][0] = convert_float4(as_uchar4(ref_subgroup[1].s7));
-
-
-    // right
-    coord_read.y -= 2 * BLOCK_HEIGHT;
-    for (int i = 0; i < 2; i++) {
-        ref_subgroup[i] = intel_sub_group_shuffle(middle_block[i], right_id);
-        coord_read.y += BLOCK_HEIGHT;
-    }
-    ref_block[0][2] = convert_float4(as_uchar4(ref_subgroup[0].s0));
-    ref_block[1][2] = convert_float4(as_uchar4(ref_subgroup[0].s1));
-    ref_block[2][2] = convert_float4(as_uchar4(ref_subgroup[0].s2));
-    ref_block[3][2] = convert_float4(as_uchar4(ref_subgroup[0].s3));
-    ref_block[4][2] = convert_float4(as_uchar4(ref_subgroup[0].s4));
-    ref_block[5][2] = convert_float4(as_uchar4(ref_subgroup[0].s5));
-    ref_block[6][2] = convert_float4(as_uchar4(ref_subgroup[0].s6));
-    ref_block[7][2] = convert_float4(as_uchar4(ref_subgroup[0].s7));
-
-    ref_block[8][2] = convert_float4(as_uchar4(ref_subgroup[1].s0));
-    ref_block[9][2] = convert_float4(as_uchar4(ref_subgroup[1].s1));
-    ref_block[10][2] = convert_float4(as_uchar4(ref_subgroup[1].s2));
-    ref_block[11][2] = convert_float4(as_uchar4(ref_subgroup[1].s3));
-    ref_block[12][2] = convert_float4(as_uchar4(ref_subgroup[1].s4));
-    ref_block[13][2] = convert_float4(as_uchar4(ref_subgroup[1].s5));
-    ref_block[14][2] = convert_float4(as_uchar4(ref_subgroup[1].s6));
-    ref_block[15][2] = convert_float4(as_uchar4(ref_subgroup[1].s7));
-
-    if (load_abserved_block) {
-        observed_block[0] = ref_block[4][1];
-        observed_block[1] = ref_block[5][1];
-        observed_block[2] = ref_block[6][1];
-        observed_block[3] = ref_block[7][1];
-
-        observed_block[4] = ref_block[8][1];
-        observed_block[5] = ref_block[9][1];
-        observed_block[6] = ref_block[10][1];
-        observed_block[7] = ref_block[11][1];
-    }
-
-#if 0
-#pragma unroll
-    for (int j = 0;  j < 3; j++) {
-#pragma unroll
-        for (int i = 0; i < 3; i++) {
-            dist = (ref_block[4 * i][j] - observed_block[0]) * (ref_block[4 * i][j] - observed_block[0]);
-            dist = mad((ref_block[4 * i + 1][j] - observed_block[1]), (ref_block[4 * i + 1][j] - observed_block[1]), dist);
-            dist = mad((ref_block[4 * i + 2][j] - observed_block[2]), (ref_block[4 * i + 2][j] - observed_block[2]), dist);
-            dist = mad((ref_block[4 * i + 3][j] - observed_block[3]), (ref_block[4 * i + 3][j] - observed_block[3]), dist);
-            weight[0] = exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
-            sum_weight[0] = sum_weight[0] + weight[0];
-
-            restored_block[0] = mad(weight[0], ref_block[4 * i][j], restored_block[0]);
-            restored_block[1] = mad(weight[0], ref_block[4 * i + 1][j], restored_block[1]);
-            restored_block[2] = mad(weight[0], ref_block[4 * i + 2][j], restored_block[2]);
-            restored_block[3] = mad(weight[0], ref_block[4 * i + 3][j], restored_block[3]);
-        }
-    }
-    restored_block[0] = restored_block[0] / sum_weight[0];
-    restored_block[1] = restored_block[1] / sum_weight[0];
-    restored_block[2] = restored_block[2] / sum_weight[0];
-    restored_block[3] = restored_block[3] / sum_weight[0];
-
-//#else
-
-#pragma unroll
-    for (int j = 0;  j < 3; j++) {
-#pragma unroll
-        for (int i = 1; i < 4; i++) {
-            dist = (ref_block[4 * i][j] - observed_block[4]) * (ref_block[4 * i][j] - observed_block[4]);
-            dist = mad((ref_block[4 * i + 1][j] - observed_block[5]), (ref_block[4 * i + 1][j] - observed_block[5]), dist);
-            dist = mad((ref_block[4 * i + 2][j] - observed_block[6]), (ref_block[4 * i + 2][j] - observed_block[6]), dist);
-            dist = mad((ref_block[4 * i + 3][j] - observed_block[7]), (ref_block[4 * i + 3][j] - observed_block[7]), dist);
-            weight[1] = exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
-            sum_weight[1] = sum_weight[1] + weight[1];
-
-            restored_block[4] = mad(weight[1], ref_block[4 * i][j], restored_block[4]);
-            restored_block[5] = mad(weight[1], ref_block[4 * i + 1][j], restored_block[5]);
-            restored_block[6] = mad(weight[1], ref_block[4 * i + 2][j], restored_block[6]);
-            restored_block[7] = mad(weight[1], ref_block[4 * i + 3][j], restored_block[7]);
-        }
-    }
-    restored_block[4] = restored_block[4] / sum_weight[1];
-    restored_block[5] = restored_block[5] / sum_weight[1];
-    restored_block[6] = restored_block[6] / sum_weight[1];
-    restored_block[7] = restored_block[7] / sum_weight[1];
+#if WORKGROUP_WIDTH == 4
+    int2 pos = subgroup_pos(sg_id, sg_lid);
+    local_id_x = pos.x;
+    local_id_y = pos.y;
 #endif
 
-    if (load_abserved_block) {
-        for (int i = 0; i < 2; i++) {
-            intel_sub_group_block_write8 (output, coord_write, middle_block[i]);
-            coord_write.y += BLOCK_HEIGHT;
-        }
+    if (load_observe) {
+        (*observe) = convert_float8(
+                         local_ref_cache[mad24(local_id_y + REF_BLOCK_Y_OFFSET,
+                                               REF_BLOCK_WIDTH,
+                                               local_id_x + REF_BLOCK_X_OFFSET)]);
+        (*restore) = (*observe);
+        (*sum_weight) = 1.0f;
     }
+
+    float8 ref = 0.0f;
+    __local uchar4* p_ref = (__local uchar4*)(local_ref_cache);
+
+    // top-left
+    ref.lo = convert_float4(p_ref[mad24(local_id_y,
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 1))]);
+    ref.hi = convert_float4(p_ref[mad24(local_id_y,
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 2))]);
+    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // top-mid
+    ref.lo = convert_float4(p_ref[mad24(local_id_y,
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 3))]);
+    average_slice((float8)(ref.hi, ref.lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // top-right
+    ref.hi = convert_float4(p_ref[mad24(local_id_y,
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 4))]);
+    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // mid-left
+    ref.lo = convert_float4(p_ref[mad24((local_id_y + 4),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 1))]);
+    ref.hi = convert_float4(p_ref[mad24((local_id_y + 4),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 2))]);
+    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    ref.lo = convert_float4(p_ref[mad24((local_id_y + 4),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 3))]);
+    // mid-mid
+    if (!load_observe) {
+        average_slice((float8)(ref.hi, ref.lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+    }
+    // mid-right
+    ref.hi = convert_float4(p_ref[mad24((local_id_y + 4),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 4))]);
+    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // bottom-left
+    ref.lo = convert_float4(p_ref[mad24((local_id_y + 8),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 1))]);
+    ref.hi = convert_float4(p_ref[mad24((local_id_y + 8),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 2))]);
+    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // bottom-mid
+    ref.lo = convert_float4(p_ref[mad24((local_id_y + 8),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 3))]);
+    average_slice((float8)(ref.hi, ref.lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // bottom-right
+    ref.hi = convert_float4(p_ref[mad24((local_id_y + 8),
+                                        2 * REF_BLOCK_WIDTH,
+                                        mad24(2, local_id_x, 4))]);
+    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
 }
 
-
-inline void weighted_average (__read_only image2d_t input,  __write_only image2d_t output, float* sum_weight,
-                              bool load_abserved_block, float4* observed_block, float4* restored_block,
-                              float gain, float threshold, int row_batch, int col_batch)
+__kernel void kernel_3d_denoise ( float gain,
+                                  float threshold,
+                                  __write_only image2d_t restoredPrev,
+                                  __write_only image2d_t output,
+                                  __read_only image2d_t input,
+                                  __read_only image2d_t inputPrev1,
+                                  __read_only image2d_t inputPrev2)
 {
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+    float8 restore = 0.0f;
+    float8 observe = 0.0f;
+    float2 sum_weight = 0.0f;
 
-    int g_id_x = get_global_id (0);
-    int g_id_y = get_global_id (1);
+    const int sg_id = get_sub_group_id();
+    const int sg_lid = (get_local_id(1) * WORKGROUP_WIDTH + get_local_id(0)) % 8;
 
-    float4 ref_block[12][4];
+    weighted_average (input, true, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
 
-    ref_block[0][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y - 4));
-    ref_block[0][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y - 4));
-    ref_block[0][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y - 4));
-    ref_block[0][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y - 4));
-
-    ref_block[1][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y - 3));
-    ref_block[1][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y - 3));
-    ref_block[1][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y - 3));
-    ref_block[1][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y - 3));
-
-    ref_block[2][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y - 2));
-    ref_block[2][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y - 2));
-    ref_block[2][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y - 2));
-    ref_block[2][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y - 2));
-
-    ref_block[3][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y - 1));
-    ref_block[3][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y - 1));
-    ref_block[3][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y - 1));
-    ref_block[3][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y - 1));
-
-    ref_block[4][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y));
-    ref_block[4][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y));
-    ref_block[4][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y));
-    ref_block[4][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y));
-
-    ref_block[5][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y + 1));
-    ref_block[5][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y + 1));
-    ref_block[5][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 1));
-    ref_block[5][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y + 1));
-
-    ref_block[6][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y + 2));
-    ref_block[6][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y + 2));
-    ref_block[6][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 2));
-    ref_block[6][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y + 2));
-
-    ref_block[7][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y + 3));
-    ref_block[7][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y + 3));
-    ref_block[7][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 3));
-    ref_block[7][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y + 3));
-
-    ref_block[8][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y + 4));
-    ref_block[8][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y + 4));
-    ref_block[8][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 4));
-    ref_block[8][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y + 4));
-
-    ref_block[9][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y + 5));
-    ref_block[9][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y + 5));
-    ref_block[9][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 5));
-    ref_block[9][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y + 5));
-
-    ref_block[10][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y + 6));
-    ref_block[10][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y + 6));
-    ref_block[10][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 6));
-    ref_block[10][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y + 6));
-
-    ref_block[11][0] = read_imagef(input, sampler, (int2)(col_batch * g_id_x - 1, row_batch * g_id_y + 7));
-    ref_block[11][1] = read_imagef(input, sampler, (int2)(col_batch * g_id_x, row_batch * g_id_y + 7));
-    ref_block[11][2] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 7));
-    ref_block[11][3] = read_imagef(input, sampler, (int2)(col_batch * g_id_x + 2, row_batch * g_id_y + 7));
-
-    float4 dist = 0.0f;
-    float4 gradient = {0.0f, 0.0f, 0.0f, 0.0f};
-    float MAG = 0.0f;
-    float2 weight = {0.0f, 0.0f};
-
-    if (load_abserved_block) {
-        observed_block[0] = ref_block[4][1];
-        observed_block[2] = ref_block[5][1];
-        observed_block[4] = ref_block[6][1];
-        observed_block[6] = ref_block[7][1];
-
-        observed_block[1] = ref_block[4][2];
-        observed_block[3] = ref_block[5][2];
-        observed_block[5] = ref_block[6][2];
-        observed_block[7] = ref_block[7][2];
-    }
-
-#pragma unroll
-    for (int i = 0;  i < 3; i++) {
-#pragma unroll
-        for (int j = 0; j < 3; j++) {
-            dist = (ref_block[4 * i][j] - observed_block[0]) * (ref_block[4 * i][j] - observed_block[0]);
-            dist = mad((ref_block[4 * i + 1][j] - observed_block[2]), (ref_block[4 * i + 1][j] - observed_block[2]), dist);
-            dist = mad((ref_block[4 * i + 2][j] - observed_block[4]), (ref_block[4 * i + 2][j] - observed_block[4]), dist);
-            dist = mad((ref_block[4 * i + 3][j] - observed_block[6]), (ref_block[4 * i + 3][j] - observed_block[6]), dist);
-
-            gradient = (float4)(
-                           ref_block[4 * i + 1][j].s2, ref_block[4 * i + 1][j].s2,
-                           ref_block[4 * i + 1][j].s2, ref_block[4 * i + 1][j].s2);
-            gradient = fabs(gradient - ref_block[4 * i][j]) +
-                       fabs(gradient - ref_block[4 * i + 1][j]) +
-                       fabs(gradient - ref_block[4 * i + 2][j]) +
-                       fabs(gradient - ref_block[4 * i + 3][j]);
-            MAG = fabs(gradient.s0 + gradient.s1 + gradient.s2 + gradient.s3) / 15.0f;
-            gain = (MAG < 0.4) ? gain : 2 * gain;
-
-            weight.s0 = exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
-            weight.s0 = (weight.s0 < 0) ? 0 : weight.s0;
-            sum_weight[0] = sum_weight[0] + weight.s0;
-
-            restored_block[0] = mad(weight.s0, ref_block[4 * i][j], restored_block[0]);
-            restored_block[2] = mad(weight.s0, ref_block[4 * i + 1][j], restored_block[2]);
-            restored_block[4] = mad(weight.s0, ref_block[4 * i + 2][j], restored_block[4]);
-            restored_block[6] = mad(weight.s0, ref_block[4 * i + 3][j], restored_block[6]);
-        }
-    }
-
-#pragma unroll
-    for (int i = 0;  i < 3; i++) {
-#pragma unroll
-        for (int j = 1; j < 4; j++) {
-            dist = (ref_block[4 * i][j] - observed_block[1]) * (ref_block[4 * i][j] - observed_block[1]);
-            dist = mad((ref_block[4 * i + 1][j] - observed_block[3]), (ref_block[4 * i + 1][j] - observed_block[3]), dist);
-            dist = mad((ref_block[4 * i + 2][j] - observed_block[5]), (ref_block[4 * i + 2][j] - observed_block[5]), dist);
-            dist = mad((ref_block[4 * i + 3][j] - observed_block[7]), (ref_block[4 * i + 3][j] - observed_block[7]), dist);
-
-            gradient = (float4)(
-                           ref_block[4 * i + 1][j].s2, ref_block[4 * i + 1][j].s2,
-                           ref_block[4 * i + 1][j].s2, ref_block[4 * i + 1][j].s2);
-            gradient = fabs(gradient - ref_block[4 * i][j]) +
-                       fabs(gradient - ref_block[4 * i + 1][j]) +
-                       fabs(gradient - ref_block[4 * i + 2][j]) +
-                       fabs(gradient - ref_block[4 * i + 3][j]);
-            MAG = (gradient.s0 + gradient.s1 + gradient.s2 + gradient.s3) / 15.0f;
-            gain = (MAG < 0.4) ? gain : 2 * gain;
-
-            weight.s1 = exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
-            weight.s1 = (weight.s1 < 0) ? 0 : weight.s1;
-            sum_weight[1] = sum_weight[1] + weight.s1;
-
-            restored_block[1] = mad(weight.s1, ref_block[4 * i][j], restored_block[1]);
-            restored_block[3] = mad(weight.s1, ref_block[4 * i + 1][j], restored_block[3]);
-            restored_block[5] = mad(weight.s1, ref_block[4 * i + 2][j], restored_block[5]);
-            restored_block[7] = mad(weight.s1, ref_block[4 * i + 3][j], restored_block[7]);
-        }
-    }
-
-}
-
-
-__kernel void kernel_3d_denoise (
-    float gain, float threshold,
-    __write_only image2d_t output,
-    __read_only image2d_t input, __read_only image2d_t inputPrev1, __read_only image2d_t inputPrev2)
-{
-    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-
-    int g_id_x = get_global_id (0);
-    int g_id_y = get_global_id (1);
-
-    int row_batch = 4;
-    int col_batch = 2;
-
-    float4 observed_block[8] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-    float4 restored_block[8] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-    float sum_weight[2] = {0.0f, 0.0f};
-
-#if REFERENCE_FRAME_COUNT == 1
-    //printf("reference frame count 1! \n");
-    weighted_average (
-        input, output, sum_weight, true, observed_block, restored_block, gain, threshold, row_batch, col_batch);
+#if ENABLE_IIR_FILERING
+    weighted_average (restoredPrev, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
+#else
+#if REFERENCE_FRAME_COUNT > 1
+    weighted_average (inputPrev1, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
 #endif
 
-#if REFERENCE_FRAME_COUNT == 2
-    //printf("reference frame count 2! \n");
-    weighted_average (
-        input, output, sum_weight, true, observed_block, restored_block, gain, threshold, row_batch, col_batch);
-    weighted_average (
-        inputPrev1, output, sum_weight, false, observed_block, restored_block,
-        gain, threshold, row_batch, col_batch);
+#if REFERENCE_FRAME_COUNT > 2
+    weighted_average (inputPrev2, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
+#endif
 #endif
 
-#if REFERENCE_FRAME_COUNT == 3
-    //printf("reference frame count 3! \n");
-    weighted_average (
-        input, output, sum_weight, true, observed_block, restored_block, gain, threshold, row_batch, col_batch);
-    weighted_average (
-        inputPrev1, output, sum_weight, false, observed_block, restored_block, gain, threshold, row_batch, col_batch);
-    weighted_average (
-        inputPrev2, output, sum_weight, false, observed_block, restored_block, gain, threshold, row_batch, col_batch);
+    restore.lo = restore.lo / sum_weight.lo;
+    restore.hi = restore.hi / sum_weight.hi;
+
+    int local_id_x = get_local_id(0);
+    int local_id_y = get_local_id(1);
+    const int group_id_x = get_group_id(0);
+    const int group_id_y = get_group_id(1);
+
+#if WORKGROUP_WIDTH == 4
+    int2 pos = subgroup_pos(sg_id, sg_lid);
+    local_id_x = pos.x;
+    local_id_y = pos.y;
 #endif
 
-    restored_block[0] = restored_block[0] / sum_weight[0];
-    restored_block[2] = restored_block[2] / sum_weight[0];
-    restored_block[4] = restored_block[4] / sum_weight[0];
-    restored_block[6] = restored_block[6] / sum_weight[0];
+    int coor_x = mad24(group_id_x, WORKGROUP_WIDTH, local_id_x);
+    int coor_y = mad24(group_id_y, WORKGROUP_HEIGHT, local_id_y);
 
-    restored_block[1] = restored_block[1] / sum_weight[1];
-    restored_block[3] = restored_block[3] / sum_weight[1];
-    restored_block[5] = restored_block[5] / sum_weight[1];
-    restored_block[7] = restored_block[7] / sum_weight[1];
-
-    write_imagef(output, (int2)(col_batch * g_id_x, row_batch * g_id_y), restored_block[0]);
-    write_imagef(output, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y), restored_block[1]);
-    write_imagef(output, (int2)(col_batch * g_id_x, row_batch * g_id_y + 1), restored_block[2]);
-    write_imagef(output, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 1), restored_block[3]);
-    write_imagef(output, (int2)(col_batch * g_id_x, row_batch * g_id_y + 2), restored_block[4]);
-    write_imagef(output, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 2), restored_block[5]);
-    write_imagef(output, (int2)(col_batch * g_id_x, row_batch * g_id_y + 3), restored_block[6]);
-    write_imagef(output, (int2)(col_batch * g_id_x + 1, row_batch * g_id_y + 3), restored_block[7]);
-
+    write_imageui(output,
+                  (int2)(coor_x, coor_y),
+                  convert_uint4(as_ushort4(convert_uchar8(restore))));
 }
 
