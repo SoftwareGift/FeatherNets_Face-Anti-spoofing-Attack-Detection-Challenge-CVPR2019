@@ -69,7 +69,9 @@ DrmDisplay::DrmDisplay(const char* module)
         _module = strndup (DEFAULT_DRM_DEVICE, XCAM_MAX_STR_SIZE);
 
     //_fd = drmOpenRender (128);
-    _fd = drmOpen (_module, DEFAULT_DRM_BUSID);
+    _fd = drmOpen (_module, NULL);
+    if (_fd < 0)
+        _fd = drmOpen (_module, DEFAULT_DRM_BUSID);
     if (_fd < 0)
         XCAM_LOG_ERROR("failed to open drm device %s", XCAM_STR (_module));
 
