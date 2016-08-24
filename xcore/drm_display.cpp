@@ -425,31 +425,31 @@ DrmDisplay::convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuf
 {
     drm_intel_bo *bo = NULL;
     int dma_fd = 0;
-    SmartPtr<V4l2BufferProxy> v4l2_proxy;
     SmartPtr<DrmBoBuffer> new_bo_buf;
     SmartPtr<DrmBoData> bo_data;
 
     XCAM_ASSERT (self.ptr () == this);
+    XCAM_ASSERT (buf_in.ptr ());
 
     new_bo_buf = buf_in.dynamic_cast_ptr<DrmBoBuffer> ();
     if (new_bo_buf.ptr ())
         return new_bo_buf;
 
-    v4l2_proxy = buf_in.dynamic_cast_ptr<V4l2BufferProxy> ();
-    if (!v4l2_proxy.ptr () || v4l2_proxy->get_v4l2_mem_type () != V4L2_MEMORY_DMABUF) {
+    const VideoBufferInfo video_info = buf_in->get_video_info ();
+    dma_fd = buf_in->get_fd ();
+    if (dma_fd < 0) {
         XCAM_LOG_DEBUG ("DrmDisplay only support dma buffer conversion to drm bo by now");
         return NULL;
     }
 
-    dma_fd = v4l2_proxy->get_v4l2_dma_fd ();
-    XCAM_ASSERT (dma_fd > 0);
-    bo = drm_intel_bo_gem_create_from_prime (_buf_manager, dma_fd, v4l2_proxy->get_v4l2_buf_length ());
+    bo = drm_intel_bo_gem_create_from_prime (_buf_manager, dma_fd, video_info.size);
     if (bo == NULL) {
         XCAM_LOG_WARNING ("convert dma fd to drm bo failed");
         return NULL;
     }
     bo_data = new DrmBoData (self, bo);
-    new_bo_buf = new DrmBoBuffer (buf_in->get_video_info (), bo_data);
+    bo_data->set_prime_fd (dma_fd, false);
+    new_bo_buf = new DrmBoBuffer (video_info, bo_data);
     new_bo_buf->set_parent (buf_in);
     new_bo_buf->set_timestamp (buf_in->get_timestamp ());
     return new_bo_buf;

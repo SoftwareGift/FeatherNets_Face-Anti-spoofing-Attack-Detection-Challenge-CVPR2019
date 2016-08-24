@@ -52,6 +52,8 @@ public:
 protected:
     explicit DrmBoData (SmartPtr<DrmDisplay> &display, drm_intel_bo *bo);
 
+    bool set_prime_fd (int fd, bool need_close);
+
 private:
     XCAM_DEAD_COPY (DrmBoData);
 
@@ -60,6 +62,7 @@ private:
     drm_intel_bo              *_bo;
     uint8_t                   *_buf;
     int                       _prime_fd;
+    bool                      _need_close_fd;
 };
 
 class DrmBoBuffer
