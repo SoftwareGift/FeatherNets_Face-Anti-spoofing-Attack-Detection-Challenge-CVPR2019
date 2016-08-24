@@ -26,6 +26,7 @@ namespace XCam {
 SwappedBuffer::SwappedBuffer (
     const VideoBufferInfo &info, const SmartPtr<BufferData> &data)
     : BufferProxy (info, data)
+    , _swap_flags (SwappedBuffer::SwapNone)
 {
     xcam_mem_clear (_swap_offsets);
 }
