@@ -6,11 +6,10 @@ clx_kernel_sources = \
 	kernel_csc_rgbatonv12.clx     \
 	kernel_csc_nv12torgba.clx     \
 	kernel_csc_yuyvtorgba.clx     \
-	kernel_dark_channel.clx       \
 	kernel_demo.clx               \
 	kernel_demosaic.clx           \
 	kernel_denoise.clx            \
-	kernel_defog_recover.clx      \
+	kernel_defog_dcp.clx          \
 	kernel_gamma.clx              \
 	kernel_hdr_lab.clx            \
 	kernel_hdr_rgb.clx            \

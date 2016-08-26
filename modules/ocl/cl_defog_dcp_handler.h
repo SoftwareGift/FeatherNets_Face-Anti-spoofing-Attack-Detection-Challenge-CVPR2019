@@ -131,10 +131,13 @@ public:
     void pre_stop ();
 
 protected:
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    XCamReturn allocate_transmit_bufs (const VideoBufferInfo &video_info);
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
 
 private:
+    XCamReturn allocate_transmit_bufs (const VideoBufferInfo &video_info);
+    void dump_buffer();
+
     XCAM_DEAD_COPY (CLDefogDcpImageHandler);
 
 private:
