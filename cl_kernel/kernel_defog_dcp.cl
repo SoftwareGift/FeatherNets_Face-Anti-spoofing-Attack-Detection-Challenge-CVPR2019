@@ -93,12 +93,12 @@ __kernel void kernel_defog_recover (
     float8 transmit_map[2];
     float8 out_data;
 
-    in_r[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_r, sampler, (int2)(pos_x, pos_y))))) / 255.0f;
-    in_r[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_r, sampler, (int2)(pos_x, pos_y + 1))))) / 255.0f;
-    in_g[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_g, sampler, (int2)(pos_x, pos_y))))) / 255.0f;
-    in_g[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_g, sampler, (int2)(pos_x, pos_y + 1))))) / 255.0f;
-    in_b[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_b, sampler, (int2)(pos_x, pos_y))))) / 255.0f;
-    in_b[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_b, sampler, (int2)(pos_x, pos_y + 1))))) / 255.0f;
+    in_r[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_r, sampler, (int2)(pos_x, pos_y)))));
+    in_r[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_r, sampler, (int2)(pos_x, pos_y + 1)))));
+    in_g[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_g, sampler, (int2)(pos_x, pos_y)))));
+    in_g[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_g, sampler, (int2)(pos_x, pos_y + 1)))));
+    in_b[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_b, sampler, (int2)(pos_x, pos_y)))));
+    in_b[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_b, sampler, (int2)(pos_x, pos_y + 1)))));
     transmit_map[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_dark, sampler, (int2)(pos_x, pos_y)))));
     transmit_map[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_dark, sampler, (int2)(pos_x, pos_y + 1)))));
 
@@ -108,28 +108,27 @@ __kernel void kernel_defog_recover (
     transmit_map[0] = max (transmit_map[0], 0.1f);
     transmit_map[1] = max (transmit_map[1], 0.1f);
 
-//#if 0
     in_r[0] = max_r + (in_r[0] - max_r) / transmit_map[0];
     in_r[1] = max_r + (in_r[1] - max_r) / transmit_map[1];
     in_g[0] = max_g + (in_g[0] - max_g) / transmit_map[0];
     in_g[1] = max_g + (in_g[1] - max_g) / transmit_map[1];
     in_b[0] = max_b + (in_b[0] - max_b) / transmit_map[0];
     in_b[1] = max_b + (in_b[1] - max_b) / transmit_map[1];
-//#endif
+
     out_data = 0.299f * in_r[0] + 0.587f * in_g[0] + 0.114f * in_b[0];
-    out_data = clamp (out_data, 0.0f, 1.0f);
-    write_imageui(out_y, (int2)(pos_x, pos_y), convert_uint4(as_ushort4(convert_uchar8(out_data * 255.0f))));
-    out_data = clamp (out_data, 0.0f, 1.0f);
+    out_data = clamp (out_data, 0.0f, 255.0f);
+    write_imageui(out_y, (int2)(pos_x, pos_y), convert_uint4(as_ushort4(convert_uchar8(out_data))));
+    out_data = clamp (out_data, 0.0f, 255.0f);
     out_data = 0.299f * in_r[1] + 0.587f * in_g[1] + 0.114f * in_b[1];
-    write_imageui(out_y, (int2)(pos_x, pos_y + 1), convert_uint4(as_ushort4(convert_uchar8(out_data * 255.0f))));
+    write_imageui(out_y, (int2)(pos_x, pos_y + 1), convert_uint4(as_ushort4(convert_uchar8(out_data))));
 
     float4 r, g, b;
     r = (in_r[0].even + in_r[0].odd + in_r[1].even + in_r[1].odd) * 0.25f;
     g = (in_g[0].even + in_g[0].odd + in_g[1].even + in_g[1].odd) * 0.25f;
     b = (in_b[0].even + in_b[0].odd + in_b[1].even + in_b[1].odd) * 0.25f;
-    out_data.even = (-0.169f * r - 0.331f * g + 0.5f * b) + 0.5f;
-    out_data.odd = (0.5f * r - 0.419f * g - 0.081f * b) + 0.5f;
-    out_data = clamp (out_data, 0.0f, 1.0f);
-    write_imageui(output_uv, (int2)(g_id_x, g_id_y), convert_uint4(as_ushort4(convert_uchar8(out_data * 255.0f))));
+    out_data.even = (-0.169f * r - 0.331f * g + 0.5f * b) + 128.0f;
+    out_data.odd = (0.5f * r - 0.419f * g - 0.081f * b) + 128.0f;
+    out_data = clamp (out_data, 0.0f, 255.0f);
+    write_imageui(output_uv, (int2)(g_id_x, g_id_y), convert_uint4(as_ushort4(convert_uchar8(out_data))));
 }
 

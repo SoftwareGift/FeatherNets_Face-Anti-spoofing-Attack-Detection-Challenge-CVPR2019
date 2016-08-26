@@ -153,7 +153,7 @@ CLMinFilterKernel::prepare_arguments (
     args[arg_count].arg_size = sizeof (cl_mem);
     ++arg_count;
 
-    const CLImageDesc &cl_desc = dark_channel_in-> get_image_desc ();
+    const CLImageDesc &cl_desc = dark_channel_in->get_image_desc ();
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     if (XCAM_DEFOG_DC_MIN_FILTER_V == _buf_index) {
@@ -189,9 +189,9 @@ CLDefogRecoverKernel::get_max_value (SmartPtr<DrmBoBuffer> &buf)
     const float max_percent = 1.0f;
     SmartPtr<X3aStats> stats = buf->find_3a_stats ();
 
-    _max_r = 232.0f;
+    _max_r = 255.0f;
     _max_g = 255.0f;
-    _max_b = 218.0f;
+    _max_b = 255.0f;
     _max_i = XCAM_MAX (_max_r, _max_g);
     _max_i = XCAM_MAX (_max_i, _max_b);
     if (!stats.ptr ())
