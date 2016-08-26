@@ -30,6 +30,7 @@ xcam_ocl_sources = \
     cl_kernel.cpp                      \
     cl_memory.cpp                      \
     cl_event.cpp                       \
+    cl_utils.cpp                       \
     cl_image_bo_buffer.cpp             \
     cl_image_handler.cpp               \
     cl_image_processor.cpp             \
