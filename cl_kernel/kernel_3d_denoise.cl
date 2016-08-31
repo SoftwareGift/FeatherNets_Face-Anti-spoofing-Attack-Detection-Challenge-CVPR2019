@@ -64,8 +64,8 @@ inline void average_slice(float8 ref,
     }
     gradient = (float8)(grad.s1, grad.s1, grad.s1, grad.s1, grad.s5, grad.s5, grad.s5, grad.s5);
 
-    grad = ((gradient - ref) + (gradient - grad)) * 0.00392157f;
-    //grad = mad(-2, gradient, (ref + grad)) * 0.00392157f;
+    grad = (gradient - ref) * 0.00098039f;
+    //grad = mad(-2, gradient, (ref + grad)) * 0.0004902f;
     grad.s0 = (grad.s0 + grad.s1 + grad.s2 + grad.s3);
     grad.s4 = (grad.s4 + grad.s5 + grad.s6 + grad.s7);
 

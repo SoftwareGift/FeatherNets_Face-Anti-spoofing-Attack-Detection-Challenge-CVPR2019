@@ -48,8 +48,8 @@ __kernel void kernel_wavelet_coeff_variance (__read_only image2d_t input, __writ
 
     for (int j = i;  j < SLM_CELL_X_SIZE * SLM_CELL_Y_SIZE; j += WG_CELL_X_SIZE * WG_CELL_Y_SIZE)
     {
-        int x = start_x - SLM_CELL_X_OFFSET + (j % SLM_CELL_X_SIZE);
-        int y = start_y - SLM_CELL_Y_OFFSET + (j / SLM_CELL_Y_SIZE);
+        int x = start_x + (j % SLM_CELL_X_SIZE);
+        int y = start_y + (j / SLM_CELL_X_SIZE);
         local_src_data[j] = read_imagef (input, sampler, (int2)(x, y)) - offset;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
