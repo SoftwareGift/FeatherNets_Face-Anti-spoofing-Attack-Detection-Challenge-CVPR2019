@@ -18,6 +18,8 @@
 #define ENABLE_IIR_FILERING 1
 #endif
 
+#define ENABLE_GRADIENT     1
+
 #ifndef WORKGROUP_WIDTH
 #define WORKGROUP_WIDTH    2
 #endif
@@ -56,6 +58,7 @@ inline void average_slice(float8 ref,
     float8 distance = 0.0f;
     float weight = 0.0f;
 
+#if ENABLE_GRADIENT
     // calculate & cumulate gradient
     if (sg_lid % 2 == 0) {
         grad = intel_sub_group_shuffle(ref, 4);
@@ -64,12 +67,14 @@ inline void average_slice(float8 ref,
     }
     gradient = (float8)(grad.s1, grad.s1, grad.s1, grad.s1, grad.s5, grad.s5, grad.s5, grad.s5);
 
-    grad = (gradient - ref) * 0.00098039f;
+    // normalize gradient "1/(4*255.0f) = 0.00098039f"
+    grad = fabs(gradient - ref) * 0.00098039f;
     //grad = mad(-2, gradient, (ref + grad)) * 0.0004902f;
+
     grad.s0 = (grad.s0 + grad.s1 + grad.s2 + grad.s3);
     grad.s4 = (grad.s4 + grad.s5 + grad.s6 + grad.s7);
-
-    // calculate distance
+#endif
+    // calculate & normalize distance "1/255.0f = 0.00392157f"
     dist = (observe - ref) * 0.00392157f;
     dist = dist * dist;
 
@@ -100,12 +105,12 @@ inline void average_slice(float8 ref,
     dist.s0 = (distance.s0 + distance.s1 + distance.s2 + distance.s3);
     dist.s4 = (distance.s4 + distance.s5 + distance.s6 + distance.s7);
     gain = (grad.s0 < threshold) ? gain : 2.0f * gain;
-    weight = native_exp(gain * dist.s0);
+    weight = native_exp(-gain * dist.s0);
     (*restore).lo = mad(weight, ref.lo, (*restore).lo);
     (*sum_weight).lo = (*sum_weight).lo + weight;
 
     gain = (grad.s4 < threshold) ? gain : 2.0f * gain;
-    weight = native_exp(gain * dist.s4);
+    weight = native_exp(-gain * dist.s4);
     (*restore).hi = mad(weight, ref.hi, (*restore).hi);
     (*sum_weight).hi = (*sum_weight).hi + weight;
 }
@@ -159,72 +164,55 @@ inline void weighted_average (__read_only image2d_t input,
         (*sum_weight) = 1.0f;
     }
 
-    float8 ref = 0.0f;
+    float8 ref[2] = {0.0f, 0.0f};
     __local uchar4* p_ref = (__local uchar4*)(local_ref_cache);
 
     // top-left
-    ref.lo = convert_float4(p_ref[mad24(local_id_y,
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 1))]);
-    ref.hi = convert_float4(p_ref[mad24(local_id_y,
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 2))]);
-    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
-
-    // top-mid
-    ref.lo = convert_float4(p_ref[mad24(local_id_y,
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 3))]);
-    average_slice((float8)(ref.hi, ref.lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+    ref[0] = convert_float8(*(__local uchar8*)(p_ref + mad24(local_id_y,
+                            2 * REF_BLOCK_WIDTH,
+                            mad24(2, local_id_x, 1))));
+    average_slice(ref[0], *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
 
     // top-right
-    ref.hi = convert_float4(p_ref[mad24(local_id_y,
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 4))]);
-    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+    ref[1] = convert_float8(*(__local uchar8*)(p_ref + mad24(local_id_y,
+                            2 * REF_BLOCK_WIDTH,
+                            mad24(2, local_id_x, 3))));
+    average_slice(ref[1], *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // top-mid
+    average_slice((float8)(ref[0].hi, ref[1].lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
 
     // mid-left
-    ref.lo = convert_float4(p_ref[mad24((local_id_y + 4),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 1))]);
-    ref.hi = convert_float4(p_ref[mad24((local_id_y + 4),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 2))]);
-    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+    ref[0] = convert_float8(*(__local uchar8*)(p_ref + mad24((local_id_y + 4),
+                            2 * REF_BLOCK_WIDTH,
+                            mad24(2, local_id_x, 1))));
+    average_slice(ref[0], *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
 
-    ref.lo = convert_float4(p_ref[mad24((local_id_y + 4),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 3))]);
+    // mid-right
+    ref[1] = convert_float8(*(__local uchar8*)(p_ref + mad24((local_id_y + 4),
+                            2 * REF_BLOCK_WIDTH,
+                            mad24(2, local_id_x, 3))));
+    average_slice(ref[1], *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
     // mid-mid
     if (!load_observe) {
-        average_slice((float8)(ref.hi, ref.lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+        average_slice((float8)(ref[0].hi, ref[1].lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
     }
-    // mid-right
-    ref.hi = convert_float4(p_ref[mad24((local_id_y + 4),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 4))]);
-    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
 
     // bottom-left
-    ref.lo = convert_float4(p_ref[mad24((local_id_y + 8),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 1))]);
-    ref.hi = convert_float4(p_ref[mad24((local_id_y + 8),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 2))]);
-    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
-
-    // bottom-mid
-    ref.lo = convert_float4(p_ref[mad24((local_id_y + 8),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 3))]);
-    average_slice((float8)(ref.hi, ref.lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+    ref[0] = convert_float8(*(__local uchar8*)(p_ref + mad24((local_id_y + 8),
+                            2 * REF_BLOCK_WIDTH,
+                            mad24(2, local_id_x, 1))));
+    average_slice(ref[0], *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
 
     // bottom-right
-    ref.hi = convert_float4(p_ref[mad24((local_id_y + 8),
-                                        2 * REF_BLOCK_WIDTH,
-                                        mad24(2, local_id_x, 4))]);
-    average_slice(ref, *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+    ref[1] = convert_float8(*(__local uchar8*)(p_ref + mad24((local_id_y + 8),
+                            2 * REF_BLOCK_WIDTH,
+                            mad24(2, local_id_x, 3))));
+    average_slice(ref[1], *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
+
+    // bottom-mid
+    average_slice((float8)(ref[0].hi, ref[1].lo), *observe, restore, sum_weight, gain, threshold, sg_id, sg_lid);
 }
 
 __kernel void kernel_3d_denoise ( float gain,
