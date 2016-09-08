@@ -16,6 +16,8 @@
  * limitations under the License.
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
+ * Author: Yinhang Liu <yinhangx.liu@intel.com>
+ * Author: Wei Zong <wei.zong@intel.com>
  */
 
 #include "device_manager.h"
@@ -45,6 +47,7 @@
 #include "hybrid_analyzer_loader.h"
 #include "isp_poll_thread.h"
 #include "fake_poll_thread.h"
+#include "image_file_handle.h"
 #include <base/xcam_3a_types.h>
 #include <unistd.h>
 #include <signal.h>
@@ -66,8 +69,7 @@ class MainDeviceManager
 {
 public:
     MainDeviceManager ()
-        : _file (NULL)
-        , _save_file (false)
+        : _save_file (false)
         , _interval (1)
         , _frame_width (0)
         , _frame_height (0)
@@ -82,7 +84,7 @@ public:
     }
 
     ~MainDeviceManager () {
-        close_file ();
+        _file_handle.close ();
     }
 
     void enable_save_file (bool enable) {
@@ -121,16 +123,15 @@ protected:
 
 private:
     void open_file ();
-    void close_file ();
-    XCamReturn write_buf (const SmartPtr<VideoBuffer> &buf);
 
-    FILE      *_file;
+private:
     bool       _save_file;
     uint32_t   _interval;
     uint32_t   _frame_width;
     uint32_t   _frame_height;
     uint32_t   _frame_count;
     uint32_t   _frame_save;
+    ImageFileHandle _file_handle;
     SmartPtr<DrmDisplay> _display;
     bool       _enable_display;
     XCAM_OBJ_PROFILING_DEFINES;
@@ -166,14 +167,19 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
         g_cond.broadcast ();
         return;
     }
+    SmartPtr<BufferProxy> buf_proxy = buf.dynamic_cast_ptr<BufferProxy> ();
+    if (!buf_proxy.ptr ()) {
+        XCAM_LOG_WARNING ("video buffer dynamic cast failed.");
+        return;
+    }
 
     open_file ();
 
-    if (!_file) {
+    if (!_file_handle.is_valid ()) {
         XCAM_LOG_ERROR ("open file failed");
         return;
     }
-    write_buf (buf);
+    _file_handle.write_buf (buf_proxy);
 }
 
 int
@@ -202,7 +208,7 @@ MainDeviceManager::display_buf (const SmartPtr<VideoBuffer> &data)
 void
 MainDeviceManager::open_file ()
 {
-    if ((_file) && (_frame_save == 0))
+    if (_file_handle.is_valid () && (_frame_save == 0))
         return;
 
     std::string file_name = DEFAULT_SAVE_FILE_NAME;
@@ -212,44 +218,9 @@ MainDeviceManager::open_file ()
     }
     file_name += ".raw";
 
-    _file = fopen(file_name.c_str(), "wb");
-}
-
-void
-MainDeviceManager::close_file ()
-{
-    if (_file)
-        fclose (_file);
-    _file = NULL;
-}
-
-XCamReturn
-MainDeviceManager::write_buf (const SmartPtr<VideoBuffer> &buf)
-{
-    const VideoBufferInfo &info = buf->get_video_info ();
-    VideoBufferPlanarInfo planar;
-    uint8_t *memory = NULL;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    memory = buf->map ();
-    if (!memory) {
-        XCAM_LOG_ERROR ("map buffer failed in write_buf");
-        return XCAM_RETURN_ERROR_MEM;
+    if (_file_handle.open (file_name.c_str (), "wb") != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_WARNING ("create file(%s) failed", file_name.c_str ());
     }
-
-    for (uint32_t index = 0; index < info.components; index++) {
-        info.get_planar_info (planar, index);
-        uint32_t line_bytes = planar.width * planar.pixel_bytes;
-
-        for (uint32_t i = 0; i < planar.height; i++) {
-            if (fwrite (memory + info.offsets [index] + i * info.strides [index], 1, line_bytes, _file) != line_bytes) {
-                XCAM_LOG_ERROR ("write file failed, size doesn't match");
-                ret = XCAM_RETURN_ERROR_FILE;
-            }
-        }
-    }
-    buf->unmap ();
-    return ret;
 }
 
 #define V4L2_CAPTURE_MODE_STILL   0x2000
@@ -766,7 +737,7 @@ int main (int argc, char *argv[])
         smart_analyzer = new SmartAnalyzer ();
         if (smart_analyzer.ptr ()) {
             SmartHandlerList::iterator i_handler = smart_handlers.begin ();
-            for (; i_handler != smart_handlers.end ();	++i_handler)
+            for (; i_handler != smart_handlers.end ();  ++i_handler)
             {
                 XCAM_ASSERT ((*i_handler).ptr ());
                 smart_analyzer->add_handler (*i_handler);

@@ -45,6 +45,9 @@ public:
     static void    *buf_get_bo (XCamVideoBufferIntel *data);
 
 private:
+    XCAM_DEAD_COPY (SmartBuffer);
+
+private:
     mutable RefCount       *_ref;
     SmartPtr<DrmBoBuffer>   _buf_ptr;
 };

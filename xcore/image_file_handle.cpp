@@ -1,5 +1,5 @@
 /*
- * image_file_handle.h - Image file handle
+ * image_file_handle.cpp - Image file handle
  *
  *  Copyright (c) 2016 Intel Corporation
  *
@@ -16,6 +16,7 @@
  * limitations under the License.
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
+ * Author: Yinhang Liu <yinhangx.liu@intel.com>
  */
 
 #include "image_file_handle.h"
@@ -68,7 +69,7 @@ ImageFileHandle::end_of_file()
 }
 
 XCamReturn
-ImageFileHandle::read_buf (SmartPtr<BufferProxy> &buf)
+ImageFileHandle::read_buf (const SmartPtr<BufferProxy> &buf)
 {
     const VideoBufferInfo info = buf->get_video_info ();
     VideoBufferPlanarInfo planar;
@@ -98,7 +99,7 @@ ImageFileHandle::read_buf (SmartPtr<BufferProxy> &buf)
 }
 
 XCamReturn
-ImageFileHandle::write_buf (SmartPtr<BufferProxy> buf)
+ImageFileHandle::write_buf (const SmartPtr<BufferProxy> buf)
 {
     const VideoBufferInfo info = buf->get_video_info ();
     VideoBufferPlanarInfo planar;

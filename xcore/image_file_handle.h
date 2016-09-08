@@ -40,8 +40,11 @@ public:
     bool end_of_file ();
     XCamReturn open (const char *name, const char *option);
     XCamReturn close ();
-    XCamReturn read_buf (SmartPtr<BufferProxy> &buf);
-    XCamReturn write_buf (SmartPtr<BufferProxy> buf);
+    XCamReturn read_buf (const SmartPtr<BufferProxy> &buf);
+    XCamReturn write_buf (const SmartPtr<BufferProxy> buf);
+
+private:
+    XCAM_DEAD_COPY (ImageFileHandle);
 
 private:
     FILE   *_fp;

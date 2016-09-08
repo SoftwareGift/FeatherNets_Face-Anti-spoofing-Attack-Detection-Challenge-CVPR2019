@@ -6,7 +6,10 @@
  * GAUSS_RADIUS must be defined in build options.
  */
 
-//#define GAUSS_RADIUS 2
+#ifndef GAUSS_RADIUS
+#define GAUSS_RADIUS 2
+#endif
+
 #define GAUSS_SCALE (2 * GAUSS_RADIUS + 1)
 
 __kernel void kernel_gauss (__read_only image2d_t input, __write_only image2d_t output, __global float *table)

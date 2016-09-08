@@ -16,9 +16,12 @@
  * limitations under the License.
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
+ * Author: Yinhang Liu <yinhangx.liu@intel.com>
+ * Author: Wei Zong <wei.zong@intel.com>
  */
 
 #include "test_common.h"
+#include "image_file_handle.h"
 #include "cl_device.h"
 #include "cl_context.h"
 #include "cl_demo_handler.h"
@@ -79,70 +82,6 @@ enum PsnrType {
     PSNRG,
     PSNRB,
 };
-
-struct TestFileHandle {
-    FILE *fp;
-    TestFileHandle ()
-        : fp (NULL)
-    {}
-    ~TestFileHandle ()
-    {
-        if (fp)
-            fclose (fp);
-    }
-};
-
-static XCamReturn
-read_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
-{
-    const VideoBufferInfo info = buf->get_video_info ();
-    VideoBufferPlanarInfo planar;
-    uint8_t *memory = NULL;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    memory = buf->map ();
-    for (uint32_t index = 0; index < info.components; index++) {
-        info.get_planar_info (planar, index);
-        uint32_t line_bytes = planar.width * planar.pixel_bytes;
-
-        for (uint32_t i = 0; i < planar.height; i++) {
-            if (fread (memory + info.offsets [index] + i * info.strides [index], 1, line_bytes, file.fp) != line_bytes) {
-                if (feof (file.fp))
-                    ret = XCAM_RETURN_BYPASS;
-                else {
-                    XCAM_LOG_ERROR ("read file failed, size doesn't match");
-                    ret = XCAM_RETURN_ERROR_FILE;
-                }
-            }
-        }
-    }
-    buf->unmap ();
-    return ret;
-}
-
-static XCamReturn
-write_buf (SmartPtr<DrmBoBuffer> &buf, TestFileHandle &file)
-{
-    const VideoBufferInfo info = buf->get_video_info ();
-    VideoBufferPlanarInfo planar;
-    uint8_t *memory = NULL;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    memory = buf->map ();
-    for (uint32_t index = 0; index < info.components; index++) {
-        info.get_planar_info (planar, index);
-        uint32_t line_bytes = planar.width * planar.pixel_bytes;
-
-        for (uint32_t i = 0; i < planar.height; i++) {
-            if (fwrite (memory + info.offsets [index] + i * info.strides [index], 1, line_bytes, file.fp) != line_bytes) {
-                XCAM_LOG_ERROR ("read file failed, size doesn't match");
-                ret = XCAM_RETURN_ERROR_FILE;
-            }
-        }
-    }
-    buf->unmap ();
-    return ret;
-}
 
 static XCamReturn
 calculate_psnr (SmartPtr<DrmBoBuffer> &psnr_cur, SmartPtr<DrmBoBuffer> &psnr_ref, PsnrType psnr_type, float &psnr)
@@ -238,7 +177,7 @@ int main (int argc, char *argv[])
     uint32_t buf_count = 0;
     int32_t kernel_loop_count = 0;
     const char *input_file = NULL, *output_file = NULL, *refer_file = NULL;
-    TestFileHandle input_fp, output_fp, refer_fp;
+    ImageFileHandle input_fp, output_fp, refer_fp;
     const char *bin_name = argv[0];
     TestHandlerType handler_type = TestHandlerUnknown;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -401,14 +340,13 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    input_fp.fp = fopen (input_file, "rb");
-    output_fp.fp = fopen (output_file, "wb");
+    ret = input_fp.open (input_file, "rb");
+    CHECK (ret, "open input file(%s) failed", XCAM_STR (input_file));
+    ret = output_fp.open (output_file, "wb");
+    CHECK (ret, "open output file(%s) failed", XCAM_STR (output_file));
     if (enable_psnr) {
-        refer_fp.fp = fopen (refer_file, "rb");
-    }
-    if (!input_fp.fp || !output_fp.fp || (enable_psnr && !refer_fp.fp)) {
-        XCAM_LOG_ERROR ("open input/output file failed");
-        return -1;
+        refer_fp.open (refer_file, "rb");
+        CHECK (ret, "open reference file(%s) failed", XCAM_STR (refer_file));
     }
 
     context = CLDevice::instance ()->get_context ();
@@ -630,16 +568,14 @@ int main (int argc, char *argv[])
     }
 
     SmartPtr<DrmBoBuffer> psnr_cur, psnr_ref;
-    while (!feof (input_fp.fp)) {
+    while (!input_fp.end_of_file ()) {
         SmartPtr<DrmBoBuffer> input_buf, output_buf;
         SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
         input_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
 
         XCAM_ASSERT (input_buf.ptr ());
-        ret = read_buf (input_buf, input_fp);
-        if (ret == XCAM_RETURN_BYPASS)
-            break;
-        CHECK (ret, "read buffer from %s failed", input_file);
+        ret = input_fp.read_buf (input_buf);
+        CHECK (ret, "read buffer from %s failed", XCAM_STR(input_file));
 
         if (kernel_loop_count != 0)
         {
@@ -652,7 +588,7 @@ int main (int argc, char *argv[])
         CHECK (ret, "execute kernels failed");
         XCAM_ASSERT (output_buf.ptr ());
 
-        ret = write_buf (output_buf, output_fp);
+        ret = output_fp.write_buf (output_buf);
         CHECK (ret, "read buffer from %s failed", output_file);
         psnr_cur = output_buf;
 
@@ -674,7 +610,7 @@ int main (int argc, char *argv[])
         psnr_ref = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
         XCAM_ASSERT (psnr_ref.ptr ());
 
-        ret = read_buf (psnr_ref, refer_fp);
+        ret = refer_fp.read_buf (psnr_ref);
         CHECK (ret, "read buffer from %s failed", refer_file);
 
         float psnr = 0.0f;
