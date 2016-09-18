@@ -33,6 +33,7 @@ clx_kernel_sources = \
 	kernel_retinex.clx            \
 	kernel_gauss.clx              \
 	kernel_gauss_lap_pyramid.clx  \
+	kernel_geo_map.clx            \
 	kernel_wavelet_denoise.clx    \
 	kernel_wavelet_haar_decomposition.clx       \
 	kernel_wavelet_haar_reconstruction.clx  \

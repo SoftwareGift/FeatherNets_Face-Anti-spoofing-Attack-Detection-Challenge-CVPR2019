@@ -44,6 +44,7 @@ xcam_ocl_sources = \
     cl_hdr_handler.cpp                 \
     cl_blender.cpp                     \
     cl_pyramid_blender.cpp             \
+    cl_geo_map_handler.cpp             \
     cl_demosaic_handler.cpp            \
     cl_csc_handler.cpp                 \
     cl_wb_handler.cpp                  \
