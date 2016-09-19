@@ -9,10 +9,11 @@ noinst_PROGRAMS += \
 endif
 
 if HAVE_LIBCL
-noinst_PROGRAMS += \
+noinst_PROGRAMS +=      \
     test-cl-image       \
     test-binary-kernel  \
     test-pipe-manager   \
+    test-image-blend    \
     $(NULL)
 endif
 
@@ -85,4 +86,13 @@ test_pipe_manager_CXXFLAGS = \
 test_pipe_manager_LDADD = \
 	$(XCORE_LA) $(OCL_LA)  \
 	$(NULL)
+
+test_image_blend_SOURCES = test-image-blend.cpp
+test_image_blend_CXXFLAGS = \
+	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR)  \
+	$(NULL)
+test_image_blend_LDADD = \
+	$(XCORE_LA) $(OCL_LA)  \
+	$(NULL)
+
 endif
