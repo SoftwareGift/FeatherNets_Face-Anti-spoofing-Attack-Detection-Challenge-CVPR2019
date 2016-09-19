@@ -107,6 +107,7 @@ print_help (const char *bin_name)
     printf ("Usage: %s -i <source-file> -o <binary-file>\n"
             "\t -i input-file     specify source file path\n"
             "\t -o output-file    specify binary file path\n"
+            "\t -k kernel-name    optional, default is filename perfix\n"
             "\t -h                help\n"
             , bin_name);
 }
@@ -124,13 +125,16 @@ int main (int argc, char *argv[])
     TestFileHandle source_fp, binary_fp;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    while ((opt = getopt (argc, argv, "i:o:h")) != -1) {
+    while ((opt = getopt (argc, argv, "i:o:k:h")) != -1) {
         switch (opt) {
         case 'i':
             source_file = optarg;
             break;
         case 'o':
             binary_file = optarg;
+            break;
+        case 'k':
+            kernel_name = strndup(optarg, 1024);
             break;
         case 'h':
             print_help (bin_name);
@@ -167,8 +171,10 @@ int main (int argc, char *argv[])
     SmartPtr<CLContext> context;
     context = CLDevice::instance ()->get_context ();
 
-    ret = get_kernel_name (source_file, &kernel_name);
-    CHECK (ret, "get kernel name failed");
+    if (!kernel_name) {
+        ret = get_kernel_name (source_file, &kernel_name);
+        CHECK (ret, "get kernel name failed");
+    }
 
     SmartPtr<CLKernel> kernel = new CLKernel (context, kernel_name);
     xcam_free (kernel_name);
