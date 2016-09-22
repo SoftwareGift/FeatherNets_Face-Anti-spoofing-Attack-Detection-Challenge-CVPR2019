@@ -26,11 +26,12 @@
 #include "base/xcam_3a_result.h"
 #include "x3a_stats_pool.h"
 
-#define XCAM_DEFOG_DC_ORIGINAL     0
-#define XCAM_DEFOG_DC_MIN_FILTER_V   1
-#define XCAM_DEFOG_DC_MIN_FILTER_H   2
-#define XCAM_DEFOG_DC_REFINED      3
-#define XCAM_DEFOG_DC_MAX_BUF      4
+#define XCAM_DEFOG_DC_ORIGINAL      0
+#define XCAM_DEFOG_DC_MIN_FILTER_V  1
+#define XCAM_DEFOG_DC_MIN_FILTER_H  2
+#define XCAM_DEFOG_DC_BI_FILTER     3
+#define XCAM_DEFOG_DC_REFINED       4
+#define XCAM_DEFOG_DC_MAX_BUF       5
 
 #define XCAM_DEFOG_R_CHANNEL    0
 #define XCAM_DEFOG_G_CHANNEL    1
@@ -82,6 +83,28 @@ private:
 
     SmartPtr<CLDefogDcpImageHandler>   _defog_handler;
     uint32_t                           _buf_index;
+};
+
+class CLBiFilterKernel
+    : public CLImageKernel
+{
+public:
+    explicit CLBiFilterKernel (
+        SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler);
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+
+private:
+    XCAM_DEAD_COPY (CLBiFilterKernel);
+
+private:
+    SmartPtr<CLImage>                  _image_in_y;
+    SmartPtr<CLDefogDcpImageHandler>   _defog_handler;
 };
 
 class CLDefogRecoverKernel

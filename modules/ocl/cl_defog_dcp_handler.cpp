@@ -26,8 +26,9 @@
 #include "cl_utils.h"
 
 enum {
-    KernelDarkChannel   = 0,
+    KernelDarkChannel = 0,
     KernelMinFilter,
+    KernelBiFilter,
     KernelDefogRecover,
 };
 
@@ -40,6 +41,11 @@ const static XCamKernelInfo kernels_info [] = {
     {
         "kernel_min_filter",
 #include "kernel_min_filter.clx"
+        , 0,
+    },
+    {
+        "kernel_bi_filter",
+#include "kernel_bi_filter.clx"
         , 0,
     },
     {
@@ -171,6 +177,64 @@ CLMinFilterKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
+CLBiFilterKernel::CLBiFilterKernel (
+    SmartPtr<CLContext> &context,
+    SmartPtr<CLDefogDcpImageHandler> &defog_handler)
+    : CLImageKernel (context)
+    , _defog_handler (defog_handler)
+{
+}
+
+XCamReturn
+CLBiFilterKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count,
+    CLWorkSize &work_size)
+{
+    XCAM_UNUSED (output);
+    SmartPtr<CLContext> context = get_context ();
+    const VideoBufferInfo & video_info_in = input->get_video_info ();
+
+    CLImageDesc cl_desc_in;
+    cl_desc_in.format.image_channel_data_type = CL_UNSIGNED_INT16;
+    cl_desc_in.format.image_channel_order = CL_RGBA;
+    cl_desc_in.width = video_info_in.width / 8;
+    cl_desc_in.height = video_info_in.height;
+    cl_desc_in.row_pitch = video_info_in.strides[0];
+    _image_in_y = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+
+    SmartPtr<CLImage> &dark_channel_in = _defog_handler->get_dark_map (XCAM_DEFOG_DC_ORIGINAL);
+    SmartPtr<CLImage> &dark_channel_out = _defog_handler->get_dark_map (XCAM_DEFOG_DC_BI_FILTER);
+
+    arg_count = 0;
+    args[arg_count].arg_adress = &_image_in_y->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &dark_channel_in->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &dark_channel_out->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
+    work_size.local[0] = 16;
+    work_size.local[1] = 2;
+    work_size.global[0] = XCAM_ALIGN_UP (cl_desc_in.width, work_size.local[0]);
+    work_size.global[1] = XCAM_ALIGN_UP (cl_desc_in.height, work_size.local[1]);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLBiFilterKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
+{
+    _image_in_y.release ();
+    return CLImageKernel::post_execute (output);
+}
+
 CLDefogRecoverKernel::CLDefogRecoverKernel (
     SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler)
     : CLImageKernel (context)
@@ -189,9 +253,9 @@ CLDefogRecoverKernel::get_max_value (SmartPtr<DrmBoBuffer> &buf)
     const float max_percent = 1.0f;
     SmartPtr<X3aStats> stats = buf->find_3a_stats ();
 
-    _max_r = 255.0f;
-    _max_g = 255.0f;
-    _max_b = 255.0f;
+    _max_r = 230.0f;
+    _max_g = 230.0f;
+    _max_b = 230.0f;
     _max_i = XCAM_MAX (_max_r, _max_g);
     _max_i = XCAM_MAX (_max_i, _max_b);
     if (!stats.ptr ())
@@ -226,9 +290,9 @@ CLDefogRecoverKernel::prepare_arguments (
     XCAM_UNUSED (input);
     SmartPtr<CLContext> context = get_context ();
 
-    arg_count = 0;
+    SmartPtr<CLImage> &dark_map = _defog_handler->get_dark_map (XCAM_DEFOG_DC_BI_FILTER);
 
-    SmartPtr<CLImage> &dark_map = _defog_handler->get_dark_map (XCAM_DEFOG_DC_MIN_FILTER_H);
+    arg_count = 0;
     args[arg_count].arg_adress = &dark_map->get_mem_id ();
     args[arg_count].arg_size = sizeof (cl_mem);
     ++arg_count;
@@ -247,7 +311,7 @@ CLDefogRecoverKernel::prepare_arguments (
     args[arg_count].arg_size = sizeof (_max_b);
     ++arg_count;
 
-    for (int i = 0; i < XCAM_DEFOG_MAX_CHANNELS ; ++i) {
+    for (int i = 0; i < XCAM_DEFOG_MAX_CHANNELS; ++i) {
         SmartPtr<CLImage> &input_color = _defog_handler->get_rgb_channel (i);
 
         args[arg_count].arg_adress = &input_color->get_mem_id ();
@@ -371,8 +435,8 @@ CLDefogDcpImageHandler::dump_buffer ()
     uint32_t width, height;
     char file_name[1024];
 
-    // dump dark channel min-filtered map
-    image = _dark_channel_buf[XCAM_DEFOG_DC_MIN_FILTER_H];
+    // dump dark channel bi-filtered map
+    image = _dark_channel_buf[XCAM_DEFOG_DC_BI_FILTER];
     desc = image->get_image_desc ();
     width = image->get_pixel_bytes () * desc.width;
     height = desc.height;
@@ -419,6 +483,21 @@ create_kernel_min_filter (
     return kernel;
 }
 
+SmartPtr<CLBiFilterKernel>
+create_kernel_bi_filter (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
+{
+    SmartPtr<CLBiFilterKernel> kernel;
+
+    kernel = new CLBiFilterKernel (context, handler);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        kernel->build_kernel (kernels_info[KernelBiFilter], NULL) == XCAM_RETURN_NO_ERROR,
+        NULL,
+        "Defog build kernel(%s) failed", kernels_info[KernelBiFilter].kernel_name);
+
+    return kernel;
+}
+
 SmartPtr<CLDefogRecoverKernel>
 create_kernel_defog_recover (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
 {
@@ -445,12 +524,18 @@ create_cl_defog_dcp_image_handler (SmartPtr<CLContext> &context)
     XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "defog handler create dark channel kernel failed");
     defog_handler->add_kernel (kernel);
 
+#if 0
     for (int i = XCAM_DEFOG_DC_MIN_FILTER_V; i <= XCAM_DEFOG_DC_MIN_FILTER_H; ++i) {
         SmartPtr<CLImageKernel> min_kernel;
         min_kernel = create_kernel_min_filter (context, defog_handler, i);
         XCAM_FAIL_RETURN (ERROR, min_kernel.ptr (), NULL, "defog handler create min filter kernel failed");
         defog_handler->add_kernel (min_kernel);
     }
+#endif
+
+    kernel = create_kernel_bi_filter (context, defog_handler);
+    XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "defog handler create bilateral filter kernel failed");
+    defog_handler->add_kernel (kernel);
 
     kernel = create_kernel_defog_recover (context, defog_handler);
     XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "defog handler create defog recover kernel failed");

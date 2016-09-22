@@ -15,6 +15,7 @@ clx_kernel_sources = \
 	kernel_hdr_rgb.clx            \
 	kernel_macc.clx               \
 	kernel_min_filter.clx         \
+	kernel_bi_filter.clx          \
 	kernel_snr.clx                \
 	kernel_tnr_rgb.clx            \
 	kernel_tnr_yuv.clx            \

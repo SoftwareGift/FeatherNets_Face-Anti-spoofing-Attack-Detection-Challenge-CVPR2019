@@ -108,18 +108,19 @@ __kernel void kernel_defog_recover (
     transmit_map[0] = max (transmit_map[0], 0.1f);
     transmit_map[1] = max (transmit_map[1], 0.1f);
 
-    in_r[0] = max_r + (in_r[0] - max_r) / transmit_map[0];
-    in_r[1] = max_r + (in_r[1] - max_r) / transmit_map[1];
-    in_g[0] = max_g + (in_g[0] - max_g) / transmit_map[0];
-    in_g[1] = max_g + (in_g[1] - max_g) / transmit_map[1];
-    in_b[0] = max_b + (in_b[0] - max_b) / transmit_map[0];
-    in_b[1] = max_b + (in_b[1] - max_b) / transmit_map[1];
+    float8 gain = 2.0f;  // adjust the brightness temporarily
+    in_r[0] = (max_r + (in_r[0] - max_r) / transmit_map[0]) * gain;
+    in_r[1] = (max_r + (in_r[1] - max_r) / transmit_map[1]) * gain;
+    in_g[0] = (max_g + (in_g[0] - max_g) / transmit_map[0]) * gain;
+    in_g[1] = (max_g + (in_g[1] - max_g) / transmit_map[1]) * gain;
+    in_b[0] = (max_b + (in_b[0] - max_b) / transmit_map[0]) * gain;
+    in_b[1] = (max_b + (in_b[1] - max_b) / transmit_map[1]) * gain;
 
     out_data = 0.299f * in_r[0] + 0.587f * in_g[0] + 0.114f * in_b[0];
     out_data = clamp (out_data, 0.0f, 255.0f);
     write_imageui(out_y, (int2)(pos_x, pos_y), convert_uint4(as_ushort4(convert_uchar8(out_data))));
-    out_data = clamp (out_data, 0.0f, 255.0f);
     out_data = 0.299f * in_r[1] + 0.587f * in_g[1] + 0.114f * in_b[1];
+    out_data = clamp (out_data, 0.0f, 255.0f);
     write_imageui(out_y, (int2)(pos_x, pos_y + 1), convert_uint4(as_ushort4(convert_uchar8(out_data))));
 
     float4 r, g, b;
