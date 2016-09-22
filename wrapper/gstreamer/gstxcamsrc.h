@@ -70,6 +70,12 @@ typedef enum {
 } WaveletModeType;
 
 typedef enum {
+    DEFOG_NONE = 0,
+    DEFOG_RETINEX,
+    DEFOG_DCP
+} DefogModeType;
+
+typedef enum {
     DENOISE_3D_NONE = 0,
     DENOISE_3D_YUV,
     DENOISE_3D_UV
@@ -98,7 +104,7 @@ struct _GstXCamSrc
     char                        *path_to_3alib;
     gboolean                     enable_3a;
     gboolean                     enable_usb;
-    gboolean                     enable_retinex;
+    DefogModeType                defog_mode;
     Denoise3DModeType            denoise_3d_mode;
     uint8_t                      denoise_3d_ref_count;
     gboolean                     enable_wireframe;
