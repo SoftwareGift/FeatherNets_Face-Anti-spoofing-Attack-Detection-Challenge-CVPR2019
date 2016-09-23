@@ -347,7 +347,8 @@ CLContext::generate_kernel_id (
 
     error_code = clBuildProgram (program.id, 1, &device_id, build_option, CLContext::program_pfn_notify, this);
     if (error_code != CL_SUCCESS) {
-        char error_log [XCAM_CL_MAX_STR_SIZE];
+        //char error_log [XCAM_CL_MAX_STR_SIZE];
+        char error_log [1024 * 1024 + 32];
         xcam_mem_clear (error_log);
         clGetProgramBuildInfo (program.id, device_id, CL_PROGRAM_BUILD_LOG, sizeof (error_log) - 1, error_log, NULL);
         XCAM_LOG_WARNING ("CL build program failed on %s, build log:%s", name, error_log);
