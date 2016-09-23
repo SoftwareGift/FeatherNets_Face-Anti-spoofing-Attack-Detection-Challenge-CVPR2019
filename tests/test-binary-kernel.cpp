@@ -112,6 +112,12 @@ print_help (const char *bin_name)
             , bin_name);
 }
 
+#define FAILED_STATEMENT {                         \
+        if (kernel_body) xcam_free (kernel_body);  \
+        if (kernel_name) xcam_free (kernel_name);  \
+        if (program_binaries) xcam_free (program_binaries); \
+        return -1; }
+
 int main (int argc, char *argv[])
 {
     int opt = 0;
@@ -159,13 +165,13 @@ int main (int argc, char *argv[])
     }
 
     ret = get_source_sizes (source_fp, &source_sizes);
-    CHECK (ret, "get source sizes from %s failed", source_file);
+    CHECK_STATEMENT (ret, FAILED_STATEMENT, "get source sizes from %s failed", source_file);
 
     kernel_body = (char *) xcam_malloc0 (sizeof (char) * (source_sizes + 1));
     XCAM_ASSERT(kernel_body);
 
     ret = read_source (source_fp, kernel_body, source_sizes);
-    CHECK (ret, "read source from %s failed", source_file);
+    CHECK_STATEMENT (ret, FAILED_STATEMENT, "read source from %s failed", source_file);
     kernel_body[source_sizes] = '\0';
 
     SmartPtr<CLContext> context;
@@ -173,7 +179,7 @@ int main (int argc, char *argv[])
 
     if (!kernel_name) {
         ret = get_kernel_name (source_file, &kernel_name);
-        CHECK (ret, "get kernel name failed");
+        CHECK_STATEMENT (ret, FAILED_STATEMENT, "get kernel name failed");
     }
 
     SmartPtr<CLKernel> kernel = new CLKernel (context, kernel_name);
@@ -182,7 +188,7 @@ int main (int argc, char *argv[])
     kernel->load_from_source (kernel_body, strlen (kernel_body), &program_binaries, &binary_sizes);
 
     ret = write_binary (binary_fp, program_binaries, binary_sizes);
-    CHECK (ret, "write binary to %s failed", binary_file);
+    CHECK_STATEMENT (ret, FAILED_STATEMENT, "write binary to %s failed", binary_file);
 
     xcam_free (kernel_body);
     xcam_free (program_binaries);

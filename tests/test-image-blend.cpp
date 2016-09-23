@@ -186,6 +186,8 @@ int main (int argc, char *argv[])
     SmartPtr<DrmBoBuffer> output_buf;
     SmartPtr<BufferProxy> read_buf;
 
+#define FAILED_GEO_FREE  { delete [] geo_map0; delete [] geo_map1; return -1; }
+
     const struct option long_opts[] = {
         {"input0", required_argument, NULL, 'i'},
         {"input1", required_argument, NULL, 'I'},
@@ -328,16 +330,16 @@ int main (int argc, char *argv[])
 #endif
     //
     ret = file_in0.open (file_in0_name, "rb");
-    CHECK (ret, "open input file(%s) failed", file_in0_name);
+    CHECK_STATEMENT (ret, FAILED_GEO_FREE, "open input file(%s) failed", file_in0_name);
     read_buf = input0;
     ret = file_in0.read_buf (read_buf);
-    CHECK (ret, "read buffer0 from (%s) failed", file_in0_name);
+    CHECK_STATEMENT (ret, FAILED_GEO_FREE, "read buffer0 from (%s) failed", file_in0_name);
 
     ret = file_in1.open (file_in1_name, "rb");
-    CHECK (ret, "open input file(%s) failed", file_in1_name);
+    CHECK_STATEMENT (ret, FAILED_GEO_FREE, "open input file(%s) failed", file_in1_name);
     read_buf = input1;
     ret = file_in1.read_buf (read_buf);
-    CHECK (ret, "read buffer1 from (%s) failed", file_in1_name);
+    CHECK_STATEMENT (ret, FAILED_GEO_FREE, "read buffer1 from (%s) failed", file_in1_name);
 
     if (enable_geo) {
         geo_map_handler = create_geo_map_handler (context).dynamic_cast_ptr<CLGeoMapHandler> ();
@@ -367,7 +369,7 @@ int main (int argc, char *argv[])
         }
 
         ret = blend_images (input0, input1, output_buf, blender);
-        CHECK (ret, "blend_images execute failed");
+        CHECK_STATEMENT (ret, FAILED_GEO_FREE, "blend_images execute failed");
         //printf ("DMA handles, output_buf:%d\n", output_buf->get_fd ());
 
         if (need_save_output) {
@@ -375,9 +377,9 @@ int main (int argc, char *argv[])
             snprintf (out_name, 1023, "%s.%02d", file_out_name, i);
 
             ret = file_out.open (out_name, "wb");
-            CHECK (ret, "open output file(%s) failed", out_name);
+            CHECK_STATEMENT (ret, FAILED_GEO_FREE, "open output file(%s) failed", out_name);
             ret = file_out.write_buf (output_buf);
-            CHECK (ret, "write buffer to (%s) failed", out_name);
+            CHECK_STATEMENT (ret, FAILED_GEO_FREE, "write buffer to (%s) failed", out_name);
             printf ("write output buffer to: %s done\n", out_name);
         } else {
             // check info
@@ -397,17 +399,22 @@ int main (int argc, char *argv[])
 //return count
 int read_map_data (const char* file, GeoPos *map, int width, int height)
 {
+    char *ptr = NULL;
     FILE *p_f = fopen (file, "rb");
     CHECK_EXP (p_f, "open geo-map file(%s) failed", file);
-    CHECK_EXP (fseek(p_f, 0L, SEEK_END) == 0, "seek to file(%s) end failed", file);
+
+#define FAILED_READ_MAP { if (p_f) fclose(p_f); if (ptr) xcam_free (ptr); return -1; }
+
+    CHECK_DECLARE (ERROR, fseek(p_f, 0L, SEEK_END) == 0, FAILED_READ_MAP, "seek to file(%s) end failed", file);
     size_t size = ftell (p_f);
     XCAM_ASSERT ((int)size != -1);
     fseek (p_f, 0L, SEEK_SET);
 
-    char *ptr = (char*)xcam_malloc (size + 1);
-    CHECK_EXP (fread (ptr, 1, size, p_f) == size, "read map file(%s)failed", file);
+    ptr = (char*)xcam_malloc (size + 1);
+    CHECK_DECLARE (ERROR, fread (ptr, 1, size, p_f) == size, FAILED_READ_MAP, "read map file(%s)failed", file);
     ptr[size] = 0;
     fclose (p_f);
+    p_f = NULL;
 
     char *str_num = NULL;
     char tokens[] = "\t ,\r\n";
@@ -431,9 +438,10 @@ int read_map_data (const char* file, GeoPos *map, int width, int height)
         ++count;
         str_num = strtok (NULL, tokens);
     }
+    xcam_free (ptr);
+    ptr = NULL;
     CHECK_EXP (y < height, "map data(%s) count larger than expected(%dx%dx2)", file, width, height);
     CHECK_EXP (count >= width * height * 2, "map data(%s) count less than expected(%dx%dx2)", file, width, height);
-    xcam_free (ptr);
 
     printf ("read map(%s) x/y data count:%d\n", file, count);
     return count;

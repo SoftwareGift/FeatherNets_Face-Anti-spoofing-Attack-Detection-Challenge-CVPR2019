@@ -35,6 +35,9 @@
 #define CHECK(ret, msg, ...)  \
     CHECK_DECLARE(ERROR, (ret) == XCAM_RETURN_NO_ERROR, return -1, msg, ## __VA_ARGS__)
 
+#define CHECK_STATEMENT(ret, statement, msg, ...)  \
+    CHECK_DECLARE(ERROR, (ret) == XCAM_RETURN_NO_ERROR, statement, msg, ## __VA_ARGS__)
+
 #define CHECK_CONTINUE(ret, msg, ...)  \
     CHECK_DECLARE(WARNING, (ret) == XCAM_RETURN_NO_ERROR, , msg, ## __VA_ARGS__)
 

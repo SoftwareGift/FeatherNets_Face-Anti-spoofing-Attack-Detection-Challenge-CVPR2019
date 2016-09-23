@@ -436,8 +436,6 @@ gauss_fill_mask (
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     uint32_t mask_size = to.blend_width * sizeof (float);
-    float *buf_mask = (float *)xcam_malloc (mask_size);
-    XCAM_ASSERT (buf_mask);
     uint32_t prev_size = prev.mask_width[0] * sizeof (float);
     float *pre_ptr = NULL;
     int i;
