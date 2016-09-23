@@ -183,13 +183,12 @@ int main (int argc, char *argv[])
     }
 
     SmartPtr<CLKernel> kernel = new CLKernel (context, kernel_name);
-    xcam_free (kernel_name);
-
     kernel->load_from_source (kernel_body, strlen (kernel_body), &program_binaries, &binary_sizes);
 
     ret = write_binary (binary_fp, program_binaries, binary_sizes);
     CHECK_STATEMENT (ret, FAILED_STATEMENT, "write binary to %s failed", binary_file);
 
+    xcam_free (kernel_name);
     xcam_free (kernel_body);
     xcam_free (program_binaries);
     return 0;

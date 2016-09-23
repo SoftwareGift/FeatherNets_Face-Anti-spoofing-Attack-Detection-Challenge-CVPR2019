@@ -345,9 +345,9 @@ int main (int argc, char *argv[])
         geo_map_handler = create_geo_map_handler (context).dynamic_cast_ptr<CLGeoMapHandler> ();
         XCAM_ASSERT (geo_map_handler.ptr ());
 
-
         geo_map0 = new GeoPos[map_width * map_height];
         geo_map1 = new GeoPos[map_width * map_height];
+        XCAM_ASSERT (geo_map0 && geo_map1);
         if (read_map_data (map0, geo_map0, map_width, map_height) <= 0 ||
                 read_map_data (map1, geo_map1, map_width, map_height) <= 0) {
             delete [] geo_map0;
@@ -411,6 +411,7 @@ int read_map_data (const char* file, GeoPos *map, int width, int height)
     fseek (p_f, 0L, SEEK_SET);
 
     ptr = (char*)xcam_malloc (size + 1);
+    XCAM_ASSERT (ptr);
     CHECK_DECLARE (ERROR, fread (ptr, 1, size, p_f) == size, FAILED_READ_MAP, "read map file(%s)failed", file);
     ptr[size] = 0;
     fclose (p_f);
