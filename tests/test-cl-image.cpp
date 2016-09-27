@@ -568,14 +568,19 @@ int main (int argc, char *argv[])
     }
 
     SmartPtr<DrmBoBuffer> psnr_cur, psnr_ref;
-    while (!input_fp.end_of_file ()) {
+    while (true) {
         SmartPtr<DrmBoBuffer> input_buf, output_buf;
         SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
         input_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
 
         XCAM_ASSERT (input_buf.ptr ());
         ret = input_fp.read_buf (input_buf);
-        CHECK (ret, "read buffer from %s failed", XCAM_STR(input_file));
+        if (ret == XCAM_RETURN_BYPASS)
+            break;
+        if (ret == XCAM_RETURN_ERROR_FILE) {
+            XCAM_LOG_ERROR ("read buffer from %s failed", XCAM_STR (input_file));
+            return -1;
+        }
 
         if (kernel_loop_count != 0)
         {
