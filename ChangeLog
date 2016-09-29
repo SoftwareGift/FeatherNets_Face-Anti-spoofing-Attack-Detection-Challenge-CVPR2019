@@ -1,3 +1,28 @@
+2016/09/30: release libxcam version 0.7.0
+ * 3D-NR quality and performance improvement.
+   - use image exposure parameters to adjust global denoise strength.
+   - calculate image local variation to adjust local denoise strength.
+   - optimize OCL kernel by shared local memory and sub-group to
+     improve performance.
+
+ * defog/dehaze quality improvement based on DCP(dark channel prior).
+   - enable dark channel prior to improve hazy image quality.
+   - fix image corruption in recover step.
+   - add lateral-range filter to smooth dark channel and remove
+     halo effect.
+
+ * enable multi-band blender for image stitching.
+   - based on gaussian and laplacian pyramid and blend images in each
+     band, then reconstruct stitching image from pyramid level.
+   - blender can smooth seams and prevent ghosting.
+
+ * enable geometry correction.
+   - map 2D image from src to dst image based on coordinate table which
+     is center aligned.
+   - prevent sawtooth edge by OCL sampler.
+ * gst-xcamfilter feature supports.
+   - xcamfilter can co-work with different camera source.
+
 2016/07/29: release libxcam version 0.6.1
 * enable 3D noise reduction, performance stay tuned.
    - suppress image noise in both temporal and spatial domain.

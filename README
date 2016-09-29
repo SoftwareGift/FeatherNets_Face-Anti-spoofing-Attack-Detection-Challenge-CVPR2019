@@ -22,7 +22,8 @@ Features:
        - Noise reduction: simple bilateral NR, temporal NR, wavelet NR,
          adaptive NR with Bayesian shrinkage, 3D-NR.
        - WDR: gaussian-based tone-mapping, histogram adjustment tone-mapping
-       - Fog removal: retinex algorithm.
+       - Fog removal: retinex and dark channel prior algorithm.
+       - Blender: multi-band blender and fisheye geometry map correction.
   * Capture features support memory type of mmap and dma buffer.
   * Support 3rd party 3A lib which can be loaded dynamically.
        - hybrid 3a plugin
