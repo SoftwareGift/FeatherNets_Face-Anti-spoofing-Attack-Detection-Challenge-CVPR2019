@@ -355,6 +355,7 @@ int main (int argc, char *argv[])
     uint32_t denoise_3d_mode = 0;
     uint8_t denoise_3d_ref_count = 3;
     bool wireframe_type = false;
+    bool image_warp_type = false;
 #endif
 
     int32_t brightness_level = 128;
@@ -381,6 +382,7 @@ int main (int argc, char *argv[])
         {"wavelet-mode", required_argument, NULL, 'V'},
         {"3d-denoise", required_argument, NULL, 'N'},
         {"enable-wireframe", no_argument, NULL, 'F'},
+        {"enable-warp", no_argument, NULL, 'A'},
         {"usb", required_argument, NULL, 'U'},
         {"resolution", required_argument, NULL, 'R'},
         {"sync", no_argument, NULL, 'Y'},
@@ -585,6 +587,10 @@ int main (int argc, char *argv[])
         }
         case 'F': {
             wireframe_type = true;
+            break;
+        }
+        case 'A': {
+            image_warp_type = true;
             break;
         }
         case 'D': {
@@ -840,7 +846,8 @@ int main (int argc, char *argv[])
         cl_post_processor->set_3ddenoise_mode ((CLPostImageProcessor::CL3DDenoiseMode) denoise_3d_mode, denoise_3d_ref_count);
 
         cl_post_processor->set_wireframe (wireframe_type);
-        if (smart_analyzer.ptr () && wireframe_type) {
+        cl_post_processor->set_image_warp (image_warp_type);
+        if (smart_analyzer.ptr () && (wireframe_type || image_warp_type)) {
             cl_post_processor->set_scaler (true);
             cl_post_processor->set_scaler_factor (640.0 / frame_width);
         }

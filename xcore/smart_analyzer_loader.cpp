@@ -130,9 +130,8 @@ SmartAnalyzerLoader::load_symbol (void* handle)
         return NULL;
     }
     if (desc->version < XCAM_VERSION) {
-        XCAM_LOG_DEBUG ("get symbolfailed. version is:0x%04x, but expect:0x%04x",
-                        desc->version, XCAM_VERSION);
-        return NULL;
+        XCAM_LOG_WARNING ("get symbol version is:0x%04x, but expect:0x%04x",
+                          desc->version, XCAM_VERSION);
     }
     if (desc->size < sizeof (XCamSmartAnalysisDescription)) {
         XCAM_LOG_DEBUG ("get symbol failed, XCamSmartAnalysisDescription size is:%d, but expect:%d",

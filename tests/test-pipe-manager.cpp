@@ -176,6 +176,7 @@ void print_help (const char *bin_name)
             "\t --3d-denoise       specify 3D Denoise mode\n"
             "\t                    select from [disabled, yuv, uv], default is [disabled]\n"
             "\t --enable-wireframe enable wire frame\n"
+            "\t --enable-warp      enable image warp\n"
             "\t --display-mode     display mode\n"
             "\t                    select from [primary, overlay], default is [primary]\n"
             "\t -p                 enable local display\n"
@@ -209,6 +210,7 @@ int main (int argc, char *argv[])
     uint32_t denoise_3d_mode = 0;
     uint8_t denoise_3d_ref_count = 3;
     bool enable_wireframe = false;
+    bool enable_image_warp = false;
 
     int opt;
     const char *short_opts = "ph";
@@ -221,6 +223,7 @@ int main (int argc, char *argv[])
         {"wavelet-mode", required_argument, NULL, 'V'},
         {"3d-denoise", required_argument, NULL, 'N'},
         {"enable-wireframe", no_argument, NULL, 'I'},
+        {"enable-warp", no_argument, NULL, 'S'},
         {"display-mode", required_argument, NULL, 'P'},
         {NULL, 0, NULL, 0}
     };
@@ -314,6 +317,10 @@ int main (int argc, char *argv[])
             enable_wireframe = true;
             break;
         }
+        case 'S': {
+            enable_image_warp = true;
+            break;
+        }
         case 'P': {
             XCAM_ASSERT (optarg);
             if (!strcmp (optarg, "primary"))
@@ -384,7 +391,8 @@ int main (int argc, char *argv[])
     cl_post_processor->set_3ddenoise_mode ((CLPostImageProcessor::CL3DDenoiseMode) denoise_3d_mode, denoise_3d_ref_count);
 
     cl_post_processor->set_wireframe (enable_wireframe);
-    if (smart_analyzer.ptr () && enable_wireframe) {
+    cl_post_processor->set_image_warp (enable_image_warp);
+    if (smart_analyzer.ptr () && (enable_wireframe || enable_image_warp)) {
         cl_post_processor->set_scaler (true);
         cl_post_processor->set_scaler_factor (640.0 / image_width);
     }

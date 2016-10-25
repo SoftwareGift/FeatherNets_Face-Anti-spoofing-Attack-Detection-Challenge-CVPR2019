@@ -136,6 +136,9 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
     case XCAM_3A_RESULT_FACE_DETECTION:
         result = create_face_detection ((XCamFDResult*)from);
         break;
+    case XCAM_3A_RESULT_DVS:
+        result = create_digital_video_stabilizer ((XCamDVSResult*)from);
+        break;
     default:
         XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", type);
         break;
@@ -286,6 +289,12 @@ X3aResultFactory::create_face_detection (XCamFDResult *from)
     fd_res->set_standard_result (*from);
 
     return fd_res;
+}
+
+SmartPtr<X3aDVSResult>
+X3aResultFactory::create_digital_video_stabilizer (XCamDVSResult *from)
+{
+    XCAM_3A_RESULT_FACTORY (X3aDVSResult, XCAM_3A_RESULT_DVS, from);
 }
 };
 

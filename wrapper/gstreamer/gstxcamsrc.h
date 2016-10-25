@@ -108,6 +108,7 @@ struct _GstXCamSrc
     Denoise3DModeType            denoise_3d_mode;
     uint8_t                      denoise_3d_ref_count;
     gboolean                     enable_wireframe;
+    gboolean                     enable_image_warp;
     char                        *path_to_fake;
 
     gboolean                     time_offset_ready;

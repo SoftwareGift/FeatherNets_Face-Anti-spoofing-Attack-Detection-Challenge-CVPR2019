@@ -137,7 +137,7 @@ public:
     const StandardResult &get_standard_result () const {
         return *_result;
     }
-    StandardResult *get_standard_result_ptr (){
+    StandardResult *get_standard_result_ptr () {
         return _result;
     }
 
@@ -163,6 +163,7 @@ typedef X3aStandardResultT<XCam3aResultBrightness>      X3aBrightnessResult;
 typedef X3aStandardResultT<XCam3aResultTemporalNoiseReduction> X3aTemporalNoiseReduction;
 typedef X3aStandardResultT<XCam3aResultWaveletNoiseReduction> X3aWaveletNoiseReduction;
 typedef X3aStandardResultT<XCamFDResult>               X3aFaceDetectionResult;
+typedef X3aStandardResultT<XCamDVSResult>              X3aDVSResult;
 };
 
 #endif //XCAM_3A_RESULT_H

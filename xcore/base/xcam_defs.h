@@ -76,7 +76,7 @@
 #define XCAM_DEAD_COPY(ClassObj)                \
         ClassObj (const ClassObj&);             \
         ClassObj & operator= (const ClassObj&)  \
- 
+
 
 #define XCAM_STR(str)  ((str) ? (str) : "null")
 #define XCAM_BOOL2STR(value)  ((value) ? "true" : "false")
@@ -89,6 +89,8 @@
 
 #define XCAM_GAMMA_TABLE_SIZE 256
 #define XCAM_MAX_STR_SIZE 4096
+#undef XCAM_CL_MAX_STR_SIZE
+#define XCAM_CL_MAX_STR_SIZE 1024
 
 #define XCAM_TIMESPEC_2_USEC(timespec) ((timespec).tv_sec*1000000LL + (timespec).tv_nsec/1000)
 #define XCAM_TIMEVAL_2_USEC(timeval) ((timeval).tv_sec*1000000LL + (timeval).tv_usec)

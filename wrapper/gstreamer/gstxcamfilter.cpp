@@ -35,6 +35,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_WAVELET_MODE       NONE_WAVELET
 #define DEFAULT_PROP_3D_DENOISE_MODE    DENOISE_3D_NONE
 #define DEFAULT_PROP_ENABLE_WIREFRAME   FALSE
+#define DEFAULT_PROP_ENABLE_IMAGE_WARP  FALSE
 
 XCAM_BEGIN_DECLARE
 
@@ -45,7 +46,8 @@ enum {
     PROP_DEFOG_MODE,
     PROP_WAVELET_MODE,
     PROP_DENOISE_3D_MODE,
-    PROP_ENABLE_WIREFRAME
+    PROP_ENABLE_WIREFRAME,
+    PROP_ENABLE_IMAGE_WARP
 };
 
 #define GST_TYPE_XCAM_FILTER_COPY_MODE (gst_xcam_filter_copy_mode_get_type ())
@@ -217,6 +219,11 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
         g_param_spec_boolean ("enable-wireframe", "enable wire frame", "Enable wire frame",
                               DEFAULT_PROP_ENABLE_WIREFRAME, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+    g_object_class_install_property (
+        gobject_class, PROP_ENABLE_IMAGE_WARP,
+        g_param_spec_boolean ("enable-warp", "enable image warp", "Enable Image Warp",
+                              DEFAULT_PROP_ENABLE_IMAGE_WARP, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Filter",
                                           "Filter/Effect/Video",
@@ -246,6 +253,7 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->denoise_3d_mode = DEFAULT_PROP_3D_DENOISE_MODE;
     xcamfilter->denoise_3d_ref_count = 2;
     xcamfilter->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
+    xcamfilter->enable_image_warp = DEFAULT_PROP_ENABLE_IMAGE_WARP;
 
     XCAM_CONSTRUCTOR (xcamfilter->pipe_manager, SmartPtr<MainPipeManager>);
     xcamfilter->pipe_manager = new MainPipeManager;
@@ -290,6 +298,9 @@ gst_xcam_filter_set_property (GObject *object, guint prop_id, const GValue *valu
     case PROP_ENABLE_WIREFRAME:
         xcamfilter->enable_wireframe = g_value_get_boolean (value);
         break;
+    case PROP_ENABLE_IMAGE_WARP:
+        xcamfilter->enable_image_warp = g_value_get_boolean (value);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -319,6 +330,9 @@ gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GPa
         break;
     case PROP_ENABLE_WIREFRAME:
         g_value_set_boolean (value, xcamfilter->enable_wireframe);
+        break;
+    case PROP_ENABLE_IMAGE_WARP:
+        g_value_set_boolean (value, xcamfilter->enable_image_warp);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -382,7 +396,8 @@ gst_xcam_filter_start (GstBaseTransform *trans)
         (CLPostImageProcessor::CL3DDenoiseMode) xcamfilter->denoise_3d_mode, xcamfilter->denoise_3d_ref_count);
 
     image_processor->set_wireframe (xcamfilter->enable_wireframe);
-    if (smart_analyzer.ptr () && xcamfilter->enable_wireframe)
+    image_processor->set_image_warp (xcamfilter->enable_image_warp);
+    if (smart_analyzer.ptr () && (xcamfilter->enable_wireframe || xcamfilter->enable_image_warp))
         image_processor->set_scaler (true);
 
     pipe_manager->add_image_processor (image_processor);

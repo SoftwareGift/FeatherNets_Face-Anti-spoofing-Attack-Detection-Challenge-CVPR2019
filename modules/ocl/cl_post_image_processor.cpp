@@ -31,6 +31,7 @@
 #include "cl_image_scaler.h"
 #include "cl_wire_frame_handler.h"
 #include "cl_csc_handler.h"
+#include "cl_image_warp_handler.h"
 
 #define XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE 6
 #define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 12
@@ -51,6 +52,7 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _3d_denoise_ref_count (3)
     , _enable_scaler (false)
     , _enable_wireframe (false)
+    , _enable_image_warp (false)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -112,6 +114,7 @@ CLPostImageProcessor::can_process_result (SmartPtr < X3aResult > & result)
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
     case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
     case XCAM_3A_RESULT_FACE_DETECTION:
+    case XCAM_3A_RESULT_DVS:
         return true;
     default:
         return false;
@@ -191,7 +194,14 @@ CLPostImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         }
         break;
     }
-
+    case XCAM_3A_RESULT_DVS: {
+        SmartPtr<X3aDVSResult> dvs_res = result.dynamic_cast_ptr<X3aDVSResult> ();
+        XCAM_ASSERT (dvs_res.ptr ());
+        if (_image_warp.ptr ()) {
+            _image_warp->set_warp_config (dvs_res->get_standard_result_ptr ());
+        }
+        break;
+    }
     default:
         XCAM_LOG_WARNING ("CLPostImageProcessor unknow 3a result: %d", res_type);
         break;
@@ -227,9 +237,9 @@ CLPostImageProcessor::create_handlers ()
     _defog_dcp = image_handler.dynamic_cast_ptr<CLDefogDcpImageHandler> ();
     XCAM_FAIL_RETURN (
         WARNING,
-        _retinex.ptr (),
+        _defog_dcp.ptr (),
         XCAM_RETURN_ERROR_CL,
-        "CLPostImageProcessor create retinex handler failed");
+        "CLPostImageProcessor create defog handler failed");
     _defog_dcp->set_kernels_enable (_defog_mode == CLPostImageProcessor::DefogDarkChannelPrior);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
@@ -361,6 +371,19 @@ CLPostImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
     add_handler (image_handler);
 
+    /* image warp */
+    image_handler = create_cl_image_warp_handler (context);
+    _image_warp = image_handler.dynamic_cast_ptr<CLImageWarpHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _image_warp.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create image warp handler failed");
+    _image_warp->set_kernels_enable (_enable_image_warp);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -421,6 +444,16 @@ bool
 CLPostImageProcessor::set_wireframe (bool enable)
 {
     _enable_wireframe = enable;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CLPostImageProcessor::set_image_warp (bool enable)
+{
+    _enable_image_warp = enable;
 
     STREAM_LOCK;
 

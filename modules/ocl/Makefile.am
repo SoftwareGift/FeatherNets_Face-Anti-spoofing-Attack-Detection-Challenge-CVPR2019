@@ -71,6 +71,7 @@ xcam_ocl_sources = \
     cl_newwavelet_denoise_handler.cpp  \
     cl_wire_frame_handler.cpp          \
     cl_3d_denoise_handler.cpp          \
+    cl_image_warp_handler.cpp          \
     priority_buffer_queue.cpp          \
     $(NULL)
 
@@ -91,6 +92,15 @@ libxcam_ocl_la_LIBADD = \
 libxcam_ocl_la_LDFLAGS = \
     -avoid-version                 \
     $(PTHREAD_LDFLAGS)             \
+    $(NULL)
+
+libxcam_oclincludedir = $(includedir)/xcam/ocl
+
+nobase_libxcam_oclinclude_HEADERS = \
+    cl_context.h          \
+    cl_event.h            \
+    cl_device.h           \
+    cl_memory.h           \
     $(NULL)
 
 libxcam_ocl_la_LIBTOOLFLAGS = --tag=disable-static

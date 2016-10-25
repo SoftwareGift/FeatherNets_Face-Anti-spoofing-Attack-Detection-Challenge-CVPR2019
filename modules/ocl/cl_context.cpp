@@ -24,9 +24,6 @@
 #include "cl_device.h"
 #include <utility>
 
-#undef XCAM_CL_MAX_STR_SIZE
-#define XCAM_CL_MAX_STR_SIZE 1024
-
 #undef XCAM_CL_MAX_EVENT_SIZE
 #define XCAM_CL_MAX_EVENT_SIZE 256
 

@@ -132,9 +132,28 @@ CLDevice::init ()
             device_info.max_work_group_size);
     }
 
+    // get platform name string length
+    size_t sz = 0;
+    if (clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, 0, 0, &sz) != CL_SUCCESS)
+    {
+        XCAM_LOG_WARNING ("get cl platform name failed");
+        return false;
+    }
+
+    // get platform name string
+    if (sz >= XCAM_CL_MAX_STR_SIZE) {
+        sz = XCAM_CL_MAX_STR_SIZE - 1;
+    }
+    if (clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, sz, _platform_name, 0) != CL_SUCCESS)
+    {
+        XCAM_LOG_WARNING ("get cl platform name failed");
+        return false;
+    }
+
     _platform_id = platform_id;
     _device_id = device_id;
     _device_info = device_info;
+    _platform_name[sz] = 0;
     _inited = true;
     return true;
 }

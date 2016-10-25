@@ -223,7 +223,6 @@ create_cl_3d_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t chann
     XCAM_ASSERT (denoise_handler.ptr ());
     denoise_handler->set_ref_framecount (ref_count);
 
-//#if CL_3D_DENOISE_ENABLE_SUBGROUP
     XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_3d_denoise)
 #if CL_3D_DENOISE_ENABLE_SUBGROUP
 #include "kernel_3d_denoise.clx"
@@ -231,11 +230,6 @@ create_cl_3d_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t chann
 #include "kernel_3d_denoise_slm.clx"
 #endif
     XCAM_CL_KERNEL_FUNC_END;
-//#else
-//   XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_3d_denoise)
-//#include "kernel_3d_denoise_slm.clx"
-//    XCAM_CL_KERNEL_FUNC_END;
-//#endif
 
     if (channel & CL_IMAGE_CHANNEL_Y) {
         denoise_kernel = new CL3DDenoiseImageKernel (context, KERNEL_3D_DENOISE_NAME, CL_IMAGE_CHANNEL_Y, denoise_handler);

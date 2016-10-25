@@ -58,6 +58,7 @@ public:
     SmartPtr<X3aBrightnessResult> create_brightness (XCam3aResultBrightness *from = NULL);
     SmartPtr<X3aWaveletNoiseReduction> create_wavelet_noise_reduction (XCam3aResultWaveletNoiseReduction *from = NULL);
     SmartPtr<X3aFaceDetectionResult> create_face_detection (XCamFDResult *from = NULL);
+    SmartPtr<X3aDVSResult> create_digital_video_stabilizer (XCamDVSResult *from = NULL);
 protected:
     explicit X3aResultFactory ();
 

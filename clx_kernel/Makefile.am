@@ -43,6 +43,7 @@ clx_kernel_sources = \
 	kernel_wire_frame.clx         \
 	kernel_3d_denoise.clx         \
 	kernel_3d_denoise_slm.clx         \
+	kernel_image_warp.clx         \
 	$(NULL)
 
 cl_quotation_sh = \

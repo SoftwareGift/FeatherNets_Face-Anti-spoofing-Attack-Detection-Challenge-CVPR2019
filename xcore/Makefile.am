@@ -109,6 +109,9 @@ nobase_libxcam_coreinclude_HEADERS = \
     xcam_mutex.h                   \
     xcam_thread.h                  \
     xcam_utils.h                   \
+    xcam_obj_debug.h               \
+    buffer_pool.h                  \
+    drm_bo_buffer.h                \
     $(NULL)
 
 if HAVE_LIBDRM

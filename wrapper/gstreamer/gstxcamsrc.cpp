@@ -77,6 +77,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_3D_DENOISE_MODE    DENOISE_3D_NONE
 #define DEFAULT_PROP_WAVELET_MODE       CL_WAVELET_DISABLED
 #define DEFAULT_PROP_ENABLE_WIREFRAME   FALSE
+#define DEFAULT_PROP_ENABLE_IMAGE_WARP  FALSE
 #define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
 #define DEFAULT_PROP_CL_PIPE_PROFILE    0
 
@@ -324,6 +325,7 @@ enum {
     PROP_DEFOG_MODE,
     PROP_DENOISE_3D_MODE,
     PROP_ENABLE_WIREFRAME,
+    PROP_ENABLE_IMAGE_WARP,
     PROP_FAKE_INPUT
 };
 
@@ -451,6 +453,10 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
         gobject_class, PROP_ENABLE_WIREFRAME,
         g_param_spec_boolean ("enable-wireframe", "enable wire frame", "Enable wire frame",
                               DEFAULT_PROP_ENABLE_WIREFRAME, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property (
+        gobject_class, PROP_ENABLE_IMAGE_WARP,
+        g_param_spec_boolean ("enable-warp", "enable image warp", "Enable Image Warp",
+                              DEFAULT_PROP_ENABLE_IMAGE_WARP, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
         gobject_class, PROP_MEM_MODE,
@@ -645,6 +651,10 @@ gst_xcam_src_get_property (
         g_value_set_boolean (value, src->enable_wireframe);
         break;
 
+    case PROP_ENABLE_IMAGE_WARP:
+        g_value_set_boolean (value, src->enable_image_warp);
+        break;
+
     case PROP_MEM_MODE:
         g_value_set_enum (value, src->mem_type);
         break;
@@ -760,6 +770,9 @@ gst_xcam_src_set_property (
         break;
     case PROP_ENABLE_WIREFRAME:
         src->enable_wireframe = g_value_get_boolean (value);
+        break;
+    case PROP_ENABLE_IMAGE_WARP:
+        src->enable_image_warp = g_value_get_boolean (value);
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);

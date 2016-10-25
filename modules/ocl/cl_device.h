@@ -61,6 +61,12 @@ public:
     cl_device_id get_device_id () {
         return _device_id;
     }
+    cl_platform_id get_platform_id () {
+        return _platform_id;
+    }
+    char* get_platform_name () {
+        return _platform_name;
+    }
 
     SmartPtr<CLContext> get_context ();
     void *get_extension_function (const char *func_name);
@@ -77,6 +83,7 @@ private:
 private:
     static SmartPtr<CLDevice>  _instance;
     static Mutex               _instance_mutex;
+    char                       _platform_name[XCAM_CL_MAX_STR_SIZE];
     cl_platform_id             _platform_id;
     cl_device_id               _device_id;
     CLDevieInfo                _device_info;

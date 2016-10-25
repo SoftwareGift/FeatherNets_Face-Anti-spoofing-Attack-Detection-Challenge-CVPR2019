@@ -38,6 +38,7 @@ class CLNewWaveletDenoiseImageHandler;
 class CL3DDenoiseImageHandler;
 class CLImageScaler;
 class CLWireFrameImageHandler;
+class CLImageWarpHandler;
 
 class CLPostImageProcessor
     : public CLImageProcessor
@@ -87,6 +88,7 @@ public:
     virtual bool set_3ddenoise_mode (CL3DDenoiseMode mode, uint8_t ref_frame_count);
     virtual bool set_scaler (bool enable);
     virtual bool set_wireframe (bool enable);
+    virtual bool set_image_warp (bool enable);
 
 protected:
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
@@ -112,6 +114,7 @@ private:
     SmartPtr<CLImageScaler>                   _scaler;
     SmartPtr<CLWireFrameImageHandler>         _wireframe;
     SmartPtr<CLCscImageHandler>               _csc;
+    SmartPtr<CLImageWarpHandler>              _image_warp;
 
     double                                    _scaler_factor;
 
@@ -124,6 +127,7 @@ private:
     uint8_t                                   _3d_denoise_ref_count;
     bool                                      _enable_scaler;
     bool                                      _enable_wireframe;
+    bool                                      _enable_image_warp;
 };
 
 };

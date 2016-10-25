@@ -51,6 +51,22 @@ typedef struct _XCamFDResult {
     XCamFaceInfo          faces[0];
 } XCamFDResult;
 
+/*
+ * Digital Video Stabilizer result
+ * head.type = XCAM_3A_RESULT_DVS;
+ * head.process_type = XCAM_IMAGE_PROCESS_POST;
+ * head.destroy = free dvs result.
+ */
+
+typedef struct _XCamDVSResult {
+    XCam3aResultHead      head;
+    int                   frame_id;
+    int                   frame_width;
+    int                   frame_height;
+    int                   valid;
+    double                proj_mat[9];
+} XCamDVSResult;
+
 XCAM_END_DECLARE
 
 #endif //C_XCAM_SMART_RESULT_H
