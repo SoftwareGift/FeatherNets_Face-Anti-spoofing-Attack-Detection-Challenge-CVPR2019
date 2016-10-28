@@ -38,6 +38,12 @@ enum {
     BlendImageCount
 };
 
+enum {
+    CLSeamMaskTmp = 0,
+    CLSeamMaskCoeff,
+    CLSeamMaskCount
+};
+
 struct PyramidLayer {
     uint32_t                 blend_width; // blend, gauss, and lap
     uint32_t                 blend_height;
@@ -48,6 +54,7 @@ struct PyramidLayer {
     SmartPtr<CLImage>        blend_image[CLBlenderPlaneMax][BlendImageCount]; // 0 blend-image, 1 reconstruct image
     uint32_t                 mask_width[CLBlenderPlaneMax];
     SmartPtr<CLBuffer>       blend_mask[CLBlenderPlaneMax]; // sizeof(float) * mask_width
+    SmartPtr<CLImage>        seam_mask[CLSeamMaskCount];
 
 #if CL_PYRAMID_ENABLE_DUMP
     SmartPtr<CLImage>        dump_gauss_resize[CLBlenderPlaneMax];
@@ -75,7 +82,7 @@ class CLPyramidBlender
     friend class CLPyramidBlendKernel;
 
 public:
-    explicit CLPyramidBlender (const char *name, int layers, bool need_uv);
+    explicit CLPyramidBlender (const char *name, int layers, bool need_uv, bool need_seam);
     ~CLPyramidBlender ();
 
     //void set_blend_kernel (SmartPtr<CLLinearBlenderKernel> kernel, int index);
@@ -84,7 +91,21 @@ public:
     SmartPtr<CLImage> get_blend_image (uint32_t layer, bool is_uv);
     SmartPtr<CLImage> get_reconstruct_image (uint32_t layer, bool is_uv);
     SmartPtr<CLBuffer> get_blend_mask (uint32_t layer, bool is_uv);
+    SmartPtr<CLImage> get_seam_mask (uint32_t layer);
     const PyramidLayer &get_pyramid_layer (uint32_t layer) const;
+    const SmartPtr<CLImage> &get_image_diff () const;
+    void get_seam_info (uint32_t &width, uint32_t &height, uint32_t &stride) const;
+    void get_seam_pos_info (uint32_t &offset_x, uint32_t &valid_width) const;
+    SmartPtr<CLBuffer> &get_seam_pos_buf () {
+        return _seam_pos_buf;
+    }
+    SmartPtr<CLBuffer> &get_seam_sum_buf () {
+        return _seam_sum_buf;
+    }
+    uint32_t get_layers () const {
+        return _layers;
+    }
+    XCamReturn fill_seam_mask ();
 
 protected:
     // from CLImageHandler
@@ -96,6 +117,7 @@ protected:
         SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
 
 private:
+    XCamReturn init_seam_buffers (SmartPtr<CLContext> context);
     void last_layer_buffer_redirect ();
 
     void dump_layer_mask (uint32_t layer, bool is_uv);
@@ -106,6 +128,17 @@ private:
 private:
     uint32_t                         _layers;
     PyramidLayer                     _pyramid_layers[XCAM_CL_PYRAMID_MAX_LEVEL];
+
+    //calculate seam masks
+    bool                             _need_seam;
+    SmartPtr<CLImage>                _image_diff; // image difference in blending area, only Y
+    uint32_t                         _seam_pos_stride;
+    uint32_t                         _seam_width, _seam_height;
+    uint32_t                         _seam_pos_offset_x, _seam_pos_valid_width;
+    SmartPtr<CLBuffer>               _seam_pos_buf; // width = _seam_width; height = _seam_height;
+    SmartPtr<CLBuffer>               _seam_sum_buf; // size = _seam_width
+    bool                             _seam_mask_done;
+    //SmartPtr<CLImage>                _seam_mask;
 };
 
 class CLPyramidBlendKernel
@@ -113,7 +146,7 @@ class CLPyramidBlendKernel
 {
 public:
     explicit CLPyramidBlendKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool is_uv);
+        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool is_uv, bool need_seam);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -133,6 +166,9 @@ private:
     SmartPtr<CLBuffer> get_blend_mask () {
         return _blender->get_blend_mask (_layer, _is_uv);
     }
+    SmartPtr<CLImage> get_seam_mask () {
+        return _blender->get_seam_mask (_layer);
+    }
 private:
     XCAM_DEAD_COPY (CLPyramidBlendKernel);
 
@@ -140,6 +176,7 @@ private:
     SmartPtr<CLPyramidBlender>     _blender;
     uint32_t                       _layer;
     bool                           _is_uv;
+    bool                           _need_seam;
 
 };
 
@@ -177,6 +214,75 @@ private:
     bool                               _is_uv;
     SmartPtr<CLImage>                  _output_gauss;
     int                                _gauss_offset_x;
+};
+
+class CLSeamDiffKernel
+    : public CLImageKernel
+{
+public:
+    explicit CLSeamDiffKernel (
+        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender);
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
+
+private:
+    SmartPtr<CLPyramidBlender>         _blender;
+    int                                _image_offset_x[XCAM_CL_BLENDER_IMAGE_NUM];
+
+};
+
+class CLSeamDPKernel
+    : public CLImageKernel
+{
+public:
+    explicit CLSeamDPKernel (
+        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender);
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+
+private:
+    SmartPtr<CLPyramidBlender>         _blender;
+    int                                _seam_stride;
+    int                                _max_pos;
+    int                                _seam_height;
+    int                                _seam_offset_x;
+    int                                _seam_valid_with;
+
+    SmartPtr<CLImage>                  _convert_image;
+};
+
+class CLPyramidSeamMaskKernel
+    : public CLImageKernel
+{
+public:
+    explicit CLPyramidSeamMaskKernel (
+        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool scale, bool need_slm);
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+
+private:
+    SmartPtr<CLPyramidBlender>         _blender;
+    int                                _layer;
+    //int                                _input_offset;
+    bool                               _need_scale;
+    bool                               _need_slm;
+    int                                _image_width;
+    SmartPtr<CLImage>                  _output_scale_image;
+    SmartPtr<CLImage>                  out_image;
 };
 
 class CLPyramidLapKernel

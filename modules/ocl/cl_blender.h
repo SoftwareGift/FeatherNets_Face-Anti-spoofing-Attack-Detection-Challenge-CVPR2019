@@ -108,7 +108,7 @@ SmartPtr<CLImageHandler>
 create_linear_blender (SmartPtr<CLContext> &context, bool need_uv = true);
 
 SmartPtr<CLImageHandler>
-create_pyramid_blender (SmartPtr<CLContext> &context, int layer = 2, bool need_uv = true);
+create_pyramid_blender (SmartPtr<CLContext> &context, int layer = 1, bool need_uv = true, bool need_seam = true);
 
 };
 

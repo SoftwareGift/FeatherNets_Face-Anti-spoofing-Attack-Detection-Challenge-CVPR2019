@@ -41,6 +41,8 @@ static uint32_t output_width = 1920;
 static uint32_t output_height;
 static bool need_save_output = true;
 static bool enable_geo = false;
+static bool enable_seam = false;
+
 static int loop = 0;
 static uint32_t map_width = 51, map_height = 43;
 static const char *map0 = "fisheye0.csv";
@@ -64,7 +66,8 @@ usage(const char* arg0)
             "\t--output-w, optional, output width; default:1920, output height is same as input height.\n"
             "\t--loop,     optional, how many loops need to run for performance test, default 0; \n"
             "\t--save,     optional, save file or not, default true; select from [true/false]\n"
-            "\t--enable-geo, optional, enable geo map image frist. default: no\n"
+            "\t--enable-geo,  optional, enable geo map image frist. default: no\n"
+            "\t--enable-seam, optional, enable seam finder in blending area. default: no\n"
             "\t--help,     usage\n",
             arg0);
 }
@@ -199,6 +202,7 @@ int main (int argc, char *argv[])
         {"loop", required_argument, NULL, 'l'},
         {"save", required_argument, NULL, 's'},
         {"enable-geo", no_argument, NULL, 'g'},
+        {"enable-seam", no_argument, NULL, 'm'},
         {"help", no_argument, NULL, 'h'},
         {0, 0, 0, 0},
     };
@@ -236,6 +240,9 @@ int main (int argc, char *argv[])
         case 'g':
             enable_geo = true;
             break;
+        case 'm':
+            enable_seam = true;
+            break;
         case 'h':
             usage (argv[0]);
             return -1;
@@ -263,6 +270,7 @@ int main (int argc, char *argv[])
     printf ("output width:%d\n", output_width);
     printf ("loop count:%d\n", loop);
     printf ("need save file:%s\n", need_save_output ? "true" : "false");
+    printf ("enable seam mask:%s\n", (enable_seam ? "true" : "false"));
     printf ("----------------------\n");
 
     output_height = input_height;
@@ -285,7 +293,7 @@ int main (int argc, char *argv[])
     }
 
     context = CLDevice::instance ()->get_context ();
-    blender = create_pyramid_blender (context, 2, true).dynamic_cast_ptr<CLBlender> ();
+    blender = create_pyramid_blender (context, 2, true, enable_seam).dynamic_cast_ptr<CLBlender> ();
     XCAM_ASSERT (blender.ptr ());
 
 #if ENABLE_DMA_TEST

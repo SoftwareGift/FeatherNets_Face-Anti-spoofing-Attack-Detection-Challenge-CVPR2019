@@ -20,12 +20,25 @@
 
 #include "cl_pyramid_blender.h"
 #include <algorithm>
+#include "xcam_obj_debug.h"
 #include "cl_device.h"
 #include "cl_image_bo_buffer.h"
 #include "cl_utils.h"
 
+#if CL_PYRAMID_ENABLE_DUMP
+#define BLENDER_PROFILING_START(name)  XCAM_STATIC_PROFILING_START(name)
+#define BLENDER_PROFILING_END(name, times_of_print)  XCAM_STATIC_PROFILING_END(name, times_of_print)
+#else
+#define BLENDER_PROFILING_START(name)
+#define BLENDER_PROFILING_END(name, times_of_print)
+#endif
+
 //#define SAMPLER_POSITION_OFFSET -0.25f
 #define SAMPLER_POSITION_OFFSET 0.0f
+
+#define SEAM_POS_TYPE int16_t
+#define SEAM_SUM_TYPE float
+#define SEAM_MASK_TYPE uint8_t
 
 namespace XCam {
 
@@ -35,6 +48,11 @@ enum {
     KernelPyramidBlender,
     KernelPyramidCopy,
     KernelPyramidLap,
+    KernelImageDiff,
+    KernelSeamDP,
+    KernelSeamMaskScale,
+    KernelSeamMaskScaleSLM,
+    KernelSeamBlender
 };
 
 const XCamKernelInfo kernels_info [] = {
@@ -60,6 +78,31 @@ const XCamKernelInfo kernels_info [] = {
     },
     {
         "kernel_lap_transform",
+#include "kernel_gauss_lap_pyramid.clx"
+        , 0,
+    },
+    {
+        "kernel_image_diff",
+#include "kernel_gauss_lap_pyramid.clx"
+        , 0,
+    },
+    {
+        "kernel_seam_dp",
+#include "kernel_gauss_lap_pyramid.clx"
+        , 0,
+    },
+    {
+        "kernel_mask_gauss_scale",
+#include "kernel_gauss_lap_pyramid.clx"
+        , 0,
+    },
+    {
+        "kernel_mask_gauss_scale_slm",
+#include "kernel_gauss_lap_pyramid.clx"
+        , 0,
+    },
+    {
+        "kernel_seam_mask_blend",
 #include "kernel_gauss_lap_pyramid.clx"
         , 0,
     },
@@ -150,9 +193,16 @@ PyramidLayer::PyramidLayer ()
     }
 }
 
-CLPyramidBlender::CLPyramidBlender (const char *name, int layers, bool need_uv)
+CLPyramidBlender::CLPyramidBlender (const char *name, int layers, bool need_uv, bool need_seam)
     : CLBlender (name, need_uv)
     , _layers (0)
+    , _need_seam (need_seam)
+    , _seam_pos_stride (0)
+    , _seam_width (0)
+    , _seam_height (0)
+    , _seam_pos_offset_x (0)
+    , _seam_pos_valid_width (0)
+    , _seam_mask_done (false)
 {
     if (layers <= 1)
         _layers = 1;
@@ -210,10 +260,38 @@ CLPyramidBlender::get_blend_mask (uint32_t layer, bool is_uv)
     return _pyramid_layers[layer].blend_mask[plane];
 }
 
+SmartPtr<CLImage>
+CLPyramidBlender::get_seam_mask (uint32_t layer)
+{
+    XCAM_ASSERT (layer < _layers);
+    return _pyramid_layers[layer].seam_mask[CLSeamMaskCoeff];
+}
+
 const PyramidLayer &
 CLPyramidBlender::get_pyramid_layer (uint32_t layer) const
 {
     return _pyramid_layers[layer];
+}
+
+const SmartPtr<CLImage> &
+CLPyramidBlender::get_image_diff () const
+{
+    return _image_diff;
+}
+
+void
+CLPyramidBlender::get_seam_info (uint32_t &width, uint32_t &height, uint32_t &stride) const
+{
+    width = _seam_width;
+    height = _seam_height;
+    stride = _seam_pos_stride;
+}
+
+void
+CLPyramidBlender::get_seam_pos_info (uint32_t &offset_x, uint32_t &valid_width) const
+{
+    offset_x = _seam_pos_offset_x;
+    valid_width = _seam_pos_valid_width;
 }
 
 void
@@ -350,6 +428,12 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
         cl_desc_set.row_pitch = row_pitch;
         this->blend_image[plane][ReconstructImageIndex] = new CLImage2D (context, cl_desc_set, 0, cl_buf);
         XCAM_ASSERT (this->blend_image[plane][ReconstructImageIndex].ptr ());
+#if CL_PYRAMID_ENABLE_DUMP
+        this->dump_gauss_resize[plane] = new CLImage2D (context, cl_desc_set);
+        this->dump_original[plane][0] = new CLImage2D (context, cl_desc_set);
+        this->dump_original[plane][1] = new CLImage2D (context, cl_desc_set);
+        this->dump_final[plane] = new CLImage2D (context, cl_desc_set);
+#endif
         if (!last_layer) {
             cl_desc_set.row_pitch = 0;
             this->blend_image[plane][BlendImageIndex] = new CLImage2D (context, cl_desc_set);
@@ -479,10 +563,13 @@ CLPyramidBlender::allocate_cl_buffers (
     uint32_t index = 0;
     const Rect & window = get_merge_window ();
     bool need_reallocate = true;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    BLENDER_PROFILING_START (allocate_cl_buffers);
 
     need_reallocate =
         (window.width != (int32_t)_pyramid_layers[0].blend_width ||
-         window.height != (int32_t)_pyramid_layers[0].blend_height);
+         (window.height != 0 && window.height != (int32_t)_pyramid_layers[0].blend_height));
     _pyramid_layers[0].bind_buf_to_layer0 (
         context, input0, input1, output,
         get_input_merge_area (0), get_input_merge_area (1), need_uv ());
@@ -498,13 +585,181 @@ CLPyramidBlender::allocate_cl_buffers (
             _pyramid_layers[index].blend_height = (_pyramid_layers[index - 1].blend_height + 1) / 2;
 
             _pyramid_layers[index].build_cl_images (context, (index == _layers - 1), need_uv ());
-            gauss_fill_mask (context, _pyramid_layers[index - 1], _pyramid_layers[index], need_uv (), g_radius, g_sigma);
+            if (!_need_seam) {
+                gauss_fill_mask (context, _pyramid_layers[index - 1], _pyramid_layers[index], need_uv (), g_radius, g_sigma);
+            }
+        }
+
+        if (_need_seam) {
+            ret = init_seam_buffers (context);
+            XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidBlender init seam buffer failed");
         }
     }
 
     //last layer buffer redirect
     last_layer_buffer_redirect ();
+    _seam_mask_done = false;
 
+    BLENDER_PROFILING_END (allocate_cl_buffers, 50);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
+{
+    const PyramidLayer &layer0 = get_pyramid_layer (0);
+    CLImageDesc cl_desc;
+
+    _seam_width = layer0.blend_width;
+    _seam_height = layer0.blend_height;
+    _seam_pos_stride = XCAM_ALIGN_UP (_seam_width, 64); // need a buffer large enough to avoid judgement in kernel
+    _seam_pos_offset_x = XCAM_ALIGN_UP (_seam_width / 4, XCAM_BLENDER_ALIGNED_WIDTH);
+    if (_seam_pos_offset_x >= _seam_width)
+        _seam_pos_offset_x = 0;
+    _seam_pos_valid_width = XCAM_ALIGN_DOWN (_seam_width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+    if (_seam_pos_valid_width <= 0)
+        _seam_pos_valid_width = XCAM_BLENDER_ALIGNED_WIDTH;
+    XCAM_ASSERT (_seam_pos_offset_x + _seam_pos_valid_width <= _seam_width);
+
+    XCAM_ASSERT (layer0.blend_width > 0 && layer0.blend_height > 0);
+    uint32_t image_diff_size = sizeof (uint8_t) * _seam_width * _seam_height;
+    SmartPtr<CLBuffer> cl_diff_buf = new CLBuffer (context, image_diff_size);
+    XCAM_FAIL_RETURN (
+        ERROR,
+        cl_diff_buf.ptr () && cl_diff_buf->is_valid (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPyramidBlender init seam buffer failed to create image_difference buffers");
+    cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
+    cl_desc.format.image_channel_order = CL_RGBA;
+    cl_desc.width = _seam_width / 8;
+    cl_desc.height = _seam_height;
+    _image_diff = new CLImage2D (context, cl_desc, 0, cl_diff_buf);
+    XCAM_FAIL_RETURN (
+        ERROR,
+        _image_diff.ptr () && _image_diff->is_valid (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPyramidBlender init seam buffer failed to bind image_difference data");
+
+    uint32_t pos_buf_size = sizeof (SEAM_POS_TYPE) * _seam_pos_stride * _seam_height;
+    uint32_t sum_buf_size = sizeof (SEAM_SUM_TYPE) * _seam_pos_stride * 2; // 2 lines
+    _seam_pos_buf = new CLBuffer (context, pos_buf_size, CL_MEM_READ_WRITE);
+    _seam_sum_buf = new CLBuffer (context, sum_buf_size, CL_MEM_READ_WRITE);
+    XCAM_FAIL_RETURN (
+        ERROR,
+        _seam_pos_buf.ptr () && _seam_pos_buf->is_valid () &&
+        _seam_sum_buf.ptr () && _seam_sum_buf->is_valid (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPyramidBlender init seam buffer failed to create seam buffers");
+
+    uint32_t mask_width = XCAM_ALIGN_UP(_seam_width, XCAM_BLENDER_ALIGNED_WIDTH);
+    uint32_t mask_height = XCAM_ALIGN_UP(_seam_height, 2);
+    for (uint32_t i = 0; i < _layers; ++i) {
+        uint32_t mask_size = sizeof (SEAM_MASK_TYPE) * mask_width * mask_height;
+        SmartPtr<CLBuffer> cl_buf0 = new CLBuffer (context, mask_size);
+        SmartPtr<CLBuffer> cl_buf1 = new CLBuffer (context, mask_size);
+        XCAM_ASSERT (cl_buf0.ptr () && cl_buf0->is_valid () && cl_buf1.ptr () && cl_buf1->is_valid ());
+        cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
+        cl_desc.format.image_channel_order = CL_RGBA;
+        cl_desc.width = mask_width / 8;
+        cl_desc.height = mask_height;
+        cl_desc.row_pitch = sizeof (SEAM_MASK_TYPE) * mask_width;
+        _pyramid_layers[i].seam_mask[CLSeamMaskTmp] = new CLImage2D (context, cl_desc, 0, cl_buf0);
+        _pyramid_layers[i].seam_mask[CLSeamMaskCoeff] = new CLImage2D (context, cl_desc, 0, cl_buf1);
+        XCAM_FAIL_RETURN (
+            ERROR,
+            _pyramid_layers[i].seam_mask[CLSeamMaskTmp].ptr () && _pyramid_layers[i].seam_mask[CLSeamMaskTmp]->is_valid () &&
+            _pyramid_layers[i].seam_mask[CLSeamMaskCoeff].ptr () && _pyramid_layers[i].seam_mask[CLSeamMaskCoeff]->is_valid (),
+            XCAM_RETURN_ERROR_CL,
+            "CLPyramidBlender init seam buffer failed to create seam_mask buffer");
+
+        mask_width = XCAM_ALIGN_UP(mask_width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+        mask_height = XCAM_ALIGN_UP(mask_height / 2, 2);
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+static void
+assign_mask_line (SEAM_MASK_TYPE *mask_ptr, int line, int stride, int delimiter)
+{
+#define MASK_1 0xFFFF
+#define MASK_0 0x00
+
+    SEAM_MASK_TYPE *line_ptr = mask_ptr + line * stride;
+    int mask_1_len = delimiter + 1;
+
+    memset (line_ptr, MASK_1, sizeof (SEAM_MASK_TYPE) * mask_1_len);
+    memset (line_ptr + mask_1_len, MASK_0, sizeof (SEAM_MASK_TYPE) * (stride - mask_1_len));
+}
+
+XCamReturn
+CLPyramidBlender::fill_seam_mask ()
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    XCAM_ASSERT (_seam_pos_buf.ptr () && _seam_sum_buf.ptr ());
+    uint32_t pos_buf_size = sizeof (SEAM_POS_TYPE) * _seam_pos_stride * _seam_height;
+    uint32_t sum_buf_size = sizeof (SEAM_SUM_TYPE) * _seam_pos_stride * 2;
+    SEAM_SUM_TYPE *sum_ptr;
+    SEAM_POS_TYPE *pos_ptr;
+    SEAM_MASK_TYPE *mask_ptr;
+
+    if (_seam_mask_done)
+        return XCAM_RETURN_NO_ERROR;
+
+    ret = _seam_sum_buf->enqueue_map ((void *&)sum_ptr, 0, sum_buf_size, CL_MEM_READ_ONLY);
+    XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidBlender map seam_sum_buf failed");
+
+    float min_sum = 9999999999.0f, tmp_sum;
+    int pos = 0, min_pos0, min_pos1;
+    int i = 0;
+    SEAM_SUM_TYPE *sum_ptr0 = sum_ptr, *sum_ptr1 = sum_ptr + _seam_pos_stride;
+    for (i = (int)_seam_pos_offset_x; i < (int)(_seam_pos_offset_x + _seam_pos_valid_width); ++i) {
+        tmp_sum = sum_ptr0[i] + sum_ptr1[i];
+        if (tmp_sum >= min_sum)
+            continue;
+        pos = (int)i;
+        min_sum = tmp_sum;
+    }
+    _seam_sum_buf->enqueue_unmap ((void*)sum_ptr);
+    min_pos0 = min_pos1 = pos;
+
+    BLENDER_PROFILING_START (fill_seam_mask);
+
+    // reset layer0 seam_mask
+    SmartPtr<CLImage> seam_mask = _pyramid_layers[0].seam_mask[CLSeamMaskTmp];
+    const CLImageDesc &mask_desc = seam_mask->get_image_desc ();
+    size_t mask_origin[3] = {0, 0, 0};
+    size_t mask_region[3] = {mask_desc.width, mask_desc.height, 1};
+    size_t mask_row_pitch;
+    size_t mask_slice_pitch;
+    ret = seam_mask->enqueue_map (
+              (void *&)mask_ptr, mask_origin, mask_region,
+              &mask_row_pitch, &mask_slice_pitch, CL_MEM_READ_ONLY);
+    XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidBlender map seam_mask failed");
+    uint32_t mask_stride = mask_row_pitch / sizeof (SEAM_MASK_TYPE);
+    ret = _seam_pos_buf->enqueue_map ((void *&)pos_ptr, 0, pos_buf_size, CL_MEM_READ_ONLY);
+    XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidBlender map seam_pos_buf failed");
+    //printf ("***********min sum:%.3f, pos:%d, sum0:%.3f, sum1:%.3f\n", min_sum, pos, sum_ptr0[pos], sum_ptr1[pos]);
+    for (i = _seam_height / 2 - 1; i >= 0; --i) {
+        assign_mask_line (mask_ptr, i, mask_stride, min_pos0);
+        min_pos0 = pos_ptr [i * _seam_pos_stride + min_pos0];
+    }
+
+    for (i = _seam_height / 2; i < (int)_seam_height; ++i) {
+        assign_mask_line (mask_ptr, i, mask_stride, min_pos1);
+        min_pos1 = pos_ptr [i * _seam_pos_stride + min_pos1];
+    }
+    for (; i < (int)mask_desc.height; ++i) {
+        assign_mask_line (mask_ptr, i, mask_stride, min_pos1);
+    }
+
+    seam_mask->enqueue_unmap ((void*)mask_ptr);
+    _seam_pos_buf->enqueue_unmap ((void*)pos_ptr);
+
+    _seam_mask_done = true;
+
+    BLENDER_PROFILING_END (fill_seam_mask, 50);
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -534,11 +789,12 @@ CLPyramidBlender::execute_done (SmartPtr<DrmBoBuffer> &output)
 }
 
 CLPyramidBlendKernel::CLPyramidBlendKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool is_uv)
+    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool is_uv, bool need_seam)
     : CLImageKernel (context)
     , _blender (blender)
     , _layer (layer)
     , _is_uv (is_uv)
+    , _need_seam (need_seam)
 {
 }
 
@@ -555,7 +811,12 @@ CLPyramidBlendKernel::prepare_arguments (
     SmartPtr<CLImage> image_in0 = get_input_0 ();
     SmartPtr<CLImage> image_in1 = get_input_1 ();
     SmartPtr<CLImage> image_out = get_ouput ();
-    SmartPtr<CLBuffer> buf_mask = get_blend_mask ();
+    SmartPtr<CLMemory> buf_mask;
+    if (_need_seam)
+        buf_mask = get_seam_mask ();
+    else
+        buf_mask = get_blend_mask ();
+
     XCAM_ASSERT (image_in0.ptr () && image_in1.ptr () && image_out.ptr ());
     const CLImageDesc &cl_desc_out = image_out->get_image_desc ();
 
@@ -696,6 +957,246 @@ XCamReturn
 CLPyramidTransformKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
     _output_gauss.release ();
+    return CLImageKernel::post_execute (output);
+}
+
+CLSeamDiffKernel::CLSeamDiffKernel (
+    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+    : CLImageKernel (context)
+    , _blender (blender)
+{
+}
+
+XCamReturn
+CLSeamDiffKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count,
+    CLWorkSize &work_size)
+{
+    XCAM_UNUSED (input);
+    XCAM_UNUSED (output);
+
+    const PyramidLayer &layer0 = _blender->get_pyramid_layer (0);
+    SmartPtr<CLImage> image0 = layer0.gauss_image[CLBlenderPlaneY][0];
+    SmartPtr<CLImage> image1 = layer0.gauss_image[CLBlenderPlaneY][1];
+    SmartPtr<CLImage> out_diff = _blender->get_image_diff ();
+    CLImageDesc out_diff_desc = out_diff->get_image_desc ();
+
+    for (uint32_t i = 0; i < XCAM_CL_BLENDER_IMAGE_NUM; ++i) {
+        _image_offset_x[i] = layer0.gauss_offset_x[CLBlenderPlaneY][i] / 8;
+    }
+
+    arg_count = 0;
+    args[arg_count].arg_adress = &image0->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+    args[arg_count].arg_adress = &_image_offset_x[0];
+    args[arg_count].arg_size = sizeof (_image_offset_x[0]);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &image1->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+    args[arg_count].arg_adress = &_image_offset_x[1];
+    args[arg_count].arg_size = sizeof (_image_offset_x[1]);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &out_diff->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
+    work_size.local[0] = 8;
+    work_size.local[1] = 4;
+    work_size.global[0] = XCAM_ALIGN_UP (out_diff_desc.width, work_size.local[0]);
+    work_size.global[1] = XCAM_ALIGN_UP (out_diff_desc.height, work_size.local[1]);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+CLSeamDPKernel::CLSeamDPKernel (
+    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+    : CLImageKernel (context)
+    , _blender (blender)
+    , _seam_stride (0)
+    , _max_pos (0)
+    , _seam_height (0)
+    , _seam_offset_x (0)
+    , _seam_valid_with (0)
+{
+}
+
+XCamReturn
+CLSeamDPKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count,
+    CLWorkSize &work_size)
+{
+#define ELEMENT_PIXEL 1
+    XCAM_UNUSED (input);
+    XCAM_UNUSED (output);
+    uint32_t width, height, stride;
+    uint32_t pos_offset_x, pos_valid_width;
+    _blender->get_seam_info (width, height, stride);
+    _blender->get_seam_pos_info (pos_offset_x, pos_valid_width);
+    _seam_height = (int)height;
+    _seam_stride = (int)stride / ELEMENT_PIXEL;
+    _seam_offset_x = (int)pos_offset_x / ELEMENT_PIXEL; // ushort8
+    _seam_valid_with = (int)pos_valid_width / ELEMENT_PIXEL;
+    _max_pos = (int)(pos_offset_x + pos_valid_width - 1);
+
+    SmartPtr<CLImage> image = _blender->get_image_diff ();
+    SmartPtr<CLBuffer> pos_buf = _blender->get_seam_pos_buf ();
+    SmartPtr<CLBuffer> sum_buf = _blender->get_seam_sum_buf ();
+    XCAM_ASSERT (image.ptr () && pos_buf.ptr () && sum_buf.ptr ());
+
+    CLImageDesc cl_orig = image->get_image_desc ();
+    CLImageDesc cl_desc_convert;
+    cl_desc_convert.format.image_channel_data_type = CL_UNSIGNED_INT8;
+    cl_desc_convert.format.image_channel_order = CL_R;
+    cl_desc_convert.width = cl_orig.width * (8 / ELEMENT_PIXEL);
+    cl_desc_convert.height = cl_orig.height;
+    cl_desc_convert.row_pitch = cl_orig.row_pitch;
+    change_image_format (get_context (), image, _convert_image, cl_desc_convert);
+    XCAM_ASSERT (_convert_image.ptr () && _convert_image->is_valid ());
+
+    arg_count = 0;
+    args[arg_count].arg_adress = &_convert_image->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &pos_buf->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &sum_buf->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_seam_offset_x;
+    args[arg_count].arg_size = sizeof (_seam_offset_x);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_seam_valid_with;
+    args[arg_count].arg_size = sizeof (_seam_valid_with);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_max_pos;
+    args[arg_count].arg_size = sizeof (_max_pos);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_seam_height;
+    args[arg_count].arg_size = sizeof (_seam_height);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &_seam_stride;
+    args[arg_count].arg_size = sizeof (_seam_stride);
+    ++arg_count;
+
+    work_size.dim = 1;
+    work_size.local[0] = XCAM_ALIGN_UP(_seam_valid_with, 16);
+    work_size.global[0] = work_size.local[0] * 2;
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLSeamDPKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
+{
+    _convert_image.release ();
+    return CLImageKernel::post_execute (output);
+}
+
+CLPyramidSeamMaskKernel::CLPyramidSeamMaskKernel (
+    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer,
+    bool scale, bool need_slm)
+    : CLImageKernel (context)
+    , _blender (blender)
+    , _layer (layer)
+    , _need_scale (scale)
+    , _need_slm (need_slm)
+    , _image_width (0)
+{
+    XCAM_ASSERT (layer < blender->get_layers ());
+}
+
+XCamReturn
+CLPyramidSeamMaskKernel::prepare_arguments (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+    CLArgument args[], uint32_t &arg_count,
+    CLWorkSize &work_size)
+{
+    XCAM_UNUSED (input);
+    XCAM_UNUSED (output);
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    ret = _blender->fill_seam_mask ();
+    XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidSeamMaskKernel fill seam mask failed");
+
+    SmartPtr<CLContext> context = get_context ();
+    const PyramidLayer &cur_layer = _blender->get_pyramid_layer (_layer);
+    SmartPtr<CLImage> input_image = cur_layer.seam_mask[CLSeamMaskTmp];
+    SmartPtr<CLImage> out_gauss = cur_layer.seam_mask[CLSeamMaskCoeff];
+    CLImageDesc out_gauss_desc = out_gauss->get_image_desc ();
+
+    XCAM_ASSERT (input_image.ptr () && out_gauss.ptr ());
+    XCAM_ASSERT (input_image->is_valid () && out_gauss->is_valid ());
+
+    arg_count = 0;
+    args[arg_count].arg_adress = &input_image->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    args[arg_count].arg_adress = &out_gauss->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
+
+    if (_need_slm) {
+        _image_width = out_gauss_desc.width;
+        args[arg_count].arg_adress = &_image_width;
+        args[arg_count].arg_size = sizeof (_image_width);
+        ++arg_count;
+    }
+
+    if (_need_scale) {
+        const PyramidLayer &next_layer = _blender->get_pyramid_layer (_layer + 1);
+        SmartPtr<CLImage> out_orig = next_layer.seam_mask[CLSeamMaskTmp];
+        CLImageDesc input_desc, output_desc;
+        input_desc = out_orig->get_image_desc ();
+        output_desc.format.image_channel_data_type = CL_UNSIGNED_INT8;
+        output_desc.format.image_channel_order = CL_RGBA;
+        output_desc.width = input_desc.width * 2;
+        output_desc.height = input_desc.height;
+        output_desc.row_pitch = input_desc.row_pitch;
+        change_image_format (context, out_orig, _output_scale_image, output_desc);
+
+        args[arg_count].arg_adress = &_output_scale_image->get_mem_id ();
+        args[arg_count].arg_size = sizeof (cl_mem);
+        ++arg_count;
+    }
+
+    uint32_t workitem_height = XCAM_ALIGN_UP (out_gauss_desc.height, 2) / 2;
+
+    work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
+
+    if (_need_slm) {
+        work_size.local[0] = XCAM_ALIGN_UP (out_gauss_desc.width, 16);
+        work_size.local[1] = 1;
+        work_size.global[0] = work_size.local[0];
+        work_size.global[1] = workitem_height;
+    } else {
+        work_size.local[0] = 8;
+        work_size.local[1] = 4;
+        work_size.global[0] = XCAM_ALIGN_UP (out_gauss_desc.width, work_size.local[0]);
+        work_size.global[1] = XCAM_ALIGN_UP (workitem_height, work_size.local[1]);
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLPyramidSeamMaskKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
+{
+    _output_scale_image.release ();
     return CLImageKernel::post_execute (output);
 }
 
@@ -1042,39 +1543,69 @@ CLPyramidBlender::dump_buffers ()
     }
 #endif
 
+#define DUMP_IMAGE(prefix, image, layer)        \
+    desc = (image)->get_image_desc ();   \
+    snprintf (filename, sizeof(filename), prefix "_L%d-%dx%d",            \
+              layer, (image)->get_pixel_bytes () * desc.width, desc.height); \
+    write_image (image, filename)
+
     // dump image data to file
-    image = this->get_gauss_image (1, 0, false); // layer 1, image 0
-    write_image (image, "gauss_L1_I0");
+    CLImageDesc desc;
+    char filename[1024];
 
-    image = this->get_gauss_image (1, 1, false); // layer 1, image 0
-    write_image (image, "gauss_L1_I1");
+    image = this->get_image_diff ();
+    if (image.ptr ()) {
+        DUMP_IMAGE ("dump_image_diff", image, 0);
+    }
 
-    image = this->get_lap_image (0, 0, false); // layer 1, image 0
-    write_image (image, "lap_L0_I0");
+    for (uint32_t i_layer = 0; i_layer < get_layers (); ++i_layer) {
+        //dump seam mask
+        image = this->get_pyramid_layer(i_layer).seam_mask[CLSeamMaskTmp];
+        if (image.ptr ()) {
+            DUMP_IMAGE ("dump_seam_tmp", image, i_layer);
+        }
 
-    image = this->get_blend_image (1, false); // layer 1
-    write_image (image, "blend_L1");
+        image = this->get_pyramid_layer(i_layer).seam_mask[CLSeamMaskCoeff];
+        if (image.ptr ()) {
+            DUMP_IMAGE ("dump_seam_coeff", image, i_layer);
+        }
 
-    image = this->get_blend_image (0, false); // layer 0
-    write_image (image, "blend_L0");
+        image = this->get_blend_image (i_layer, false); // layer 1
+        DUMP_IMAGE ("dump_blend", image, i_layer);
+
+        if (i_layer > 0) { //layer : [1, _layers -1]
+            image = this->get_gauss_image (i_layer, 0, false);
+            DUMP_IMAGE ("dump_gaussI0", image, i_layer);
+            image = this->get_gauss_image (i_layer, 1, false);
+            DUMP_IMAGE ("dump_gaussI1", image, i_layer);
+        }
+
+        if (i_layer < get_layers () - 1) {
+            image = this->get_lap_image (i_layer, 0, false); // layer : [0, _layers -2]
+            DUMP_IMAGE ("dump_lap_I0", image, i_layer);
+        }
+    }
 
 #if CL_PYRAMID_ENABLE_DUMP
     image = this->get_pyramid_layer (0).dump_gauss_resize[0];
-    write_image (image, "dump_gauss_resize_L0");
+    DUMP_IMAGE ("dump_gauss_resize", image, 0);
 
     image = this->get_pyramid_layer (0).dump_original[0][0];
-    write_image (image, "orginal_L0I0");
+    DUMP_IMAGE ("dump_orginalI0", image, 0);
     image = this->get_pyramid_layer (0).dump_original[0][1];
-    write_image (image, "orginal_L0I1");
+    DUMP_IMAGE ("dump_orginalI1", image, 0);
 
     image = this->get_pyramid_layer (0).dump_final[CLBlenderPlaneY];
-    write_image (image, "dump_final_L0");
+    DUMP_IMAGE ("dump_final", image, 0);
 #endif
+
+#if 0
     this->dump_layer_mask (0, false);
     this->dump_layer_mask (1, false);
 
-    this->dump_layer_mask (0, true);
-    this->dump_layer_mask (1, true);
+    //this->dump_layer_mask (0, true);
+    //this->dump_layer_mask (1, true);
+#endif
 
 }
 
@@ -1193,7 +1724,7 @@ create_pyramid_transform_kernel (
         ERROR,
         kernel->build_kernel (kernels_info[KernelPyramidTransform], transform_option) == XCAM_RETURN_NO_ERROR,
         NULL,
-        "load linear blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
+        "load pyramid blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
     return kernel;
 }
 
@@ -1214,7 +1745,7 @@ create_pyramid_lap_kernel (
         ERROR,
         kernel->build_kernel (kernels_info[KernelPyramidLap], transform_option) == XCAM_RETURN_NO_ERROR,
         NULL,
-        "load linear blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
+        "load pyramid blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
     return kernel;
 }
 
@@ -1238,7 +1769,7 @@ create_pyramid_reconstruct_kernel (
         ERROR,
         kernel->build_kernel (kernels_info[KernelPyramidReconstruct], transform_option) == XCAM_RETURN_NO_ERROR,
         NULL,
-        "load linear blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
+        "load pyramid blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
     return kernel;
 }
 
@@ -1247,7 +1778,8 @@ create_pyramid_blend_kernel (
     SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer,
-    bool is_uv)
+    bool is_uv,
+    bool need_seam)
 {
     char transform_option[1024];
     snprintf (
@@ -1255,13 +1787,17 @@ create_pyramid_blend_kernel (
         "-DPYRAMID_UV=%d -DCL_PYRAMID_ENABLE_DUMP=%d", (is_uv ? 1 : 0), CL_PYRAMID_ENABLE_DUMP);
 
     SmartPtr<CLImageKernel> kernel;
-    kernel = new CLPyramidBlendKernel (context, blender, layer, is_uv);
+    kernel = new CLPyramidBlendKernel (context, blender, layer, is_uv, need_seam);
+    uint32_t index = KernelPyramidBlender;
+    if (need_seam)
+        index = KernelSeamBlender;
+
     XCAM_ASSERT (kernel.ptr ());
     XCAM_FAIL_RETURN (
         ERROR,
-        kernel->build_kernel (kernels_info[KernelPyramidBlender], transform_option) == XCAM_RETURN_NO_ERROR,
+        kernel->build_kernel (kernels_info[index], transform_option) == XCAM_RETURN_NO_ERROR,
         NULL,
-        "load linear blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
+        "load pyramid blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
     return kernel;
 }
 
@@ -1282,13 +1818,65 @@ create_pyramid_copy_kernel (
         ERROR,
         kernel->build_kernel (kernels_info[KernelPyramidCopy], transform_option) == XCAM_RETURN_NO_ERROR,
         NULL,
-        "load linear blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
+        "load pyramid blender kernel(%s) failed", (is_uv ? "UV" : "Y"));
     return kernel;
 }
 
+static SmartPtr<CLImageKernel>
+create_seam_diff_kernel (
+    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+{
+    SmartPtr<CLImageKernel> kernel;
+    kernel = new CLSeamDiffKernel (context, blender);
+    XCAM_ASSERT (kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR,
+        kernel->build_kernel (kernels_info[KernelImageDiff], NULL) == XCAM_RETURN_NO_ERROR,
+        NULL,
+        "load seam diff kernel failed");
+    return kernel;
+}
+
+static SmartPtr<CLImageKernel>
+create_seam_DP_kernel (
+    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+{
+    SmartPtr<CLImageKernel> kernel;
+    kernel = new CLSeamDPKernel (context, blender);
+    XCAM_ASSERT (kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR,
+        kernel->build_kernel (kernels_info[KernelSeamDP], NULL) == XCAM_RETURN_NO_ERROR,
+        NULL,
+        "load seam DP kernel failed");
+    return kernel;
+}
+
+static SmartPtr<CLImageKernel>
+create_seam_mask_scale_kernel (
+    SmartPtr<CLContext> &context,
+    SmartPtr<CLPyramidBlender> &blender,
+    uint32_t layer,
+    bool need_scale,
+    bool need_slm)
+{
+    char build_option[1024];
+    snprintf (build_option, sizeof(build_option), "-DENABLE_MASK_GAUSS_SCALE=%d", (need_scale ? 1 : 0));
+    int kernel_idx = (need_slm ? KernelSeamMaskScaleSLM : KernelSeamMaskScale);
+
+    SmartPtr<CLImageKernel> kernel;
+    kernel = new CLPyramidSeamMaskKernel (context, blender, layer, need_scale, need_slm);
+    XCAM_ASSERT (kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR,
+        kernel->build_kernel (kernels_info[kernel_idx], build_option) == XCAM_RETURN_NO_ERROR,
+        NULL,
+        "load seam mask scale kernel failed");
+    return kernel;
+}
 
 SmartPtr<CLImageHandler>
-create_pyramid_blender (SmartPtr<CLContext> &context, int layer, bool need_uv)
+create_pyramid_blender (SmartPtr<CLContext> &context, int layer, bool need_uv, bool need_seam)
 {
     SmartPtr<CLPyramidBlender> blender;
     SmartPtr<CLImageKernel> kernel;
@@ -1304,8 +1892,26 @@ create_pyramid_blender (SmartPtr<CLContext> &context, int layer, bool need_uv)
         "create_pyramid_blender failed with wrong layer:%d, please set it between %d and %d",
         layer, 1, XCAM_CL_PYRAMID_MAX_LEVEL);
 
-    blender = new CLPyramidBlender ("cl_pyramid_blender", layer, need_uv);
+    blender = new CLPyramidBlender ("cl_pyramid_blender", layer, need_uv, need_seam);
     XCAM_ASSERT (blender.ptr ());
+
+    if (need_seam) {
+        kernel = create_seam_diff_kernel (context, blender);
+        XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "create seam diff kernel failed");
+        blender->add_kernel (kernel);
+
+        kernel = create_seam_DP_kernel (context, blender);
+        XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "create seam DP kernel failed");
+        blender->add_kernel (kernel);
+
+        for (i = 0; i < layer; ++i) {
+            bool need_scale = (i < layer - 1);
+            bool need_slm = (i == 0);
+            kernel = create_seam_mask_scale_kernel (context, blender, (uint32_t)i, need_scale, need_slm);
+            XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "create seam mask scale kernel failed");
+            blender->add_kernel (kernel);
+        }
+    }
 
     for (int plane = 0; plane < max_plane; ++plane) {
         for (buf_index = 0; buf_index < XCAM_CL_BLENDER_IMAGE_NUM; ++buf_index) {
@@ -1321,7 +1927,7 @@ create_pyramid_blender (SmartPtr<CLContext> &context, int layer, bool need_uv)
         }
 
         for (i = 0; i < layer; ++i) {
-            kernel = create_pyramid_blend_kernel (context, blender, (uint32_t)i, uv_status[plane]);
+            kernel = create_pyramid_blend_kernel (context, blender, (uint32_t)i, uv_status[plane], need_seam);
             XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "create pyramid blend kernel failed");
             blender->add_kernel (kernel);
         }

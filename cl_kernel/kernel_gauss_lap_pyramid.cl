@@ -14,6 +14,10 @@
 #define CL_PYRAMID_ENABLE_DUMP 0
 #endif
 
+#ifndef ENABLE_MASK_GAUSS_SCALE
+#define ENABLE_MASK_GAUSS_SCALE 0
+#endif
+
 #define fixed_pixels 8
 #define GAUSS_V_R 2
 #define GAUSS_H_R 1
@@ -21,7 +25,13 @@
 
 #define zero8 (float8)(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f)
 
-__constant const float coeffs[9] = {0.0f, 0.0f, 0.1f, 0.25f, 0.3f, 0.25f, 0.1f, 0.0f, 0.0f};
+__constant const float coeffs[9] = {0.0f, 0.0f, 0.152f, 0.222f, 0.252f, 0.222f, 0.152f, 0.0f, 0.0f};
+
+#define ARG_FORMAT4 "(%.1f,%.1f,%.1f,%.1f)"
+#define ARGS4(a) a.s0, a.s1, a.s2, a.s3
+
+#define ARG_FORMAT8 "(%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f)"
+#define ARGS8(a) a.s0, a.s1, a.s2, a.s3, a.s4, a.s5, a.s6, a.s7
 
 /*
  * input: RGBA-CL_UNSIGNED_INT16
@@ -45,9 +55,6 @@ kernel_gauss_scale_transform (
 
     int g_out_x = get_global_id (0);
     int g_out_y = get_global_id (1) * 2;
-    float8 data[2];
-    data[0] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x, g_y)))));
-    data[1] = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x, g_y + 2)))));
 
 #if CL_PYRAMID_ENABLE_DUMP
     write_imageui (dump_orig, (int2)(g_x, g_y + 0), read_imageui(input, sampler, (int2)(in_x, g_y)));
@@ -58,10 +65,8 @@ kernel_gauss_scale_transform (
 
     float8 result_pre[2] = {zero8, zero8};
     float8 result_next[2] = {zero8, zero8};
-    float8 result_cur[2];
+    float8 result_cur[2] = {zero8, zero8};
     float4 final_g[2];
-    result_cur[0] = data[0] * coeffs[COEFF_MID] + data[1] * coeffs[COEFF_MID + 2];
-    result_cur[1] = data[1] * coeffs[COEFF_MID] + data[0] * coeffs[COEFF_MID + 2];
 
     float8 tmp_data;
     int i_ver;
@@ -74,12 +79,9 @@ kernel_gauss_scale_transform (
         tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x - 1, cur_g_y)))));
         result_pre[0] += tmp_data * coeff0;
         result_pre[1] += tmp_data * coeff1;
-
-        if (i_ver != 0 && i_ver != 2) {
-            tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x, cur_g_y)))));
-            result_cur[0] += tmp_data * coeff0;
-            result_cur[1] += tmp_data * coeff1;
-        }
+        tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x, cur_g_y)))));
+        result_cur[0] += tmp_data * coeff0;
+        result_cur[1] += tmp_data * coeff1;
         tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x + 1, cur_g_y)))));
         result_next[1] += tmp_data * coeff1;
         result_next[0] += tmp_data * coeff0;
@@ -301,5 +303,274 @@ kernel_lap_transform (
     float8 lap = (orig - zoom_in * 256.0f) * 0.5f + 128.0f + 0.5f;
     lap = clamp (lap, 0.0f, 255.0f);
     write_imageui (output, (int2)(g_x + lap_offset_x, g_y), convert_uint4(as_ushort4(convert_uchar8(lap))));
+}
+
+
+/*
+ * input0: RGBA-CL_UNSIGNED_INT16
+ * input1: RGBA-CL_UNSIGNED_INT16
+ * out_diff:  RGBA-CL_UNSIGNED_INT16
+ */
+__kernel void
+kernel_image_diff (
+    __read_only image2d_t input0, int offset0,
+    __read_only image2d_t input1, int offset1,
+    __write_only image2d_t out_diff)
+{
+    int g_x = get_global_id (0);
+    int g_y = get_global_id (1);
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+
+    int8 data0 = convert_int8(as_uchar8(convert_ushort4(read_imageui(input0, sampler, (int2)(g_x + offset0, g_y)))));
+    int8 data1 = convert_int8(as_uchar8(convert_ushort4(read_imageui(input1, sampler, (int2)(g_x + offset1, g_y)))));
+    uint8 diff = abs_diff (data0, data1);
+    write_imageui (out_diff, (int2)(g_x, g_y), convert_uint4(as_ushort4(convert_uchar8(diff))));
+}
+
+
+/*
+ * input0: RGBA-CL_UNSIGNED_INT16
+ */
+#define LEFT_POS (int)(-1)
+#define MID_POS (int)(0)
+#define RIGHT_POS (int)(1)
+
+__inline int pos_buf_index (int x, int y, int stride)
+{
+    return mad24 (stride, y, x);
+}
+
+__kernel void
+kernel_seam_dp (
+    __read_only image2d_t image,
+    __global short *pos_buf, __global float *sum_buf, int offset_x, int valid_width,
+    int max_pos, int seam_height, int seam_stride)
+{
+    int l_x = get_local_id (0);
+    int group_id = get_group_id (0);
+    if (l_x >= valid_width)
+        return;
+
+    // group0 fill first half slice image curve y = [0, seam_height/2 - 1]
+    // group1 fill send half slice image curve = [seam_height - 1, seam_height/2]
+    int first_slice_h = seam_height / 2;
+    int group_h = (group_id == 0 ? first_slice_h : seam_height - first_slice_h);
+
+    __local float slm_sum[4096];
+    float mid, left, right, cur;
+    int slm_idx;
+    int default_pos;
+
+    int x = l_x + offset_x;
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+    int y = (group_id == 0 ? 0 : seam_height - 1);
+    float sum = convert_float(read_imageui(image, sampler, (int2)(x, y)).x);
+
+    default_pos = x;
+    slm_sum[l_x] = sum;
+    barrier (CLK_LOCAL_MEM_FENCE);
+    pos_buf[pos_buf_index(x, y, seam_stride)] = convert_short(default_pos);
+
+    for (int i = 0; i < group_h; ++i) {
+        y = (group_id == 0 ? i : seam_height - i - 1);
+        slm_idx = l_x - 1;
+        slm_idx = (slm_idx > 0 ? slm_idx : 0);
+        left = slm_sum[slm_idx];
+        slm_idx = l_x + 1;
+        slm_idx = (slm_idx < valid_width ? slm_idx : valid_width - 1);
+        right = slm_sum[slm_idx];
+
+        cur = convert_float(read_imageui(image, sampler, (int2)(x, y)).x);
+
+        left = left + cur;
+        right = right + cur;
+        mid = sum + cur;
+
+        int pos;
+        pos = (left < mid) ? LEFT_POS : MID_POS;
+        sum = min (left, mid);
+        pos = (sum < right) ? pos : RIGHT_POS;
+        sum = min (sum, right);
+        slm_sum[l_x] = sum;
+        barrier (CLK_LOCAL_MEM_FENCE);
+
+        pos += default_pos;
+        pos = clamp (pos, offset_x, max_pos);
+        //if (l_x == 3)
+        //    printf ("s:%f, pos:%d, mid:%f, offset_x:%d\n", sum.s0, pos.s0, mid.s0, offset_x);
+        pos_buf[pos_buf_index(x, y, seam_stride)] = convert_short(pos);
+    }
+    sum_buf[group_id * seam_stride + x] = sum;
+    //printf ("sum(x):%f(x:%d)\n", sum_buf[x].s0, x);
+}
+
+__kernel void
+kernel_seam_mask_blend (
+    __read_only image2d_t input0, __read_only image2d_t input1,
+    __read_only image2d_t seam_mask,
+    __write_only image2d_t output)
+{
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+    const int g_x = get_global_id (0);
+    const int g_y = get_global_id (1);
+    int2 pos = (int2) (g_x, g_y);
+
+    float8 data0 = convert_float8(as_uchar8(convert_ushort4(read_imageui(input0, sampler, pos))));
+    float8 data1 = convert_float8(as_uchar8(convert_ushort4(read_imageui(input1, sampler, pos))));
+    float8 coeff0 = convert_float8(as_uchar8(convert_ushort4(read_imageui(seam_mask, sampler, pos)))) / 255.0f;
+    float8 out_data;
+
+#if !PYRAMID_UV
+    out_data = (data0 - data1) * coeff0 + data1;
+#else
+    coeff0.even = (coeff0.even + coeff0.odd) * 0.5f;
+    coeff0.odd = coeff0.even;
+    out_data = (data0 - data1) * coeff0 + data1;
+#endif
+
+    out_data = clamp (out_data + 0.5f, 0.0f, 255.0f);
+
+    write_imageui(output, pos, convert_uint4(as_ushort4(convert_uchar8(out_data))));
+}
+
+
+
+#define MASK_GAUSS_R 4
+#define MASK_COEFF_MID 7
+
+__constant const float mask_coeffs[] = {0.0f, 0.0f, 0.0f, 0.082f, 0.102f, 0.119f, 0.130f, 0.134f, 0.130f, 0.119f, 0.102f, 0.082f, 0.0f, 0.0f, 0.0f};
+
+/*
+ * input: RGBA-CL_UNSIGNED_INT16
+ * output_gauss: RGBA-CL_UNSIGNED_INT8 ?
+ * output_lap:RGBA-CL_UNSIGNED_INT16
+ * each work-item calc 2 lines
+ */
+__kernel void
+kernel_mask_gauss_scale_slm (
+    __read_only image2d_t input,
+    __write_only image2d_t output_gauss,
+    int image_width
+#if ENABLE_MASK_GAUSS_SCALE
+    , __write_only image2d_t output_scale
+#endif
+)
+{
+#define WI_LINES 2
+// input image width MUST < MASK_GAUSS_SLM_WIDTH*4
+#define MASK_GAUSS_SLM_WIDTH  256
+#define CONV_COEFF 128.0f
+
+    int g_x = get_global_id (0);
+    int g_y = get_global_id (1) * WI_LINES;
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+    __local ushort4 slm_gauss_y[WI_LINES][MASK_GAUSS_SLM_WIDTH];
+
+    float8 result_cur[WI_LINES] = {zero8, zero8};
+    float8 tmp_data;
+    int i_line;
+    int cur_g_y;
+
+#pragma unroll
+    for (i_line = -MASK_GAUSS_R; i_line <= MASK_GAUSS_R + 1; i_line++) {
+        cur_g_y = g_y + i_line;
+        tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(g_x, cur_g_y)))));
+        result_cur[0] += tmp_data * mask_coeffs[i_line + MASK_COEFF_MID];
+        result_cur[1] += tmp_data * mask_coeffs[i_line + MASK_COEFF_MID - 1];
+    }
+    ((__local ushort8*)(slm_gauss_y[0]))[g_x] = convert_ushort8(result_cur[0] * CONV_COEFF);
+    ((__local ushort8*)(slm_gauss_y[1]))[g_x] = convert_ushort8(result_cur[1] * CONV_COEFF);
+    barrier (CLK_LOCAL_MEM_FENCE);
+
+    float8 final_g[WI_LINES];
+    float4 result_pre;
+    float4 result_next;
+
+#pragma unroll
+    for (i_line = 0; i_line < WI_LINES; ++i_line) {
+        result_pre = convert_float4(slm_gauss_y[i_line][clamp (g_x * 2 - 1, 0, image_width * 2)]) / CONV_COEFF;
+        result_next = convert_float4(slm_gauss_y[i_line][clamp (g_x * 2 + 2, 0, image_width * 2)]) / CONV_COEFF;
+        final_g[i_line] = result_cur[i_line] * mask_coeffs[MASK_COEFF_MID] +
+                          (float8)(result_pre.s3, result_cur[i_line].s0123456) * mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_cur[i_line].s1234567, result_next.s0) * mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_pre.s23, result_cur[i_line].s012345) * mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_cur[i_line].s234567, result_next.s01) * mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_pre.s123, result_cur[i_line].s01234) * mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_cur[i_line].s34567, result_next.s012) * mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_pre.s0123, result_cur[i_line].s0123) * mask_coeffs[MASK_COEFF_MID + 4] +
+                          (float8)(result_cur[i_line].s4567, result_next.s0123) * mask_coeffs[MASK_COEFF_MID + 4];
+        final_g[i_line] = clamp (final_g[i_line] + 0.5f, 0.0f, 255.0f);
+        //if ((g_x == 9 || g_x == 8) && g_y == 0) {
+        //    printf ("(x:%d, y:0), pre:" ARG_FORMAT4 "cur" ARG_FORMAT8 "next" ARG_FORMAT4 "final:" ARG_FORMAT8 "\n",
+        //        g_x, ARGS4(result_pre), ARGS8(result_cur[i_line]), ARGS4(result_next), ARGS8(final_g[i_line]));
+        //}
+        write_imageui (output_gauss, (int2)(g_x, g_y + i_line), convert_uint4(as_ushort4(convert_uchar8(final_g[i_line]))));
+    }
+
+#if ENABLE_MASK_GAUSS_SCALE
+    write_imageui (output_scale, (int2)(g_x, get_global_id (1)), convert_uint4(final_g[0].even));
+#endif
+}
+
+__kernel void
+kernel_mask_gauss_scale (
+    __read_only image2d_t input,
+    __write_only image2d_t output_gauss
+#if ENABLE_MASK_GAUSS_SCALE
+    , __write_only image2d_t output_scale
+#endif
+)
+{
+    int g_x = get_global_id (0);
+    int in_x = g_x;
+    int g_y = get_global_id (1) * 2;
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+
+    float8 result_pre[2] = {zero8, zero8};
+    float8 result_next[2] = {zero8, zero8};
+    float8 result_cur[2] = {zero8, zero8};
+    float8 final_g[2];
+
+    float8 tmp_data;
+    int i_line;
+    int cur_g_y;
+    float coeff0, coeff1;
+
+#pragma unroll
+    for (i_line = -MASK_GAUSS_R; i_line <= MASK_GAUSS_R + 1; i_line++) {
+        cur_g_y = g_y + i_line;
+        coeff0 = mask_coeffs[i_line + MASK_COEFF_MID];
+        coeff1 = mask_coeffs[i_line + MASK_COEFF_MID - 1];
+        tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x - 1, cur_g_y)))));
+        result_pre[0] += tmp_data * coeff0;
+        result_pre[1] += tmp_data * coeff1;
+
+        tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x, cur_g_y)))));
+        result_cur[0] += tmp_data * coeff0;
+        result_cur[1] += tmp_data * coeff1;
+        tmp_data = convert_float8(as_uchar8(convert_ushort4(read_imageui(input, sampler, (int2)(in_x + 1, cur_g_y)))));
+        result_next[1] += tmp_data * coeff1;
+        result_next[0] += tmp_data * coeff0;
+    }
+
+#pragma unroll
+    for (i_line = 0; i_line < 2; ++i_line) {
+        final_g[i_line] = result_cur[i_line] * mask_coeffs[MASK_COEFF_MID] +
+                          (float8)(result_pre[i_line].s7, result_cur[i_line].s0123456) * mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_cur[i_line].s1234567, result_next[i_line].s0) * mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_pre[i_line].s67, result_cur[i_line].s012345) * mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_cur[i_line].s234567, result_next[i_line].s01) * mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_pre[i_line].s567, result_cur[i_line].s01234) * mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_cur[i_line].s34567, result_next[i_line].s012) * mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_pre[i_line].s4567, result_cur[i_line].s0123) * mask_coeffs[MASK_COEFF_MID + 4] +
+                          (float8)(result_cur[i_line].s4567, result_next[i_line].s0123) * mask_coeffs[MASK_COEFF_MID + 4];
+        final_g[i_line] = clamp (final_g[i_line] + 0.5f, 0.0f, 255.0f);
+        write_imageui (output_gauss, (int2)(g_x, g_y + i_line), convert_uint4(as_ushort4(convert_uchar8(final_g[i_line]))));
+    }
+
+#if ENABLE_MASK_GAUSS_SCALE
+    write_imageui (output_scale, (int2)(g_x, get_global_id (1)), convert_uint4(final_g[0].even));
+#endif
+
 }
 
