@@ -669,7 +669,7 @@ gst_xcam_filter_transform (GstBaseTransform *trans, GstBuffer *inbuf, GstBuffer 
         return GST_FLOW_ERROR;
     }
 
-    FPS_CALCULATION (gstxcamfilter, 30);
+    XCAM_STATIC_FPS_CALCULATION (gstxcamfilter, 30);
     return GST_FLOW_OK;
 }
 

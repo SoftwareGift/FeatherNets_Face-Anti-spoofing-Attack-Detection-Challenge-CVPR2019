@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-#define FPS_CALCULATION(objname, count)             \
+#define XCAM_STATIC_FPS_CALCULATION(objname, count) \
     do{                                             \
         static uint32_t num_frame = 0;              \
         static struct timeval last_sys_time;        \
@@ -50,6 +50,24 @@
         ++num_frame;                                \
     }while(0)
 
+#define XCAM_STATIC_PROFILING_START(name)               \
+    static unsigned int name##_times = 0;               \
+    static struct timeval name##_start_time;            \
+    static struct timeval name##_end_time;              \
+    gettimeofday (& name##_start_time, NULL);           \
+    ++ name##_times;
+
+#define XCAM_STATIC_PROFILING_END(name, times_of_print) \
+    static double name##_sum_time = 0;                  \
+    gettimeofday (& name##_end_time, NULL);             \
+    name##_sum_time += (name##_end_time.tv_sec - name##_start_time.tv_sec)*1000.0f +  \
+                   (name##_end_time.tv_usec - name##_start_time.tv_usec)/1000.0f; \
+    if (name##_times >= times_of_print) {               \
+        printf ("profiling %s, fps:%.2f duration:%.2fms\n", #name, \
+            (name##_times*1000.0f/name##_sum_time), name##_sum_time/name##_times); \
+        name##_times = 0;                               \
+        name##_sum_time = 0.0;                          \
+    }
 
 #if ENABLE_PROFILING
 #define XCAM_OBJ_PROFILING_DEFINES          \
