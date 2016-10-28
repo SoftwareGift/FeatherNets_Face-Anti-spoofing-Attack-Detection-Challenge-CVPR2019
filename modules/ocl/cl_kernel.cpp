@@ -22,6 +22,8 @@
 #include "cl_context.h"
 #include "cl_device.h"
 
+#define ENABLE_DEBUG_KERNEL 0
+
 #define XCAM_CL_KERNEL_DEFAULT_WORK_DIM 2
 #define XCAM_CL_KERNEL_DEFAULT_LOCAL_WORK_SIZE 0
 
@@ -297,7 +299,19 @@ CLKernel::execute (
     SmartPtr<CLEvent> &event_out)
 {
     XCAM_ASSERT (_context.ptr ());
-    return _context->execute_kernel (this, NULL, events, event_out);
+#if ENABLE_DEBUG_KERNEL
+    XCAM_OBJ_PROFILING_START;
+#endif
+
+    XCamReturn ret = _context->execute_kernel (this, NULL, events, event_out);
+
+#if ENABLE_DEBUG_KERNEL
+    _context->finish ();
+    char name[1024];
+    snprintf (name, 1024, "%s-%p", XCAM_STR (_name), this);
+    XCAM_OBJ_PROFILING_END (name, 30);
+#endif
+    return ret;
 }
 
 };

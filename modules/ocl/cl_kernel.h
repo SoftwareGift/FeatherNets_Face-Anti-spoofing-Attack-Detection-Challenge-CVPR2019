@@ -27,7 +27,6 @@
 #include <CL/cl.h>
 #include <string>
 
-
 #define XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(func)  \
     const char func##_body []=
 //const char *func##_name = #func;
@@ -121,6 +120,7 @@ private:
     uint32_t              _work_dim;
     size_t                _global_work_size [XCAM_CL_KERNEL_MAX_WORK_DIM];
     size_t                _local_work_size [XCAM_CL_KERNEL_MAX_WORK_DIM];
+    XCAM_OBJ_PROFILING_DEFINES;
 };
 
 };
