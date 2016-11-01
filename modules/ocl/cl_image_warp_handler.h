@@ -1,7 +1,7 @@
 /*
  * cl_image_warp_handler.h - CL image warping handler
  *
- *  Copyright (c) 2015 Intel Corporation
+ *  Copyright (c) 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,37 +74,13 @@ private:
     CLImagePtrList _image_in_list;
 };
 
-class CLImageTrimKernel
-    : public CLImageKernel
-{
-public:
-    explicit CLImageTrimKernel (SmartPtr<CLContext> &context,
-                                const char *name,
-                                uint32_t channel,
-                                float trim_ratio,
-                                SmartPtr<CLImageWarpHandler> &handler);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLImageTrimKernel);
-
-    uint32_t _channel;
-    float _trim_ratio;
-    SmartPtr<CLImageWarpHandler> _handler;
-};
-
 class CLImageWarpHandler
     : public CLImageHandler
 {
 public:
     explicit CLImageWarpHandler ();
 
-    bool set_warp_config (const XCamDVSResult* config);
+    bool set_warp_config (const XCamDVSResult& config);
     const CLWarpConfig& get_warp_config () const {
         return _warp_config;
     };
