@@ -43,7 +43,6 @@ kernel_image_warp_8_pixel (
     float warp_y = 0.0f;
     float w = 0.0f;
 
-    // trim coordinate
     float t_x = 0.0f;
     float t_y = 0.0f;
 
@@ -51,13 +50,10 @@ kernel_image_warp_8_pixel (
     float* output_pixel = (float*)(&pixel);
     int i = 0;
 
-    t_y = (1.0f - 2.0f * warp_config.trim_ratio) * (float)d_y +
-          warp_config.trim_ratio * (float)height;
-
+    t_y = d_y;
 #pragma unroll
     for (i = 0; i < PIXEL_X_STEP; i++) {
-        t_x = (1.0f - 2.0f * warp_config.trim_ratio) * (float)(PIXEL_X_STEP * d_x + i)
-              + warp_config.trim_ratio * (float)(PIXEL_X_STEP * width);
+        t_x = (float)(PIXEL_X_STEP * d_x + i);
 
         s_x = warp_config.proj_mat[0] * t_x +
               warp_config.proj_mat[1] * t_y +
@@ -105,11 +101,8 @@ kernel_image_warp_1_pixel (
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
-    // trim coordinate
-    float t_x = (1.0f - 2.0f * warp_config.trim_ratio) * (float)d_x +
-                warp_config.trim_ratio * (float)width;
-    float t_y = (1.0f - 2.0f * warp_config.trim_ratio) * (float)d_y +
-                warp_config.trim_ratio * (float)height;
+    t_x = d_x;
+    t_y = d_y;
 
     // source coordinate
     float s_x = warp_config.proj_mat[0] * t_x +

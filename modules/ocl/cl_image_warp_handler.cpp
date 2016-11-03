@@ -122,6 +122,27 @@ CLImageWarpKernel::prepare_arguments (
         _warp_config.proj_mat[7] = 2.0 * _warp_config.proj_mat[7];
     }
 
+    /*
+      Trim image: shift toward origin then scale up
+      Trim Matrix (TMat)
+      TMat = [ scale_x, 0.0f,    shift_x;
+               0.0f,    scale_y, shift_y;
+               1.0f,    1.0f,    1.0f;   ]
+
+      Warp Perspective Matrix = TMat * HMat
+    */
+    float shift_x = _warp_config.trim_ratio * cl_desc_out.width * 8.0f;
+    float shift_y = _warp_config.trim_ratio * cl_desc_out.height;
+    float scale_x = 1.0f - 2.0f * _warp_config.trim_ratio;
+    float scale_y = 1.0f - 2.0f * _warp_config.trim_ratio;
+
+    _warp_config.proj_mat[0] = scale_x * _warp_config.proj_mat[0] + shift_x * _warp_config.proj_mat[6];
+    _warp_config.proj_mat[1] = scale_x * _warp_config.proj_mat[1] + shift_x * _warp_config.proj_mat[7];
+    _warp_config.proj_mat[2] = scale_x * _warp_config.proj_mat[2] + shift_x * _warp_config.proj_mat[8];
+    _warp_config.proj_mat[3] = scale_y * _warp_config.proj_mat[3] + shift_y * _warp_config.proj_mat[6];
+    _warp_config.proj_mat[4] = scale_y * _warp_config.proj_mat[4] + shift_y * _warp_config.proj_mat[7];
+    _warp_config.proj_mat[5] = scale_y * _warp_config.proj_mat[5] + shift_y * _warp_config.proj_mat[8];
+
     if (_image_in_list.size () >= CL_BUFFER_POOL_SIZE) {
         XCAM_LOG_DEBUG ("image list pop front");
         _image_in_list.pop_front ();
@@ -172,7 +193,7 @@ CLImageWarpKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
     if (_warp_config.valid > 0) {
         _warp_frame_id ++;
-        XCAM_LOG_DEBUG ("POP Image channel(%d), input frame id(%d)", _channel, _input_frame_id);
+        XCAM_LOG_DEBUG ("POP Image input frame id(%d), channel(%d)", _input_frame_id, _channel);
         XCAM_LOG_DEBUG ("Warp config id(%d), Warp image id(%d)", _warp_config.frame_id, _warp_frame_id);
         XCAM_LOG_DEBUG ("image list size(%lu)", _image_in_list.size());
         _image_in_list.pop_front ();
@@ -187,7 +208,7 @@ CLImageWarpHandler::CLImageWarpHandler ()
 {
     _warp_config.frame_id = -1;
     _warp_config.valid = -1;
-    _warp_config.trim_ratio = 0.05f;
+    _warp_config.trim_ratio = 0.1f;
     reset_projection_matrix ();
 }
 
