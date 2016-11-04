@@ -131,7 +131,11 @@ CLImageWarpKernel::prepare_arguments (
 
       Warp Perspective Matrix = TMat * HMat
     */
+#if CL_IMAGE_WARP_WRITE_UINT
     float shift_x = _warp_config.trim_ratio * cl_desc_out.width * 8.0f;
+#else
+    float shift_x = _warp_config.trim_ratio * cl_desc_out.width;
+#endif
     float shift_y = _warp_config.trim_ratio * cl_desc_out.height;
     float scale_x = 1.0f - 2.0f * _warp_config.trim_ratio;
     float scale_y = 1.0f - 2.0f * _warp_config.trim_ratio;
@@ -208,7 +212,7 @@ CLImageWarpHandler::CLImageWarpHandler ()
 {
     _warp_config.frame_id = -1;
     _warp_config.valid = -1;
-    _warp_config.trim_ratio = 0.1f;
+    _warp_config.trim_ratio = 0.10f;
     reset_projection_matrix ();
 }
 

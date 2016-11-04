@@ -101,18 +101,15 @@ kernel_image_warp_1_pixel (
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
-    t_x = d_x;
-    t_y = d_y;
-
     // source coordinate
-    float s_x = warp_config.proj_mat[0] * t_x +
-                warp_config.proj_mat[1] * t_y +
+    float s_x = warp_config.proj_mat[0] * d_x +
+                warp_config.proj_mat[1] * d_y +
                 warp_config.proj_mat[2];
-    float s_y = warp_config.proj_mat[3] * t_x +
-                warp_config.proj_mat[4] * t_y +
+    float s_y = warp_config.proj_mat[3] * d_x +
+                warp_config.proj_mat[4] * d_y +
                 warp_config.proj_mat[5];
-    float w = warp_config.proj_mat[6] * t_x +
-              warp_config.proj_mat[7] * t_y +
+    float w = warp_config.proj_mat[6] * d_x +
+              warp_config.proj_mat[7] * d_y +
               warp_config.proj_mat[8];
     w = w != 0.0f ? 1.0f / w : 0.0f;
 
