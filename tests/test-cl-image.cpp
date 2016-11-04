@@ -47,6 +47,7 @@
 #include "cl_newwavelet_denoise_handler.h"
 #include "cl_defog_dcp_handler.h"
 #include "cl_3d_denoise_handler.h"
+#include "cl_image_warp_handler.h"
 
 using namespace XCam;
 
@@ -74,6 +75,7 @@ enum TestHandlerType {
     TestHandlerHaarWavelet,
     TestHandlerDefogDcp,
     TestHandler3DDenoise,
+    TestHandlerImageWarp,
 };
 
 enum PsnrType {
@@ -286,6 +288,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandlerDefogDcp;
             else if (!strcasecmp (optarg, "3d-denoise"))
                 handler_type = TestHandler3DDenoise;
+            else if (!strcasecmp (optarg, "warp"))
+                handler_type = TestHandlerImageWarp;
             else
                 print_help (bin_name);
             break;
@@ -543,7 +547,42 @@ int main (int argc, char *argv[])
         denoise_config.threshold[1] = 0.05;
         denoise_config.gain = 0.6;
         denoise->set_denoise_config (denoise_config);
-        XCAM_ASSERT (denoise.ptr ());
+        break;
+    }
+    case TestHandlerImageWarp: {
+        image_handler = create_cl_image_warp_handler (context);
+        SmartPtr<CLImageWarpHandler> warp = image_handler.dynamic_cast_ptr<CLImageWarpHandler> ();
+        XCAM_ASSERT (warp.ptr ());
+        XCamDVSResult warp_config;
+        xcam_mem_clear (warp_config);
+        warp_config.frame_id = 1;
+        warp_config.frame_width = width;
+        warp_config.frame_height = height;
+        warp_config.valid = true;
+
+        float theta = -10.0f;
+        float phi = 10.0f;
+
+        float shift_x = -0.2f * width;
+        float shift_y = 0.2f * height;
+        float scale_x = 2.0f;
+        float scale_y = 0.5f;
+        float shear_x = tan(theta * 3.1415926 / 180.0f);
+        float shear_y = tan(phi * 3.1415926 / 180.0f);
+        float project_x = 2.0f / width;
+        float project_y = -1.0f / height;
+
+        warp_config.proj_mat[0] = scale_x;
+        warp_config.proj_mat[1] = shear_x;
+        warp_config.proj_mat[2] = shift_x;
+        warp_config.proj_mat[3] = shear_y;
+        warp_config.proj_mat[4] = scale_y;
+        warp_config.proj_mat[5] = shift_y;
+        warp_config.proj_mat[6] = project_x;
+        warp_config.proj_mat[7] = project_y;
+        warp_config.proj_mat[8] = 1.0f;
+
+        warp->set_warp_config (warp_config);
         break;
     }
     default:

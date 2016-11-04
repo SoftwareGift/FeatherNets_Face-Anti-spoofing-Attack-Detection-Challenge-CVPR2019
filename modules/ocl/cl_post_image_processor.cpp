@@ -198,7 +198,7 @@ CLPostImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         SmartPtr<X3aDVSResult> dvs_res = result.dynamic_cast_ptr<X3aDVSResult> ();
         XCAM_ASSERT (dvs_res.ptr ());
         if (_image_warp.ptr ()) {
-            _image_warp->set_warp_config (dvs_res->get_standard_result_ptr ());
+            _image_warp->set_warp_config (dvs_res->get_standard_result ());
         }
         break;
     }
