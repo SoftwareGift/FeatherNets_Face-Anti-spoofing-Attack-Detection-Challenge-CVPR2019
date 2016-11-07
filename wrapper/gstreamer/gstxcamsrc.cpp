@@ -38,12 +38,16 @@
 #include "gstxcamsrc.h"
 #include "gstxcaminterface.h"
 #include "gstxcambufferpool.h"
+#if HAVE_IA_AIQ
 #include "dynamic_analyzer_loader.h"
 #include "hybrid_analyzer_loader.h"
 #include "x3a_analyze_tuner.h"
+#include "isp_poll_thread.h"
+#endif
+#if HAVE_LIBCL
 #include "smart_analyzer_loader.h"
 #include "smart_analysis_handler.h"
-#include "isp_poll_thread.h"
+#endif
 #include "fake_poll_thread.h"
 #include "fake_v4l2_device.h"
 
@@ -56,9 +60,10 @@ using namespace GstXCam;
 #define CAPTURE_DEVICE_STILL    "/dev/video0"
 #define CAPTURE_DEVICE_VIDEO    "/dev/video3"
 #define DEFAULT_EVENT_DEVICE    "/dev/v4l-subdev6"
+#if HAVE_IA_AIQ
 #define DEFAULT_CPF_FILE_NAME   "/etc/atomisp/imx185.cpf"
 #define DEFAULT_DYNAMIC_3A_LIB  "/usr/lib/xcam/plugins/3a/libxcam_3a_aiq.so"
-#define DEFAULT_SMART_ANALYSIS_LIB_DIR "/usr/lib/xcam/plugins/smart"
+#endif
 
 #define V4L2_CAPTURE_MODE_STILL 0x2000
 #define V4L2_CAPTURE_MODE_VIDEO 0x4000
@@ -71,15 +76,22 @@ using namespace GstXCam;
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_PIXELFORMAT        V4L2_PIX_FMT_NV12 //420 instead of 0
 #define DEFAULT_PROP_FIELD              V4L2_FIELD_NONE // 0
+#define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
+#if HAVE_IA_AIQ
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
+#elif HAVE_LIBCL
+#define DEFAULT_PROP_IMAGE_PROCESSOR    CL_IMAGE_PROCESSOR
+#endif
+#if HAVE_LIBCL
 #define DEFAULT_PROP_WDR_MODE           NONE_WDR
 #define DEFAULT_PROP_DEFOG_MODE         DEFOG_NONE
 #define DEFAULT_PROP_3D_DENOISE_MODE    DENOISE_3D_NONE
 #define DEFAULT_PROP_WAVELET_MODE       CL_WAVELET_DISABLED
 #define DEFAULT_PROP_ENABLE_WIREFRAME   FALSE
 #define DEFAULT_PROP_ENABLE_IMAGE_WARP  FALSE
-#define DEFAULT_PROP_ANALYZER           SIMPLE_ANALYZER
 #define DEFAULT_PROP_CL_PIPE_PROFILE    0
+#define DEFAULT_SMART_ANALYSIS_LIB_DIR "/usr/lib/xcam/plugins/smart"
+#endif
 
 #define DEFAULT_VIDEO_WIDTH             1920
 #define DEFAULT_VIDEO_HEIGHT            1080
@@ -155,7 +167,9 @@ gst_xcam_src_image_processor_get_type (void)
 {
     static GType g_type = 0;
     static const GEnumValue image_processor_types[] = {
+#if HAVE_IA_AIQ
         {ISP_IMAGE_PROCESSOR, "ISP image processor", "isp"},
+#endif
 #if HAVE_LIBCL
         {CL_IMAGE_PROCESSOR, "CL image processor", "cl"},
 #endif
@@ -171,6 +185,33 @@ gst_xcam_src_image_processor_get_type (void)
     return g_type;
 }
 
+#define GST_TYPE_XCAM_SRC_ANALYZER (gst_xcam_src_analyzer_get_type ())
+static GType
+gst_xcam_src_analyzer_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue analyzer_types[] = {
+        {SIMPLE_ANALYZER, "simple 3A analyzer", "simple"},
+#if HAVE_IA_AIQ
+        {AIQ_TUNER_ANALYZER, "aiq 3A analyzer", "aiq"},
+#if HAVE_LIBCL
+        {DYNAMIC_ANALYZER, "dynamic load 3A analyzer", "dynamic"},
+        {HYBRID_ANALYZER, "hybrid 3A analyzer", "hybrid"},
+#endif
+#endif
+        {0, NULL, NULL},
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamSrcAnalyzerType", analyzer_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
+#if HAVE_LIBCL
 #define GST_TYPE_XCAM_SRC_WDR_MODE (gst_xcam_src_wdr_mode_get_type ())
 static GType
 gst_xcam_src_wdr_mode_get_type (void)
@@ -259,29 +300,7 @@ gst_xcam_src_wavelet_mode_get_type (void)
     return g_type;
 }
 
-#define GST_TYPE_XCAM_SRC_ANALYZER (gst_xcam_src_analyzer_get_type ())
-static GType
-gst_xcam_src_analyzer_get_type (void)
-{
-    static GType g_type = 0;
-    static const GEnumValue analyzer_types[] = {
-        {SIMPLE_ANALYZER, "simple 3A analyzer", "simple"},
-        {AIQ_TUNER_ANALYZER, "aiq 3A analyzer", "aiq"},
-        {DYNAMIC_ANALYZER, "dynamic load 3A analyzer", "dynamic"},
-        {HYBRID_ANALYZER, "hybrid 3A analyzer", "hybrid"},
-        {0, NULL, NULL},
-    };
 
-    if (g_once_init_enter (&g_type)) {
-        const GType type =
-            g_enum_register_static ("GstXCamSrcAnalyzerType", analyzer_types);
-        g_once_init_leave (&g_type, type);
-    }
-
-    return g_type;
-}
-
-#if HAVE_LIBCL
 #define GST_TYPE_XCAM_SRC_CL_PIPE_PROFILE (gst_xcam_src_cl_pipe_profile_get_type ())
 static GType
 gst_xcam_src_cl_pipe_profile_get_type (void)
@@ -422,14 +441,85 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
 
     g_object_class_install_property (
-        gobject_class, PROP_ENABLE_3A,
-        g_param_spec_boolean ("enable-3a", "enable 3a", "Enable 3A",
-                              DEFAULT_PROP_ENABLE_3A, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+        gobject_class, PROP_MEM_MODE,
+        g_param_spec_enum ("io-mode", "memory mode", "Memory mode",
+                           GST_TYPE_XCAM_SRC_MEM_MODE, DEFAULT_PROP_MEM_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_FIELD,
+        g_param_spec_enum ("field", "field", "field",
+                           GST_TYPE_XCAM_SRC_FIELD, DEFAULT_PROP_FIELD,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
         gobject_class, PROP_ENABLE_USB,
         g_param_spec_boolean ("enable-usb", "enable usbcam", "Enable USB camera",
                               DEFAULT_PROP_ENABLE_USB, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_BUFFERCOUNT,
+        g_param_spec_int ("buffercount", "buffer count", "buffer count",
+                          0, G_MAXINT, DEFAULT_PROP_BUFFERCOUNT,
+                          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
+
+    g_object_class_install_property (
+        gobject_class, PROP_INPUT_FMT,
+        g_param_spec_string ("input-format", "input format", "Input pixel format",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_FAKE_INPUT,
+        g_param_spec_string ("fake-input", "fake input", "Use the specified raw file as fake input instead of live camera",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_IMAGE_PROCESSOR,
+        g_param_spec_enum ("imageprocessor", "image processor", "Image Processor",
+                           GST_TYPE_XCAM_SRC_IMAGE_PROCESSOR, DEFAULT_PROP_IMAGE_PROCESSOR,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_ENABLE_3A,
+        g_param_spec_boolean ("enable-3a", "enable 3a", "Enable 3A",
+                              DEFAULT_PROP_ENABLE_3A, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_3A_ANALYZER,
+        g_param_spec_enum ("analyzer", "3a analyzer", "3A Analyzer",
+                           GST_TYPE_XCAM_SRC_ANALYZER, DEFAULT_PROP_ANALYZER,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    
+#if HAVE_IA_AIQ
+        g_object_class_install_property (
+            gobject_class, PROP_CPF,
+            g_param_spec_string ("path-cpf", "cpf", "Path to cpf",
+                                 NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    
+        g_object_class_install_property (
+            gobject_class, PROP_3A_LIB,
+            g_param_spec_string ("path-3alib", "3a lib", "Path to dynamic 3A library",
+                                 NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+#endif
+
+#if HAVE_LIBCL
+    g_object_class_install_property (
+        gobject_class, PROP_PIPE_PROFLE,
+        g_param_spec_enum ("pipe-profile", "cl pipe profile", "CL pipeline profile (only for cl imageprocessor)",
+                           GST_TYPE_XCAM_SRC_CL_PIPE_PROFILE, DEFAULT_PROP_CL_PIPE_PROFILE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_DENOISE_3D_MODE,
+        g_param_spec_enum ("denoise-3d", "3D Denoise mode", "3D Denoise mode",
+                           GST_TYPE_XCAM_SRC_3D_DENOISE_MODE, DEFAULT_PROP_3D_DENOISE_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_WDR_MODE,
+        g_param_spec_enum ("wdr-mode", "wdr mode", "WDR Mode",
+                           GST_TYPE_XCAM_SRC_WDR_MODE,  DEFAULT_PROP_WDR_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
         gobject_class, PROP_WAVELET_MODE,
@@ -444,82 +534,15 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
-        gobject_class, PROP_DENOISE_3D_MODE,
-        g_param_spec_enum ("denoise-3d", "3D Denoise mode", "3D Denoise mode",
-                           GST_TYPE_XCAM_SRC_3D_DENOISE_MODE, DEFAULT_PROP_3D_DENOISE_MODE,
-                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
         gobject_class, PROP_ENABLE_WIREFRAME,
         g_param_spec_boolean ("enable-wireframe", "enable wire frame", "Enable wire frame",
                               DEFAULT_PROP_ENABLE_WIREFRAME, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     g_object_class_install_property (
         gobject_class, PROP_ENABLE_IMAGE_WARP,
         g_param_spec_boolean ("enable-warp", "enable image warp", "Enable Image Warp",
                               DEFAULT_PROP_ENABLE_IMAGE_WARP, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_MEM_MODE,
-        g_param_spec_enum ("io-mode", "memory mode", "Memory mode",
-                           GST_TYPE_XCAM_SRC_MEM_MODE, DEFAULT_PROP_MEM_MODE,
-                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_BUFFERCOUNT,
-        g_param_spec_int ("buffercount", "buffer count", "buffer count",
-                          0, G_MAXINT, DEFAULT_PROP_BUFFERCOUNT,
-                          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS) ));
-
-    g_object_class_install_property (
-        gobject_class, PROP_FIELD,
-        g_param_spec_enum ("field", "field", "field",
-                           GST_TYPE_XCAM_SRC_FIELD, DEFAULT_PROP_FIELD,
-                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_IMAGE_PROCESSOR,
-        g_param_spec_enum ("imageprocessor", "image processor", "Image Processor",
-                           GST_TYPE_XCAM_SRC_IMAGE_PROCESSOR, DEFAULT_PROP_IMAGE_PROCESSOR,
-                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_WDR_MODE,
-        g_param_spec_enum ("wdr-mode", "wdr mode", "WDR Mode",
-                           GST_TYPE_XCAM_SRC_WDR_MODE,  DEFAULT_PROP_WDR_MODE,
-                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_3A_ANALYZER,
-        g_param_spec_enum ("analyzer", "3a analyzer", "3A Analyzer",
-                           GST_TYPE_XCAM_SRC_ANALYZER, DEFAULT_PROP_ANALYZER,
-                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-#if HAVE_LIBCL
-    g_object_class_install_property (
-        gobject_class, PROP_PIPE_PROFLE,
-        g_param_spec_enum ("pipe-profile", "cl pipe profile", "CL pipeline profile (only for cl imageprocessor)",
-                           GST_TYPE_XCAM_SRC_CL_PIPE_PROFILE, DEFAULT_PROP_CL_PIPE_PROFILE,
-                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 #endif
-
-    g_object_class_install_property (
-        gobject_class, PROP_CPF,
-        g_param_spec_string ("path-cpf", "cpf", "Path to cpf",
-                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_3A_LIB,
-        g_param_spec_string ("path-3alib", "3a lib", "Path to dynamic 3A library",
-                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_INPUT_FMT,
-        g_param_spec_string ("input-format", "input format", "Input pixel format",
-                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
-        gobject_class, PROP_FAKE_INPUT,
-        g_param_spec_string ("fake-input", "fake input", "Use the specified raw file as fake input instead of live camera",
-                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Source",
@@ -555,15 +578,24 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->sensor_id = 0;
     xcamsrc->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     xcamsrc->device = NULL;
+    xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
+    xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
+
+#if HAVE_IA_AIQ
     xcamsrc->path_to_cpf = strndup(DEFAULT_CPF_FILE_NAME, XCAM_MAX_STR_SIZE);
     xcamsrc->path_to_3alib = strndup(DEFAULT_DYNAMIC_3A_LIB, XCAM_MAX_STR_SIZE);
-    xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
-    xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
+#endif
+
+#if HAVE_LIBCL
+    xcamsrc->cl_pipe_profile = DEFAULT_PROP_CL_PIPE_PROFILE;
+    xcamsrc->wdr_mode_type = DEFAULT_PROP_WDR_MODE;
     xcamsrc->wavelet_mode = NONE_WAVELET;
     xcamsrc->defog_mode = DEFAULT_PROP_DEFOG_MODE;
     xcamsrc->denoise_3d_mode = DEFAULT_PROP_3D_DENOISE_MODE;
     xcamsrc->denoise_3d_ref_count = 2;
     xcamsrc->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
+#endif
+
     xcamsrc->path_to_fake = NULL;
     xcamsrc->time_offset_ready = FALSE;
     xcamsrc->time_offset = -1;
@@ -591,13 +623,9 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     XCAM_CONSTRUCTOR (xcamsrc->xcam_video_info, VideoBufferInfo);
     xcamsrc->xcam_video_info.init (DEFAULT_PROP_PIXELFORMAT, DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT);
     xcamsrc->image_processor_type = DEFAULT_PROP_IMAGE_PROCESSOR;
-    xcamsrc->wdr_mode_type = DEFAULT_PROP_WDR_MODE;
     xcamsrc->analyzer_type = DEFAULT_PROP_ANALYZER;
     XCAM_CONSTRUCTOR (xcamsrc->device_manager, SmartPtr<MainDeviceManager>);
     xcamsrc->device_manager = new MainDeviceManager;
-
-    xcamsrc->cl_pipe_profile = DEFAULT_PROP_CL_PIPE_PROFILE;
-
 }
 
 static void
@@ -627,74 +655,66 @@ gst_xcam_src_get_property (
     case PROP_SENSOR:
         g_value_set_int (value, src->sensor_id);
         break;
-    case PROP_ENABLE_3A:
-        g_value_set_boolean (value, src->enable_3a);
-        break;
-
-    case PROP_ENABLE_USB:
-        g_value_set_boolean (value, src->enable_usb);
-        break;
-
-    case PROP_WAVELET_MODE:
-        g_value_set_enum (value, src->wavelet_mode);
-        break;
-
-    case PROP_DEFOG_MODE:
-        g_value_set_enum (value, src->defog_mode);
-        break;
-
-    case PROP_DENOISE_3D_MODE:
-        g_value_set_enum (value, src->denoise_3d_mode);
-        break;
-
-    case PROP_ENABLE_WIREFRAME:
-        g_value_set_boolean (value, src->enable_wireframe);
-        break;
-
-    case PROP_ENABLE_IMAGE_WARP:
-        g_value_set_boolean (value, src->enable_image_warp);
-        break;
-
     case PROP_MEM_MODE:
         g_value_set_enum (value, src->mem_type);
-        break;
-
-    case PROP_BUFFERCOUNT:
-        g_value_set_int (value, src->buf_count);
         break;
     case PROP_FIELD:
         g_value_set_enum (value, src->field);
         break;
+    case PROP_BUFFERCOUNT:
+        g_value_set_int (value, src->buf_count);
+        break;
+    case PROP_INPUT_FMT:
+        g_value_set_string (value, xcam_fourcc_to_string (src->in_format));
+        break;
+    case PROP_ENABLE_USB:
+        g_value_set_boolean (value, src->enable_usb);
+        break;
+    case PROP_FAKE_INPUT:
+        g_value_set_string (value, src->path_to_fake);
+        break;
     case PROP_IMAGE_PROCESSOR:
         g_value_set_enum (value, src->image_processor_type);
         break;
-    case PROP_WDR_MODE:
-        g_value_set_enum (value, src->wdr_mode_type);
+    case PROP_ENABLE_3A:
+        g_value_set_boolean (value, src->enable_3a);
         break;
     case PROP_3A_ANALYZER:
         g_value_set_enum (value, src->analyzer_type);
         break;
 
-#if HAVE_LIBCL
-    case PROP_PIPE_PROFLE:
-        g_value_set_enum (value, src->cl_pipe_profile);
-        break;
-#endif
-
+#if HAVE_IA_AIQ
     case PROP_CPF:
         g_value_set_string (value, src->path_to_cpf);
         break;
     case PROP_3A_LIB:
         g_value_set_string (value, src->path_to_3alib);
         break;
-    case PROP_INPUT_FMT: {
-        g_value_set_string (value, xcam_fourcc_to_string (src->in_format));
-        break;
-    }
-    case PROP_FAKE_INPUT:
-        g_value_set_string (value, src->path_to_fake);
-        break;
+#endif
 
+#if HAVE_LIBCL
+    case PROP_PIPE_PROFLE:
+        g_value_set_enum (value, src->cl_pipe_profile);
+        break;
+    case PROP_DENOISE_3D_MODE:
+        g_value_set_enum (value, src->denoise_3d_mode);
+        break;
+    case PROP_WDR_MODE:
+        g_value_set_enum (value, src->wdr_mode_type);
+        break;
+    case PROP_WAVELET_MODE:
+        g_value_set_enum (value, src->wavelet_mode);
+        break;
+    case PROP_DEFOG_MODE:
+        g_value_set_enum (value, src->defog_mode);
+        break;
+    case PROP_ENABLE_WIREFRAME:
+        g_value_set_boolean (value, src->enable_wireframe);
+        break;
+    case PROP_ENABLE_IMAGE_WARP:
+        g_value_set_boolean (value, src->enable_image_warp);
+        break;
+#endif
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -723,19 +743,6 @@ gst_xcam_src_set_property (
     case PROP_SENSOR:
         src->sensor_id = g_value_get_int (value);
         break;
-    case PROP_ENABLE_3A:
-        src->enable_3a = g_value_get_boolean (value);
-        break;
-
-    case PROP_ENABLE_USB:
-        src->enable_usb = g_value_get_boolean (value);
-        break;
-    case PROP_DEFOG_MODE:
-        src->defog_mode = (DefogModeType) g_value_get_enum (value);
-        break;
-    case PROP_DENOISE_3D_MODE:
-        src->denoise_3d_mode = (Denoise3DModeType) g_value_get_enum (value);
-        break;
     case PROP_MEM_MODE:
         src->mem_type = (enum v4l2_memory)g_value_get_enum (value);
         break;
@@ -745,6 +752,29 @@ gst_xcam_src_set_property (
     case PROP_FIELD:
         src->field = (enum v4l2_field) g_value_get_enum (value);
         break;
+    case PROP_INPUT_FMT: {
+        const char * fmt = g_value_get_string (value);
+        if (strlen (fmt) == 4)
+            src->in_format = v4l2_fourcc ((unsigned)fmt[0],
+                                          (unsigned)fmt[1],
+                                          (unsigned)fmt[2],
+                                          (unsigned)fmt[3]);
+        else
+            GST_ERROR_OBJECT (src, "Invalid input format: not fourcc");
+        break;
+    }
+    case PROP_ENABLE_USB:
+        src->enable_usb = g_value_get_boolean (value);
+        break;
+    case PROP_FAKE_INPUT: {
+        const char * raw_path = g_value_get_string (value);
+        if (src->path_to_fake)
+            xcam_free (src->path_to_fake);
+        src->path_to_fake = NULL;
+        if (raw_path)
+            src->path_to_fake = strndup (raw_path, XCAM_MAX_STR_SIZE);
+        break;
+    }
     case PROP_IMAGE_PROCESSOR:
         src->image_processor_type = (ImageProcessorType)g_value_get_enum (value);
         if (src->image_processor_type == ISP_IMAGE_PROCESSOR) {
@@ -762,28 +792,14 @@ gst_xcam_src_set_property (
         }
 #endif
         break;
-    case PROP_WDR_MODE:
-        src->wdr_mode_type = (WDRModeType)g_value_get_enum (value);
-        break;
-    case PROP_WAVELET_MODE:
-        src->wavelet_mode = (WaveletModeType)g_value_get_enum (value);
-        break;
-    case PROP_ENABLE_WIREFRAME:
-        src->enable_wireframe = g_value_get_boolean (value);
-        break;
-    case PROP_ENABLE_IMAGE_WARP:
-        src->enable_image_warp = g_value_get_boolean (value);
+    case PROP_ENABLE_3A:
+        src->enable_3a = g_value_get_boolean (value);
         break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
         break;
 
-#if HAVE_LIBCL
-    case PROP_PIPE_PROFLE:
-        src->cl_pipe_profile = g_value_get_enum (value);
-        break;
-#endif
-
+#if HAVE_IA_AIQ
     case PROP_CPF: {
         const char * cpf = g_value_get_string (value);
         if (src->path_to_cpf)
@@ -802,26 +818,31 @@ gst_xcam_src_set_property (
             src->path_to_3alib = strndup (path, XCAM_MAX_STR_SIZE);
         break;
     }
-    case PROP_INPUT_FMT: {
-        const char * fmt = g_value_get_string (value);
-        if (strlen (fmt) == 4)
-            src->in_format = v4l2_fourcc ((unsigned)fmt[0],
-                                          (unsigned)fmt[1],
-                                          (unsigned)fmt[2],
-                                          (unsigned)fmt[3]);
-        else
-            GST_ERROR_OBJECT (src, "Invalid input format: not fourcc");
+#endif
+
+#if HAVE_LIBCL
+    case PROP_PIPE_PROFLE:
+        src->cl_pipe_profile = g_value_get_enum (value);
         break;
-    }
-    case PROP_FAKE_INPUT: {
-        const char * raw_path = g_value_get_string (value);
-        if (src->path_to_fake)
-            xcam_free (src->path_to_fake);
-        src->path_to_fake = NULL;
-        if (raw_path)
-            src->path_to_fake = strndup (raw_path, XCAM_MAX_STR_SIZE);
+    case PROP_DENOISE_3D_MODE:
+        src->denoise_3d_mode = (Denoise3DModeType) g_value_get_enum (value);
         break;
-    }
+    case PROP_WDR_MODE:
+        src->wdr_mode_type = (WDRModeType)g_value_get_enum (value);
+        break;
+    case PROP_WAVELET_MODE:
+        src->wavelet_mode = (WaveletModeType)g_value_get_enum (value);
+        break;
+    case PROP_DEFOG_MODE:
+        src->defog_mode = (DefogModeType) g_value_get_enum (value);
+        break;
+    case PROP_ENABLE_WIREFRAME:
+        src->enable_wireframe = g_value_get_boolean (value);
+        break;
+    case PROP_ENABLE_IMAGE_WARP:
+        src->enable_image_warp = g_value_get_boolean (value);
+        break;
+#endif
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -878,15 +899,17 @@ gst_xcam_src_start (GstBaseSrc *src)
     GstXCamSrc *xcamsrc = GST_XCAM_SRC (src);
     SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
     SmartPtr<X3aAnalyzer> analyzer;
-    SmartPtr<SmartAnalyzer> smart_analyzer;
+#if HAVE_IA_AIQ
     SmartPtr<ImageProcessor> isp_processor;
+    SmartPtr<IspController> isp_controller;
+#endif
 #if HAVE_LIBCL
+    SmartPtr<SmartAnalyzer> smart_analyzer;
     SmartPtr<CL3aImageProcessor> cl_processor;
     SmartPtr<CLPostImageProcessor> cl_post_processor;
 #endif
     SmartPtr<V4l2Device> capture_device;
     SmartPtr<V4l2SubDevice> event_device;
-    SmartPtr<IspController> isp_controller;
     SmartPtr<PollThread> poll_thread;
 
     // Check device
@@ -910,11 +933,15 @@ gst_xcam_src_start (GstBaseSrc *src)
 
     if (xcamsrc->path_to_fake) {
         capture_device = new FakeV4l2Device ();
-    } else if (!xcamsrc->enable_usb) {
-        capture_device = new AtomispDevice (xcamsrc->device);
-    } else {
+    } else if (xcamsrc->enable_usb) {
         capture_device = new UVCDevice (xcamsrc->device);
     }
+#if HAVE_IA_AIQ
+    else {
+        capture_device = new AtomispDevice (xcamsrc->device);
+    }
+#endif
+
     capture_device->set_sensor_id (xcamsrc->sensor_id);
     capture_device->set_capture_mode (xcamsrc->capture_mode);
     capture_device->set_mem_type (xcamsrc->mem_type);
@@ -931,14 +958,18 @@ gst_xcam_src_start (GstBaseSrc *src)
         }
     }
 
+#if HAVE_IA_AIQ
     isp_controller = new IspController (capture_device);
+#endif
 
     switch (xcamsrc->image_processor_type) {
 #if HAVE_LIBCL
-    case CL_IMAGE_PROCESSOR:
+    case CL_IMAGE_PROCESSOR: {
+#if HAVE_IA_AIQ
         isp_processor = new IspExposureImageProcessor (isp_controller);
         XCAM_ASSERT (isp_processor.ptr ());
         device_manager->add_image_processor (isp_processor);
+#endif
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback (device_manager);
         if(xcamsrc->wdr_mode_type != NONE_WDR)
@@ -962,10 +993,18 @@ gst_xcam_src_start (GstBaseSrc *src)
         device_manager->add_image_processor (cl_processor);
         device_manager->set_cl_image_processor (cl_processor);
         break;
+    }
 #endif
-    default:
+#if HAVE_IA_AIQ
+    case ISP_IMAGE_PROCESSOR: {
         isp_processor = new IspImageProcessor (isp_controller);
         device_manager->add_image_processor (isp_processor);
+        break;
+    }
+#endif
+    default:
+        XCAM_LOG_ERROR ("unknow image processor type");
+        return false;
     }
 
 #if HAVE_LIBCL
@@ -1001,6 +1040,10 @@ gst_xcam_src_start (GstBaseSrc *src)
 #endif
 
     switch (xcamsrc->analyzer_type) {
+    case SIMPLE_ANALYZER: {
+        analyzer = new X3aAnalyzerSimple ();
+        break;
+    }
 #if HAVE_IA_AIQ
     case AIQ_TUNER_ANALYZER: {
         XCAM_LOG_INFO ("cpf: %s", xcamsrc->path_to_cpf);
@@ -1011,7 +1054,7 @@ gst_xcam_src_start (GstBaseSrc *src)
         analyzer = tuner_analyzer;
         break;
     }
-#endif
+#if HAVE_LIBCL
     case DYNAMIC_ANALYZER: {
         XCAM_LOG_INFO ("dynamic 3a library: %s", xcamsrc->path_to_3alib);
         SmartPtr<DynamicAnalyzerLoader> dynamic_loader = new DynamicAnalyzerLoader (xcamsrc->path_to_3alib);
@@ -1036,24 +1079,11 @@ gst_xcam_src_start (GstBaseSrc *src)
         }
         break;
     }
+#endif
+#endif
     default:
-        analyzer = new X3aAnalyzerSimple ();
-        break;
-    }
-
-    SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
-    if (!smart_handlers.empty ()) {
-        smart_analyzer = new SmartAnalyzer ();
-        if (smart_analyzer.ptr ()) {
-            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
-            for (; i_handler != smart_handlers.end ();  ++i_handler)
-            {
-                XCAM_ASSERT ((*i_handler).ptr ());
-                smart_analyzer->add_handler (*i_handler);
-            }
-        } else {
-            XCAM_LOG_WARNING ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
-        }
+        XCAM_LOG_ERROR ("unknow analyzer type");
+        return false;
     }
 
     XCAM_ASSERT (analyzer.ptr ());
@@ -1069,27 +1099,47 @@ gst_xcam_src_start (GstBaseSrc *src)
     }
     device_manager->set_3a_analyzer (analyzer);
 
-    if (smart_analyzer.ptr ()) {
 #if HAVE_LIBCL
+    SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
+    if (!smart_handlers.empty ()) {
+        smart_analyzer = new SmartAnalyzer ();
+        if (smart_analyzer.ptr ()) {
+            SmartHandlerList::iterator i_handler = smart_handlers.begin ();
+            for (; i_handler != smart_handlers.end ();  ++i_handler)
+            {
+                XCAM_ASSERT ((*i_handler).ptr ());
+                smart_analyzer->add_handler (*i_handler);
+            }
+        } else {
+            XCAM_LOG_WARNING ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
+        }
+    }
+
+    if (smart_analyzer.ptr ()) {
         if (cl_post_processor.ptr () && xcamsrc->enable_wireframe) {
             cl_post_processor->set_scaler (true);
             cl_post_processor->set_scaler_factor (640.0 / DEFAULT_VIDEO_WIDTH);
         }
-#endif
         if (smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
             XCAM_LOG_INFO ("analyzer(%s) prepare handlers failed", smart_analyzer->get_name ());
             return TRUE;
         }
         device_manager->set_smart_analyzer (smart_analyzer);
     }
+#endif
 
-    if (xcamsrc->path_to_fake)
+    if (xcamsrc->enable_usb) {
+        poll_thread = new PollThread ();
+    } else if (xcamsrc->path_to_fake) {
         poll_thread = new FakePollThread (xcamsrc->path_to_fake);
+    }
+#if HAVE_IA_AIQ
     else {
         SmartPtr<IspPollThread> isp_poll_thread = new IspPollThread ();
         isp_poll_thread->set_isp_controller (isp_controller);
         poll_thread = isp_poll_thread;
     }
+#endif
     device_manager->set_poll_thread (poll_thread);
 
     return TRUE;

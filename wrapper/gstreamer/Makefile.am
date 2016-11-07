@@ -1,17 +1,12 @@
 SUBDIRS = interface
 
 plugin_LTLIBRARIES = \
+    libgstxcamsrc.la \
     $(NULL)
-
-if ENABLE_IA_AIQ
-plugin_LTLIBRARIES += \
-    libgstxcamsrc.la  \
-    $(NULL)
-endif
 
 if HAVE_LIBCL
 plugin_LTLIBRARIES += \
-    libgstxcamfilter.la  \
+    libgstxcamfilter.la \
     $(NULL)
 endif
 
@@ -21,13 +16,8 @@ XCORE_LA = $(top_builddir)/xcore/libxcam_core.la
 ISP_DIR = $(top_builddir)/modules/isp
 ISP_LA = $(top_builddir)/modules/isp/libxcam_isp.la
 
-if HAVE_LIBCL
 OCL_DIR = $(top_builddir)/modules/ocl
 OCL_LA = $(top_builddir)/modules/ocl/libxcam_ocl.la
-else
-OCL_DIR =
-OCL_LA =
-endif
 
 PTHREAD_LDFLAGS = -pthread
 
@@ -49,7 +39,6 @@ endif
 # Note: plugindir is set in configure
 plugindir="$(libdir)/gstreamer-1.0"
 
-if ENABLE_IA_AIQ
 # sources used to compile this plug-in
 libgstxcamsrc_la_SOURCES = \
     gstxcambuffermeta.cpp  \
@@ -60,30 +49,35 @@ libgstxcamsrc_la_SOURCES = \
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
 libgstxcamsrc_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)              \
-    -I$(XCORE_DIR) -I$(ISP_DIR) -I$(OCL_DIR)       \
-    -I$(top_builddir)/wrapper/gstreamer            \
-    -I$(top_builddir)/wrapper/gstreamer/interface  \
+    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS) -I$(XCORE_DIR) \
+    -I$(top_builddir)/wrapper/gstreamer              \
+    -I$(top_builddir)/wrapper/gstreamer/interface    \
     $(NULL)
 
-libgstxcamsrc_la_LIBADD = $(XCAMGST_LIBS)  \
-    $(top_builddir)/wrapper/gstreamer/interface/libgstxcaminterface.la  \
-    $(XCORE_LA) $(ISP_LA) $(OCL_LA)        \
-    $(GST_ALLOCATOR_LIBS)                  \
-    $(GST_VIDEO_LIBS)                      \
-    $(GST_LIBS)                            \
+libgstxcamsrc_la_LIBADD = $(XCAMGST_LIBS) \
+    $(top_builddir)/wrapper/gstreamer/interface/libgstxcaminterface.la \
+    $(XCORE_LA) $(GST_ALLOCATOR_LIBS) \
+    $(GST_VIDEO_LIBS) $(GST_LIBS)     \
     $(NULL)
 
 libgstxcamsrc_la_LDFLAGS = \
-    -module -avoid-version           \
-    $(PTHREAD_LDFLAGS)               \
-    $(XCORE_LA) $(ISP_LA) $(OCL_LA)  \
+    -module -avoid-version         \
+    $(PTHREAD_LDFLAGS) $(XCORE_LA) \
     $(NULL)
 
 libgstxcamsrc_la_LIBTOOLFLAGS = --tag=disable-static
+
+if ENABLE_IA_AIQ
+libgstxcamsrc_la_CXXFLAGS += -I$(ISP_DIR)
+libgstxcamsrc_la_LIBADD += $(ISP_LA)
+libgstxcamsrc_la_LDFLAGS += $(ISP_LA)
 endif
 
 if HAVE_LIBCL
+libgstxcamsrc_la_CXXFLAGS += -I$(OCL_DIR)
+libgstxcamsrc_la_LIBADD += $(OCL_LA)
+libgstxcamsrc_la_LDFLAGS += $(OCL_LA)
+
 libgstxcamfilter_la_SOURCES = \
     gstxcambuffermeta.cpp  \
     main_pipe_manager.cpp  \
@@ -91,9 +85,9 @@ libgstxcamfilter_la_SOURCES = \
     $(NULL)
 
 libgstxcamfilter_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)    \
-    -I$(XCORE_DIR) -I$(OCL_DIR)          \
-    -I$(top_builddir)/wrapper/gstreamer  \
+    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)   \
+    -I$(XCORE_DIR) -I$(OCL_DIR)         \
+    -I$(top_builddir)/wrapper/gstreamer \
     $(NULL)
 
 libgstxcamfilter_la_LIBADD = \

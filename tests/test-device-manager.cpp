@@ -21,17 +21,20 @@
  */
 
 #include "device_manager.h"
-#include "atomisp_device.h"
 #include "uvc_device.h"
 #include "fake_v4l2_device.h"
-#include "isp_controller.h"
-#include "isp_image_processor.h"
 #include "x3a_analyzer_simple.h"
 #include "analyzer_loader.h"
 #include "smart_analyzer_loader.h"
 #if HAVE_IA_AIQ
+#include "atomisp_device.h"
+#include "isp_controller.h"
+#include "isp_image_processor.h"
+#include "isp_poll_thread.h"
 #include "x3a_analyzer_aiq.h"
 #include "x3a_analyze_tuner.h"
+#include "dynamic_analyzer_loader.h"
+#include "hybrid_analyzer_loader.h"
 #endif
 #if HAVE_LIBCL
 #include "cl_3a_image_processor.h"
@@ -43,9 +46,6 @@
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #endif
-#include "dynamic_analyzer_loader.h"
-#include "hybrid_analyzer_loader.h"
-#include "isp_poll_thread.h"
 #include "fake_poll_thread.h"
 #include "image_file_handle.h"
 #include <base/xcam_3a_types.h>
@@ -249,58 +249,64 @@ void print_help (const char *bin_name)
 {
     printf ("Usage: %s [-a analyzer]\n"
             "Configurations:\n"
-            "\t -a analyzer   specify a analyzer\n"
-            "\t               select from [simple, aiq, dynamic], default is [simple]\n"
-            "\t -m mem_type   specify video memory type\n"
-            "\t               mem_type select from [dma, mmap], default is [mmap]\n"
-            "\t -s            save file to %s\n"
-            "\t -n interval   save file on every [interval] frame\n"
+            "\t -a analyzer     specify a analyzer\n"
+            "\t                 select from [simple"
+#if HAVE_IA_AIQ
+                                ", aiq"
 #if HAVE_LIBCL
-            "\t -c            process image with cl kernel\n"
+                                ", dynamic, hybrid"
 #endif
-            "\t -f pixel_fmt  specify output pixel format\n"
-            "\t               pixel_fmt select from [NV12, YUYV, BA10, BA12], default is [NV12]\n"
-            "\t -d cap_mode   specify capture mode\n"
-            "\t               cap_mode select from [video, still], default is [video]\n"
-            "\t -b brightness specify brightness level\n"
-            "\t               brightness level select from [0, 256], default is [128]\n"
-            "\t -i frame_save specify the frame count to save, default is 0 which means endless\n"
-            "\t -p preview on local display\n"
-            "\t --usb         specify node for usb camera device, enables capture path through USB camera \n"
-            "\t               specify [/dev/video4, /dev/video5] depending on which node USB camera is attached\n"
-            "\t --resolution  specify the resolution of usb camera\n"
-            "\t               select from [1920x1080, 1280x720 ...], default is [1920x1080]\n"
-            "\t -e display_mode    preview mode\n"
-            "\t                select from [primary, overlay], default is [primary]\n"
-            "\t --sync        set analyzer in sync mode\n"
-            "\t -r raw_input  specify the path of raw image as fake source instead of live camera\n"
-            "\t -h            help\n"
+#endif
+                                "], default is [simple]\n"
+            "\t -m mem_type     specify video memory type\n"
+            "\t                 mem_type select from [dma, mmap], default is [mmap]\n"
+            "\t -s              save file to %s\n"
+            "\t -n interval     save file on every [interval] frame\n"
+            "\t -f pixel_fmt    specify output pixel format\n"
+            "\t                 pixel_fmt select from [NV12, YUYV, BA10, BA12], default is [NV12]\n"
+            "\t -d cap_mode     specify capture mode\n"
+            "\t                 cap_mode select from [video, still], default is [video]\n"
+            "\t -i frame_save   specify the frame count to save, default is 0 which means endless\n"
+            "\t -p preview on   local display\n"
+            "\t --usb           specify node for usb camera device, enables capture path through USB camera \n"
+            "\t                 specify [/dev/video4, /dev/video5] depending on which node USB camera is attached\n"
+            "\t --resolution    specify the resolution of usb camera\n"
+            "\t                 select from [1920x1080, 1280x720 ...], default is [1920x1080]\n"
+            "\t -e display_mode preview mode\n"
+            "\t                 select from [primary, overlay], default is [primary]\n"
+            "\t --sync          set analyzer in sync mode\n"
+            "\t -r raw_input    specify the path of raw image as fake source instead of live camera\n"
+            "\t -h              help\n"
 #if HAVE_LIBCL
             "CL features:\n"
-            "\t --capture capture_stage      specify the capture stage of image\n"
-            "\t               capture_stage select from [bayer, tonemapping], default is [tonemapping]\n"
-            "\t --hdr         specify hdr type, default is hdr off\n"
-            "\t               select from [rgb, lab]\n"
-            "\t --tnr         specify temporal noise reduction type, default is tnr off\n"
-            "\t               select from [rgb, yuv, both]\n"
-            "\t --tnr-level   specify tnr level\n"
-            "\t --wdr-mode    specify wdr mode. select from [gaussian, haleq]\n"
-            "\t --bilateral   enable bilateral noise reduction\n"
-            "\t --enable-snr  enable simple noise reduction\n"
-            "\t --enable-ee   enable YEENR\n"
-            "\t --enable-bnr  enable bayer noise reduction\n"
-            "\t --enable-dpc  enable defect pixel correction\n"
-            "\t --defog-mode mode   enable defog\n"
-            "\t               select from [disabled, retinex, dcp], default is [disabled]\n"
-            "\t --enable-retinex  enable retinex\n"
-            "\t --wavelet-mode specify wavelet denoise mode, default is off\n"
-            "\t                select from [0:disable, 1:Hat Y, 2:Hat UV, 3:Haar Y, 4:Haar UV, 5:Haar YUV, 6:Haar Bayes Shrink]\n"
-            "\t --3d-denoise   specify 3D Denoise mode\n"
-            "\t                select from [disabled, yuv, uv], default is [disabled]\n"
+            "\t -c              process image with cl kernel\n"
+#if HAVE_IA_AIQ
+            "\t -b brightness   specify brightness level\n"
+            "\t                 brightness level select from [0, 256], default is [128]\n"
+#endif
+            "\t --capture       specify the capture stage of image\n"
+            "\t                 capture_stage select from [bayer, tonemapping], default is [tonemapping]\n"
+            "\t --hdr           specify hdr type, default is hdr off\n"
+            "\t                 select from [rgb, lab]\n"
+            "\t --tnr           specify temporal noise reduction type, default is tnr off\n"
+            "\t                 select from [rgb, yuv, both]\n"
+            "\t --tnr-level     specify tnr level\n"
+            "\t --wdr-mode      specify wdr mode. select from [gaussian, haleq]\n"
+            "\t --bilateral     enable bilateral noise reduction\n"
+            "\t --enable-snr    enable simple noise reduction\n"
+            "\t --enable-ee     enable YEENR\n"
+            "\t --enable-bnr    enable bayer noise reduction\n"
+            "\t --enable-dpc    enable defect pixel correction\n"
+            "\t --defog-mode    specify defog mode\n"
+            "\t                 select from [disabled, retinex, dcp], default is [disabled]\n"
+            "\t --wavelet-mode  specify wavelet denoise mode, default is off\n"
+            "\t                 select from [0:disable, 1:Hat Y, 2:Hat UV, 3:Haar Y, 4:Haar UV, 5:Haar YUV, 6:Haar Bayes Shrink]\n"
+            "\t --3d-denoise    specify 3D Denoise mode\n"
+            "\t                 select from [disabled, yuv, uv], default is [disabled]\n"
             "\t --enable-wireframe  enable wire frame\n"
-            "\t --pipeline    pipe mode\n"
-            "\t               select from [basic, advance, extreme], default is [basic]\n"
-            "\t --disable-post disable cl post image processor\n"
+            "\t --pipeline      specify pipe mode\n"
+            "\t                 select from [basic, advance, extreme], default is [basic]\n"
+            "\t --disable-post  disable cl post image processor\n"
             "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
 #endif
             , bin_name
@@ -313,20 +319,21 @@ int main (int argc, char *argv[])
     SmartPtr<MainDeviceManager> device_manager = new MainDeviceManager;
     SmartPtr<V4l2Device> device;
     SmartPtr<V4l2SubDevice> event_device;
+#if HAVE_IA_AIQ
     SmartPtr<IspController> isp_controller;
-    SmartPtr<X3aAnalyzer> analyzer;
-    SmartPtr<SmartAnalyzer> smart_analyzer;
-    SmartPtr<AnalyzerLoader> loader;
-    const char *path_of_3a;
     SmartPtr<ImageProcessor> isp_processor;
+#endif
+    SmartPtr<X3aAnalyzer> analyzer;
+    SmartPtr<AnalyzerLoader> loader;
     AnalyzerType  analyzer_type = AnalyzerTypeSimple;
     DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
 #if HAVE_LIBDRM
     SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance();
 #endif
 
-    bool have_cl_processor = false;
 #if HAVE_LIBCL
+    bool have_cl_processor = false;
+    SmartPtr<SmartAnalyzer> smart_analyzer;
     bool have_cl_post_processor = true;
     SmartPtr<CL3aImageProcessor> cl_processor;
     SmartPtr<CLPostImageProcessor> cl_post_processor;
@@ -338,15 +345,10 @@ int main (int argc, char *argv[])
     CL3aImageProcessor::PipelineProfile pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
     CL3aImageProcessor::CaptureStage capture_stage = CL3aImageProcessor::TonemappingStage;
     CL3aImageProcessor::CLTonemappingMode wdr_mode = CL3aImageProcessor::WDRdisabled;
-#endif
-    bool need_display = false;
-    enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
-    const char *bin_name = argv[0];
-    int opt;
-    uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
-    uint32_t pixel_format = V4L2_PIX_FMT_NV12;
 
-#if HAVE_LIBCL
+#if HAVE_IA_AIQ
+    int32_t brightness_level = 128;
+#endif
     bool wdr_type = false;
     uint32_t defog_type = 0;
     CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
@@ -358,7 +360,12 @@ int main (int argc, char *argv[])
     bool image_warp_type = false;
 #endif
 
-    int32_t brightness_level = 128;
+    bool need_display = false;
+    enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
+    const char *bin_name = argv[0];
+    uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
+    uint32_t pixel_format = V4L2_PIX_FMT_NV12;
+
     bool    have_usbcam = 0;
     SmartPtr<char> usb_device_name;
     bool sync_mode = false;
@@ -367,6 +374,7 @@ int main (int argc, char *argv[])
     int frame_height = 1080;
     SmartPtr<char> path_to_fake = NULL;
 
+    int opt;
     const char *short_opts = "sca:n:m:f:d:b:pi:e:r:h";
     const struct option long_opts[] = {
         {"hdr", required_argument, NULL, 'H'},
@@ -396,15 +404,17 @@ int main (int argc, char *argv[])
         switch (opt) {
         case 'a': {
             XCAM_ASSERT (optarg);
-            if (!strcmp (optarg, "dynamic"))
-                analyzer_type = AnalyzerTypeDynamic;
-            else if (!strcmp (optarg, "simple"))
+            if (!strcmp (optarg, "simple"))
                 analyzer_type = AnalyzerTypeSimple;
 #if HAVE_IA_AIQ
             else if (!strcmp (optarg, "aiq"))
                 analyzer_type = AnalyzerTypeAiqTuner;
+#if HAVE_LIBCL
+            else if (!strcmp (optarg, "dynamic"))
+                analyzer_type = AnalyzerTypeDynamic;
             else if (!strcmp (optarg, "hybrid"))
                 analyzer_type = AnalyzerTypeHybrid;
+#endif
 #endif
             else {
                 print_help (bin_name);
@@ -431,11 +441,6 @@ int main (int argc, char *argv[])
             XCAM_ASSERT (optarg);
             device_manager->set_interval (atoi(optarg));
             break;
-#if HAVE_LIBCL
-        case 'c':
-            have_cl_processor = true;
-            break;
-#endif
         case 'f':
             XCAM_ASSERT (optarg);
             CHECK_EXP ((strlen(optarg) == 4), "invalid pixel format\n");
@@ -454,17 +459,6 @@ int main (int argc, char *argv[])
                 print_help (bin_name);
                 return -1;
             }
-            break;
-        case 'b':
-            XCAM_ASSERT (optarg);
-            brightness_level = atoi(optarg);
-            if(brightness_level < 0 || brightness_level > 256) {
-                print_help (bin_name);
-                return -1;
-            }
-            break;
-        case 'p':
-            need_display = true;
             break;
         case 'U':
             XCAM_ASSERT (optarg);
@@ -496,6 +490,19 @@ int main (int argc, char *argv[])
             sync_mode = true;
             break;
 #if HAVE_LIBCL
+        case 'c':
+            have_cl_processor = true;
+            break;
+#if HAVE_IA_AIQ
+        case 'b':
+            XCAM_ASSERT (optarg);
+            brightness_level = atoi(optarg);
+            if(brightness_level < 0 || brightness_level > 256) {
+                print_help (bin_name);
+                return -1;
+            }
+            break;
+#endif
         case 'H': {
             XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "rgb"))
@@ -663,6 +670,9 @@ int main (int argc, char *argv[])
             path_to_fake = strndup(optarg, XCAM_MAX_STR_SIZE);
             break;
         }
+        case 'p':
+            need_display = true;
+            break;
         case 'h':
             print_help (bin_name);
             return 0;
@@ -684,7 +694,9 @@ int main (int argc, char *argv[])
             device = new FakeV4l2Device ();
         } else if (have_usbcam) {
             device = new UVCDevice (usb_device_name.ptr ());
-        } else {
+        }
+#if HAVE_IA_AIQ
+        else {
             if (capture_mode == V4L2_CAPTURE_MODE_STILL)
                 device = new AtomispDevice (CAPTURE_DEVICE_STILL);
             else if (capture_mode == V4L2_CAPTURE_MODE_VIDEO)
@@ -692,11 +704,14 @@ int main (int argc, char *argv[])
             else
                 device = new AtomispDevice (DEFAULT_CAPTURE_DEVICE);
         }
+#endif
     }
     if (!event_device.ptr ())
         event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
+#if HAVE_IA_AIQ
     if (!isp_controller.ptr ())
         isp_controller = new IspController (device);
+#endif
 
     switch (analyzer_type) {
     case AnalyzerTypeSimple:
@@ -711,8 +726,17 @@ int main (int argc, char *argv[])
         analyzer = tuner_analyzer;
         break;
     }
+#if HAVE_LIBCL
+    case AnalyzerTypeDynamic: {
+        const char *path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
+        SmartPtr<DynamicAnalyzerLoader> dynamic_loader = new DynamicAnalyzerLoader (path_of_3a);
+        loader = dynamic_loader.dynamic_cast_ptr<AnalyzerLoader> ();
+        analyzer = dynamic_loader->load_analyzer (loader);
+        CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
+        break;
+    }
     case AnalyzerTypeHybrid: {
-        path_of_3a = DEFAULT_HYBRID_3A_LIB;
+        const char *path_of_3a = DEFAULT_HYBRID_3A_LIB;
         SmartPtr<HybridAnalyzerLoader> hybrid_loader = new HybridAnalyzerLoader (path_of_3a);
         hybrid_loader->set_cpf_path (DEFAULT_CPF_FILE);
         hybrid_loader->set_isp_controller (isp_controller);
@@ -722,14 +746,7 @@ int main (int argc, char *argv[])
         break;
     }
 #endif
-    case AnalyzerTypeDynamic: {
-        path_of_3a = DEFAULT_DYNAMIC_3A_LIB;
-        SmartPtr<DynamicAnalyzerLoader> dynamic_loader = new DynamicAnalyzerLoader (path_of_3a);
-        loader = dynamic_loader.dynamic_cast_ptr<AnalyzerLoader> ();
-        analyzer = dynamic_loader->load_analyzer (loader);
-        CHECK_EXP (analyzer.ptr (), "load dynamic 3a lib(%s) failed", path_of_3a);
-        break;
-    }
+#endif
     default:
         print_help (bin_name);
         return -1;
@@ -751,6 +768,13 @@ int main (int argc, char *argv[])
         } else {
             XCAM_LOG_WARNING ("load smart analyzer(%s) failed, please check.", DEFAULT_SMART_ANALYSIS_LIB_DIR);
         }
+    }
+
+    if (smart_analyzer.ptr ()) {
+        if (smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_WARNING ("analyzer(%s) prepare handlers failed", smart_analyzer->get_name ());
+        }
+        device_manager->set_smart_analyzer (smart_analyzer);
     }
 #endif
 
@@ -803,20 +827,17 @@ int main (int argc, char *argv[])
     if (analyzer.ptr())
         device_manager->set_3a_analyzer (analyzer);
 
-    if (smart_analyzer.ptr ()) {
-        if (smart_analyzer->prepare_handlers () != XCAM_RETURN_NO_ERROR) {
-            XCAM_LOG_WARNING ("analyzer(%s) prepare handlers failed", smart_analyzer->get_name ());
-        }
-        device_manager->set_smart_analyzer (smart_analyzer);
-    }
-
+#if HAVE_IA_AIQ
+#if HAVE_LIBCL
     if (have_cl_processor)
         isp_processor = new IspExposureImageProcessor (isp_controller);
     else
+#endif
         isp_processor = new IspImageProcessor (isp_controller);
 
     XCAM_ASSERT (isp_processor.ptr ());
     device_manager->add_image_processor (isp_processor);
+#endif
 #if HAVE_LIBCL
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
@@ -833,7 +854,9 @@ int main (int argc, char *argv[])
         }
         cl_processor->set_tnr (tnr_type, tnr_level);
         cl_processor->set_profile (pipeline_mode);
+#if HAVE_IA_AIQ
         analyzer->set_parameter_brightness((brightness_level - 128) / 128.0);
+#endif
         device_manager->add_image_processor (cl_processor);
     }
 
@@ -860,13 +883,18 @@ int main (int argc, char *argv[])
 #endif
 
     SmartPtr<PollThread> poll_thread;
-    if (path_to_fake.ptr ())
+    if (have_usbcam) {
+        poll_thread = new PollThread ();
+    } else if (path_to_fake.ptr ()) {
         poll_thread = new FakePollThread (path_to_fake.ptr ());
+    }
+#if HAVE_IA_AIQ
     else {
         SmartPtr<IspPollThread> isp_poll_thread = new IspPollThread ();
         isp_poll_thread->set_isp_controller (isp_controller);
         poll_thread = isp_poll_thread;
     }
+#endif
     device_manager->set_poll_thread (poll_thread);
 
     ret = device_manager->start ();
