@@ -27,33 +27,43 @@
 
 namespace XCam {
 
-typedef struct {
+struct CLWarpConfig {
     int frame_id;
-    int valid;
+    bool valid;
     int width;
     int height;
     float trim_ratio;
     float proj_mat[9];
-} CLWarpConfig;
+
+    CLWarpConfig ()
+        : frame_id (-1)
+        , valid (false)
+        , width (-1)
+        , height (-1)
+        , trim_ratio (0.0f)
+    {
+        proj_mat[0] = 1.0f;
+        proj_mat[1] = 0.0f;
+        proj_mat[2] = 0.0f;
+        proj_mat[3] = 0.0f;
+        proj_mat[4] = 1.0f;
+        proj_mat[5] = 0.0f;
+        proj_mat[6] = 0.0f;
+        proj_mat[7] = 0.0f;
+        proj_mat[8] = 1.0f;
+    };
+};
 
 class CLImageWarpHandler;
 
 class CLImageWarpKernel
     : public CLImageKernel
 {
-    typedef std::list<SmartPtr<CLImage>> CLImagePtrList;
-
 public:
     explicit CLImageWarpKernel (SmartPtr<CLContext> &context,
                                 const char *name,
                                 uint32_t channel,
                                 SmartPtr<CLImageWarpHandler> &handler);
-
-    virtual ~CLImageWarpKernel () {
-        _image_in_list.clear ();
-    }
-
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 
 public:
 
@@ -68,29 +78,37 @@ private:
 
     uint32_t _channel;
     SmartPtr<CLImageWarpHandler> _handler;
-    int32_t _input_frame_id;
-    int32_t _warp_frame_id;
     CLWarpConfig _warp_config;
-    CLImagePtrList _image_in_list;
 };
 
 class CLImageWarpHandler
     : public CLImageHandler
 {
+    typedef std::list<CLWarpConfig> CLWarpConfigList;
+    typedef std::list<SmartPtr<DrmBoBuffer>> CLBufferList;
+
 public:
     explicit CLImageWarpHandler ();
+    virtual ~CLImageWarpHandler () {
+        _warp_config_list.clear ();
+        _input_buffer_list.clear ();
+    }
 
     bool set_warp_config (const XCamDVSResult& config);
-    const CLWarpConfig& get_warp_config () const {
-        return _warp_config;
-    };
+    CLWarpConfig get_warp_config ();
+
+    virtual bool is_ready ();
+
+protected:
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLImageWarpHandler);
 
-    void reset_projection_matrix ();
-
-    CLWarpConfig _warp_config;
+    CLWarpConfigList _warp_config_list;
+    CLBufferList _input_buffer_list;
+    int32_t _input_buffer_id;
 };
 
 SmartPtr<CLImageHandler>

@@ -26,7 +26,7 @@ namespace XCam {
 #define CL_IMAGE_WARP_WG_WIDTH   8
 #define CL_IMAGE_WARP_WG_HEIGHT  4
 
-#define CL_BUFFER_POOL_SIZE      20
+#define CL_BUFFER_POOL_SIZE      30
 #define CL_IMAGE_WARP_WRITE_UINT 1
 
 enum {
@@ -58,9 +58,6 @@ CLImageWarpKernel::CLImageWarpKernel (SmartPtr<CLContext> &context,
     , _channel (channel)
     , _handler (handler)
 {
-    _input_frame_id = -1;
-    _warp_frame_id = -1;
-    _warp_config = _handler->get_warp_config ();
 }
 
 XCamReturn
@@ -102,10 +99,8 @@ CLImageWarpKernel::prepare_arguments (
 
     cl_desc_out.row_pitch = video_info_out.strides[info_index];
     _image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[info_index]);
-    _input_frame_id ++;
 
     _warp_config = _handler->get_warp_config ();
-
     if ((_warp_config.trim_ratio > 0.5f) || (_warp_config.trim_ratio < 0.0f)) {
         _warp_config.trim_ratio = 0.0f;
     }
@@ -147,15 +142,6 @@ CLImageWarpKernel::prepare_arguments (
     _warp_config.proj_mat[4] = scale_y * _warp_config.proj_mat[4] + shift_y * _warp_config.proj_mat[7];
     _warp_config.proj_mat[5] = scale_y * _warp_config.proj_mat[5] + shift_y * _warp_config.proj_mat[8];
 
-    if (_image_in_list.size () >= CL_BUFFER_POOL_SIZE) {
-        XCAM_LOG_DEBUG ("image list pop front");
-        _image_in_list.pop_front ();
-        _image_in_list.push_back (_image_in);
-    } else {
-        _image_in_list.push_back (_image_in);
-    }
-
-    XCAM_LOG_DEBUG ("image channel(%lu), image list size(%u)", _channel, _image_in_list.size());
     XCAM_LOG_DEBUG ("warp config image size(%dx%d)", _warp_config.width, _warp_config.height);
     XCAM_LOG_DEBUG ("proj_mat[%d]=(%f, %f, %f, %f, %f, %f, %f, %f, %f)", _warp_config.frame_id,
                     _warp_config.proj_mat[0], _warp_config.proj_mat[1], _warp_config.proj_mat[2],
@@ -177,8 +163,7 @@ CLImageWarpKernel::prepare_arguments (
     work_size.global[0] = XCAM_ALIGN_UP (cl_desc_out.width, work_size.local[0]);
     work_size.global[1] = XCAM_ALIGN_UP(cl_desc_out.height, work_size.local[1]);
 
-    std::list<SmartPtr<CLImage>>::iterator it = _image_in_list.begin ();
-    args[0].arg_adress = &(*it)->get_mem_id ();
+    args[0].arg_adress = &_image_in->get_mem_id ();
     args[0].arg_size = sizeof (cl_mem);
 
     args[1].arg_adress = &_image_out->get_mem_id ();
@@ -192,59 +177,96 @@ CLImageWarpKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLImageWarpKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    if (_warp_config.valid > 0) {
-        _warp_frame_id ++;
-        XCAM_LOG_DEBUG ("POP Image input frame id(%d), channel(%d)", _input_frame_id, _channel);
-        XCAM_LOG_DEBUG ("Warp config id(%d), Warp image id(%d)", _warp_config.frame_id, _warp_frame_id);
-        XCAM_LOG_DEBUG ("image list size(%lu)", _image_in_list.size());
-        _image_in_list.pop_front ();
-        //XCAM_ASSERT (abs(_warp_config.frame_id - _warp_frame_id) <= 2);
-    }
-
-    return CLImageKernel::post_execute (output);
-}
-
 CLImageWarpHandler::CLImageWarpHandler ()
     : CLImageHandler ("CLImageWarpHandler")
 {
-    _warp_config.frame_id = -1;
-    _warp_config.valid = -1;
-    _warp_config.trim_ratio = 0.10f;
-    reset_projection_matrix ();
+    _input_buffer_id = -1;
 }
 
-void
-CLImageWarpHandler::reset_projection_matrix ()
+bool
+CLImageWarpHandler::is_ready ()
 {
-    _warp_config.proj_mat[0] = 1.0f;
-    _warp_config.proj_mat[1] = 0.0f;
-    _warp_config.proj_mat[2] = 0.0f;
-    _warp_config.proj_mat[3] = 0.0f;
-    _warp_config.proj_mat[4] = 1.0f;
-    _warp_config.proj_mat[5] = 0.0f;
-    _warp_config.proj_mat[6] = 0.0f;
-    _warp_config.proj_mat[7] = 0.0f;
-    _warp_config.proj_mat[8] = 1.0f;
+    bool ret = !_warp_config_list.empty ();
+    return ret && CLImageHandler::is_ready ();
+}
+
+XCamReturn
+CLImageWarpHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_ASSERT (!_warp_config_list.empty ());
+
+    if (_input_buffer_list.size () >= CL_BUFFER_POOL_SIZE) {
+        XCAM_LOG_DEBUG ("input buffer list size full! pop front!");
+        _input_buffer_list.pop_front ();
+        _input_buffer_list.push_back (input);
+    } else {
+        _input_buffer_list.push_back (input);
+    }
+    _input_buffer_id ++;
+
+    input = *(_input_buffer_list.begin ());
+    return CLImageHandler::prepare_parameters (input, output);
+}
+
+XCamReturn
+CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (output);
+
+    CLWarpConfig config = *_warp_config_list.begin ();
+    XCAM_LOG_DEBUG ("warp config id(%d)@valid(%d), input buffer id(%d)@list(%lu)", config.frame_id, config.valid, _input_buffer_id, _input_buffer_list.size ());
+
+    _warp_config_list.pop_front ();
+
+    if (config.valid) {
+        _input_buffer_list.pop_front ();
+    }
+    return XCAM_RETURN_NO_ERROR;
 }
 
 bool
 CLImageWarpHandler::set_warp_config (const XCamDVSResult& config)
 {
-    _warp_config.frame_id = config.frame_id;
-    _warp_config.valid = config.valid;
-    _warp_config.width = config.frame_width;
-    _warp_config.height = config.frame_height;
+    CLWarpConfig warp_config;
+    warp_config.frame_id = config.frame_id;
+    warp_config.valid = config.valid > 0 ? true : false;
+    warp_config.width = config.frame_width;
+    warp_config.height = config.frame_height;
     for( int i = 0; i < 9; i++ ) {
-        _warp_config.proj_mat[i] = config.proj_mat[i];
+        warp_config.proj_mat[i] = config.proj_mat[i];
     }
-    XCAM_LOG_DEBUG ("set_warp_config[%d]=(%f, %f, %f, %f, %f, %f, %f, %f, %f)", _warp_config.frame_id,
-                    _warp_config.proj_mat[0], _warp_config.proj_mat[1], _warp_config.proj_mat[2],
-                    _warp_config.proj_mat[3], _warp_config.proj_mat[4], _warp_config.proj_mat[5],
-                    _warp_config.proj_mat[6], _warp_config.proj_mat[7], _warp_config.proj_mat[8]);
+    XCAM_LOG_DEBUG ("set_warp_config frame id(%d), valid(%d)", warp_config.frame_id, warp_config.valid);
+    XCAM_LOG_DEBUG ("projection matrix=(%f, %f, %f, %f, %f, %f, %f, %f, %f)",
+                    warp_config.proj_mat[0], warp_config.proj_mat[1], warp_config.proj_mat[2],
+                    warp_config.proj_mat[3], warp_config.proj_mat[4], warp_config.proj_mat[5],
+                    warp_config.proj_mat[6], warp_config.proj_mat[7], warp_config.proj_mat[8]);
+
+    _warp_config_list.push_back (warp_config);
     return true;
+}
+
+CLWarpConfig
+CLImageWarpHandler::get_warp_config ()
+{
+    CLWarpConfig warp_config;
+
+    if (_warp_config_list.size () > 0) {
+        warp_config = *(_warp_config_list.begin ());
+    } else {
+        warp_config.frame_id = -1;
+        warp_config.valid = false;
+        warp_config.proj_mat[0] = 1.0f;
+        warp_config.proj_mat[1] = 0.0f;
+        warp_config.proj_mat[2] = 0.0f;
+        warp_config.proj_mat[3] = 0.0f;
+        warp_config.proj_mat[4] = 1.0f;
+        warp_config.proj_mat[5] = 0.0f;
+        warp_config.proj_mat[6] = 0.0f;
+        warp_config.proj_mat[7] = 0.0f;
+        warp_config.proj_mat[8] = 1.0f;
+    }
+
+    return warp_config;
 }
 
 SmartPtr<CLImageWarpKernel>
