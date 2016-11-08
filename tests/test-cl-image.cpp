@@ -629,11 +629,13 @@ int main (int argc, char *argv[])
         }
 
         ret = image_handler->execute (input_buf, output_buf);
-        CHECK (ret, "execute kernels failed");
-        XCAM_ASSERT (output_buf.ptr ());
+        CHECK_EXP ((ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS), "execute kernels failed");
+        if (ret == XCAM_RETURN_BYPASS)
+            continue;
 
+        XCAM_ASSERT (output_buf.ptr ());
         ret = output_fp.write_buf (output_buf);
-        CHECK (ret, "read buffer from %s failed", output_file);
+        CHECK (ret, "write buffer to %s failed", XCAM_STR (output_file));
         psnr_cur = output_buf;
 
         ++buf_count;

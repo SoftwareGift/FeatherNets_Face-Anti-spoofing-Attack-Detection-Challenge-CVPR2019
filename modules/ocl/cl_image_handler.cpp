@@ -71,6 +71,11 @@ CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> 
     CLWorkSize work_size;
 
     ret = prepare_arguments (input, output, args, arg_count, work_size);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "cl image kernel(%s) prepare arguments failed", get_kernel_name ());
 
     XCAM_ASSERT (arg_count);
     for (uint32_t i = 0; i < arg_count; ++i) {
@@ -340,8 +345,6 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
         return XCAM_RETURN_NO_ERROR;
     }
 
-    XCAM_OBJ_PROFILING_START;
-
     XCAM_FAIL_RETURN (
         WARNING,
         (ret = prepare_output_buf (input, output)) == XCAM_RETURN_NO_ERROR,
@@ -349,11 +352,16 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
         "cl_image_handler (%s) prepare output buf failed", XCAM_STR (_name));
     XCAM_ASSERT (output.ptr ());
 
+    ret = prepare_parameters (input, output);
     XCAM_FAIL_RETURN (
         WARNING,
-        (ret = prepare_parameters (input, output)) == XCAM_RETURN_NO_ERROR,
+        (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
         ret,
         "cl_image_handler (%s) prepare parameters failed", XCAM_STR (_name));
+    if (ret == XCAM_RETURN_BYPASS)
+        return ret;
+
+    XCAM_OBJ_PROFILING_START;
 
     for (KernelList::iterator i_kernel = _kernels.begin ();
             i_kernel != _kernels.end (); ++i_kernel) {
