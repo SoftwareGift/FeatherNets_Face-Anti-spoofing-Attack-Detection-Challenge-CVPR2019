@@ -97,10 +97,41 @@ libxcam_ocl_la_LDFLAGS = \
 libxcam_oclincludedir = $(includedir)/xcam/ocl
 
 nobase_libxcam_oclinclude_HEADERS = \
-    cl_context.h          \
-    cl_event.h            \
-    cl_device.h           \
-    cl_memory.h           \
+    cl_context.h                    \
+    cl_event.h                      \
+    cl_device.h                     \
+    cl_memory.h                     \
+    cl_kernel.h                     \
+    cl_utils.h                      \
+    cl_image_bo_buffer.h            \
+    cl_image_handler.h              \
+    cl_image_processor.h            \
+    priority_buffer_queue.h         \
+    cl_3a_image_processor.h         \
+    cl_3a_stats_calculator.h        \
+    cl_3a_stats_context.h           \
+    cl_rgb_pipe_handler.h           \
+    cl_bayer_basic_handler.h        \
+    cl_bayer_pipe_handler.h         \
+    cl_demo_handler.h               \
+    cl_tonemapping_handler.h        \
+    cl_newtonemapping_handler.h     \
+    cl_csc_handler.h                \
+    cl_csc_image_processor.h        \
+    cl_yuv_pipe_handler.h           \
+    cl_tnr_handler.h                \
+    cl_post_image_processor.h       \
+    cl_3d_denoise_handler.h         \
+    cl_defog_dcp_handler.h          \
+    cl_gauss_handler.h              \
+    cl_geo_map_handler.h            \
+    cl_image_scaler.h               \
+    cl_image_warp_handler.h         \
+    cl_pyramid_blender.h            \
+    cl_retinex_handler.h            \
+    cl_wavelet_denoise_handler.h    \
+    cl_newwavelet_denoise_handler.h \
+    cl_wire_frame_handler.h         \
     $(NULL)
 
 libxcam_ocl_la_LIBTOOLFLAGS = --tag=disable-static
