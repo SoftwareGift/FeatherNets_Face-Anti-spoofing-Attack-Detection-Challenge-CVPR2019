@@ -120,6 +120,10 @@ public:
         return _buffer_info;
     }
 
+    bool has_free_buffers () {
+        return !_buf_list.is_empty ();
+    }
+
 protected:
     virtual bool fixate_video_info (VideoBufferInfo &info);
     virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info) = 0;

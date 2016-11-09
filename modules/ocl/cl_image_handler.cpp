@@ -260,6 +260,17 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
     return XCAM_RETURN_NO_ERROR;
 }
 
+bool CLImageHandler::is_ready ()
+{
+    if (_disable_buf_pool)
+        return true;
+    if (!_buf_pool.ptr ())  //execute not triggered
+        return true;
+    if (_buf_pool->has_free_buffers ())
+        return true;
+    return false;
+}
+
 XCamReturn CLImageHandler::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input,
     VideoBufferInfo &output)
@@ -309,6 +320,7 @@ CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBo
         XCAM_RETURN_ERROR_UNKNOWN,
         "CLImageHandler(%s) failed to get drm buffer from pool", XCAM_STR (_name));
 
+    // TODO, need consider output is not sync up with input buffer
     new_buf->set_timestamp (input->get_timestamp ());
     new_buf->copy_attaches (input);
 

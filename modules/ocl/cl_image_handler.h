@@ -131,6 +131,7 @@ public:
     bool set_kernels_enable (bool enable);
     bool is_kernels_enabled () const;
 
+    virtual bool is_ready ();
     XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual void emit_stop ();
 
