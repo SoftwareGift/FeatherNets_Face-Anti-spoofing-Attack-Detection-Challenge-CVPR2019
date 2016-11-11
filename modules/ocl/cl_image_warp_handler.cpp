@@ -105,6 +105,14 @@ CLImageWarpKernel::prepare_arguments (
         _warp_config.trim_ratio = 0.0f;
     }
 
+    float sample_rate_x = (float)_warp_config.width / (float)video_info_in.width;
+    float sample_rate_y = (float)_warp_config.height / (float)video_info_in.height;
+    XCAM_LOG_DEBUG ("warp analyze image sample rate(%fx%f)", sample_rate_x, sample_rate_y);
+    _warp_config.proj_mat[2] = _warp_config.proj_mat[2] / sample_rate_x;
+    _warp_config.proj_mat[5] = _warp_config.proj_mat[5] / sample_rate_y;
+    _warp_config.proj_mat[6] = _warp_config.proj_mat[6] * sample_rate_x;
+    _warp_config.proj_mat[7] = _warp_config.proj_mat[7] * sample_rate_y;
+
     /*
        For NV12 image (YUV420), UV plane has half horizontal & vertical coordinate size of Y plane,
        need to adjust the projection matrix as:

@@ -40,7 +40,7 @@ struct CLWarpConfig {
         , valid (false)
         , width (-1)
         , height (-1)
-        , trim_ratio (0.0f)
+        , trim_ratio (0.1f)
     {
         proj_mat[0] = 1.0f;
         proj_mat[1] = 0.0f;
