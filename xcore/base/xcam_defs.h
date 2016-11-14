@@ -111,4 +111,10 @@
 #define XCAM_ALIGN_DOWN(value, align) ((value)&(~((align)-1)))
 #define XCAM_ALIGN_AROUND(value, align) (((value)+(align)/2)/(align)*(align))
 
+#ifdef _LP64
+#define PRIuS "zu"
+#else
+#define PRIuS "u"
+#endif
+
 #endif //XCAM_DEFS_H

@@ -134,7 +134,7 @@ SmartAnalyzerLoader::load_symbol (void* handle)
                           desc->version, XCAM_VERSION);
     }
     if (desc->size < sizeof (XCamSmartAnalysisDescription)) {
-        XCAM_LOG_DEBUG ("get symbol failed, XCamSmartAnalysisDescription size is:%d, but expect:%d",
+        XCAM_LOG_DEBUG ("get symbol failed, XCamSmartAnalysisDescription size is:%" PRIu32 ", but expect:%" PRIuS,
                         desc->size, sizeof (XCamSmartAnalysisDescription));
         return NULL;
     }

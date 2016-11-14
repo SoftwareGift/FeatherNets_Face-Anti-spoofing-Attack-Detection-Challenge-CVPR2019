@@ -194,7 +194,7 @@ AeHandler::set_manual_exposure_time (int64_t time_in_us)
     AnalyzerHandler::HandlerLock lock(this);
     _params.manual_exposure_time = time_in_us;
 
-    XCAM_LOG_DEBUG ("ae set manual exposure time: %lldus", time_in_us);
+    XCAM_LOG_DEBUG ("ae set manual exposure time: %" PRId64 "us", time_in_us);
     return true;
 }
 
@@ -240,7 +240,7 @@ bool AeHandler::set_exposure_time_range (int64_t min_time_in_us, int64_t max_tim
     _params.exposure_time_min = min_time_in_us;
     _params.exposure_time_max = max_time_in_us;
 
-    XCAM_LOG_DEBUG ("ae set exposrue range[%lldus, %lldus]", min_time_in_us, max_time_in_us);
+    XCAM_LOG_DEBUG ("ae set exposrue range[%" PRId64 "us, %" PRId64 "us]", min_time_in_us, max_time_in_us);
     return true;
 }
 

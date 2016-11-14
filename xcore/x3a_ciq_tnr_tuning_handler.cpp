@@ -71,7 +71,7 @@ X3aCiqTnrTuningHandler::analyze (X3aResultList &output)
     double max_analog_gain = get_max_analog_gain ();
     XCAM_UNUSED (et);
     XCAM_UNUSED (max_analog_gain);
-    XCAM_LOG_DEBUG ("get current AG = (%f), max AG = (%f), et = (%lld)", analog_gain, max_analog_gain, et);
+    XCAM_LOG_DEBUG ("get current AG = (%f), max AG = (%f), et = (%" PRId64 ")", analog_gain, max_analog_gain, et);
 
     uint8_t i_curr = 0;
     uint8_t i_prev = 0;

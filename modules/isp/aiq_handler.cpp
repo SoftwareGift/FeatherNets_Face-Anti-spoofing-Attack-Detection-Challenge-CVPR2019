@@ -812,7 +812,7 @@ AiqAeHandler::set_RGBS_weight_grid (ia_aiq_rgbs_grid **out_rgbs_grid)
             }
         }
     }
-    XCAM_LOG_DEBUG ("sum of weighing factor = %lld ", weight_sum);
+    XCAM_LOG_DEBUG ("sum of weighing factor = %" PRIu64, weight_sum);
 
     rgbs_grid_index = (weighted_window.x_start + (hor_pixels_per_grid >> 1)) / hor_pixels_per_grid +
                       (weighted_window.y_start + (vert_pixels_per_gird >> 1)) / vert_pixels_per_gird * rgbs_grid_width;

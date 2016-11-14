@@ -91,7 +91,7 @@ HybridAnalyzerLoader::load_symbol (void* handle)
         return NULL;
     }
     if (desc->size < sizeof (XCam3ADescription)) {
-        XCAM_LOG_DEBUG ("get symbol failed, XCam3ADescription size is:%d, but expect:%d",
+        XCAM_LOG_DEBUG ("get symbol failed, XCam3ADescription size is:%" PRIu32 ", but expect:%" PRIuS,
                         desc->size, sizeof (XCam3ADescription));
         return NULL;
     }

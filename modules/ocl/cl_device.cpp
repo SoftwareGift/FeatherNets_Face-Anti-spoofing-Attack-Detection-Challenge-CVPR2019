@@ -122,10 +122,10 @@ CLDevice::init ()
     } else {
         XCAM_LOG_DEBUG (
             "cl get device info,\n"
-            "\tmax_compute_unit:%d"
-            "\tmax_work_item_dims:%d"
-            "\tmax_work_item_sizes:{%d, %d, %d}"
-            "\tmax_work_group_size:%d",
+            "\tmax_compute_unit:%" PRIu32
+            "\tmax_work_item_dims:%" PRIu32
+            "\tmax_work_item_sizes:{%" PRIuS ", %" PRIuS ", %" PRIuS "}"
+            "\tmax_work_group_size:%" PRIuS,
             device_info.max_compute_unit,
             device_info.max_work_item_dims,
             device_info.max_work_item_sizes[0], device_info.max_work_item_sizes[1], device_info.max_work_item_sizes[2],

@@ -222,7 +222,8 @@ CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
     XCAM_UNUSED (output);
 
     CLWarpConfig config = *_warp_config_list.begin ();
-    XCAM_LOG_DEBUG ("warp config id(%d)@valid(%d), input buffer id(%d)@list(%lu)", config.frame_id, config.valid, _input_buffer_id, _input_buffer_list.size ());
+    XCAM_LOG_DEBUG ("warp config id(%" PRId32 ")@valid(%" PRId32 "), input buffer id(%" PRId32 ")@list(%" PRIuS ")",
+        config.frame_id, config.valid, _input_buffer_id, _input_buffer_list.size ());
 
     _warp_config_list.pop_front ();
 
