@@ -78,7 +78,7 @@ public:
         , _enable_display (false)
     {
 #if HAVE_LIBDRM
-        _display = DrmDisplay::instance();
+        _display = DrmDisplay::instance ();
 #endif
         XCAM_OBJ_PROFILING_INIT;
     }
@@ -131,9 +131,9 @@ private:
     uint32_t   _frame_height;
     uint32_t   _frame_count;
     uint32_t   _frame_save;
+    bool       _enable_display;
     ImageFileHandle _file_handle;
     SmartPtr<DrmDisplay> _display;
-    bool       _enable_display;
     XCAM_OBJ_PROFILING_DEFINES;
 };
 
@@ -267,7 +267,7 @@ void print_help (const char *bin_name)
             "\t -d cap_mode     specify capture mode\n"
             "\t                 cap_mode select from [video, still], default is [video]\n"
             "\t -i frame_save   specify the frame count to save, default is 0 which means endless\n"
-            "\t -p preview on   local display\n"
+            "\t -p preview on   enable local display, need root privilege\n"
             "\t --usb           specify node for usb camera device, enables capture path through USB camera \n"
             "\t                 specify [/dev/video4, /dev/video5] depending on which node USB camera is attached\n"
             "\t --resolution    specify the resolution of usb camera\n"
@@ -316,7 +316,6 @@ void print_help (const char *bin_name)
 int main (int argc, char *argv[])
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<MainDeviceManager> device_manager = new MainDeviceManager;
     SmartPtr<V4l2Device> device;
     SmartPtr<V4l2SubDevice> event_device;
 #if HAVE_IA_AIQ
@@ -326,10 +325,6 @@ int main (int argc, char *argv[])
     SmartPtr<X3aAnalyzer> analyzer;
     SmartPtr<AnalyzerLoader> loader;
     AnalyzerType  analyzer_type = AnalyzerTypeSimple;
-    DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
-#if HAVE_LIBDRM
-    SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance();
-#endif
 
 #if HAVE_LIBCL
     bool have_cl_processor = false;
@@ -361,6 +356,7 @@ int main (int argc, char *argv[])
 #endif
 
     bool need_display = false;
+    DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
     enum v4l2_memory v4l2_mem_type = V4L2_MEMORY_MMAP;
     const char *bin_name = argv[0];
     uint32_t capture_mode = V4L2_CAPTURE_MODE_VIDEO;
@@ -369,9 +365,12 @@ int main (int argc, char *argv[])
     bool    have_usbcam = 0;
     SmartPtr<char> usb_device_name;
     bool sync_mode = false;
-    int frame_rate;
-    int frame_width = 1920;
-    int frame_height = 1080;
+    bool save_file = false;
+    uint32_t interval_frames = 1;
+    uint32_t save_frames = 0;
+    uint32_t frame_rate;
+    uint32_t frame_width = 1920;
+    uint32_t frame_height = 1080;
     SmartPtr<char> path_to_fake = NULL;
 
     int opt;
@@ -435,11 +434,15 @@ int main (int argc, char *argv[])
         }
 
         case 's':
-            device_manager->enable_save_file (true);
+            save_file = true;
             break;
         case 'n':
             XCAM_ASSERT (optarg);
-            device_manager->set_interval (atoi(optarg));
+            interval_frames = atoi(optarg);
+            break;
+        case 'i':
+            XCAM_ASSERT (optarg);
+            save_frames = atoi(optarg);
             break;
         case 'f':
             XCAM_ASSERT (optarg);
@@ -482,10 +485,6 @@ int main (int argc, char *argv[])
             }
             break;
         }
-        case 'i':
-            XCAM_ASSERT (optarg);
-            device_manager->set_frame_save(atoi(optarg));
-            break;
         case 'Y':
             sync_mode = true;
             break;
@@ -670,9 +669,10 @@ int main (int argc, char *argv[])
             path_to_fake = strndup(optarg, XCAM_MAX_STR_SIZE);
             break;
         }
-        case 'p':
+        case 'p': {
             need_display = true;
             break;
+        }
         case 'h':
             print_help (bin_name);
             return 0;
@@ -683,12 +683,20 @@ int main (int argc, char *argv[])
         }
     }
 
-    device_manager->set_frame_width(frame_width);
-    device_manager->set_frame_height(frame_height);
-    if (need_display) {
-        device_manager->enable_display (true);
-        device_manager->set_display_mode (display_mode);
+    if (need_display && !DrmDisplay::set_preview (need_display)) {
+        need_display = false;
+        XCAM_LOG_WARNING ("set preview failed, disable local preview now");
     }
+
+    SmartPtr<MainDeviceManager> device_manager = new MainDeviceManager ();
+    device_manager->enable_save_file (save_file);
+    device_manager->set_interval (interval_frames);
+    device_manager->set_frame_save (save_frames);
+    device_manager->set_frame_width (frame_width);
+    device_manager->set_frame_height (frame_height);
+    device_manager->enable_display (need_display);
+    device_manager->set_display_mode (display_mode);
+
     if (!device.ptr ())  {
         if (path_to_fake.ptr ()) {
             device = new FakeV4l2Device ();

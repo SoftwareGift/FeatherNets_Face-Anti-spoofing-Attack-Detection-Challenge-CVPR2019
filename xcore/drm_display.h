@@ -66,7 +66,8 @@ class DrmDisplay {
     };
 
 public:
-    static SmartPtr<DrmDisplay> instance();
+    // if need local preview, please call set_preview() before instance()
+    static SmartPtr<DrmDisplay> instance ();
     static uint32_t to_drm_fourcc (uint32_t fourcc_of_v4l2);
 
     virtual ~DrmDisplay();
@@ -101,16 +102,24 @@ public:
         const enum v4l2_buf_type buf_type);
     SmartPtr<DrmBoBuffer> convert_to_drm_bo_buf (SmartPtr<DrmDisplay> &self, SmartPtr<VideoBuffer> &buf_in);
 
-    bool set_display_mode(DrmDisplayMode mode) {
+    static bool set_preview (bool flag);
+    bool can_preview () {
+        return _preview_flag;
+    }
+    bool set_display_mode (DrmDisplayMode mode) {
         _display_mode = mode;
         return true;
     };
 
 private:
-    DrmDisplay (const char* module = NULL);
+    DrmDisplay (const char *module = NULL);
 
     SmartPtr<DrmBoData> create_drm_bo (SmartPtr<DrmDisplay> &self, const VideoBufferInfo& info);
     drm_intel_bo *create_drm_bo_from_fd (int32_t fd, uint32_t size);
+
+    bool is_authenticated (int fd, const char *msg);
+    int open_driver (const char *dev_path);
+    int open_drivers (const char *base_path, int base_id);
 
     XCamReturn get_crtc(drmModeRes *res);
     XCamReturn get_connector(drmModeRes *res);
@@ -125,6 +134,7 @@ private:
     char *_module;
     int _fd;
     drm_intel_bufmgr *_buf_manager;
+    static bool    _preview_flag;
     DrmDisplayMode _display_mode;
     int _crtc_index;
     unsigned int _crtc_id;

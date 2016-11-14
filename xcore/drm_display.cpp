@@ -23,6 +23,9 @@
 #include "drm_v4l2_buffer.h"
 #include "drm_bo_buffer.h"
 #include <drm_fourcc.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+
 
 #define DEFAULT_DRM_DEVICE "i915"
 #define DEFAULT_DRM_BUSID "PCI:00:02:00"
@@ -35,21 +38,31 @@ Mutex DrmDisplay::_mutex;
 
 static std::atomic<uint32_t> global_signal_index(0);
 
+bool DrmDisplay::_preview_flag = false;
+
+bool
+DrmDisplay::set_preview (bool flag) {
+    if (_instance.ptr () && flag != _preview_flag)
+        return false;
+    _preview_flag = flag;
+    return true;
+};
+
 SmartPtr<DrmDisplay>
-DrmDisplay::instance()
+DrmDisplay::instance ()
 {
     SmartLock lock(_mutex);
     if (_instance.ptr())
         return _instance;
-    _instance = new DrmDisplay;
+    _instance = new DrmDisplay ();
     return _instance;
 }
 
-DrmDisplay::DrmDisplay(const char* module)
+DrmDisplay::DrmDisplay (const char *module)
     : _module(NULL)
     , _fd (-1)
     , _buf_manager (NULL)
-    , _display_mode (DRM_DISPLAY_MODE_PRIMARY)
+    , _display_mode (DRM_DISPLAY_MODE_NONE)
     , _crtc_index (-1)
     , _crtc_id (0)
     , _con_id (0)
@@ -68,12 +81,25 @@ DrmDisplay::DrmDisplay(const char* module)
     else
         _module = strndup (DEFAULT_DRM_DEVICE, XCAM_MAX_STR_SIZE);
 
-    //_fd = drmOpenRender (128);
-    _fd = drmOpen (_module, NULL);
+    if (!_preview_flag) {
+        _fd = open_drivers ("/dev/dri/renderD", 128);
+    }
+
     if (_fd < 0)
+        _fd = open_drivers ("/dev/dri/card", 0);
+
+    if (_fd < 0) {
         _fd = drmOpen (_module, DEFAULT_DRM_BUSID);
-    if (_fd < 0)
-        XCAM_LOG_ERROR("failed to open drm device %s", XCAM_STR (_module));
+        if (_fd >= 0 && !is_authenticated (_fd, DEFAULT_DRM_BUSID)) {
+            drmClose (_fd);
+            _fd = -1;
+        }
+    }
+
+    if (_fd < 0) {
+        XCAM_LOG_WARNING ("please try root privilege if without X server");
+        XCAM_LOG_ERROR ("failed to open drm device %s", XCAM_STR (_module));
+    }
 
     _buf_manager = drm_intel_bufmgr_gem_init (_fd, DEFAULT_DRM_BATCH_SIZE);
     drm_intel_bufmgr_gem_enable_reuse (_buf_manager);
@@ -85,11 +111,70 @@ DrmDisplay::~DrmDisplay()
 
     if (_buf_manager)
         drm_intel_bufmgr_destroy (_buf_manager);
-    if (_fd > 0)
-        drmClose(_fd);
+    if (_fd >= 0)
+        drmClose (_fd);
     if (_module)
         xcam_free (_module);
 };
+
+int
+DrmDisplay::open_drivers (const char *base_path, int base_id)
+{
+    int fd = -1;
+    char dev_path [32];
+    XCAM_ASSERT (base_path);
+
+    for (int i = 0; i < 16; i++) {
+        sprintf (dev_path, "%s%d", base_path, base_id + i);
+        if (access (dev_path, F_OK) != 0)
+            continue;
+
+        fd = open_driver (dev_path);
+        if (fd >= 0)
+            break;
+    }
+
+    return fd;
+}
+
+int
+DrmDisplay::open_driver (const char *dev_path)
+{
+    XCAM_ASSERT (dev_path);
+
+    int fd = open (dev_path, O_RDWR);
+    if (fd < 0) {
+        XCAM_LOG_ERROR ("failed to open %s", dev_path);
+        return -1;
+    }
+
+    if (!strncmp (dev_path, "/dev/dri/card", 13)) {
+        if (!is_authenticated (fd, dev_path)) {
+            close (fd);
+            return -1;
+        }
+    }
+
+    return fd;
+}
+
+bool
+DrmDisplay::is_authenticated (int fd, const char *msg)
+{
+    drm_client_t client;
+    memset (&client, 0, sizeof (drm_client_t));
+    if (ioctl (fd, DRM_IOCTL_GET_CLIENT, &client) == -1) {
+        XCAM_LOG_ERROR ("failed to get drm client");
+        return false;
+    }
+
+    if (!client.auth) {
+        XCAM_LOG_ERROR ("%s is not authenticated", msg);
+        return false;
+    }
+
+    return true;
+}
 
 uint32_t
 DrmDisplay::to_drm_fourcc (uint32_t fourcc_of_v4l2)

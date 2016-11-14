@@ -58,7 +58,7 @@ public:
         , _enable_display (false)
     {
 #if HAVE_LIBDRM
-        _display = DrmDisplay::instance();
+        _display = DrmDisplay::instance ();
 #endif
         XCAM_OBJ_PROFILING_INIT;
     }
@@ -179,7 +179,7 @@ void print_help (const char *bin_name)
             "\t --enable-warp      enable image warp\n"
             "\t --display-mode     display mode\n"
             "\t                    select from [primary, overlay], default is [primary]\n"
-            "\t -p                 enable local display\n"
+            "\t -p                 enable local display, need root privilege\n"
             "\t -h                 help\n"
             , bin_name);
 }
@@ -191,7 +191,6 @@ int main (int argc, char *argv[])
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     VideoBufferInfo buf_info;
     SmartPtr<VideoBuffer> video_buf;
-    SmartPtr<MainPipeManager> pipe_manager = new MainPipeManager;
     SmartPtr<SmartAnalyzer> smart_analyzer;
     SmartPtr<CLPostImageProcessor> cl_post_processor;
 
@@ -333,9 +332,10 @@ int main (int argc, char *argv[])
             }
             break;
         }
-        case 'p':
+        case 'p': {
             need_display = true;
             break;
+        }
         case 'h':
             print_help (bin_name);
             return 0;
@@ -357,12 +357,16 @@ int main (int argc, char *argv[])
         return -1;
     }
 
+    if (need_display && !DrmDisplay::set_preview (need_display)) {
+        need_display = false;
+        XCAM_LOG_WARNING ("set preview failed, disable local preview now");
+    }
+
+    SmartPtr<MainPipeManager> pipe_manager = new MainPipeManager ();
     pipe_manager->set_image_width (image_width);
     pipe_manager->set_image_height (image_height);
-    if (need_display) {
-        pipe_manager->enable_display (true);
-        pipe_manager->set_display_mode (display_mode);
-    }
+    pipe_manager->enable_display (need_display);
+    pipe_manager->set_display_mode (display_mode);
 
     SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
     if (!smart_handlers.empty () ) {
