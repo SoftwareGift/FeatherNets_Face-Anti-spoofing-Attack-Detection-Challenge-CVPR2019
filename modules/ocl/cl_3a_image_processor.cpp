@@ -311,7 +311,7 @@ CL3aImageProcessor::create_handlers ()
             _tonemapping.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create tonemapping handler failed");
-        _tonemapping->set_kernels_enable (true);
+        _tonemapping->enable_handler (true);
         image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
         add_handler (image_handler);
         break;
@@ -324,7 +324,7 @@ CL3aImageProcessor::create_handlers ()
             _newtonemapping.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create tonemapping handler failed");
-        _newtonemapping->set_kernels_enable (true);
+        _newtonemapping->enable_handler (true);
         image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
         add_handler (image_handler);
         break;
@@ -370,7 +370,7 @@ CL3aImageProcessor::create_handlers ()
         _ee.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CL3aImageProcessor create ee handler failed");
-    _ee->set_kernels_enable (XCAM_DENOISE_TYPE_EE & _snr_mode);
+    _ee->enable_handler (XCAM_DENOISE_TYPE_EE & _snr_mode);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_3A_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
@@ -406,7 +406,7 @@ CL3aImageProcessor::post_config ()
         }
 
         SmartPtr<CLCloneImageHandler> clone_y = (*i_handler).dynamic_cast_ptr<CLCloneImageHandler> ();
-        if (clone_y.ptr () && clone_y->is_kernels_enabled () && (clone_y->get_clone_flags () & SwappedBuffer::SwapY))
+        if (clone_y.ptr () && clone_y->is_handler_enabled () && (clone_y->get_clone_flags () & SwappedBuffer::SwapY))
             swap_y_count++;
     }
 

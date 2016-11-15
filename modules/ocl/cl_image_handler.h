@@ -128,8 +128,8 @@ public:
         uint32_t init_order = (uint32_t)(SwappedBuffer::OrderY0Y1));
 
     bool add_kernel (SmartPtr<CLImageKernel> &kernel);
-    bool set_kernels_enable (bool enable);
-    bool is_kernels_enabled () const;
+    bool enable_handler (bool enable);
+    bool is_handler_enabled () const;
 
     virtual bool is_ready ();
     XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
@@ -156,6 +156,7 @@ private:
 
 private:
     char                      *_name;
+    bool                       _enable;
     KernelList                 _kernels;
     SmartPtr<BufferPool>       _buf_pool;
     BufferPoolType             _buf_pool_type;

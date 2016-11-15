@@ -227,7 +227,7 @@ CLPostImageProcessor::create_handlers ()
         _retinex.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create retinex handler failed");
-    _retinex->set_kernels_enable (_defog_mode == CLPostImageProcessor::DefogRetinex);
+    _retinex->enable_handler (_defog_mode == CLPostImageProcessor::DefogRetinex);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
@@ -240,7 +240,7 @@ CLPostImageProcessor::create_handlers ()
         _defog_dcp.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create defog handler failed");
-    _defog_dcp->set_kernels_enable (_defog_mode == CLPostImageProcessor::DefogDarkChannelPrior);
+    _defog_dcp->enable_handler (_defog_mode == CLPostImageProcessor::DefogDarkChannelPrior);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
@@ -281,7 +281,7 @@ CLPostImageProcessor::create_handlers ()
             _wavelet.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CLPostImageProcessor create wavelet denoise handler failed");
-        _wavelet->set_kernels_enable (true);
+        _wavelet->enable_handler (true);
         image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
         image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
         add_handler (image_handler);
@@ -295,7 +295,7 @@ CLPostImageProcessor::create_handlers ()
             _newwavelet.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CLPostImageProcessor create new wavelet denoise handler failed");
-        _newwavelet->set_kernels_enable (true);
+        _newwavelet->enable_handler (true);
         image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
         image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
         add_handler (image_handler);
@@ -326,7 +326,7 @@ CLPostImageProcessor::create_handlers ()
             "CL3aImageProcessor create 3D noise reduction handler failed");
         image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
         image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
-        image_handler->set_kernels_enable (true);
+        image_handler->enable_handler (true);
         add_handler (image_handler);
     }
 
@@ -341,7 +341,7 @@ CLPostImageProcessor::create_handlers ()
     _scaler->set_scaler_factor (_scaler_factor);
     _scaler->set_buffer_callback (_stats_callback);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    image_handler->set_kernels_enable (_enable_scaler);
+    image_handler->enable_handler (_enable_scaler);
     add_handler (image_handler);
 
     /* wire frame */
@@ -352,7 +352,7 @@ CLPostImageProcessor::create_handlers ()
         _wireframe.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create wire frame handler failed");
-    _wireframe->set_kernels_enable (_enable_wireframe);
+    _wireframe->enable_handler (_enable_wireframe);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
     add_handler (image_handler);
@@ -365,7 +365,7 @@ CLPostImageProcessor::create_handlers ()
         _csc .ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create csc handler failed");
-    _csc->set_kernels_enable (_out_sample_type == OutSampleRGB);
+    _csc->enable_handler (_out_sample_type == OutSampleRGB);
     _csc->set_output_format (_output_fourcc);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
@@ -379,7 +379,7 @@ CLPostImageProcessor::create_handlers ()
         _image_warp.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create image warp handler failed");
-    _image_warp->set_kernels_enable (_enable_image_warp);
+    _image_warp->enable_handler (_enable_image_warp);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);

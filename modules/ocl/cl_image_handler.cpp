@@ -146,6 +146,7 @@ CLImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 
 CLImageHandler::CLImageHandler (const char *name)
     : _name (NULL)
+    , _enable (true)
     , _buf_pool_type (CLImageHandler::CLBoPoolType)
     , _disable_buf_pool (false)
     , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
@@ -194,26 +195,16 @@ CLImageHandler::add_kernel (SmartPtr<CLImageKernel> &kernel)
 }
 
 bool
-CLImageHandler::set_kernels_enable (bool enable)
+CLImageHandler::enable_handler (bool enable)
 {
-    for (KernelList::iterator i_kernel = _kernels.begin ();
-            i_kernel != _kernels.end (); ++i_kernel) {
-        (*i_kernel)->set_enable (enable);
-    }
-
+    _enable = enable;
     return true;
 }
 
 bool
-CLImageHandler::is_kernels_enabled () const
+CLImageHandler::is_handler_enabled () const
 {
-    for (KernelList::const_iterator i_kernel = _kernels.begin ();
-            i_kernel != _kernels.end (); ++i_kernel) {
-        if ((*i_kernel)->is_enabled ())
-            return true;
-    }
-
-    return false;
+    return _enable;
 }
 
 XCamReturn
@@ -352,7 +343,7 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
         XCAM_RETURN_ERROR_PARAM,
         "cl_image_handler(%s) no image kernel set", XCAM_STR (_name));
 
-    if (!is_kernels_enabled ()) {
+    if (!is_handler_enabled ()) {
         output = input;
         return XCAM_RETURN_NO_ERROR;
     }

@@ -32,7 +32,7 @@ CLWaveletDenoiseImageKernel::CLWaveletDenoiseImageKernel (SmartPtr<CLContext> &c
         SmartPtr<CLWaveletDenoiseImageHandler> &handler,
         uint32_t channel,
         uint32_t layer)
-    : CLImageKernel (context, name, true)
+    : CLImageKernel (context, name)
     , _hard_threshold (0.1)
     , _soft_threshold (0.5)
     , _decomposition_levels (WAVELET_DECOMPOSITION_LEVELS)

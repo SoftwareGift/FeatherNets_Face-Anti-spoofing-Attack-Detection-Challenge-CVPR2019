@@ -210,16 +210,16 @@ CLImageProcessor::process_done_buffer ()
 void
 CLImageProcessor::check_ready_buffers ()
 {
-    bool is_ready = false;
+    bool is_ready_or_disabled = false;
     UnsafePriorityBufferList::iterator i = _not_ready_buffers.begin ();
     while (i != _not_ready_buffers.end()) {
         SmartPtr<PriorityBuffer> buf = *i;
         XCAM_ASSERT (buf.ptr () && buf->handler.ptr ());
         {
             STREAM_LOCK; // make sure handler APIs are protected
-            is_ready = buf->handler->is_ready ();
+            is_ready_or_disabled = (!buf->handler->is_handler_enabled () || buf->handler->is_ready ());
         }
-        if (is_ready) {
+        if (is_ready_or_disabled) {
             _process_buffer_queue.push_priority_buf (buf);
             _not_ready_buffers.erase (i++);
         } else
@@ -252,7 +252,7 @@ CLImageProcessor::process_cl_buffer_queue ()
 
     {
         STREAM_LOCK;
-        if (!handler->is_ready ()) {
+        if (handler->is_handler_enabled () && !handler->is_ready ()) {
             _not_ready_buffers.push_back (p_buf);
             return XCAM_RETURN_NO_ERROR;
         }
@@ -269,17 +269,23 @@ CLImageProcessor::process_cl_buffer_queue ()
 
         // for loop in handler, find next handler
         ImageHandlerList::iterator i_handler = _handlers.begin ();
-        for (; i_handler != _handlers.end ();  ++i_handler)
+        while (i_handler != _handlers.end ())
         {
             if (handler.ptr () == (*i_handler).ptr ()) {
                 ++i_handler;
-                if (i_handler != _handlers.end ())
-                    p_buf->handler = *i_handler;
-                else
-                    p_buf->handler = NULL;
                 break;
             }
+            ++i_handler;
         }
+
+        //skip all disabled handlers
+        while (i_handler != _handlers.end () && !(*i_handler)->is_handler_enabled ())
+            ++i_handler;
+
+        if (i_handler != _handlers.end ())
+            p_buf->handler = *i_handler;
+        else
+            p_buf->handler = NULL;
     }
 
     // buffer processed by all handlers, done

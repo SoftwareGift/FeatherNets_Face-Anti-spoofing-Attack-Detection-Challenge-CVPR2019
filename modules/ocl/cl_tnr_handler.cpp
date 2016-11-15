@@ -72,7 +72,7 @@ CLTnrImageKernel::CLTnrHistogram::~CLTnrHistogram() {
 CLTnrImageKernel::CLTnrImageKernel (SmartPtr<CLContext> &context,
                                     const char *name,
                                     CLTnrType type)
-    : CLImageKernel (context, name, false)
+    : CLImageKernel (context, name)
     , _type (type)
     , _gain_yuv (1.0)
     , _thr_y (0.05)
