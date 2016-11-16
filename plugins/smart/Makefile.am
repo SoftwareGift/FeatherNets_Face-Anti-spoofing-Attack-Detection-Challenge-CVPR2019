@@ -1,4 +1,11 @@
-noinst_LTLIBRARIES = libxcam_sample_smart.la
+noinst_LTLIBRARIES = \
+    $(NULL)
+
+if ENABLE_IA_AIQ
+noinst_LTLIBRARIES += \
+    libxcam_sample_smart.la \
+    $(NULL)
+endif
 
 XCAMSMART_CXXFLAGS = $(XCAM_CXXFLAGS)
 XCAMSMART_LIBS = \
@@ -12,6 +19,7 @@ endif
 
 plugindir="$(libdir)/xcam/plugins/smart"
 
+if ENABLE_IA_AIQ
 libxcam_sample_smart_la_SOURCES = \
     sample_smart_analysis.cpp    \
     $(NULL)
@@ -33,5 +41,6 @@ libxcam_sample_smart_la_LDFLAGS = \
     $(top_builddir)/xcore/libxcam_core.la  \
     $(PTHREAD_LDFLAGS)                     \
     $(NULL)
+endif
 
 libxcam_sample_smart_la_LIBTOOLFLAGS = --tag=disable-static
