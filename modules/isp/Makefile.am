@@ -66,11 +66,11 @@ libxcam_isp_la_CXXFLAGS = \
 libxcam_isp_la_CFLAGS = $(libxcam_isp_la_CXXFLAGS)
 
 libxcam_isp_la_LIBADD = \
-    $(XCAMISP_LIBS)  \
+    $(top_builddir)/xcore/libxcam_core.la \
+    $(XCAMISP_LIBS)                       \
     $(NULL)
 
 libxcam_isp_la_LDFLAGS = \
-    -avoid-version      \
     $(PTHREAD_LDFLAGS)  \
     $(NULL)
 

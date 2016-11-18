@@ -201,7 +201,7 @@ int main (int argc, const char *argv[])
 #if HAVE_LIBDRM
     AtomispDevice* atom_isp_dev = (AtomispDevice*)device.ptr();
     SmartPtr<DrmDisplay> drmdisp = DrmDisplay::instance();
-    struct v4l2_rect rect = { 0, 0, (int)format.fmt.pix.width, (int)format.fmt.pix.height };
+    struct v4l2_rect rect = { 0, 0, format.fmt.pix.width, format.fmt.pix.height };
     drmdisp->render_init(
         0,
         0,

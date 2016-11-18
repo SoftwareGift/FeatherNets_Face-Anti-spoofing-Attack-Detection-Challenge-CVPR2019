@@ -189,7 +189,7 @@ MainDeviceManager::display_buf (const SmartPtr<VideoBuffer> &data)
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<VideoBuffer> buf = data;
     const VideoBufferInfo & frame_info = buf->get_video_info ();
-    struct v4l2_rect rect = { 0, 0, (int)frame_info.width, (int)frame_info.height };
+    struct v4l2_rect rect = { 0, 0, frame_info.width, frame_info.height};
 
     if (!_display->is_render_inited ()) {
         ret = _display->render_init (0, 0, this->_frame_width, this->_frame_height,

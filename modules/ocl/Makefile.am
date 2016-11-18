@@ -86,12 +86,12 @@ libxcam_ocl_la_CXXFLAGS = \
     $(NULL)
 
 libxcam_ocl_la_LIBADD = \
-    $(XCAMOCL_LIBS)                \
+    $(top_builddir)/xcore/libxcam_core.la \
+    $(XCAMOCL_LIBS)                       \
     $(NULL)
 
 libxcam_ocl_la_LDFLAGS = \
-    -avoid-version                 \
-    $(PTHREAD_LDFLAGS)             \
+    $(PTHREAD_LDFLAGS) \
     $(NULL)
 
 libxcam_oclincludedir = $(includedir)/xcam/ocl
