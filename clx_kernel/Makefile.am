@@ -24,6 +24,7 @@ clx_kernel_sources = \
 	kernel_wb.clx                 \
 	kernel_ee.clx                 \
 	kernel_dpc.clx                \
+	kernel_fisheye.clx            \
 	kernel_rgb_pipe.clx           \
 	kernel_bnr.clx                \
 	kernel_yuv_pipe.clx           \

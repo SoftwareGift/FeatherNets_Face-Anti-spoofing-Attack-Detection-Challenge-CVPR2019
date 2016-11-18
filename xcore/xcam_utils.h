@@ -45,6 +45,12 @@ enum CLImageChannel {
     CL_IMAGE_CHANNEL_UV = 1 << 1,
 };
 
+enum CLNV12PlaneIdx {
+    CLNV12PlaneY = 0,
+    CLNV12PlaneUV,
+    CLNV12PlaneMax,
+};
+
 inline double
 linear_interpolate_p2 (double value_start, double value_end,
                        double ref_start, double ref_end,

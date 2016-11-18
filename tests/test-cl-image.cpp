@@ -48,6 +48,7 @@
 #include "cl_defog_dcp_handler.h"
 #include "cl_3d_denoise_handler.h"
 #include "cl_image_warp_handler.h"
+#include "cl_fisheye_handler.h"
 
 using namespace XCam;
 
@@ -76,6 +77,7 @@ enum TestHandlerType {
     TestHandlerDefogDcp,
     TestHandler3DDenoise,
     TestHandlerImageWarp,
+    TestHandlerFisheye,
 };
 
 enum PsnrType {
@@ -150,7 +152,7 @@ print_help (const char *bin_name)
     printf ("Usage: %s [-f format] -i input -o output\n"
             "\t -t type      specify image handler type\n"
             "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise,"
-            " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet-hat, wavelet-haar, dcp]\n"
+            " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet-hat, wavelet-haar, dcp, fisheye]\n"
             "\t -f input_format    specify a input format\n"
             "\t -W image width     specify input image width\n"
             "\t -H image height    specify input image height\n"
@@ -290,6 +292,8 @@ int main (int argc, char *argv[])
                 handler_type = TestHandler3DDenoise;
             else if (!strcasecmp (optarg, "warp"))
                 handler_type = TestHandlerImageWarp;
+            else if (!strcasecmp (optarg, "fisheye"))
+                handler_type = TestHandlerFisheye;
             else
                 print_help (bin_name);
             break;
@@ -582,6 +586,23 @@ int main (int argc, char *argv[])
         warp_config.proj_mat[8] = 1.0f;
 
         warp->set_warp_config (warp_config);
+        break;
+    }
+    case TestHandlerFisheye: {
+        image_handler = create_fisheye_handler (context);
+        SmartPtr<CLFisheyeHandler> fisheye = image_handler.dynamic_cast_ptr<CLFisheyeHandler> ();
+        XCAM_ASSERT (fisheye.ptr ());
+        CLFisheyeInfo fisheye_info;
+        //fisheye0 {480.0f, 480.0f, 180.0f, 480.0f, -90.0f},
+        //fisheye1 {1440.0f, 480.0f, 180.0f, 480.0f, 90.0f}
+        fisheye_info.center_x = 480.0f;
+        fisheye_info.center_y = 480.0f;
+        fisheye_info.wide_angle = 180.0f;
+        fisheye_info.radius = 480.0f;
+        fisheye_info.rotate_angle = -90.0f;
+        fisheye->set_fisheye_info (fisheye_info);
+        fisheye->set_dst_range (180.0f, 180.0f);
+        fisheye->set_output_size (480, 480);
         break;
     }
     default:
