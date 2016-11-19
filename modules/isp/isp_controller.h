@@ -34,6 +34,7 @@ public:
     explicit IspController (SmartPtr<V4l2Device> & device);
     ~IspController ();
 
+    void get_default_sensor_mode_data (struct atomisp_sensor_mode_data *sensor_mode_data);
     XCamReturn get_sensor_mode_data (struct atomisp_sensor_mode_data &sensor_mode_data);
     XCamReturn get_isp_parameter (struct atomisp_parm &parameters);
 

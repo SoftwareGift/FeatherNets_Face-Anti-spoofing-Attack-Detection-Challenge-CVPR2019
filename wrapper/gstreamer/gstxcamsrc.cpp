@@ -895,7 +895,6 @@ gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface)
 static gboolean
 gst_xcam_src_start (GstBaseSrc *src)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     GstXCamSrc *xcamsrc = GST_XCAM_SRC (src);
     SmartPtr<MainDeviceManager> device_manager = xcamsrc->device_manager;
     SmartPtr<X3aAnalyzer> analyzer;
@@ -949,16 +948,16 @@ gst_xcam_src_start (GstBaseSrc *src)
     capture_device->open ();
     device_manager->set_capture_device (capture_device);
 
+#if HAVE_IA_AIQ
     if (!xcamsrc->enable_usb && !xcamsrc->path_to_fake) {
         event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
-        ret = event_device->open ();
+        XCamReturn ret = event_device->open ();
         if (ret == XCAM_RETURN_NO_ERROR) {
             event_device->subscribe_event (V4L2_EVENT_ATOMISP_3A_STATS_READY);
             device_manager->set_event_device (event_device);
         }
     }
 
-#if HAVE_IA_AIQ
     isp_controller = new IspController (capture_device);
 #endif
 

@@ -317,8 +317,8 @@ int main (int argc, char *argv[])
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<V4l2Device> device;
-    SmartPtr<V4l2SubDevice> event_device;
 #if HAVE_IA_AIQ
+    SmartPtr<V4l2SubDevice> event_device;
     SmartPtr<IspController> isp_controller;
     SmartPtr<ImageProcessor> isp_processor;
 #endif
@@ -714,8 +714,7 @@ int main (int argc, char *argv[])
         }
 #endif
     }
-    if (!event_device.ptr ())
-        event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
+
 #if HAVE_IA_AIQ
     if (!isp_controller.ptr ())
         isp_controller = new IspController (device);
@@ -812,6 +811,9 @@ int main (int argc, char *argv[])
     ret = device->set_format (frame_width, frame_height, pixel_format, V4L2_FIELD_NONE, frame_width * 2);
     CHECK (ret, "device(%s) set format failed", device->get_device_name());
 
+#if HAVE_IA_AIQ
+    if (!event_device.ptr ())
+        event_device = new V4l2SubDevice (DEFAULT_EVENT_DEVICE);
     ret = event_device->open ();
     if (ret == XCAM_RETURN_NO_ERROR) {
         CHECK (ret, "event device(%s) open failed", event_device->get_device_name());
@@ -830,6 +832,7 @@ int main (int argc, char *argv[])
 
         device_manager->set_event_device (event_device);
     }
+#endif
 
     device_manager->set_capture_device (device);
     if (analyzer.ptr())
@@ -929,7 +932,9 @@ int main (int argc, char *argv[])
     ret = device_manager->stop();
     CHECK_CONTINUE (ret, "device manager stop failed");
     device->close ();
+#if HAVE_IA_AIQ
     event_device->close ();
+#endif
 
     return 0;
 }
