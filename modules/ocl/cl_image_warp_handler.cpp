@@ -188,7 +188,6 @@ CLImageWarpKernel::prepare_arguments (
 CLImageWarpHandler::CLImageWarpHandler ()
     : CLImageHandler ("CLImageWarpHandler")
 {
-    _input_buffer_id = -1;
 }
 
 bool
@@ -199,37 +198,12 @@ CLImageWarpHandler::is_ready ()
 }
 
 XCamReturn
-CLImageWarpHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
-{
-    XCAM_ASSERT (!_warp_config_list.empty ());
-
-    if (_input_buffer_list.size () >= CL_BUFFER_POOL_SIZE) {
-        XCAM_LOG_DEBUG ("input buffer list size full! pop front!");
-        _input_buffer_list.pop_front ();
-        _input_buffer_list.push_back (input);
-    } else {
-        _input_buffer_list.push_back (input);
-    }
-    _input_buffer_id ++;
-
-    input = *(_input_buffer_list.begin ());
-    return CLImageHandler::prepare_parameters (input, output);
-}
-
-XCamReturn
 CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
 {
     XCAM_UNUSED (output);
 
-    CLWarpConfig config = *_warp_config_list.begin ();
-    XCAM_LOG_DEBUG ("warp config id(%" PRId32 ")@valid(%" PRId32 "), input buffer id(%" PRId32 ")@list(%" PRIuS ")",
-        config.frame_id, config.valid, _input_buffer_id, _input_buffer_list.size ());
-
     _warp_config_list.pop_front ();
 
-    if (config.valid) {
-        _input_buffer_list.pop_front ();
-    }
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -238,13 +212,12 @@ CLImageWarpHandler::set_warp_config (const XCamDVSResult& config)
 {
     CLWarpConfig warp_config;
     warp_config.frame_id = config.frame_id;
-    warp_config.valid = config.valid > 0 ? true : false;
     warp_config.width = config.frame_width;
     warp_config.height = config.frame_height;
     for( int i = 0; i < 9; i++ ) {
         warp_config.proj_mat[i] = config.proj_mat[i];
     }
-    XCAM_LOG_DEBUG ("set_warp_config frame id(%d), valid(%d)", warp_config.frame_id, warp_config.valid);
+    XCAM_LOG_DEBUG ("set_warp_config frame id(%d)", warp_config.frame_id);
     XCAM_LOG_DEBUG ("projection matrix=(%f, %f, %f, %f, %f, %f, %f, %f, %f)",
                     warp_config.proj_mat[0], warp_config.proj_mat[1], warp_config.proj_mat[2],
                     warp_config.proj_mat[3], warp_config.proj_mat[4], warp_config.proj_mat[5],
@@ -263,7 +236,6 @@ CLImageWarpHandler::get_warp_config ()
         warp_config = *(_warp_config_list.begin ());
     } else {
         warp_config.frame_id = -1;
-        warp_config.valid = false;
         warp_config.proj_mat[0] = 1.0f;
         warp_config.proj_mat[1] = 0.0f;
         warp_config.proj_mat[2] = 0.0f;

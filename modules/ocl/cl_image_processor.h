@@ -69,7 +69,7 @@ private:
 
     XCamReturn process_cl_buffer_queue ();
     XCamReturn process_done_buffer ();
-    void check_ready_buffers ();
+    uint32_t check_ready_buffers ();
 
     XCAM_DEAD_COPY (CLImageProcessor);
 

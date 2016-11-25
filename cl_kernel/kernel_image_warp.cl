@@ -14,7 +14,6 @@
 
 typedef struct {
     int frame_id;
-    int valid;
     int width;
     int height;
     float trim_ratio;

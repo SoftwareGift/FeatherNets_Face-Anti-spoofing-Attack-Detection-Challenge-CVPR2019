@@ -476,6 +476,7 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
     XCAM_ASSERT (pipe_manager.ptr () && processor.ptr ());
     if (processor->is_scaled ())
         processor->set_scaler_factor (640.0 / GST_VIDEO_INFO_WIDTH (&in_info));
+    //processor->set_scaler_factor (0.5f);
     if (!processor->set_output_format (V4L2_PIX_FMT_NV12))
         return false;
 
@@ -665,11 +666,21 @@ gst_xcam_filter_prepare_output_buffer (GstBaseTransform *trans, GstBuffer *input
     GstXCamFilter *xcamfilter = GST_XCAM_FILTER (trans);
 
     GstFlowReturn ret = GST_FLOW_OK;
+
+    SmartPtr<DrmBoBufferPool> buf_pool = xcamfilter->buf_pool;
+    uint32_t free_buf_size = buf_pool->get_free_buffer_size ();
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
-    SmartPtr<VideoBuffer> video_buf = pipe_manager->dequeue_buffer ();
+    SmartPtr<VideoBuffer> video_buf;
+
+    if (free_buf_size < 5) {
+        video_buf = pipe_manager->dequeue_buffer (-1);
+    } else {
+        video_buf = pipe_manager->dequeue_buffer (0);
+    }
     if (!video_buf.ptr ()) {
         XCAM_LOG_WARNING ("xcamfilter dequeue buffer failed");
-        return GST_FLOW_ERROR;
+        *outbuf = NULL;
+        return GST_FLOW_OK;
     }
 
     if (xcamfilter->copy_mode == COPY_MODE_CPU) {

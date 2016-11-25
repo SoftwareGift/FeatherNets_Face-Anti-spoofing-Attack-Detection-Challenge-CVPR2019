@@ -29,7 +29,7 @@
 #include <signal.h>
 #include <stdio.h>
 
-#define DEFAULT_FPT_BUF_COUNT 4
+#define DEFAULT_FPT_BUF_COUNT 32
 
 using namespace XCam;
 

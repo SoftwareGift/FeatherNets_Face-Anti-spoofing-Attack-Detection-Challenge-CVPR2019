@@ -7,7 +7,7 @@
   * you may not use this file except in compliance with the License.
   * You may obtain a copy of the License at
   *
-  * 	 http://www.apache.org/licenses/LICENSE-2.0
+  *      http://www.apache.org/licenses/LICENSE-2.0
   *
   * Unless required by applicable law or agreed to in writing, software
   * distributed under the License is distributed on an "AS IS" BASIS,
@@ -39,7 +39,7 @@ public:
     MainPipeManager () {};
     ~MainPipeManager () {};
 
-    XCam::SmartPtr<XCam::VideoBuffer> dequeue_buffer ();
+    XCam::SmartPtr<XCam::VideoBuffer> dequeue_buffer (const int32_t timeout);
     void pause_dequeue ();
     void resume_dequeue ();
 

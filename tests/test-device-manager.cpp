@@ -147,7 +147,6 @@ void
 MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
 {
     FPS_CALCULATION (fps_buf, 30);
-
     XCAM_OBJ_PROFILING_START;
 
     if (_enable_display)
@@ -252,12 +251,12 @@ void print_help (const char *bin_name)
             "\t -a analyzer     specify a analyzer\n"
             "\t                 select from [simple"
 #if HAVE_IA_AIQ
-                                ", aiq"
+            ", aiq"
 #if HAVE_LIBCL
-                                ", dynamic, hybrid"
+            ", dynamic, hybrid"
 #endif
 #endif
-                                "], default is [simple]\n"
+            "], default is [simple]\n"
             "\t -m mem_type     specify video memory type\n"
             "\t                 mem_type select from [dma, mmap], default is [mmap]\n"
             "\t -s              save file to %s\n"

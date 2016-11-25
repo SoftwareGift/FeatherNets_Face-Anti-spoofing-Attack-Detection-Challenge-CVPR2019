@@ -207,24 +207,27 @@ CLImageProcessor::process_done_buffer ()
     return XCAM_RETURN_NO_ERROR;
 }
 
-void
+uint32_t
 CLImageProcessor::check_ready_buffers ()
 {
+    uint32_t ready_count = 0;
     bool is_ready_or_disabled = false;
     UnsafePriorityBufferList::iterator i = _not_ready_buffers.begin ();
+
     while (i != _not_ready_buffers.end()) {
         SmartPtr<PriorityBuffer> buf = *i;
         XCAM_ASSERT (buf.ptr () && buf->handler.ptr ());
         {
-            STREAM_LOCK; // make sure handler APIs are protected
             is_ready_or_disabled = (!buf->handler->is_handler_enabled () || buf->handler->is_ready ());
         }
         if (is_ready_or_disabled) {
+            ready_count ++;
             _process_buffer_queue.push_priority_buf (buf);
             _not_ready_buffers.erase (i++);
         } else
             ++i;
     }
+    return ready_count;
 }
 
 XCamReturn
@@ -232,11 +235,16 @@ CLImageProcessor::process_cl_buffer_queue ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<PriorityBuffer> p_buf;
-    const int32_t timeout = 50000; // 50ms
+    const int32_t timeout = 5000; // 5ms
+    uint32_t ready_count = 0;
 
-    check_ready_buffers ();
+    {
+        STREAM_LOCK;  // make sure handler APIs are protected
+        check_ready_buffers ();
+    }
 
     p_buf = _process_buffer_queue.pop (timeout);
+
     if (!p_buf.ptr ()) {
         //XCAM_LOG_DEBUG ("cl buffer queue stopped");
         return XCAM_RETURN_BYPASS;
@@ -255,6 +263,12 @@ CLImageProcessor::process_cl_buffer_queue ()
         if (handler->is_handler_enabled () && !handler->is_ready ()) {
             _not_ready_buffers.push_back (p_buf);
             return XCAM_RETURN_NO_ERROR;
+        }
+
+        ready_count = check_ready_buffers ();
+        if (ready_count) {
+            _process_buffer_queue.push_priority_buf (p_buf);
+            return XCAM_RETURN_BYPASS;
         }
 
         ret = handler->execute (data, out_data);

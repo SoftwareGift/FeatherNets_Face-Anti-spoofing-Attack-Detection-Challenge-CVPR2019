@@ -22,11 +22,14 @@
 #include "smart_analyzer.h"
 #include "smart_analysis_handler.h"
 
+#include "xcam_obj_debug.h"
+
 namespace XCam {
 
 SmartAnalyzer::SmartAnalyzer (const char *name)
     : XAnalyzer (name)
 {
+    XCAM_OBJ_PROFILING_INIT;
 }
 
 SmartAnalyzer::~SmartAnalyzer ()
@@ -129,6 +132,8 @@ SmartAnalyzer::update_params (XCamSmartAnalysisParam &params)
 XCamReturn
 SmartAnalyzer::analyze (SmartPtr<BufferProxy> &buffer)
 {
+    XCAM_OBJ_PROFILING_START;
+
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     X3aResultList results;
 
@@ -155,6 +160,8 @@ SmartAnalyzer::analyze (SmartPtr<BufferProxy> &buffer)
         set_results_timestamp (results, buffer->get_timestamp ());
         notify_calculation_done (results);
     }
+
+    XCAM_OBJ_PROFILING_END ("smart analysis", 30);
 
     return XCAM_RETURN_NO_ERROR;
 }

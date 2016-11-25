@@ -124,6 +124,10 @@ public:
         return !_buf_list.is_empty ();
     }
 
+    uint32_t get_free_buffer_size () {
+        return _buf_list.size ();
+    }
+
 protected:
     virtual bool fixate_video_info (VideoBufferInfo &info);
     virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info) = 0;

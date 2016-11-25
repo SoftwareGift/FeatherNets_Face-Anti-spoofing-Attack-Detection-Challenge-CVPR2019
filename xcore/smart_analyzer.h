@@ -53,6 +53,9 @@ private:
 private:
     SmartHandlerList   _handlers;
     X3aResultList      _results;
+
+    XCAM_OBJ_PROFILING_DEFINES;
+
 };
 
 }

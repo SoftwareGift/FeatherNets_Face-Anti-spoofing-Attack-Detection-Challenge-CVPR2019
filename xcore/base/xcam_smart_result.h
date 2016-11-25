@@ -63,7 +63,6 @@ typedef struct _XCamDVSResult {
     int                   frame_id;
     int                   frame_width;
     int                   frame_height;
-    int                   valid;
     double                proj_mat[9];
 } XCamDVSResult;
 

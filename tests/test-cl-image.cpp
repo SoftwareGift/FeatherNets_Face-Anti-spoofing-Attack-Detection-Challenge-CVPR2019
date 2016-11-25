@@ -558,7 +558,6 @@ int main (int argc, char *argv[])
         warp_config.frame_id = 1;
         warp_config.frame_width = width;
         warp_config.frame_height = height;
-        warp_config.valid = true;
 
         float theta = -10.0f;
         float phi = 10.0f;

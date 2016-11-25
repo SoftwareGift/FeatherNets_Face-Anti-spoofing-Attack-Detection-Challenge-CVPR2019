@@ -7,7 +7,7 @@
   * you may not use this file except in compliance with the License.
   * You may obtain a copy of the License at
   *
-  * 	 http://www.apache.org/licenses/LICENSE-2.0
+  *      http://www.apache.org/licenses/LICENSE-2.0
   *
   * Unless required by applicable law or agreed to in writing, software
   * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,10 +32,10 @@ MainPipeManager::post_buffer (const SmartPtr<VideoBuffer> &buf)
 }
 
 SmartPtr<VideoBuffer>
-MainPipeManager::dequeue_buffer ()
+MainPipeManager::dequeue_buffer (const int32_t timeout)
 {
     SmartPtr<VideoBuffer> ret;
-    ret = _ready_buffers.pop (-1);
+    ret = _ready_buffers.pop (timeout);
     return ret;
 }
 

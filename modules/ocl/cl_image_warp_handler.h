@@ -29,7 +29,6 @@ namespace XCam {
 
 struct CLWarpConfig {
     int frame_id;
-    bool valid;
     int width;
     int height;
     float trim_ratio;
@@ -37,10 +36,9 @@ struct CLWarpConfig {
 
     CLWarpConfig ()
         : frame_id (-1)
-        , valid (false)
         , width (-1)
         , height (-1)
-        , trim_ratio (0.1f)
+        , trim_ratio (0.05f)
     {
         proj_mat[0] = 1.0f;
         proj_mat[1] = 0.0f;
@@ -85,13 +83,11 @@ class CLImageWarpHandler
     : public CLImageHandler
 {
     typedef std::list<CLWarpConfig> CLWarpConfigList;
-    typedef std::list<SmartPtr<DrmBoBuffer>> CLBufferList;
 
 public:
     explicit CLImageWarpHandler ();
     virtual ~CLImageWarpHandler () {
         _warp_config_list.clear ();
-        _input_buffer_list.clear ();
     }
 
     bool set_warp_config (const XCamDVSResult& config);
@@ -100,15 +96,12 @@ public:
     virtual bool is_ready ();
 
 protected:
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLImageWarpHandler);
 
     CLWarpConfigList _warp_config_list;
-    CLBufferList _input_buffer_list;
-    int32_t _input_buffer_id;
 };
 
 SmartPtr<CLImageHandler>
