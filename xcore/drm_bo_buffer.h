@@ -108,15 +108,15 @@ public:
 
     bool update_swap_init_order (uint32_t init_order);
 
+    SmartPtr<DrmDisplay> &get_drm_display () {
+        return _display;
+    }
+
 protected:
     // derived from BufferPool
     virtual bool fixate_video_info (VideoBufferInfo &info);
     virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info);
     virtual SmartPtr<BufferProxy> create_buffer_from_data (SmartPtr<BufferData> &data);
-
-    SmartPtr<DrmDisplay> &get_drm_display () {
-        return _display;
-    }
 
     bool init_swap_order (VideoBufferInfo &info);
 

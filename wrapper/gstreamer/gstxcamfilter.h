@@ -25,6 +25,7 @@
 #include <gst/video/video.h>
 
 #include "main_pipe_manager.h"
+#include "gst_xcam_utils.h"
 
 using namespace XCam;
 using namespace GstXCam;

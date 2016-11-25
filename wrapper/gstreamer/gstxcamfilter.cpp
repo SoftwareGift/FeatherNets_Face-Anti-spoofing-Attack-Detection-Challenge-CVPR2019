@@ -485,7 +485,12 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
     }
 
     VideoBufferInfo buf_info;
-    buf_info.init (V4L2_PIX_FMT_NV12, GST_VIDEO_INFO_WIDTH (&in_info), GST_VIDEO_INFO_HEIGHT (&in_info));
+    buf_info.init (
+        V4L2_PIX_FMT_NV12,
+        GST_VIDEO_INFO_WIDTH (&in_info),
+        GST_VIDEO_INFO_HEIGHT (&in_info),
+        XCAM_ALIGN_UP (GST_VIDEO_INFO_WIDTH (&in_info), 16),
+        XCAM_ALIGN_UP (GST_VIDEO_INFO_HEIGHT (&in_info), 16));
 
     SmartPtr<DrmBoBufferPool> buf_pool = xcamfilter->buf_pool;
     XCAM_ASSERT (buf_pool.ptr ());
@@ -585,10 +590,6 @@ append_xcambuf_to_gstbuf (GstAllocator *allocator, SmartPtr<VideoBuffer> xcambuf
     }
 
     GstBuffer *tmpbuf = gst_buffer_new ();
-    GstXCamBufferMeta *meta = gst_buffer_add_xcam_buffer_meta (tmpbuf, xcambuf);
-    XCAM_ASSERT (meta);
-    ((GstMeta *) (meta))->flags = (GstMetaFlags) (GST_META_FLAG_POOLED | GST_META_FLAG_LOCKED | GST_META_FLAG_READONLY);
-
     GstMemory *mem = gst_dmabuf_allocator_alloc (allocator, dup (xcambuf->get_fd ()), xcambuf->get_size ());
     XCAM_ASSERT (mem);
 
@@ -609,6 +610,17 @@ append_xcambuf_to_gstbuf (GstAllocator *allocator, SmartPtr<VideoBuffer> xcambuf
     return GST_FLOW_OK;
 }
 
+static gint
+get_dmabuf_fd (GstBuffer *buffer)
+{
+    GstMemory *mem = gst_buffer_peek_memory (buffer, 0);
+    if (!gst_is_dmabuf_memory (mem)) {
+        return -1;
+    }
+
+    return gst_dmabuf_memory_get_fd (mem);
+}
+
 static void
 gst_xcam_filter_before_transform (GstBaseTransform *trans, GstBuffer *buffer)
 {
@@ -618,14 +630,28 @@ gst_xcam_filter_before_transform (GstBaseTransform *trans, GstBuffer *buffer)
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     XCAM_ASSERT (buf_pool.ptr () && pipe_manager.ptr ());
 
-    SmartPtr<DrmBoBuffer> drm_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
-    if (!drm_buf.ptr ()) {
-        XCAM_LOG_ERROR ("xcamfilter get drm buffer failed");
-        return;
-    }
-    SmartPtr<VideoBuffer> video_buf = drm_buf;
+    SmartPtr<VideoBuffer> video_buf;
+    gint dma_fd = get_dmabuf_fd (buffer);
+    if (dma_fd >= 0) {
+        SmartPtr<DrmDisplay> display = buf_pool->get_drm_display ();
+        VideoBufferInfo info = buf_pool->get_video_info ();
 
-    copy_gstbuf_to_xcambuf (xcamfilter->gst_video_info, buffer, video_buf);
+        SmartPtr<VideoBuffer> dma_buf = new DmaGstBuffer (info, dma_fd, buffer);
+        video_buf = display->convert_to_drm_bo_buf (display, dma_buf);
+        if (!video_buf.ptr ()) {
+            XCAM_LOG_ERROR ("xcamfilter convert to drm bo buffer failed");
+            return;
+        }
+    } else {
+        SmartPtr<DrmBoBuffer> drm_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+        if (!drm_buf.ptr ()) {
+            XCAM_LOG_ERROR ("xcamfilter sink-pad get drm buffer failed");
+            return;
+        }
+
+        video_buf = drm_buf;
+        copy_gstbuf_to_xcambuf (xcamfilter->gst_video_info, buffer, video_buf);
+    }
 
     if (pipe_manager->push_buffer (video_buf) != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_ERROR ("xcamfilter push buffer failed");

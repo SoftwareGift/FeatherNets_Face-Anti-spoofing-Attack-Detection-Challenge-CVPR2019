@@ -108,6 +108,7 @@ endif
 
 # headers we need but don't want installed
 noinst_HEADERS = \
+    gst_xcam_utils.h  \
     $(NULL)
 
 if ENABLE_IA_AIQ
