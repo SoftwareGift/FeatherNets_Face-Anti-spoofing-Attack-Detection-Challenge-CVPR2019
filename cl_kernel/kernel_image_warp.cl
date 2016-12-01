@@ -30,8 +30,8 @@ kernel_image_warp_8_pixel (
     int d_x = get_global_id(0);
     int d_y = get_global_id(1);
 
-    size_t width = get_global_size(0);
-    size_t height = get_global_size(1);
+    int out_width = get_image_width (output);
+    int out_height = get_image_height (output);
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
@@ -65,8 +65,8 @@ kernel_image_warp_8_pixel (
             warp_config.proj_mat[8];
         w = w != 0.0f ? 1.0f / w : 0.0f;
 
-        warp_x = (s_x * w) / (float)(PIXEL_X_STEP * width);
-        warp_y = (s_y * w) / (float)height;
+        warp_x = (s_x * w) / (float)(PIXEL_X_STEP * out_width);
+        warp_y = (s_y * w) / (float)out_height;
 
 #if WARP_Y
         output_pixel[i] = read_imagef(input, sampler, (float2)(warp_x, warp_y)).x;
@@ -95,8 +95,8 @@ kernel_image_warp_1_pixel (
     int d_x = get_global_id(0);
     int d_y = get_global_id(1);
 
-    size_t width = get_global_size(0);
-    size_t height = get_global_size(1);
+    int out_width = get_image_width (output);
+    int out_height = get_image_height (output);
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
@@ -112,8 +112,8 @@ kernel_image_warp_1_pixel (
               warp_config.proj_mat[8];
     w = w != 0.0f ? 1.0f / w : 0.0f;
 
-    float warp_x = (s_x * w) / (float)width;
-    float warp_y = (s_y * w) / (float)height;
+    float warp_x = (s_x * w) / (float)out_width;
+    float warp_y = (s_y * w) / (float)out_height;
 
     float4 pixel = read_imagef(input, sampler, (float2)(warp_x, warp_y));
 

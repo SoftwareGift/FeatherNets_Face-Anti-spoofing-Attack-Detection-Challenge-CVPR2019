@@ -88,7 +88,7 @@ CLImageWarpKernel::prepare_arguments (
 #if CL_IMAGE_WARP_WRITE_UINT
     cl_desc_out.format.image_channel_data_type = info_index == 0 ? CL_UNSIGNED_INT16 : CL_UNSIGNED_INT32;
     cl_desc_out.format.image_channel_order = CL_RGBA;
-    cl_desc_out.width = XCAM_ALIGN_DOWN (video_info_out.width >> info_index, 4) / 8;
+    cl_desc_out.width = XCAM_ALIGN_DOWN (video_info_out.width >> info_index, 8) / 8;
     cl_desc_out.height = video_info_out.height >> info_index;
 #else
     cl_desc_out.format.image_channel_order = info_index == 0 ? CL_R : CL_RG;
@@ -171,16 +171,18 @@ CLImageWarpKernel::prepare_arguments (
     work_size.global[0] = XCAM_ALIGN_UP (cl_desc_out.width, work_size.local[0]);
     work_size.global[1] = XCAM_ALIGN_UP(cl_desc_out.height, work_size.local[1]);
 
-    args[0].arg_adress = &_image_in->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
+    arg_count = 0;
+    args[arg_count].arg_adress = &_image_in->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
 
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
+    args[arg_count].arg_adress = &_image_out->get_mem_id ();
+    args[arg_count].arg_size = sizeof (cl_mem);
+    ++arg_count;
 
-    args[2].arg_adress = &_warp_config;
-    args[2].arg_size = sizeof (_warp_config);
-
-    arg_count = 3;
+    args[arg_count].arg_adress = &_warp_config;
+    args[arg_count].arg_size = sizeof (_warp_config);
+    ++arg_count;
 
     return XCAM_RETURN_NO_ERROR;
 }
