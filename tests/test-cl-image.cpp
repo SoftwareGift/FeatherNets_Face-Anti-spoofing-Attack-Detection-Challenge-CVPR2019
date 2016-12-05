@@ -593,16 +593,16 @@ int main (int argc, char *argv[])
         SmartPtr<CLFisheyeHandler> fisheye = image_handler.dynamic_cast_ptr<CLFisheyeHandler> ();
         XCAM_ASSERT (fisheye.ptr ());
         CLFisheyeInfo fisheye_info;
-        //fisheye0 {480.0f, 480.0f, 180.0f, 480.0f, -90.0f},
-        //fisheye1 {1440.0f, 480.0f, 180.0f, 480.0f, 90.0f}
+        //fisheye0 {480.0f, 480.0f, 190.0f, 480.0f, -90.0f},
+        //fisheye1 {1440.0f, 480.0f, 190.0f, 480.0f, 90.0f}
         fisheye_info.center_x = 480.0f;
         fisheye_info.center_y = 480.0f;
-        fisheye_info.wide_angle = 180.0f;
+        fisheye_info.wide_angle = 190.0f;
         fisheye_info.radius = 480.0f;
         fisheye_info.rotate_angle = -90.0f;
         fisheye->set_fisheye_info (fisheye_info);
-        fisheye->set_dst_range (180.0f, 180.0f);
-        fisheye->set_output_size (480, 480);
+        fisheye->set_dst_range (210.0f, 180.0f);
+        fisheye->set_output_size (1120, 960);
         break;
     }
     default:
