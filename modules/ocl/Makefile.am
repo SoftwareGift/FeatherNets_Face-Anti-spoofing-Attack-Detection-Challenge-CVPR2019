@@ -67,6 +67,7 @@ xcam_ocl_sources = \
     cl_fisheye_handler.cpp             \
     cl_biyuv_handler.cpp               \
     cl_image_scaler.cpp                \
+    cl_image_360_stitch.cpp            \
     cl_retinex_handler.cpp             \
     cl_gauss_handler.cpp               \
     cl_wavelet_denoise_handler.cpp     \
@@ -131,6 +132,7 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_geo_map_handler.h            \
     cl_image_scaler.h               \
     cl_image_warp_handler.h         \
+    cl_image_360_stitch.h           \
     cl_pyramid_blender.h            \
     cl_retinex_handler.h            \
     cl_wavelet_denoise_handler.h    \
