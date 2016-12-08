@@ -36,6 +36,7 @@ xcam_ocl_sources = \
     cl_image_processor.cpp             \
     cl_3a_image_processor.cpp          \
     cl_post_image_processor.cpp        \
+    cl_multi_image_handler.cpp         \
     cl_csc_image_processor.cpp         \
     cl_3a_stats_calculator.cpp         \
     cl_3a_stats_context.cpp            \
@@ -122,6 +123,7 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_yuv_pipe_handler.h           \
     cl_tnr_handler.h                \
     cl_post_image_processor.h       \
+    cl_multi_image_handler.h        \
     cl_3d_denoise_handler.h         \
     cl_defog_dcp_handler.h          \
     cl_fisheye_handler.h            \
