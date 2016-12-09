@@ -9,11 +9,12 @@ noinst_PROGRAMS += \
 endif
 
 if HAVE_LIBCL
-noinst_PROGRAMS +=      \
-	test-cl-image       \
-	test-binary-kernel  \
-	test-pipe-manager   \
-	test-image-blend    \
+noinst_PROGRAMS += \
+	test-cl-image        \
+	test-binary-kernel   \
+	test-pipe-manager    \
+	test-image-blend     \
+	test-image-stitching \
 	$(NULL)
 endif
 
@@ -87,6 +88,14 @@ test_image_blend_CXXFLAGS = \
 	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR)  \
 	$(NULL)
 test_image_blend_LDADD = \
+	$(XCORE_LA) $(OCL_LA)  \
+	$(NULL)
+
+test_image_stitching_SOURCES = test-image-stitching.cpp
+test_image_stitching_CXXFLAGS = \
+	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR)  \
+	$(NULL)
+test_image_stitching_LDADD = \
 	$(XCORE_LA) $(OCL_LA)  \
 	$(NULL)
 
