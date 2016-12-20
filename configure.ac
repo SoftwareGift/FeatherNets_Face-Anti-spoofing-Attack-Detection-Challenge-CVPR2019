@@ -59,6 +59,11 @@ AC_ARG_ENABLE(libcl,
                    [enable libcl image processor, @<:@default=no@:>@]),
     [], [enable_libcl="no"])
 
+AC_ARG_ENABLE(opencv,
+    AS_HELP_STRING([--enable-opencv],
+                   [enable opencv library, @<:@default=no@:>@]),
+    [], [enable_opencv="no"])
+
 # documentation
 AC_ARG_ENABLE(docs,
     [AC_HELP_STRING([--enable-docs],
@@ -111,6 +116,12 @@ if test "$HAVE_LIBCL" -eq 1; then
     if test "x$GAWK" = "xno"; then
         AC_MSG_ERROR([gawk not found])
     fi
+fi
+
+# check opencv
+HAVE_OPENCV=0
+if test "$enable_opencv" = "yes"; then
+    PKG_CHECK_MODULES(OPENCV, [opencv], [HAVE_OPENCV=1], [HAVE_OPENCV=0])
 fi
 
 # check AIQ
@@ -241,6 +252,10 @@ AC_DEFINE_UNQUOTED([HAVE_LIBCL], $HAVE_LIBCL,
     [have libcl])
 AM_CONDITIONAL([HAVE_LIBCL], [test "$HAVE_LIBCL" -eq 1])
 
+AC_DEFINE_UNQUOTED([HAVE_OPENCV], $HAVE_OPENCV,
+    [have opencv])
+AM_CONDITIONAL([HAVE_OPENCV], [test "$HAVE_OPENCV" -eq 1])
+
 #atomisp
 AM_CONDITIONAL([USE_LOCAL_ATOMISP], [test "$USE_LOCAL_ATOMISP" -eq 1])
 
@@ -275,6 +290,7 @@ AC_OUTPUT
 if test "$USE_LOCAL_AIQ" -eq 1; then use_local_aiq="yes"; else  use_local_aiq="no"; fi
 if test "$USE_LOCAL_ATOMISP" -eq 1; then use_local_atomisp="yes"; else  use_local_atomisp="no"; fi
 if test "$HAVE_LIBCL" -eq 1; then have_libcl="yes"; else  have_libcl="no"; fi
+if test "$HAVE_OPENCV" -eq 1; then have_opencv="yes"; else have_opencv="no"; fi
 
 echo "
      libxcam configuration summary
@@ -286,6 +302,7 @@ echo "
      use local aiq              : $use_local_aiq
      use local atomisp          : $use_local_atomisp
      have opencl lib            : $have_libcl
+     have opencv lib            : $have_opencv
      enable 3a lib              : $enable_3alib
      enable smart analysis lib  : $enable_smartlib
 "
