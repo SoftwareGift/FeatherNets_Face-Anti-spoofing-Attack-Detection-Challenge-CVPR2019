@@ -93,10 +93,15 @@ test_image_blend_LDADD = \
 
 test_image_stitching_SOURCES = test-image-stitching.cpp
 test_image_stitching_CXXFLAGS = \
-	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR)  \
+	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR) \
 	$(NULL)
 test_image_stitching_LDADD = \
 	$(XCORE_LA) $(OCL_LA)  \
 	$(NULL)
 
+if HAVE_OPENCV
+test_image_stitching_SOURCES += feature_match.cpp
+test_image_stitching_CXXFLAGS += $(OPENCV_CFLAGS)
+test_image_stitching_LDADD += $(OPENCV_LIBS)
+endif
 endif
