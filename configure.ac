@@ -280,6 +280,9 @@ AC_CONFIG_FILES([Makefile
                  plugins/3a/aiq/Makefile
                  plugins/3a/Makefile
                  plugins/smart/Makefile
+                 plugins/smart/dvs/Makefile
+                 plugins/smart/dvs/libdvs/Makefile
+                 plugins/smart/sample/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc
