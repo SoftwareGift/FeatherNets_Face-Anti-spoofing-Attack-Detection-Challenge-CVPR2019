@@ -11,7 +11,7 @@ XCAM_PLUGIN_DVS_CXXFLAGS += $(LIBDRM_CFLAGS)
 endif
 
 XCAM_PLUGIN_DVS_LIBS =            \
-	$(top_builddir)/plugins/smart/dvs/libdvs/libxcam_dvs.la \
+	$(top_builddir)/plugins/smart/dvs/libdvs/libxcam_dvs.a \
 	$(NULL)
 
 if HAVE_LIBDRM
@@ -32,14 +32,16 @@ libxcam_plugin_dvs_la_CXXFLAGS =                \
 
 libxcam_plugin_dvs_la_LIBADD =                  \
     $(XCAM_PLUGIN_DVS_LIBS)                     \
-    $(top_builddir)/xcore/libxcam_core.la       \
     $(top_builddir)/modules/ocl/libxcam_ocl.la  \
+    $(top_builddir)/xcore/libxcam_core.la       \
+    $(OPENCV_LIBS) \
     $(NULL)
 
 libxcam_plugin_dvs_la_LDFLAGS =            \
     -module -avoid-version                 \
     $(top_builddir)/xcore/libxcam_core.la  \
     $(PTHREAD_LDFLAGS)                     \
+    $(OPENCV_LIBS) \
     $(NULL)
 
 libxcam_plugin_dvs_la_LIBTOOLFLAGS = --tag=disable-static
