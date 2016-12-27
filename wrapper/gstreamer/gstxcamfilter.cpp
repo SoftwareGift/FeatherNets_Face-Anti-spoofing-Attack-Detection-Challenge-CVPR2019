@@ -28,6 +28,7 @@ using namespace XCam;
 using namespace GstXCam;
 
 #define DEFAULT_SMART_ANALYSIS_LIB_DIR  "/usr/lib/xcam/plugins/smart"
+#define DEFAULT_DELAY_BUFFER_NUM        2
 
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_COPY_MODE          COPY_MODE_CPU
@@ -255,6 +256,9 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
     xcamfilter->enable_image_warp = DEFAULT_PROP_ENABLE_IMAGE_WARP;
 
+    xcamfilter->delay_buf_num = DEFAULT_DELAY_BUFFER_NUM;
+    xcamfilter->cached_buf_num = 0;
+
     XCAM_CONSTRUCTOR (xcamfilter->pipe_manager, SmartPtr<MainPipeManager>);
     xcamfilter->pipe_manager = new MainPipeManager;
     XCAM_ASSERT (xcamfilter->pipe_manager.ptr ());
@@ -397,8 +401,15 @@ gst_xcam_filter_start (GstBaseTransform *trans)
 
     image_processor->set_wireframe (xcamfilter->enable_wireframe);
     image_processor->set_image_warp (xcamfilter->enable_image_warp);
-    if (smart_analyzer.ptr () && (xcamfilter->enable_wireframe || xcamfilter->enable_image_warp))
-        image_processor->set_scaler (true);
+    if (smart_analyzer.ptr ()) {
+        if (xcamfilter->enable_wireframe)
+            image_processor->set_scaler (true);
+
+        if (xcamfilter->enable_image_warp) {
+            image_processor->set_scaler (true);
+            xcamfilter->delay_buf_num = DEFAULT_DELAY_BUFFER_NUM + 16;
+        }
+    }
 
     pipe_manager->add_image_processor (image_processor);
     pipe_manager->set_image_processor (image_processor);
@@ -492,6 +503,14 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
         GST_VIDEO_INFO_HEIGHT (&in_info),
         XCAM_ALIGN_UP (GST_VIDEO_INFO_WIDTH (&in_info), 16),
         XCAM_ALIGN_UP (GST_VIDEO_INFO_HEIGHT (&in_info), 16));
+
+    if (xcamfilter->buf_count <= xcamfilter->delay_buf_num) {
+        XCAM_LOG_ERROR (
+            "buffer count (%d) should be greater than delayed buffer number (%d)",
+            xcamfilter->buf_count,
+            xcamfilter->delay_buf_num);
+        return false;
+    }
 
     SmartPtr<DrmBoBufferPool> buf_pool = xcamfilter->buf_pool;
     XCAM_ASSERT (buf_pool.ptr ());
@@ -631,6 +650,9 @@ gst_xcam_filter_before_transform (GstBaseTransform *trans, GstBuffer *buffer)
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     XCAM_ASSERT (buf_pool.ptr () && pipe_manager.ptr ());
 
+    if (xcamfilter->cached_buf_num > xcamfilter->delay_buf_num)
+        return;
+
     SmartPtr<VideoBuffer> video_buf;
     gint dma_fd = get_dmabuf_fd (buffer);
     if (dma_fd >= 0) {
@@ -658,25 +680,28 @@ gst_xcam_filter_before_transform (GstBaseTransform *trans, GstBuffer *buffer)
         XCAM_LOG_ERROR ("xcamfilter push buffer failed");
         return;
     }
+
+    xcamfilter->cached_buf_num++;
 }
 
 static GstFlowReturn
 gst_xcam_filter_prepare_output_buffer (GstBaseTransform *trans, GstBuffer *input, GstBuffer **outbuf)
 {
     GstXCamFilter *xcamfilter = GST_XCAM_FILTER (trans);
-
     GstFlowReturn ret = GST_FLOW_OK;
 
     SmartPtr<DrmBoBufferPool> buf_pool = xcamfilter->buf_pool;
-    uint32_t free_buf_size = buf_pool->get_free_buffer_size ();
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     SmartPtr<VideoBuffer> video_buf;
 
-    if (free_buf_size < 5) {
-        video_buf = pipe_manager->dequeue_buffer (-1);
-    } else {
-        video_buf = pipe_manager->dequeue_buffer (0);
-    }
+    if (xcamfilter->cached_buf_num > xcamfilter->buf_count)
+        return GST_FLOW_ERROR;
+
+    int32_t timeout = -1;
+    if (xcamfilter->cached_buf_num <= xcamfilter->delay_buf_num)
+        timeout = 0;
+
+    video_buf = pipe_manager->dequeue_buffer (timeout);
     if (!video_buf.ptr ()) {
         XCAM_LOG_WARNING ("xcamfilter dequeue buffer failed");
         *outbuf = NULL;
@@ -690,7 +715,10 @@ gst_xcam_filter_prepare_output_buffer (GstBaseTransform *trans, GstBuffer *input
         ret = append_xcambuf_to_gstbuf (allocator, video_buf, outbuf);
     }
 
-    GST_BUFFER_TIMESTAMP (*outbuf) = GST_BUFFER_TIMESTAMP (input);
+    if (ret == GST_FLOW_OK) {
+        xcamfilter->cached_buf_num--;
+        GST_BUFFER_TIMESTAMP (*outbuf) = GST_BUFFER_TIMESTAMP (input);
+    }
 
     return ret;
 }

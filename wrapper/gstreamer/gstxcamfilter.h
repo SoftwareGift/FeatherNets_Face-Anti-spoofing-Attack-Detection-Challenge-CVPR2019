@@ -83,6 +83,8 @@ struct _GstXCamFilter
     gboolean                     enable_wireframe;
     gboolean                     enable_image_warp;
 
+    uint32_t                     delay_buf_num;
+    uint32_t                     cached_buf_num;
     GstAllocator                 *allocator;
     GstVideoInfo                 gst_video_info;
     SmartPtr<DrmBoBufferPool>    buf_pool;
