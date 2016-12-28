@@ -37,9 +37,9 @@ typedef struct _X3aCiqTnrTuningStaticData {
 
 const X3aCiqTnrTuningStaticData imx185_tuning[X3A_CIQ_GAIN_STEPS] = {
     {1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-    {16.98, 0.8, 0.0081, 0.00725, 1.0, 0.0253, 0.0158, 0.0168},
-    {49.55, 0.5, 0.0146, 0.0128, 1.0, 0.0434, 0.0274, 0.0317},
-    {139.63, 0.3, 0.0247, 0.0253, 1.0, 0.0602, 0.0377, 0.0445},
+    {16.98, 0.8, 0.0081, 0.00725, 0.2, 0.0253, 0.0158, 0.0168},
+    {49.55, 0.5, 0.0146, 0.0128, 0.4, 0.0434, 0.0274, 0.0317},
+    {139.63, 0.3, 0.0247, 0.0253, 0.8, 0.0602, 0.0377, 0.0445},
     {X3A_CIQ_GAIN_MAX, 0.2, 0.0358, 0.0329, 1.0, 0.0994, 0.0696, 0.0924},
 };
 
@@ -63,7 +63,7 @@ X3aCiqTnrTuningHandler::analyze (X3aResultList &output)
     }
 
     XCam3aResultTemporalNoiseReduction config;
-    SmartPtr<X3aTemporalNoiseReduction> rgb_result = new X3aTemporalNoiseReduction (XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB);
+    SmartPtr<X3aTemporalNoiseReduction> nr_result = new X3aTemporalNoiseReduction (XCAM_3A_RESULT_3D_NOISE_REDUCTION);
     SmartPtr<X3aTemporalNoiseReduction> yuv_result = new X3aTemporalNoiseReduction (XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV);
 
     int64_t et = get_current_exposure_time ();
@@ -103,7 +103,7 @@ X3aCiqTnrTuningHandler::analyze (X3aResultList &output)
     yuv_result->set_standard_result (config);
     output.push_back (yuv_result);
 
-    //Calculate RGB config
+    //Calculate 3D NR config
     xcam_mem_clear (config);
     config.gain = linear_interpolate_p2 (tuning[i_prev].rgb_gain, tuning[i_curr].rgb_gain,
                                          tuning[i_prev].analog_gain, tuning[i_curr].analog_gain, analog_gain);
@@ -117,11 +117,11 @@ X3aCiqTnrTuningHandler::analyze (X3aResultList &output)
     config.threshold[2] = linear_interpolate_p2 (tuning[i_prev].b_threshold, tuning[i_curr].b_threshold,
                           tuning[i_prev].analog_gain, tuning[i_curr].analog_gain, analog_gain);
 
-    XCAM_LOG_DEBUG ("Calculate RGB temporal noise reduction config: rgb_gain(%f), r_threshold(%f), g_threshold(%f), b_threshold(%f)",
-                    config.gain, config.threshold[0], config.threshold[1], config.threshold[2]);
+    XCAM_LOG_DEBUG ("Calculate 3D noise reduction config: gain(%f), y_threshold(%f), uv_threshold(%f)",
+                    config.gain, config.threshold[0], config.threshold[1]);
 
-    rgb_result->set_standard_result (config);
-    output.push_back (rgb_result);
+    nr_result->set_standard_result (config);
+    output.push_back (nr_result);
 
     return ret;
 }

@@ -92,9 +92,9 @@ CL3DDenoiseImageKernel::prepare_arguments (
     cl_desc_out.row_pitch = video_info_out.strides[info_index];
 
     _ref_count = _handler->get_ref_framecount ();
-    _gain = 6.0 / _handler->get_denoise_config ().gain;
-    _thr_y = _handler->get_denoise_config ().threshold[0];
-    _thr_uv = _handler->get_denoise_config ().threshold[1];
+    _gain = 5.0f / (_handler->get_denoise_config ().gain + 0.0001f);
+    _thr_y = 2.0f * _handler->get_denoise_config ().threshold[0];
+    _thr_uv = 2.0f * _handler->get_denoise_config ().threshold[1];
 
     _image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[info_index]);
     if (_image_in_list.size () < _ref_count) {

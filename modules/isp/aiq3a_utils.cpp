@@ -251,7 +251,7 @@ translate_3a_results_to_xcam (X3aResultList &list,
             results[result_count++] = (XCam3aResultHead*)new_brightness;
             break;
         }
-        case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB:
+        case XCAM_3A_RESULT_3D_NOISE_REDUCTION:
         case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
         {
             SmartPtr<X3aTemporalNoiseReduction> xcam_tnr =

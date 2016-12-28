@@ -112,6 +112,7 @@ CLPostImageProcessor::can_process_result (SmartPtr < X3aResult > & result)
 
     switch (result->get_type ()) {
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
+    case XCAM_3A_RESULT_3D_NOISE_REDUCTION:
     case XCAM_3A_RESULT_WAVELET_NOISE_REDUCTION:
     case XCAM_3A_RESULT_FACE_DETECTION:
     case XCAM_3A_RESULT_DVS:
@@ -170,8 +171,13 @@ CLPostImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
                 _tnr->set_yuv_config (tnr_res->get_standard_result ());
             }
         }
+        break;
+    }
+    case XCAM_3A_RESULT_3D_NOISE_REDUCTION: {
+        SmartPtr<X3aTemporalNoiseReduction> nr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
+        XCAM_ASSERT (nr_res.ptr ());
         if (_3d_denoise.ptr ()) {
-            _3d_denoise->set_denoise_config (tnr_res->get_standard_result ());
+            _3d_denoise->set_denoise_config (nr_res->get_standard_result ());
         }
         break;
     }

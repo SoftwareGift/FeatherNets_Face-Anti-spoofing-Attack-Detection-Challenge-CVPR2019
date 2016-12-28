@@ -117,7 +117,7 @@ CL3aImageProcessor::can_process_result (SmartPtr<X3aResult> &result)
     case XCAM_3A_RESULT_MACC:
     case XCAM_3A_RESULT_BAYER_NOISE_REDUCTION:
     case XCAM_3A_RESULT_BRIGHTNESS:
-    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB:
+    case XCAM_3A_RESULT_3D_NOISE_REDUCTION:
     case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_YUV:
     case XCAM_3A_RESULT_EDGE_ENHANCEMENT:
         return true;
@@ -220,10 +220,10 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         break;
     }
 
-    case XCAM_3A_RESULT_TEMPORAL_NOISE_REDUCTION_RGB: {
-        SmartPtr<X3aTemporalNoiseReduction> tnr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
-        XCAM_ASSERT (tnr_res.ptr ());
-        XCAM_UNUSED (tnr_res);
+    case XCAM_3A_RESULT_3D_NOISE_REDUCTION: {
+        SmartPtr<X3aTemporalNoiseReduction> nr_res = result.dynamic_cast_ptr<X3aTemporalNoiseReduction> ();
+        XCAM_ASSERT (nr_res.ptr ());
+        XCAM_UNUSED (nr_res);
 
         break;
     }
