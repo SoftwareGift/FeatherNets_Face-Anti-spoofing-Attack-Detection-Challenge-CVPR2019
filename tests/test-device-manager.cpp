@@ -343,7 +343,6 @@ int main (int argc, char *argv[])
 #if HAVE_IA_AIQ
     int32_t brightness_level = 128;
 #endif
-    bool wdr_type = false;
     uint32_t defog_type = 0;
     CLWaveletBasis wavelet_mode = CL_WAVELET_DISABLED;
     uint32_t wavelet_channel = CL_IMAGE_CHANNEL_UV;
@@ -633,7 +632,6 @@ int main (int argc, char *argv[])
                 wdr_mode = CL3aImageProcessor::Haleq;
 
             pixel_format = V4L2_PIX_FMT_SGRBG12;
-            wdr_type = true;
             setenv ("AIQ_CPF_PATH", IMX185_WDR_CPF, 1);
             break;
         }
@@ -799,9 +797,9 @@ int main (int argc, char *argv[])
     else {
         frame_rate = 25;
         device->set_framerate (frame_rate, 1);
-        if(wdr_type == true) {
+        if(wdr_mode != CL3aImageProcessor::WDRdisabled) {
             XCAM_LOG_WARNING("Tonemapping is only applicable under BA12 format. Disable tonemapping automatically.");
-            wdr_type = false;
+            wdr_mode = CL3aImageProcessor::WDRdisabled;
         }
     }
 #endif
@@ -855,13 +853,14 @@ int main (int argc, char *argv[])
         cl_processor->set_dpc(dpc_type);
         cl_processor->set_hdr (hdr_type);
         cl_processor->set_denoise (denoise_type);
-        cl_processor->set_tonemapping(wdr_mode);
-        cl_processor->set_gamma (!wdr_type); // disable gamma for WDR
         cl_processor->set_capture_stage (capture_stage);
 
-        if (wdr_type) {
-            cl_processor->set_3a_stats_bits(12);
+        cl_processor->set_tonemapping (wdr_mode);
+        if (wdr_mode != CL3aImageProcessor::WDRdisabled) {
+            cl_processor->set_gamma (false);
+            cl_processor->set_3a_stats_bits (12);
         }
+
         cl_processor->set_tnr (tnr_type, tnr_level);
         cl_processor->set_profile (pipeline_mode);
 #if HAVE_IA_AIQ
@@ -912,7 +911,7 @@ int main (int argc, char *argv[])
 
 #if HAVE_LIBCL
     // hard code exposure range and max gain for imx185 WDR
-    if (wdr_type) {
+    if (wdr_mode != CL3aImageProcessor::WDRdisabled) {
         if (frame_rate == 30)
             analyzer->set_ae_exposure_time_range (80 * 1110 * 1000 / 37125, 1120 * 1110 * 1000 / 37125);
         else

@@ -36,7 +36,7 @@ IspController::~IspController ()
 }
 
 void
-IspController::get_default_sensor_mode_data (struct atomisp_sensor_mode_data *sensor_mode_data)
+IspController::init_sensor_mode_data (struct atomisp_sensor_mode_data *sensor_mode_data)
 {
     sensor_mode_data->coarse_integration_time_min = 1;
     sensor_mode_data->coarse_integration_time_max_margin = 1;
@@ -61,9 +61,9 @@ IspController::get_default_sensor_mode_data (struct atomisp_sensor_mode_data *se
 XCamReturn
 IspController::get_sensor_mode_data (struct atomisp_sensor_mode_data &sensor_mode_data)
 {
-    if ( _device->io_control (ATOMISP_IOC_G_SENSOR_MODE_DATA, &sensor_mode_data) < 0) {
-        XCAM_LOG_WARNING (" get ISP sensor mode data failed, fallback to default sensor mode data");
-        get_default_sensor_mode_data (&sensor_mode_data);
+    init_sensor_mode_data (&sensor_mode_data);
+    if (_device->io_control (ATOMISP_IOC_G_SENSOR_MODE_DATA, &sensor_mode_data) < 0) {
+        XCAM_LOG_WARNING (" get ISP sensor mode data failed, use initialized sensor mode data");
     }
     return XCAM_RETURN_NO_ERROR;
 }
