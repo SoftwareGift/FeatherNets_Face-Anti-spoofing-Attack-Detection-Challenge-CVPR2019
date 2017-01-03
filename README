@@ -24,6 +24,8 @@ Features:
        - WDR: gaussian-based tone-mapping, histogram adjustment tone-mapping
        - Fog removal: retinex and dark channel prior algorithm.
        - Blender: multi-band blender and fisheye geometry map correction.
+       - Image stiching: feature detect and match to generate panorama photography through multi-frame images captured in adjacent point of view.
+       - DVS: digital image stabilization based on feature detect, optical flow and motion model estimation.
   * Capture features support memory type of mmap and dma buffer.
   * Support 3rd party 3A lib which can be loaded dynamically.
        - hybrid 3a plugin

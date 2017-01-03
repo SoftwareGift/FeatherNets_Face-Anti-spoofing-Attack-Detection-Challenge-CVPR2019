@@ -1,3 +1,16 @@
+2016/12/30: release libxcam version 0.8.0
+ * Digital Video Stabilization (DVS)
+   - enable DVS smart analysis plugin.
+   - algorithms used in DVS (feature detect, optical flow, motion model estimation) are based on OpenCV.
+   - implement image warp perspective algorithm in CL kernel.
+
+ * Image stitching to create panorama photography
+   - implement fisheye calculation which map location to equirectangular.
+   - enable feature detection and match based on OpenCV optical flow algorithm.
+   - enable seam mask to improve the quality of blender.
+
+ * gstreamer plugin xcamfilter can co-work with xcamsrc
+
 2016/09/30: release libxcam version 0.7.0
  * 3D-NR quality and performance improvement.
    - use image exposure parameters to adjust global denoise strength.
