@@ -136,7 +136,7 @@ XCamReturn dvs_analyze(XCamSmartAnalysisContext *context, XCamVideoBuffer *buffe
     config.radius = DVS_MOTION_FILTER_RADIUS;
     config.stdev = 10.0f;
     config.features = 1000;
-    config.minDistance = 15.0f;
+    config.minDistance = 20.0f;
 
     theDVS->setConfig(&config);
 
