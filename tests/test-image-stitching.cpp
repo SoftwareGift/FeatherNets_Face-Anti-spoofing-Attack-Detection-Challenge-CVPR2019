@@ -37,7 +37,7 @@
 #endif
 
 #define XCAM_STITCHING_DEBUG 0
-#define XCAM_ALIGNED_WIDTH 8
+#define XCAM_ALIGNED_WIDTH 16
 
 using namespace XCam;
 
@@ -61,7 +61,7 @@ static FisheyeCropInfo fisheye_crop1 = {
     .bottom = 0,
 };
 
-static const float max_dst_angle = 230.0f;
+static float max_dst_angle = 231.0f;
 static uint32_t merge_width0 = 62;
 static uint32_t merge_width1 = 58;
 
@@ -178,7 +178,7 @@ fisheye_correction (
     SmartPtr<CLFisheyeHandler> fisheye_handler, const CLFisheyeInfo fisheye_info,
     SmartPtr<DrmBoBuffer> input_buf, SmartPtr<DrmBoBuffer> &output_buf,
     uint32_t output_width, uint32_t output_height,
-    char *dump_name, bool need_save_output)
+    char *file_name, int frame_num)
 {
     fisheye_handler->set_fisheye_info (fisheye_info);
     fisheye_handler->set_dst_range (max_dst_angle, 180.0f);
@@ -192,16 +192,18 @@ fisheye_correction (
     XCAM_ASSERT (output_buf.ptr ());
 
 #if XCAM_STITCHING_DEBUG
-    if (need_save_output) {
-        ret = dump_buffer (output_buf, dump_name);
-        if (ret != XCAM_RETURN_NO_ERROR) {
-            XCAM_LOG_ERROR ("fisheye correction: dump buffer failed");
-            return ret;
-        }
+    static int index = 0;
+    char dump_name[1024];
+    snprintf (dump_name, 1023, "fisheye-%d-%s.%02d", index, file_name, frame_num);
+    ret = dump_buffer (output_buf, dump_name);
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("fisheye correction: dump buffer failed");
+        return ret;
     }
+    index = (index == 0) ? 1 : 0;
 #else
-    XCAM_UNUSED (dump_name);
-    XCAM_UNUSED (need_save_output);
+    XCAM_UNUSED (file_name);
+    XCAM_UNUSED (frame_num);
 #endif
 
     return XCAM_RETURN_NO_ERROR;
@@ -258,7 +260,7 @@ convert_to_xcam_rect (
 
 static void
 calc_feature_match (
-    SmartPtr<CLContext> context, int fisheye_output_width,
+    SmartPtr<CLContext> context, int fisheye_width,
     SmartPtr<DrmBoBuffer> fisheye_buf0, SmartPtr<DrmBoBuffer> fisheye_buf1,
     ImageStitchInfo &stitch_info0, ImageStitchInfo &stitch_info1,
     const char *input_name, int frame_num)
@@ -266,7 +268,7 @@ calc_feature_match (
     cv::Rect crop_area1, crop_area2, crop_area3, crop_area4;
 
     convert_to_cv_rect (stitch_info0, stitch_info1, crop_area1, crop_area2, crop_area3, crop_area4);
-    optical_flow_feature_match (context, fisheye_output_width, fisheye_buf0, fisheye_buf1,
+    optical_flow_feature_match (context, fisheye_width, fisheye_buf0, fisheye_buf1,
                                 crop_area1, crop_area2, crop_area3, crop_area4, input_name, frame_num);
     convert_to_xcam_rect (crop_area1, crop_area2, crop_area3, crop_area4, stitch_info0, stitch_info1);
 }
@@ -451,10 +453,13 @@ int main (int argc, char *argv[])
         usage (argv[0]);
         return -1;
     }
-    // if ((stitch_mode == IMAGE_STITCH_MODE_360) && (output_width != output_height * 2)) {
-    //     XCAM_LOG_ERROR ("incorrect output size, please check");
-    //     return -1;
-    // }
+
+    output_width = XCAM_ALIGN_UP (output_width, XCAM_ALIGNED_WIDTH);
+    output_height = XCAM_ALIGN_UP (output_height, XCAM_ALIGNED_WIDTH);
+    if ((stitch_mode == IMAGE_STITCH_MODE_360) && (output_width != output_height * 2)) {
+        XCAM_LOG_ERROR ("incorrect output size width:%d height:%d", output_width, output_height);
+        return -1;
+    }
 
     printf ("Description----------------\n");
     printf ("input file:\t%s\n", file_in_name);
@@ -473,40 +478,34 @@ int main (int argc, char *argv[])
     fisheye = create_fisheye_handler (context).dynamic_cast_ptr<CLFisheyeHandler> ();
     XCAM_ASSERT (fisheye.ptr ());
     get_fisheye_info (fisheye_info0, fisheye_info1);
-    uint32_t fisheye_output_width = (max_dst_angle / 180.0f) * output_height;
-    fisheye_output_width = XCAM_ALIGN_UP (fisheye_output_width, XCAM_ALIGNED_WIDTH);
-    uint32_t fisheye_output_height = XCAM_ALIGN_UP (output_height, XCAM_ALIGNED_WIDTH);
+    uint32_t fisheye_width = (output_width + merge_width0 + merge_width1
+                              + fisheye_crop0.left + fisheye_crop0.right
+                              + fisheye_crop1.left + fisheye_crop1.right) / 2;
+    fisheye_width = XCAM_ALIGN_UP (fisheye_width, XCAM_ALIGNED_WIDTH);
+    uint32_t fisheye_height = output_height + fisheye_crop0.top + fisheye_crop0.bottom;
     XCAM_LOG_INFO (
         "fisheye correction output size width:%d height:%d",
-        fisheye_output_width, fisheye_output_height);
+        fisheye_width, fisheye_height);
+
+    max_dst_angle = 180.0f * fisheye_width / fisheye_height;
 
     ImageStitchInfo stitch_info0, stitch_info1;
     if (stitch_mode == IMAGE_STITCH_MODE_360) {
-        output_width = fisheye_output_width * 2 - merge_width0 - merge_width1
-                       - fisheye_crop0.left - fisheye_crop0.right - fisheye_crop1.left - fisheye_crop1.right;
-        output_height = fisheye_output_height - fisheye_crop0.top - fisheye_crop0.bottom;
-        output_width = XCAM_ALIGN_UP (output_width, XCAM_ALIGNED_WIDTH);
-        output_height = XCAM_ALIGN_UP (output_height, XCAM_ALIGNED_WIDTH);
-        XCAM_LOG_INFO (
-            "stitching output size width:%d height:%d",
-            output_width, output_height);
         image_360 = create_image_360_stitch (context, enable_seam).dynamic_cast_ptr<CLImage360Stitch> ();
         XCAM_ASSERT (image_360.ptr ());
-        get_stitch_info (fisheye_output_width, fisheye_output_height,
+        get_stitch_info (fisheye_width, fisheye_height,
                          fisheye_crop0, fisheye_crop1, stitch_info0, stitch_info1);
         image_360->set_output_size (output_width, output_height);
     } else {
-        output_width = fisheye_output_width * 2 - merge_width1 - fisheye_crop0.right - fisheye_crop1.left;
-        output_height = fisheye_output_height - fisheye_crop0.top - fisheye_crop0.bottom;
+        output_width = output_width + merge_width1 + fisheye_crop0.right + fisheye_crop1.left;
         output_width = XCAM_ALIGN_UP (output_width, XCAM_ALIGNED_WIDTH);
-        output_height = XCAM_ALIGN_UP (output_height, XCAM_ALIGNED_WIDTH);
         XCAM_LOG_INFO (
             "blending output size width:%d height:%d",
             output_width, output_height);
         blender = create_pyramid_blender (context, 2, true, enable_seam).dynamic_cast_ptr<CLBlender> ();
         XCAM_ASSERT (blender.ptr ());
         set_blend_info (blender, output_width, output_height,
-                        fisheye_output_width, fisheye_crop0, fisheye_crop1);
+                        fisheye_width, fisheye_crop0, fisheye_crop1);
     }
 
     input_buf_info.init (input_format, input_width, input_height);
@@ -527,14 +526,15 @@ int main (int argc, char *argv[])
     init_opencv_ocl (context);
 
     cv::VideoWriter writer;
-    cv::Size dst_size = cv::Size (output_width, output_height);
-    if (!writer.open (file_out_name, CV_FOURCC('X', '2', '6', '4'), 30, dst_size)) {
-        printf ("open file %s failed\n", file_out_name);
-        return -1;
+    if (need_save_output) {
+        cv::Size dst_size = cv::Size (output_width, output_height);
+        if (!writer.open (file_out_name, CV_FOURCC('X', '2', '6', '4'), 30, dst_size)) {
+            XCAM_LOG_ERROR ("open file %s failed", file_out_name);
+            return -1;
+        }
     }
 #endif
 
-    char dump_name[1024];
     int i = 0;
     do {
         input_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
@@ -548,21 +548,19 @@ int main (int argc, char *argv[])
             return -1;
         }
 
-        snprintf (dump_name, 1023, "fisheye-0-%s.%02d", file_out_name, i);
         ret = fisheye_correction (fisheye, fisheye_info0, input_buf, fisheye_buf0,
-                                  fisheye_output_width, fisheye_output_height, dump_name, need_save_output);
+                                  fisheye_width, fisheye_height, file_in_name, i);
         CHECK (ret, "fisheye_correction execute failed");
 
-        snprintf (dump_name, 1023, "fisheye-1-%s.%02d", file_out_name, i);
         ret = fisheye_correction (fisheye, fisheye_info1, input_buf, fisheye_buf1,
-                                  fisheye_output_width, fisheye_output_height, dump_name, need_save_output);
+                                  fisheye_width, fisheye_height, file_in_name, i);
         CHECK (ret, "fisheye_correction execute failed");
 
         if (stitch_mode == IMAGE_STITCH_MODE_360) {
-            get_stitch_info (fisheye_output_width, fisheye_output_height,
+            get_stitch_info (fisheye_width, fisheye_height,
                              fisheye_crop0, fisheye_crop1, stitch_info0, stitch_info1);
 #if HAVE_OPENCV
-            calc_feature_match (context, fisheye_output_width, fisheye_buf0, fisheye_buf1,
+            calc_feature_match (context, fisheye_width, fisheye_buf0, fisheye_buf1,
                                 stitch_info0, stitch_info1, file_in_name, i);
 #endif
             ret = image_360_stitch (image_360, fisheye_buf0, fisheye_buf1,
@@ -575,7 +573,6 @@ int main (int argc, char *argv[])
 
         if (need_save_output) {
 #if HAVE_OPENCV
-            using namespace cv;
             cv::Mat out_mat;
             convert_to_mat (context, output_buf, out_mat);
             writer.write (out_mat);
