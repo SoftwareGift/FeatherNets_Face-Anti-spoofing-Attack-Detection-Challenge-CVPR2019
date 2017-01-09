@@ -6,6 +6,9 @@
  * layer:        wavelet decomposition layer
  * decomLevels:  wavelet decomposition levels
  */
+#ifndef WAVELET_DENOISE_Y
+#define WAVELET_DENOISE_Y 1
+#endif
 
 __kernel void kernel_wavelet_haar_decomposition (__read_only image2d_t input,
         __write_only image2d_t ll, __write_only image2d_t hl,

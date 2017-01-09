@@ -40,18 +40,18 @@ __kernel void kernel_demosaic (__read_only image2d_t input, __write_only image2d
     }
 
     float4 p00, p01, p10, p11;
-    p00.x = (p[4].x + p[6].x) / 2.0;
-    p00.y = (p[5].x * 4 + p[0].x + p[2].x + p[8].x + p[10].x) / 8.0;
-    p00.z = (p[1].x + p[9].x) / 2.0;
+    p00.x = (p[4].x + p[6].x) / 2.0f;
+    p00.y = (p[5].x * 4 + p[0].x + p[2].x + p[8].x + p[10].x) / 8.0f;
+    p00.z = (p[1].x + p[9].x) / 2.0f;
     p01.x = p[6].x;
-    p01.y = (p[2].x + p[5].x + p[7].x + p[10].x) / 4.0;
-    p01.z = (p[1].x + p[3].x + p[9].x + p[11].x) / 4.0;
-    p10.x = (p[4].x + p[6].x + p[12].x + p[14].x) / 4.0;
-    p10.y = (p[5].x + p[8].x + p[10].x + p[13].x) / 4.0;
+    p01.y = (p[2].x + p[5].x + p[7].x + p[10].x) / 4.0f;
+    p01.z = (p[1].x + p[3].x + p[9].x + p[11].x) / 4.0f;
+    p10.x = (p[4].x + p[6].x + p[12].x + p[14].x) / 4.0f;
+    p10.y = (p[5].x + p[8].x + p[10].x + p[13].x) / 4.0f;
     p10.z = p[9].x;
-    p11.x = (p[6].x + p[14].x) / 2.0;
-    p11.y = (p[10].x * 4 + p[5].x + p[7].x + p[13].x + p[15].x) / 8.0;
-    p11.z = (p[9].x + p[11].x) / 2.0;
+    p11.x = (p[6].x + p[14].x) / 2.0f;
+    p11.y = (p[10].x * 4 + p[5].x + p[7].x + p[13].x + p[15].x) / 8.0f;
+    p11.z = (p[9].x + p[11].x) / 2.0f;
 
     write_imagef (output, (int2)(x, y), p00);
     write_imagef (output, (int2)(x + 1, y), p01);

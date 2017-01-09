@@ -32,12 +32,12 @@ __kernel void kernel_tnr_yuv(__read_only image2d_t inputFrame, __read_only image
     float4 pixel_U = read_imagef(inputFrame, sampler, (int2)(2 * x, y + vertical_offset));
     float4 pixel_V = read_imagef(inputFrame, sampler, (int2)(2 * x + 1, y + vertical_offset));
 
-    float diff_max = 0.8;
+    float diff_max = 0.8f;
 
-    float diff_Y = 0.25 * (fabs(pixel_Y1.x - pixel_t0_Y1.x) + fabs(pixel_Y2.x - pixel_t0_Y2.x) + fabs(pixel_Y3.x - pixel_t0_Y3.x) + fabs(pixel_Y4.x - pixel_t0_Y4.x));
+    float diff_Y = 0.25f * (fabs(pixel_Y1.x - pixel_t0_Y1.x) + fabs(pixel_Y2.x - pixel_t0_Y2.x) + fabs(pixel_Y3.x - pixel_t0_Y3.x) + fabs(pixel_Y4.x - pixel_t0_Y4.x));
 
     float coeff_Y = (diff_Y < thr_y) ? gain : (diff_Y * (1 - gain) + diff_max * gain - thr_y) / (diff_max - thr_y);
-    coeff_Y = (coeff_Y < 1.0) ? coeff_Y : 1.0;
+    coeff_Y = (coeff_Y < 1.0f) ? coeff_Y : 1.0f;
 
     float4 pixel_outY1;
     float4 pixel_outY2;
@@ -54,8 +54,8 @@ __kernel void kernel_tnr_yuv(__read_only image2d_t inputFrame, __read_only image
 
     float coeff_U = (diff_U < thr_uv) ? gain : (diff_U * (1 - gain) + diff_max * gain - thr_uv) / (diff_max - thr_uv);
     float coeff_V = (diff_V < thr_uv) ? gain : (diff_V * (1 - gain) + diff_max * gain - thr_uv) / (diff_max - thr_uv);
-    coeff_U = (coeff_U < 1.0) ? coeff_U : 1.0;
-    coeff_V = (coeff_V < 1.0) ? coeff_V : 1.0;
+    coeff_U = (coeff_U < 1.0f) ? coeff_U : 1.0f;
+    coeff_V = (coeff_V < 1.0f) ? coeff_V : 1.0f;
 
     float4 pixel_outU;
     float4 pixel_outV;

@@ -7,6 +7,10 @@
 
 //#define ENABLE_IMAGE_2D_INPUT 0
 
+#ifndef STATS_BITS
+#define STATS_BITS 8
+#endif
+
 /*
  * GROUP_PIXEL_X_SIZE = 2 * GROUP_CELL_X_SIZE
  * GROUP_PIXEL_Y_SIZE = 2 * GROUP_CELL_Y_SIZE

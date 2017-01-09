@@ -9,7 +9,7 @@
  * vertical_offset: used for get the uv plane
  */
 
-__constant float gausssingle[25] = {0.6411, 0.7574, 0.8007, 0.7574, 0.6411, 0.7574, 0.8948, 0.9459, 0.8948, 0.7574, 0.8007, 0.94595945, 1, 0.9459, 0.8007, 0.7574, 0.8948, 0.9459, 0.8948, 0.7574, 0.6411, 0.7574, 0.8007, 0.7574, 0.6411};
+__constant float gausssingle[25] = {0.6411f, 0.7574f, 0.8007f, 0.7574f, 0.6411f, 0.7574f, 0.8948f, 0.9459f, 0.8948f, 0.7574f, 0.8007f, 0.94595945f, 1.0f, 0.9459f, 0.8007f, 0.7574f, 0.8948f, 0.9459f, 0.8948f, 0.7574f, 0.6411f, 0.7574f, 0.8007f, 0.7574f, 0.6411f};
 
 #define LOCAL_SIZE_X 16
 #define LOCAL_SIZE_Y 15
@@ -22,19 +22,19 @@ __kernel void kernel_biyuv(__read_only image2d_t srcYUV, __write_only image2d_t 
     int localY = get_local_id(0);    //[0,imh/72-1]
     //printf("localX=%d,localY=%d\n",localX,localY);
 
-    float normF = 0;
-    float H = 0;
-    float delta = 0;
+    float normF = 0.0f;
+    float H = 0.0f;
+    float delta = 0.0f;
     int i = 0, j = 0;
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
     sigma_r = 2 * pown(sigma_r, 2);
 
     //coord in srcY
     float4 line;
-    line.x = 0;
-    line.y = 0;
-    line.z = 0;
-    line.w = 1.0;
+    line.x = 0.0f;
+    line.y = 0.0f;
+    line.z = 0.0f;
+    line.w = 1.0f;
     float4 uv_in;
 
     // cpy UV

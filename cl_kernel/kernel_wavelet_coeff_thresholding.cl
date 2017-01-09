@@ -48,13 +48,13 @@ __kernel void kernel_wavelet_coeff_thresholding (float noise_var1, float noise_v
     coeff_var_hh = 65025 * (1 << 2 * layer) * read_imagef(var_hh, sampler, (int2)(x, y));
 
     stddev_hl = coeff_var_hl - noise_var;
-    stddev_hl = (stddev_hl > 0) ? sqrt(stddev_hl) : 0.000001;
+    stddev_hl = (stddev_hl > 0) ? sqrt(stddev_hl) : 0.000001f;
 
     stddev_lh = coeff_var_lh - noise_var;
-    stddev_lh = (stddev_lh > 0) ? sqrt(stddev_lh) : 0.000001;
+    stddev_lh = (stddev_lh > 0) ? sqrt(stddev_lh) : 0.000001f;
 
     stddev_hh = coeff_var_hh - noise_var;
-    stddev_hh = (stddev_hh > 0) ? sqrt(stddev_hh) : 0.000001;
+    stddev_hh = (stddev_hh > 0) ? sqrt(stddev_hh) : 0.000001f;
 
     thresh_hl = (ag_weight * noise_var / stddev_hl) / (255 * (1 << layer));
     thresh_lh = (ag_weight * noise_var / stddev_lh) / (255 * (1 << layer));

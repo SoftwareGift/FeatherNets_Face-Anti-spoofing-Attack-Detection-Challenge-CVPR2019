@@ -103,7 +103,7 @@ inline void weighted_average (__read_only image2d_t input,
                        (gradient - ref_cache[mad24(i, 4 * REF_BLOCK_WIDTH, 2 * REF_BLOCK_WIDTH + local_id_x + j)]) +
                        (gradient - ref_cache[mad24(i, 4 * REF_BLOCK_WIDTH, 3 * REF_BLOCK_WIDTH + local_id_x + j)]);
             gradient.s0 = (gradient.s0 + gradient.s1 + gradient.s2 + gradient.s3) / 15.0f;
-            gain = (gradient.s0 < threshold) ? gain : (float)2.0 * gain;
+            gain = (gradient.s0 < threshold) ? gain : 2.0f * gain;
 
             weight = native_exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
             weight = (weight < 0) ? 0 : weight;
@@ -149,7 +149,7 @@ inline void weighted_average (__read_only image2d_t input,
                        (gradient - ref_cache[mad24(i, 4 * REF_BLOCK_WIDTH, 2 * REF_BLOCK_WIDTH + local_id_x + j)]) +
                        (gradient - ref_cache[mad24(i, 4 * REF_BLOCK_WIDTH, 3 * REF_BLOCK_WIDTH + local_id_x + j)]);
             gradient.s0 = (gradient.s0 + gradient.s1 + gradient.s2 + gradient.s3) / 15.0f;
-            gain = (gradient.s0 < threshold) ? gain : (float)2.0 * gain;
+            gain = (gradient.s0 < threshold) ? gain : 2.0f * gain;
 
             weight = native_exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
             weight = (weight < 0) ? 0 : weight;

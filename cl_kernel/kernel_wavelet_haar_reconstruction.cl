@@ -8,8 +8,12 @@
  * threshold:   hard/soft denoise thresholding
  */
 
-__constant float uv_threshConst[5] = { 0.1659, 0.06719, 0.03343, 0.01713, 0.01043 };
-__constant float y_threshConst[5] = { 0.06129, 0.027319, 0.012643, 0.006513, 0.003443 };
+#ifndef WAVELET_DENOISE_Y
+#define WAVELET_DENOISE_Y 1
+#endif
+
+__constant float uv_threshConst[5] = { 0.1659f, 0.06719f, 0.03343f, 0.01713f, 0.01043f };
+__constant float y_threshConst[5] = { 0.06129f, 0.027319f, 0.012643f, 0.006513f, 0.003443f };
 
 __kernel void kernel_wavelet_haar_reconstruction (__write_only image2d_t output,
         __read_only image2d_t ll, __read_only image2d_t hl,
@@ -21,7 +25,7 @@ __kernel void kernel_wavelet_haar_reconstruction (__write_only image2d_t output,
     int y = get_global_id (1);
     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
-    float thresh = 0.0;
+    float thresh = 0.0f;
 
     float4 line_ll;
     float4 line_hl;

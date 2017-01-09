@@ -44,22 +44,22 @@ __kernel void kernel_blc (__read_only image2d_t input,
     uint4 pixel;
 
     pixel = read_imageui(input, sampler, pos_r);
-    pixel.x = floor(pixel.x - blc_config.level_r * (pown(2.0, blc_config.color_bits)) + 0.5);
+    pixel.x = floor(pixel.x - blc_config.level_r * (pown(2.0f, blc_config.color_bits)) + 0.5f);
     pixel.x = decompression(pixel.x, blc_config.color_bits);
     write_imageui(output, pos_r, pixel);
 
     pixel = read_imageui(input, sampler, pos_gr);
-    pixel.x = floor(pixel.x - blc_config.level_gr * (pown(2.0, blc_config.color_bits)) + 0.5);
+    pixel.x = floor(pixel.x - blc_config.level_gr * (pown(2.0f, blc_config.color_bits)) + 0.5f);
     pixel.x = decompression(pixel.x, blc_config.color_bits);
     write_imageui(output, pos_gr, pixel);
 
     pixel = read_imageui(input, sampler, pos_gb);
-    pixel.x = floor(pixel.x - blc_config.level_gb * (pown(2.0, blc_config.color_bits)) + 0.5);
+    pixel.x = floor(pixel.x - blc_config.level_gb * (pown(2.0f, blc_config.color_bits)) + 0.5f);
     pixel.x = decompression(pixel.x, blc_config.color_bits);
     write_imageui(output, pos_gb, pixel);
 
     pixel = read_imageui(input, sampler, pos_b);
-    pixel.x = floor(pixel.x - blc_config.level_b * (pown(2.0, blc_config.color_bits)) + 0.5);
+    pixel.x = floor(pixel.x - blc_config.level_b * (pown(2.0f, blc_config.color_bits)) + 0.5f);
     pixel.x = decompression(pixel.x, blc_config.color_bits);
     write_imageui(output, pos_b, pixel);
 }

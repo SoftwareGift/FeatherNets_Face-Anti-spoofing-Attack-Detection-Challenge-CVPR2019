@@ -8,8 +8,8 @@ unsigned int get_sector_id (float u, float v)
 {
     u = fabs(u) > 0.00001f ? u : 0.00001f;
     float tg = v / u;
-    unsigned int se = tg > 1 ? (tg > 2 ? 3 : 2) : (tg > 0.5 ? 1 : 0);
-    unsigned int so = tg > -1 ? (tg > -0.5 ? 3 : 2) : (tg > -2 ? 1 : 0);
+    unsigned int se = tg > 1 ? (tg > 2 ? 3 : 2) : (tg > 0.5f ? 1 : 0);
+    unsigned int so = tg > -1 ? (tg > -0.5f ? 3 : 2) : (tg > -2 ? 1 : 0);
     return tg > 0 ? (u > 0 ? se : (se + 8)) : (u > 0 ? (so + 12) : (so + 4));
 }
 __kernel void kernel_macc (__read_only image2d_t input, __write_only image2d_t output, __global float *table)
@@ -27,16 +27,16 @@ __kernel void kernel_macc (__read_only image2d_t input, __write_only image2d_t o
 #pragma unroll
         for(i = 0; i < 4; i++) {
             pixel_in[j * 4 + i] = read_imagef(input, sampler, (int2)(4 * x + i, 2 * y + j));
-            Y[j * 4 + i] = 0.3 * pixel_in[j * 4 + i].x + 0.59 * pixel_in[j * 4 + i].y + 0.11 * pixel_in[j * 4 + i].z;
-            ui[j * 4 + i] = 0.493 * (pixel_in[j * 4 + i].z - Y[j * 4 + i]);
-            vi[j * 4 + i] = 0.877 * (pixel_in[j * 4 + i].x - Y[j * 4 + i]);
+            Y[j * 4 + i] = 0.3f * pixel_in[j * 4 + i].x + 0.59f * pixel_in[j * 4 + i].y + 0.11f * pixel_in[j * 4 + i].z;
+            ui[j * 4 + i] = 0.493f * (pixel_in[j * 4 + i].z - Y[j * 4 + i]);
+            vi[j * 4 + i] = 0.877f * (pixel_in[j * 4 + i].x - Y[j * 4 + i]);
             table_id[j * 4 + i] = get_sector_id(ui[j * 4 + i], vi[j * 4 + i]);
             uo[j * 4 + i] = ui[j * 4 + i] * table[4 * table_id[j * 4 + i]] + vi[j * 4 + i] * table[4 * table_id[j * 4 + i] + 1];
             vo[j * 4 + i] = ui[j * 4 + i] * table[4 * table_id[j * 4 + i] + 2] + vi[j * 4 + i] * table[4 * table_id[j * 4 + i] + 3];
-            pixel_out[j * 4 + i].x = Y[j * 4 + i] + 1.14 * vo[j * 4 + i];
-            pixel_out[j * 4 + i].y = Y[j * 4 + i] - 0.39 * uo[j * 4 + i] - 0.58 * vo[j * 4 + i];
-            pixel_out[j * 4 + i].z = Y[j * 4 + i] + 2.03 * uo[j * 4 + i];
-            pixel_out[j * 4 + i].w = 0.0;
+            pixel_out[j * 4 + i].x = Y[j * 4 + i] + 1.14f * vo[j * 4 + i];
+            pixel_out[j * 4 + i].y = Y[j * 4 + i] - 0.39f * uo[j * 4 + i] - 0.58f * vo[j * 4 + i];
+            pixel_out[j * 4 + i].z = Y[j * 4 + i] + 2.03f * uo[j * 4 + i];
+            pixel_out[j * 4 + i].w = 0.0f;
             write_imagef(output, (int2)(4 * x + i, 2 * y + j), pixel_out[j * 4 + i]);
         }
     }

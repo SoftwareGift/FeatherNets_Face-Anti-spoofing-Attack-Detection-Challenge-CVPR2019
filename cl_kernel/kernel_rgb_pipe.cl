@@ -47,9 +47,9 @@ __inline void cl_tnr (float4 *out, int gx, int gy, __read_only image2d_t inputFr
     in2 = read_imagef(inputFrame2, sampler, (int2)(gx, gy));
     in3 = read_imagef(inputFrame3, sampler, (int2)(gx, gy));
 
-    var.x = (fabs((*(out)).x - in1.x) + fabs(in1.x - in2.x) + fabs(in2.x - in3.x)) / 3.0;
-    var.y = (fabs((*(out)).y - in1.y) + fabs(in1.y - in2.y) + fabs(in2.y - in3.y)) / 3.0;
-    var.z = (fabs((*(out)).z - in1.z) + fabs(in1.z - in2.z) + fabs(in2.z - in3.z)) / 3.0;
+    var.x = (fabs((*(out)).x - in1.x) + fabs(in1.x - in2.x) + fabs(in2.x - in3.x)) / 3.0f;
+    var.y = (fabs((*(out)).y - in1.y) + fabs(in1.y - in2.y) + fabs(in2.y - in3.y)) / 3.0f;
+    var.z = (fabs((*(out)).z - in1.z) + fabs(in1.z - in2.z) + fabs(in2.z - in3.z)) / 3.0f;
 
     int cond = (var.x + var.y + var.z) < (tnr_config.thr_r + tnr_config.thr_g + tnr_config.thr_b);
     gain = cond ? 1.0f : 0.0f;

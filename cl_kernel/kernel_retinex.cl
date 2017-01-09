@@ -4,7 +4,9 @@
  * output:   image2d_t as write only
  */
 
-//#define RETINEX_SCALE_SIZE 2
+#ifndef RETINEX_SCALE_SIZE
+#define RETINEX_SCALE_SIZE 2
+#endif
 
 typedef struct {
     float    gain;

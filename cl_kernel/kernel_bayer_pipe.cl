@@ -115,7 +115,7 @@ inline float2 dot_ee (float2 value, float2 in1, float2 in2, float2 in3, float2 i
     float2 ee = mad(in1 + in2 + in3 + in4, -0.25f, value);
     ee =  fabs(ee) > ee_config.ee_threshold ? ee : 0.0f;
 
-    egain[0] = mad(ee, ee_config.ee_gain, out + 0.03) / (out + 0.03);
+    egain[0] = mad(ee, ee_config.ee_gain, out + 0.03f) / (out + 0.03f);
 
     return out * egain[0];
 }

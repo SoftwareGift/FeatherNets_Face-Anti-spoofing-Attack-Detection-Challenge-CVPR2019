@@ -30,7 +30,7 @@ __kernel void kernel_3a_stats (__read_only image2d_t input, __global XCamGridSta
     float sum_gr = 0.0f, sum_r = 0.0f, sum_b = 0.0f, sum_gb = 0.0f;
     float avg_gr = 0.0f, avg_r = 0.0f, avg_b = 0.0f, avg_gb = 0.0f;
     int i = 0, j = 0;
-    float count = (16.0 / 2) * (16.0 / 2);
+    float count = (16.0f / 2.0f) * (16.0f / 2.0f);
     float4 p[4];
 
 #pragma unroll
@@ -53,12 +53,12 @@ __kernel void kernel_3a_stats (__read_only image2d_t input, __global XCamGridSta
     avg_b = sum_b / count;
     avg_gb = sum_gb / count;
 
-    output[y * w + x].avg_gr = convert_uint(avg_gr * 256.0);
-    output[y * w + x].avg_r = convert_uint(avg_r * 256.0);
-    output[y * w + x].avg_b = convert_uint(avg_b * 256.0);
-    output[y * w + x].avg_gb = convert_uint(avg_gb * 256.0);
+    output[y * w + x].avg_gr = convert_uint(avg_gr * 256.0f);
+    output[y * w + x].avg_r = convert_uint(avg_r * 256.0f);
+    output[y * w + x].avg_b = convert_uint(avg_b * 256.0f);
+    output[y * w + x].avg_gb = convert_uint(avg_gb * 256.0f);
     output[y * w + x].valid_wb_count = convert_uint(count);
-    output[y * w + x].avg_y = convert_uint(((avg_gr + avg_gb) / 2.0f) * 256.0);
+    output[y * w + x].avg_y = convert_uint(((avg_gr + avg_gb) / 2.0f) * 256.0f);
     output[y * w + x].f_value1 = 0;
     output[y * w + x].f_value2 = 0;
 

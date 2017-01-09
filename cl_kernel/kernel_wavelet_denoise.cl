@@ -7,7 +7,7 @@
  * low:
  */
 
-__constant float threshConst[5] = { 50.430166, 20.376415, 10.184031, 6.640919, 3.367972 };
+__constant float threshConst[5] = { 50.430166f, 20.376415f, 10.184031f, 6.640919f, 3.367972f };
 
 __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOut, __global float *details, __global uint *dest,
                                      int inputYOffset, int outputYOffset, uint inputUVOffset, uint outputUVOffset,
@@ -21,9 +21,9 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
     int imageWidth = width * 16;
     int imageHeight = height;
 
-    float stdev = 0.0;
-    float thold = 0.0;
-    float16 deviation = (float16)0.0;
+    float stdev = 0.0f;
+    float thold = 0.0f;
+    float16 deviation = (float16)0.0f;
 
     layer = (layer > 1) ? layer : 1;
     layer = (layer < decomLevels) ? layer : decomLevels;
@@ -32,10 +32,10 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
     dest += outputYOffset;
 
 #if WAVELET_DENOISE_UV
-    int xScaler = pown(2.0, layer);
-    int yScaler = pown(2.0, (layer - 1));
+    int xScaler = pown(2.0f, layer);
+    int yScaler = pown(2.0f, (layer - 1));
 #else
-    int xScaler = pown(2.0, (layer - 1));
+    int xScaler = pown(2.0f, (layer - 1));
     int yScaler = xScaler;
 #endif
 
@@ -176,7 +176,7 @@ __kernel void kernel_wavelet_denoise(__global uint *src, __global uint *approxOu
           (ushort16)2 * d + (ushort16)4 * e + (ushort16)2 * f +
           (ushort16)1 * g + (ushort16)2 * h + (ushort16)1 * i;
 
-    approx = as_uint4(convert_uchar16(((convert_float16(sum) + 0.5 / div) * div)));
+    approx = as_uint4(convert_uchar16(((convert_float16(sum) + 0.5f / div) * div)));
     detail = convert_float16(convert_char16(e) - as_char16(approx));
 
     thold = hardThresh * threshConst[layer - 1];

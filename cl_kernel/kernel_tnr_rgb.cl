@@ -31,9 +31,9 @@ __kernel void kernel_tnr_rgb(__write_only image2d_t outputFrame, float tnr_gain,
         pixel_in2 =  read_imagef(inputFrame2, sampler, (int2)(x, y));
         pixel_in3 =  read_imagef(inputFrame3, sampler, (int2)(x, y));
 
-        var.x = (fabs(pixel_in0.x - pixel_in1.x) + fabs(pixel_in1.x - pixel_in2.x) + fabs(pixel_in2.x - pixel_in3.x)) / 3.0;
-        var.y = (fabs(pixel_in0.y - pixel_in1.y) + fabs(pixel_in1.y - pixel_in2.y) + fabs(pixel_in2.y - pixel_in3.y)) / 3.0;
-        var.z = (fabs(pixel_in0.z - pixel_in1.z) + fabs(pixel_in1.z - pixel_in2.z) + fabs(pixel_in2.z - pixel_in3.z)) / 3.0;
+        var.x = (fabs(pixel_in0.x - pixel_in1.x) + fabs(pixel_in1.x - pixel_in2.x) + fabs(pixel_in2.x - pixel_in3.x)) / 3.0f;
+        var.y = (fabs(pixel_in0.y - pixel_in1.y) + fabs(pixel_in1.y - pixel_in2.y) + fabs(pixel_in2.y - pixel_in3.y)) / 3.0f;
+        var.z = (fabs(pixel_in0.z - pixel_in1.z) + fabs(pixel_in1.z - pixel_in2.z) + fabs(pixel_in2.z - pixel_in3.z)) / 3.0f;
 
         cond = (var.x + var.y + var.z) < (thr_r + thr_g + thr_b);
         gain = cond ? 1.0f : 0.0f;
@@ -44,9 +44,9 @@ __kernel void kernel_tnr_rgb(__write_only image2d_t outputFrame, float tnr_gain,
     }
     else if(frameCount == 3) {
         pixel_in2 =  read_imagef(inputFrame2, sampler, (int2)(x, y));
-        var.x = (fabs(pixel_in0.x - pixel_in1.x) + fabs(pixel_in1.x - pixel_in2.x)) / 2.0;
-        var.y = (fabs(pixel_in0.y - pixel_in1.y) + fabs(pixel_in1.y - pixel_in2.y)) / 2.0;
-        var.z = (fabs(pixel_in0.z - pixel_in1.z) + fabs(pixel_in1.z - pixel_in2.z)) / 2.0;
+        var.x = (fabs(pixel_in0.x - pixel_in1.x) + fabs(pixel_in1.x - pixel_in2.x)) / 2.0f;
+        var.y = (fabs(pixel_in0.y - pixel_in1.y) + fabs(pixel_in1.y - pixel_in2.y)) / 2.0f;
+        var.z = (fabs(pixel_in0.z - pixel_in1.z) + fabs(pixel_in1.z - pixel_in2.z)) / 2.0f;
 
         cond = (var.x + var.y + var.z) < (thr_r + thr_g + thr_b);
         gain = cond ? 1.0f : 0.0f;

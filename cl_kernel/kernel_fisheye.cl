@@ -49,7 +49,7 @@ kernel_fisheye_2_gps (
     const int g_y = get_global_id (1) * 2;
     float2 src_pos[4];
     float4 src_data;
-    float *src_ptr = &src_data;
+    float *src_ptr = (float*)(&src_data);
     sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
     float2 gps_start_pos =
