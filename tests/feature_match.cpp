@@ -38,14 +38,15 @@ using namespace XCam;
 #define XCAM_OF_DEBUG 0
 #define XCAM_OF_DRAW_SCALE 2
 
-static int sitch_min_width = 64;
-static int corner_min_num = 16;
-static float max_offset = 8.0f;
+static const int sitch_min_width = 56;
 
-typedef struct {
-    bool valid;
-    float data;
-} OFOffset;
+static const int min_corners = 8;
+static const float max_offset = 16.0f;
+static const float offset_factor = 0.8f;
+
+static const int delta_count = 4;  // cur_count - last_count
+static const float delta_mean_offset = 0.1f;  // cur_mean_offset - last_mean_offset
+static const float delta_offset = 12.0f;  // cur_mean_offset - last_offset
 
 void
 init_opencv_ocl (SmartPtr<CLContext> context)
@@ -100,12 +101,98 @@ add_detected_data (Mat image, Ptr<Feature2D> detector, vector<Point2f> &corners)
     }
 }
 
+static void
+get_valid_offsets (
+    Mat out_image, Size img0_size,
+    vector<Point2f> corner0, vector<Point2f> corner1,
+    vector<uchar> status, vector<float> error,
+    vector<float> &offsets, float &sum, int &count)
+{
+    count = 0;
+    sum = 0.0f;
+    for (uint32_t i = 0; i < status.size (); ++i) {
+#if XCAM_OF_DEBUG
+        Point start = Point(corner0[i]) * XCAM_OF_DRAW_SCALE;
+        circle (out_image, start, 4, Scalar(255, 0, 0), XCAM_OF_DRAW_SCALE);
+#endif
+        if (!status[i] || error[i] > 16)
+            continue;
+        if (fabs(corner0[i].y - corner1[i].y) >= 4)
+            continue;
+
+        float offset = corner1[i].x - corner0[i].x;
+        if (fabs (offset) > max_offset)
+            continue;
+
+        sum += offset;
+        ++count;
+        offsets.push_back (offset);
+
+#if XCAM_OF_DEBUG
+        Point end = (Point(corner1[i]) + Point (img0_size.width, 0)) * XCAM_OF_DRAW_SCALE;
+        line (out_image, start, end, Scalar(0, 0, 255), XCAM_OF_DRAW_SCALE);
+#else
+        XCAM_UNUSED (out_image);
+        XCAM_UNUSED (img0_size);
+#endif
+    }
+}
+
+static bool
+get_mean_offset (vector<float> offsets, float sum, int &count, float &mean_offset)
+{
+    if (count < min_corners)
+        return false;
+
+    mean_offset = sum / count;
+    if (mean_offset > max_offset)
+        return false;
+    XCAM_LOG_INFO (
+        "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
+        mean_offset, 0.0f, 0, count);
+
+    bool ret = true;
+    float delta = mean_offset;
+    float pre_mean_offset = mean_offset;
+    for (int try_times = 1; try_times < 4; ++try_times) {
+        int recur_count = 0;
+        sum = 0.0f;
+        for (size_t i = 0; i < offsets.size (); ++i) {
+            if (fabs (offsets[i] - mean_offset) >= 4.0f)
+                continue;
+            sum += offsets[i];
+            ++recur_count;
+        }
+
+        if (recur_count < min_corners) {
+            ret = false;
+            break;
+        }
+
+        mean_offset = sum / recur_count;
+        XCAM_LOG_INFO (
+            "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
+            mean_offset, pre_mean_offset, try_times, recur_count);
+        if (fabs (mean_offset) > max_offset ||
+                fabs (mean_offset - pre_mean_offset) > fabs (delta)) {
+            ret = false;
+            break;
+        }
+
+        delta = mean_offset - pre_mean_offset;
+        pre_mean_offset = mean_offset;
+        count = recur_count;
+    }
+
+    return ret;
+}
+
 static Mat
-draw_match_optical_flow (
+calc_match_optical_flow (
     Mat image0, Mat image1,
     vector<Point2f> corner0, vector<Point2f> corner1,
     vector<uchar> &status, vector<float> &error,
-    OFOffset &out_x_offset)
+    int &last_count, float &last_mean_offset, float &out_x_offset)
 {
     Mat out_image;
     Size img0_size = image0.size ();
@@ -122,61 +209,27 @@ draw_match_optical_flow (
     resize (out_image, out_image, scale_size, 0, 0);
 #endif
 
-    float x_offset_sum = 0.0f;
     vector<float> offsets;
+    float offset_sum = 0.0f;
     int count = 0;
-
+    float mean_offset = 0.0f;
     offsets.reserve (corner0.size ());
-    for (uint32_t i = 0; i < status.size (); ++i) {
-#if XCAM_OF_DEBUG
-        Point start = Point(corner0[i]) * XCAM_OF_DRAW_SCALE;
-        circle (out_image, start, 4, Scalar(255, 0, 0), XCAM_OF_DRAW_SCALE);
-#endif
-        if (!status[i] || error[i] > 30)
-            continue;
+    get_valid_offsets (out_image, img0_size, corner0, corner1, status, error,
+                       offsets, offset_sum, count);
 
-        if (fabs(corner0[i].y - corner1[i].y) > 8)
-            continue;
+    bool ret = get_mean_offset (offsets, offset_sum, count, mean_offset);
+    if (ret) {
+        if (fabs (count - last_count) < delta_count &&
+                fabs (mean_offset - last_mean_offset) < delta_mean_offset)
+            out_x_offset = 0.0f;
+        else if (fabs (mean_offset - out_x_offset) < delta_offset)
+            out_x_offset = out_x_offset * offset_factor + mean_offset * (1.0f - offset_factor);
+    } else
+        out_x_offset = 0.0f;
 
-        float offset = (corner1[i].x - corner0[i].x);
-        x_offset_sum += offset;
-        ++count;
-        offsets.push_back (offset);
+    last_count = count;
+    last_mean_offset = mean_offset;
 
-#if XCAM_OF_DEBUG
-        Point end = (Point(corner1[i]) + Point (img0_size.width, 0))* XCAM_OF_DRAW_SCALE;
-        line(out_image, start, end, Scalar(0, 0,255), XCAM_OF_DRAW_SCALE);
-#endif
-    }
-
-    float mean_offset = max_offset + 1.0f;
-    if (count >= corner_min_num) {
-        float mean_offset = x_offset_sum / count;
-        XCAM_LOG_INFO ("X-axis avg offset : %.2f, (count:%d)", mean_offset, count);
-        for (int try_times = 1; try_times < 4; ++try_times) {
-            x_offset_sum = 0.0f;
-            int recur_count = 0;
-            for (size_t i = 0; i < offsets.size (); ++i) {
-                if (fabs(offsets[i] - mean_offset) > 8.0f)
-                    continue;
-                x_offset_sum += offsets[i];
-                ++recur_count;
-            }
-
-            if (recur_count < corner_min_num)
-                break;
-
-            mean_offset = x_offset_sum / recur_count;
-            XCAM_LOG_INFO ("X-axis mean offset:%.2f, (%d times, count:%d)", mean_offset, try_times, recur_count);
-        }
-    }
-
-    if (count >= corner_min_num && mean_offset <= max_offset) {
-        out_x_offset.valid = true;
-        out_x_offset.data = mean_offset;
-    } else {
-        out_x_offset.valid = false;
-    }
     return out_image;
 }
 
@@ -208,7 +261,9 @@ optical_flow_feature_match (
     Mat image0_left_rgb, image0_right_rgb, image1_left_rgb, image1_right_rgb;
     vector<Point2f> corner0_left, corner0_right, corner1_left, corner1_right;
     Mat out_image0, out_image1;
-    OFOffset x_offset0, x_offset1;
+    static float x_offset0 = 0.0f, x_offset1 = 0.0f;
+    static int valid_count0 = 0, valid_count1 = 0;
+    static float mean_offset0 = 0.0f, mean_offset1 = 0.0f;
 
     if (!convert_to_mat (context, buf0, image0) || !convert_to_mat (context, buf1, image1))
         return;
@@ -236,32 +291,38 @@ optical_flow_feature_match (
     vector<uchar> status0, status1;
 	calcOpticalFlowPyrLK (
         image0_left, image1_right, corner0_left, corner1_right,
-        status0, err0, Size(5,5), 3,
+        status0, err0, Size(5, 5), 3,
         TermCriteria (TermCriteria::COUNT+TermCriteria::EPS, 10, 0.01));
     calcOpticalFlowPyrLK (
         image0_right, image1_left, corner0_right, corner1_left,
-        status1, err1, Size(5,5), 3,
+        status1, err1, Size(5, 5), 3,
         TermCriteria (TermCriteria::COUNT+TermCriteria::EPS, 10, 0.01));
 
-    out_image0 = draw_match_optical_flow (image0_left_rgb, image1_right_rgb,
-                                          corner0_left, corner1_right, status0, err0, x_offset0);
-    if (x_offset0.valid) {
-        image0_crop_left.x += x_offset0.data;
-        adjust_stitch_area (dst_width, image1_crop_right, image0_crop_left);
-        XCAM_LOG_INFO (
-            "Stiching area 0: image0_left_area(x:%d, width:%d), image1_right_area(x:%d, width:%d)",
-            image0_crop_left.x, image0_crop_left.width, image1_crop_right.x, image1_crop_right.width);
-    }
+    Rect tmp_stitch0 = image1_crop_right;
+    Rect tmp_stitch1 = image0_crop_left;
+    out_image0 = calc_match_optical_flow (image0_left_rgb, image1_right_rgb, corner0_left, corner1_right,
+                                          status0, err0, valid_count0, mean_offset0, x_offset0);
+    image1_crop_right.x += x_offset0;
+    adjust_stitch_area (dst_width, image1_crop_right, image0_crop_left);
+    if (image1_crop_right.x != tmp_stitch0.x || image1_crop_right.width != tmp_stitch0.width ||
+            image0_crop_left.x != tmp_stitch1.x || image0_crop_left.width != tmp_stitch1.width)
+        x_offset0 = 0.0f;
+    XCAM_LOG_INFO (
+        "Stiching area 0: image0_left_area(x:%d, width:%d), image1_right_area(x:%d, width:%d)",
+        image0_crop_left.x, image0_crop_left.width, image1_crop_right.x, image1_crop_right.width);
 
-    out_image1 = draw_match_optical_flow (image0_right_rgb, image1_left_rgb,
-                                          corner0_right, corner1_left, status1, err1, x_offset1);
-    if (x_offset1.valid) {
-        image0_crop_right.x += x_offset1.data;
-        adjust_stitch_area (dst_width, image0_crop_right, image1_crop_left);
-        XCAM_LOG_INFO (
-            "Stiching area 1: image0_right_area(x:%d, width:%d), image1_left_area(x:%d, width:%d)",
-            image0_crop_right.x, image0_crop_right.width, image1_crop_left.x, image1_crop_left.width);
-    }
+    tmp_stitch0 = image0_crop_right;
+    tmp_stitch1 = image1_crop_left;
+    out_image1 = calc_match_optical_flow (image0_right_rgb, image1_left_rgb, corner0_right, corner1_left,
+                                          status1, err1, valid_count1, mean_offset1, x_offset1);
+    image0_crop_right.x -= x_offset1;
+    adjust_stitch_area (dst_width, image0_crop_right, image1_crop_left);
+    if (image0_crop_right.x != tmp_stitch0.x || image0_crop_right.width != tmp_stitch0.width ||
+            image1_crop_left.x != tmp_stitch1.x || image1_crop_left.width != tmp_stitch1.width)
+        x_offset1 = 0.0f;
+    XCAM_LOG_INFO (
+        "Stiching area 1: image0_right_area(x:%d, width:%d), image1_left_area(x:%d, width:%d)",
+        image0_crop_right.x, image0_crop_right.width, image1_crop_left.x, image1_crop_left.width);
 
 #if XCAM_OF_DEBUG
     char file_name[1024];
