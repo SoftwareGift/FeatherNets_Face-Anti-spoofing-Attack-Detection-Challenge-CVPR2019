@@ -562,7 +562,7 @@ int main (int argc, char *argv[])
         CHECK (ret, "fisheye_correction execute failed");
 
         if (stitch_mode == IMAGE_STITCH_MODE_360) {
-#if 1
+#if HAVE_OPENCV
             calc_feature_match (context, fisheye_width, fisheye_buf0, fisheye_buf1,
                                 image0_stitch_info, image1_stitch_info, file_in_name, i);
 #endif
