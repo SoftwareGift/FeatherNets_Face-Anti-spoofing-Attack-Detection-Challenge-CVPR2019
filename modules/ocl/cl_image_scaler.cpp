@@ -70,8 +70,7 @@ CLScalerKernel::prepare_arguments (
         "cl image kernel(%s) get input/output buffer failed", get_kernel_name ());
 
     const VideoBufferInfo &input_info = input_buf->get_video_info ();
-    const VideoBufferInfo & output_info = output_buf->get_video_info ();
-
+    const VideoBufferInfo &output_info = output_buf->get_video_info ();
 
     _pixel_format = input_info.format;
 
@@ -197,7 +196,8 @@ CLImageScalerKernel::pre_stop ()
 
 CLImageScaler::CLImageScaler ()
     : CLImageHandler ("CLImageScaler")
-    , _scaler_factor (0.5)
+    , _h_scaler_factor (0.5)
+    , _v_scaler_factor (0.5)
 {
 }
 
@@ -211,10 +211,38 @@ CLImageScaler::pre_stop ()
 bool
 CLImageScaler::set_scaler_factor (const double factor)
 {
-    _scaler_factor = factor;
+    _h_scaler_factor = factor;
+    _v_scaler_factor = factor;
 
     return true;
 }
+
+double
+CLImageScaler::get_scaler_factor () const
+{
+    if (_h_scaler_factor != _v_scaler_factor)
+        XCAM_LOG_WARNING ("non-uniform scale, return horizontal scale factor");
+
+    return _h_scaler_factor;
+};
+
+bool
+CLImageScaler::set_scaler_factor (const double h_factor, const double v_factor)
+{
+    _h_scaler_factor = h_factor;
+    _v_scaler_factor = v_factor;
+
+    return true;
+}
+
+bool
+CLImageScaler::get_scaler_factor (double &h_factor, double &v_factor) const
+{
+    h_factor = _h_scaler_factor;
+    v_factor = _v_scaler_factor;
+
+    return true;
+};
 
 XCamReturn
 CLImageScaler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
@@ -242,9 +270,9 @@ CLImageScaler::prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<D
 
     if (!_scaler_buf_pool.ptr ()) {
         VideoBufferInfo scaler_video_info;
-        uint32_t new_width = XCAM_ALIGN_UP ((uint32_t)(video_info.width * _scaler_factor),
+        uint32_t new_width = XCAM_ALIGN_UP ((uint32_t)(video_info.width * _h_scaler_factor),
                                             2 * XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE0);
-        uint32_t new_height = XCAM_ALIGN_UP ((uint32_t)(video_info.height * _scaler_factor),
+        uint32_t new_height = XCAM_ALIGN_UP ((uint32_t)(video_info.height * _v_scaler_factor),
                                              2 * XCAM_CL_IMAGE_SCALER_KERNEL_LOCAL_WORK_SIZE1);
 
         scaler_video_info.init (video_info.format, new_width, new_height);

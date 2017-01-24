@@ -108,9 +108,9 @@ public:
     }
 
     bool set_scaler_factor (const double factor);
-    double get_scaler_factor () const {
-        return _scaler_factor;
-    };
+    double get_scaler_factor () const;
+    bool set_scaler_factor (const double h_factor, const double v_factor);
+    bool get_scaler_factor (double &h_factor, double &v_factor) const;
     SmartPtr<DrmBoBuffer> &get_scaler_buf () {
         return _scaler_buf;
     };
@@ -126,7 +126,8 @@ private:
     XCAM_DEAD_COPY (CLImageScaler);
 
 private:
-    double _scaler_factor;
+    double _h_scaler_factor;
+    double _v_scaler_factor;
     SmartPtr<DrmBoBufferPool> _scaler_buf_pool;
     SmartPtr<DrmBoBuffer>   _scaler_buf;
     SmartPtr<StatsCallback> _scaler_callback;
