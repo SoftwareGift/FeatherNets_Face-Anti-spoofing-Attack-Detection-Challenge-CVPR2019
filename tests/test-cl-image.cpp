@@ -22,22 +22,11 @@
 
 #include "test_common.h"
 #include "image_file_handle.h"
+#include "drm_bo_buffer.h"
 #include "cl_device.h"
 #include "cl_context.h"
 #include "cl_demo_handler.h"
-#include "cl_hdr_handler.h"
-#include "cl_blc_handler.h"
-#include "drm_bo_buffer.h"
-#include "cl_demosaic_handler.h"
 #include "cl_csc_handler.h"
-#include "cl_wb_handler.h"
-#include "cl_denoise_handler.h"
-#include "cl_gamma_handler.h"
-#include "cl_snr_handler.h"
-#include "cl_macc_handler.h"
-#include "cl_ee_handler.h"
-#include "cl_dpc_handler.h"
-#include "cl_bnr_handler.h"
 #include "cl_bayer_pipe_handler.h"
 #include "cl_yuv_pipe_handler.h"
 #include "cl_tonemapping_handler.h"
@@ -55,18 +44,7 @@ using namespace XCam;
 enum TestHandlerType {
     TestHandlerUnknown  = 0,
     TestHandlerDemo,
-    TestHandlerBlackLevel,
-    TestHandlerDefect,
-    TestHandlerDemosaic,
     TestHandlerColorConversion,
-    TestHandlerHDR,
-    TestHandlerWhiteBalance,
-    TestHandlerDenoise,
-    TestHandlerGamma,
-    TestHandlerSimpleNoiseReduction,
-    TestHandlerBayerNoiseReduction,
-    TestHandlerMacc,
-    TestHandlerEe,
     TestHandlerBayerPipe,
     TestHandlerYuvPipe,
     TestHandlerTonemapping,
@@ -164,8 +142,6 @@ print_help (const char *bin_name)
             "\t -p count     specify cl kernel loop count\n"
             "\t -c csc_type  specify csc type, default:rgba2nv12\n"
             "\t              select from [rgbatonv12, rgbatolab, rgba64torgba, yuyvtorgba, nv12torgba]\n"
-            "\t -d hdr_type  specify hdr type, default:rgb\n"
-            "\t              select from [rgb, lab]\n"
             "\t -b           enable bayer-nr, default: disable\n"
             "\t -P           enable psnr calculation, default: disable\n"
             "\t -h           help\n"
@@ -192,11 +168,10 @@ int main (int argc, char *argv[])
     SmartPtr<DrmBoBufferPool> buf_pool;
     int opt = 0;
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
-    CLHdrType hdr_type = CL_HDR_TYPE_RGB;
     bool enable_bnr = false;
     bool enable_psnr = false;
 
-    while ((opt =  getopt(argc, argv, "f:W:H:i:o:r:t:p:c:d:g:bPh")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:W:H:i:o:r:t:p:c:g:bPh")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
@@ -248,30 +223,8 @@ int main (int argc, char *argv[])
         case 't': {
             if (!strcasecmp (optarg, "demo"))
                 handler_type = TestHandlerDemo;
-            else if (!strcasecmp (optarg, "blacklevel"))
-                handler_type = TestHandlerBlackLevel;
-            else if (!strcasecmp (optarg, "defect"))
-                handler_type = TestHandlerDefect;
-            else if (!strcasecmp (optarg, "demosaic"))
-                handler_type = TestHandlerDemosaic;
             else if (!strcasecmp (optarg, "csc"))
                 handler_type = TestHandlerColorConversion;
-            else if (!strcasecmp (optarg, "hdr"))
-                handler_type = TestHandlerHDR;
-            else if (!strcasecmp (optarg, "wb"))
-                handler_type = TestHandlerWhiteBalance;
-            else if (!strcasecmp (optarg, "denoise"))
-                handler_type = TestHandlerDenoise;
-            else if (!strcasecmp (optarg, "gamma"))
-                handler_type = TestHandlerGamma;
-            else if (!strcasecmp (optarg, "snr"))
-                handler_type = TestHandlerSimpleNoiseReduction;
-            else if (!strcasecmp (optarg, "bnr"))
-                handler_type = TestHandlerBayerNoiseReduction;
-            else if (!strcasecmp (optarg, "macc"))
-                handler_type = TestHandlerMacc;
-            else if (!strcasecmp (optarg, "ee"))
-                handler_type = TestHandlerEe;
             else if (!strcasecmp (optarg, "bayerpipe"))
                 handler_type = TestHandlerBayerPipe;
             else if (!strcasecmp (optarg, "yuvpipe"))
@@ -316,14 +269,6 @@ int main (int argc, char *argv[])
             else
                 print_help (bin_name);
             break;
-        case 'd':
-            if (!strcasecmp (optarg, "rgb"))
-                hdr_type = CL_HDR_TYPE_RGB;
-            else if (!strcasecmp (optarg, "lab"))
-                hdr_type = CL_HDR_TYPE_LAB;
-            else
-                print_help (bin_name);
-            break;
 
         case 'b':
             enable_bnr = true;
@@ -363,43 +308,6 @@ int main (int argc, char *argv[])
     case TestHandlerDemo:
         image_handler = create_cl_demo_image_handler (context);
         break;
-    case TestHandlerBlackLevel: {
-        XCam3aResultBlackLevel blc;
-        xcam_mem_clear (blc);
-        blc.r_level = 0.05;
-        blc.gr_level = 0.05;
-        blc.gb_level = 0.05;
-        blc.b_level = 0.05;
-        image_handler = create_cl_blc_image_handler (context);
-        SmartPtr<CLBlcImageHandler> blc_handler;
-        blc_handler = image_handler.dynamic_cast_ptr<CLBlcImageHandler> ();
-        XCAM_ASSERT (blc_handler.ptr ());
-        blc_handler->set_blc_config (blc);
-        break;
-    }
-    case TestHandlerDefect:  {
-        XCam3aResultDefectPixel dpc;
-        xcam_mem_clear (dpc);
-        dpc.r_threshold = 0.125;
-        dpc.gr_threshold = 0.125;
-        dpc.gb_threshold = 0.125;
-        dpc.b_threshold = 0.125;
-        image_handler = create_cl_dpc_image_handler (context);
-        SmartPtr<CLDpcImageHandler> dpc_handler;
-        dpc_handler = image_handler.dynamic_cast_ptr<CLDpcImageHandler> ();
-        XCAM_ASSERT (dpc_handler.ptr ());
-        dpc_handler->set_dpc_config (dpc);
-        break;
-    }
-    break;
-    case TestHandlerDemosaic: {
-        SmartPtr<CLBayer2RGBImageHandler> ba2rgb_handler;
-        image_handler = create_cl_demosaic_image_handler (context);
-        ba2rgb_handler = image_handler.dynamic_cast_ptr<CLBayer2RGBImageHandler> ();
-        XCAM_ASSERT (ba2rgb_handler.ptr ());
-        ba2rgb_handler->set_output_format (output_format);
-        break;
-    }
     case TestHandlerColorConversion: {
         SmartPtr<CLCscImageHandler> csc_handler;
         XCam3aResultColorMatrix color_matrix;
@@ -410,72 +318,6 @@ int main (int argc, char *argv[])
         csc_handler = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
         XCAM_ASSERT (csc_handler.ptr ());
         csc_handler->set_rgbtoyuv_matrix(color_matrix);
-        break;
-    }
-    case TestHandlerHDR:
-        image_handler = create_cl_hdr_image_handler (context, hdr_type);
-        break;
-    case TestHandlerDenoise:
-        image_handler = create_cl_denoise_image_handler (context);
-        break;
-    case TestHandlerSimpleNoiseReduction:
-        image_handler = create_cl_snr_image_handler (context);
-        break;
-    case TestHandlerWhiteBalance: {
-        XCam3aResultWhiteBalance wb;
-        xcam_mem_clear (wb);
-        wb.r_gain = 1.0;
-        wb.gr_gain = 1.0;
-        wb.gb_gain = 1.0;
-        wb.b_gain = 1.0;
-        SmartPtr<CLWbImageHandler> wb_handler;
-        image_handler = create_cl_wb_image_handler (context);
-        wb_handler = image_handler.dynamic_cast_ptr<CLWbImageHandler> ();
-        XCAM_ASSERT (wb_handler.ptr ());
-        wb_handler->set_wb_config (wb);
-        break;
-    }
-    case TestHandlerGamma: {
-        XCam3aResultGammaTable gamma_table;
-        xcam_mem_clear (gamma_table);
-        for(int i = 0; i < XCAM_GAMMA_TABLE_SIZE; ++i)
-            gamma_table.table[i] = (double)(pow(i / 255.0, 1 / 2.2) * 255.0);
-        SmartPtr<CLGammaImageHandler> gamma_handler;
-        image_handler = create_cl_gamma_image_handler (context);
-        gamma_handler = image_handler.dynamic_cast_ptr<CLGammaImageHandler> ();
-        XCAM_ASSERT (gamma_handler.ptr ());
-        gamma_handler->set_gamma_table (gamma_table);
-        break;
-    }
-    case TestHandlerBayerNoiseReduction: {
-        XCam3aResultBayerNoiseReduction bnr;
-        xcam_mem_clear (bnr);
-        bnr.bnr_gain = 0.2;
-        bnr.direction = 0.01;
-        image_handler = create_cl_bnr_image_handler (context);
-        SmartPtr<CLBnrImageHandler> bnr_handler;
-        bnr_handler = image_handler.dynamic_cast_ptr<CLBnrImageHandler> ();
-        XCAM_ASSERT (bnr_handler.ptr ());
-        bnr_handler->set_bnr_config (bnr);
-        break;
-    }
-    case TestHandlerMacc:
-        image_handler = create_cl_macc_image_handler (context);
-        break;
-    case TestHandlerEe: {
-        XCam3aResultEdgeEnhancement ee;
-        XCam3aResultNoiseReduction nr;
-        xcam_mem_clear (ee);
-        xcam_mem_clear (nr);
-        ee.gain = 2.0;
-        ee.threshold = 150.0;
-        nr.gain = 0.1;
-        SmartPtr<CLEeImageHandler> ee_handler;
-        image_handler = create_cl_ee_image_handler (context);
-        ee_handler = image_handler.dynamic_cast_ptr<CLEeImageHandler> ();
-        XCAM_ASSERT (ee_handler.ptr ());
-        ee_handler->set_ee_config_ee (ee);
-        ee_handler->set_ee_config_nr (nr);
         break;
     }
     case TestHandlerBayerPipe: {

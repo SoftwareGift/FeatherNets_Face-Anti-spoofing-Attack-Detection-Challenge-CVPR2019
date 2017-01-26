@@ -23,9 +23,8 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
-#include "cl_wb_handler.h"
+#include "cl_bayer_basic_handler.h"
 #include "x3a_stats_pool.h"
-
 
 namespace XCam {
 

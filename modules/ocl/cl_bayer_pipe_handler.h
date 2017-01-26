@@ -25,39 +25,23 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
-#include "cl_blc_handler.h"
-#include "cl_wb_handler.h"
-#include "cl_ee_handler.h"
 #include "stats_callback_interface.h"
 #include "x3a_stats_pool.h"
 #include "cl_context.h"
-#include "cl_3a_stats_calculator.h"
+#include "cl_3a_stats_context.h"
 
 #define XCAM_BNR_TABLE_SIZE 64
 
 namespace XCam {
 
-#if 0
-#define XCAM_CL_BLC_DEFAULT_LEVEL 0.06
-
-/*  Black level correction configuration  */
-typedef struct  {
-    float     level_gr;  /* Black level for GR pixels */
-    float     level_r;   /* Black level for R pixels */
-    float     level_b;   /* Black level for B pixels */
-    float     level_gb;  /* Black level for GB pixels */
-    uint32_t  color_bits;
-} CLBLCConfig;
-
-typedef struct {
-    float           r_gain;
-    float           gr_gain;
-    float           gb_gain;
-    float           b_gain;
-} CLWBConfig;
-#endif
-
 class CLBayerPipeImageHandler;
+
+typedef struct
+{
+    float           ee_gain;
+    float           ee_threshold;
+    float           nr_gain;
+} CLEeConfig;
 
 class CLBayerPipeImageKernel
     : public CLImageKernel

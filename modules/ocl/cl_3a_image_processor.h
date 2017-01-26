@@ -76,11 +76,9 @@ public:
     bool set_capture_stage (CaptureStage capture_stage);
     bool set_3a_stats_bits (uint32_t bits);
 
-    virtual bool set_hdr (uint32_t mode);
     virtual bool set_denoise (uint32_t mode);
     virtual bool set_gamma (bool enable);
     virtual bool set_macc (bool enable);
-    virtual bool set_dpc (bool enable);
     virtual bool set_tnr (uint32_t mode, uint8_t level);
     virtual bool set_tonemapping (CLTonemappingMode wdr_mode);
 
@@ -120,11 +118,9 @@ private:
     SmartPtr<CLBayerPipeImageHandler>   _bayer_pipe;
     SmartPtr<CLYuvPipeImageHandler>     _yuv_pipe;
 
-    uint32_t                            _hdr_mode;
     uint32_t                            _tnr_mode;
     bool                                _enable_gamma;
     bool                                _enable_macc;
-    bool                                _enable_dpc;
     uint32_t                            _snr_mode; // spatial nr mode
 };
 

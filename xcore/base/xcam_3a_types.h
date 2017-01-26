@@ -146,12 +146,12 @@ typedef enum {
 } XCamColorEffect;
 
 typedef enum {
-    XCAM_DENOISE_TYPE_SIMPLE    = (1UL << 0), // simple noise reduction
+    //XCAM_DENOISE_TYPE_SIMPLE    = (1UL << 0), // simple noise reduction
     XCAM_DENOISE_TYPE_BILATERAL = (1UL << 1), // bilateral noise reduction
-    XCAM_DENOISE_TYPE_EE        = (1UL << 2), // luminance noise reduction and edge enhancement
+    //XCAM_DENOISE_TYPE_EE        = (1UL << 2), // luminance noise reduction and edge enhancement
     XCAM_DENOISE_TYPE_BNR       = (1UL << 3), // bayer noise reduction
-    XCAM_DENOISE_TYPE_ANR       = (1UL << 4), // advanced bayer noise reduction
-    XCAM_DENOISE_TYPE_BIYUV     = (1UL << 5), // bilateral on yuv noise reduction
+    //XCAM_DENOISE_TYPE_ANR       = (1UL << 4), // advanced bayer noise reduction
+    //XCAM_DENOISE_TYPE_BIYUV     = (1UL << 5), // bilateral on yuv noise reduction
     XCAM_DENOISE_TYPE_RETINEX   = (1UL << 6), // retinex on yuv
     XCAM_DENOISE_TYPE_WAVELET   = (1UL << 7), // wavelet on yuv
 } XCamDenoiseType;

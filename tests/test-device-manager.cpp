@@ -40,7 +40,6 @@
 #include "cl_3a_image_processor.h"
 #include "cl_post_image_processor.h"
 #include "cl_csc_image_processor.h"
-#include "cl_hdr_handler.h"
 #include "cl_tnr_handler.h"
 #endif
 #if HAVE_LIBDRM
@@ -285,17 +284,11 @@ void print_help (const char *bin_name)
 #endif
             "\t --capture       specify the capture stage of image\n"
             "\t                 capture_stage select from [bayer, tonemapping], default is [tonemapping]\n"
-            "\t --hdr           specify hdr type, default is hdr off\n"
-            "\t                 select from [rgb, lab]\n"
             "\t --tnr           specify temporal noise reduction type, default is tnr off\n"
-            "\t                 select from [rgb, yuv, both]\n"
+            "\t                 only support [yuv]\n"
             "\t --tnr-level     specify tnr level\n"
             "\t --wdr-mode      specify wdr mode. select from [gaussian, haleq]\n"
-            "\t --bilateral     enable bilateral noise reduction\n"
-            "\t --enable-snr    enable simple noise reduction\n"
-            "\t --enable-ee     enable YEENR\n"
             "\t --enable-bnr    enable bayer noise reduction\n"
-            "\t --enable-dpc    enable defect pixel correction\n"
             "\t --defog-mode    specify defog mode\n"
             "\t                 select from [disabled, retinex, dcp], default is [disabled]\n"
             "\t --wavelet-mode  specify wavelet denoise mode, default is off\n"
@@ -331,11 +324,9 @@ int main (int argc, char *argv[])
     bool have_cl_post_processor = true;
     SmartPtr<CL3aImageProcessor> cl_processor;
     SmartPtr<CLPostImageProcessor> cl_post_processor;
-    uint32_t hdr_type = CL_HDR_DISABLE;
     uint32_t tnr_type = CL_TNR_DISABLE;
     uint32_t denoise_type = 0;
     uint8_t tnr_level = 0;
-    bool dpc_type = false;
     CL3aImageProcessor::PipelineProfile pipeline_mode = CL3aImageProcessor::BasicPipelineProfile;
     CL3aImageProcessor::CaptureStage capture_stage = CL3aImageProcessor::TonemappingStage;
     CL3aImageProcessor::CLTonemappingMode wdr_mode = CL3aImageProcessor::WDRdisabled;
@@ -374,15 +365,10 @@ int main (int argc, char *argv[])
     int opt;
     const char *short_opts = "sca:n:m:f:d:b:pi:e:r:h";
     const struct option long_opts[] = {
-        {"hdr", required_argument, NULL, 'H'},
         {"tnr", required_argument, NULL, 'T'},
         {"tnr-level", required_argument, NULL, 'L'},
         {"wdr-mode", required_argument, NULL, 'W'},
-        {"bilateral", no_argument, NULL, 'I'},
-        {"enable-snr", no_argument, NULL, 'S'},
-        {"enable-ee", no_argument, NULL, 'E'},
         {"enable-bnr", no_argument, NULL, 'B'},
-        {"enable-dpc", no_argument, NULL, 'D'},
         {"defog-mode", required_argument, NULL, 'X'},
         {"wavelet-mode", required_argument, NULL, 'V'},
         {"3d-denoise", required_argument, NULL, 'N'},
@@ -500,31 +486,7 @@ int main (int argc, char *argv[])
             }
             break;
 #endif
-        case 'H': {
-            XCAM_ASSERT (optarg);
-            if (!strcasecmp (optarg, "rgb"))
-                hdr_type = CL_HDR_TYPE_RGB;
-            else if (!strcasecmp (optarg, "lab"))
-                hdr_type = CL_HDR_TYPE_LAB;
-            else {
-                print_help (bin_name);
-                return -1;
-            }
-            break;
-        }
-        case 'I': {
-            denoise_type |= XCAM_DENOISE_TYPE_BILATERAL;
-            denoise_type |= XCAM_DENOISE_TYPE_BIYUV;
-            break;
-        }
-        case 'S': {
-            denoise_type |= XCAM_DENOISE_TYPE_SIMPLE;
-            break;
-        }
-        case 'E': {
-            denoise_type |= XCAM_DENOISE_TYPE_EE;
-            break;
-        }
+
         case 'B': {
             denoise_type |= XCAM_DENOISE_TYPE_BNR;
             break;
@@ -597,19 +559,12 @@ int main (int argc, char *argv[])
             image_warp_type = true;
             break;
         }
-        case 'D': {
-            dpc_type = true;
-            break;
-        }
         case 'T': {
             XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "yuv"))
                 tnr_type = CL_TNR_TYPE_YUV;
-            else if (!strcasecmp (optarg, "rgb"))
-                tnr_type = CL_TNR_TYPE_RGB;
-            else if (!strcasecmp (optarg, "both"))
-                tnr_type = CL_TNR_TYPE_YUV | CL_TNR_TYPE_RGB;
             else {
+                printf ("--tnr only support <yuv>, <%s> is not supported\n", optarg);
                 print_help (bin_name);
                 return -1;
             }
@@ -850,8 +805,6 @@ int main (int argc, char *argv[])
     if (have_cl_processor) {
         cl_processor = new CL3aImageProcessor ();
         cl_processor->set_stats_callback(device_manager);
-        cl_processor->set_dpc(dpc_type);
-        cl_processor->set_hdr (hdr_type);
         cl_processor->set_denoise (denoise_type);
         cl_processor->set_capture_stage (capture_stage);
 

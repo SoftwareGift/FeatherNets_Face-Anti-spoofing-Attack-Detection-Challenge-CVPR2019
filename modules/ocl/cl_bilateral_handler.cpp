@@ -16,26 +16,44 @@
  * limitations under the License.
  *
  * Author: Juan Zhao <juan.j.zhao@intel.com>
+ *             Wind Yuan <feng.yuan@intel.com>
  */
 
-
-
 #include "xcam_utils.h"
-#include "cl_biyuv_handler.h"
+#include "cl_bilateral_handler.h"
 
 namespace XCam {
 
-CLBiyuvImageKernel::CLBiyuvImageKernel (SmartPtr<CLContext> &context)
-    : CLImageKernel (context, "kernel_biyuv")
+enum {
+    KernelBilateralRGB,
+    KernelBilateralNV12,
+};
+
+const XCamKernelInfo kernel_bilateral_info[] = {
+    {
+        "kernel_bilateral_rgb",
+#include "kernel_bilateral.clx"
+        , 0,
+    },
+    {
+        "kernel_bilateral_nv12",
+#include "kernel_bilateral.clx"
+        , 0,
+    },
+};
+
+CLBilateralKernel::CLBilateralKernel (SmartPtr<CLContext> &context, bool is_rgb)
+    : CLImageKernel (context)
     , _sigma_r (10.0)
     , _imw (1920)
     , _imh (1080)
     , _vertical_offset (1080)
+    , _is_rgb (is_rgb)
 {
 }
 
 XCamReturn
-CLBiyuvImageKernel::prepare_arguments (
+CLBilateralKernel::prepare_arguments (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
     CLArgument args[], uint32_t &arg_count,
     CLWorkSize &work_size)
@@ -72,9 +90,13 @@ CLBiyuvImageKernel::prepare_arguments (
     args[4].arg_adress = &_imh;
     args[4].arg_size = sizeof (_imh);
 
-    args[5].arg_adress = &_vertical_offset;
-    args[5].arg_size = sizeof (_vertical_offset);
-    arg_count = 6;
+    if (_is_rgb)
+        arg_count = 5;
+    else {
+        args[5].arg_adress = &_vertical_offset;
+        args[5].arg_size = sizeof (_vertical_offset);
+        arg_count = 6;
+    }
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = _imh;
@@ -86,44 +108,31 @@ CLBiyuvImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLBiyuvImageHandler::CLBiyuvImageHandler (const char *name)
+CLBilateralImageHandler::CLBilateralImageHandler (const char *name)
     : CLImageHandler (name)
 {
 }
 
-bool
-CLBiyuvImageHandler::set_biyuv_kernel(SmartPtr<CLBiyuvImageKernel> &kernel)
-{
-    SmartPtr<CLImageKernel> image_kernel = kernel;
-    add_kernel (image_kernel);
-    _biyuv_kernel = kernel;
-    return true;
-}
-
 SmartPtr<CLImageHandler>
-create_cl_biyuv_image_handler (SmartPtr<CLContext> &context)
+create_cl_bilateral_image_handler (SmartPtr<CLContext> &context, bool is_rgb)
 {
-    SmartPtr<CLBiyuvImageHandler> biyuv_handler;
-    SmartPtr<CLBiyuvImageKernel> biyuv_kernel;
+    SmartPtr<CLBilateralImageHandler> bilateral_handler;
+    SmartPtr<CLImageKernel> bilateral_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    const char *handler_name = (is_rgb ? "cl_bilateral_rgb" : "cl_bilateral_nv12");
+    int kenel_idx = (is_rgb ? KernelBilateralRGB : KernelBilateralNV12);
 
-    biyuv_kernel = new CLBiyuvImageKernel (context);
-    {
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_biyuv)
-#include "kernel_biyuv.clx"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = biyuv_kernel->load_from_source (kernel_biyuv_body, strlen (kernel_biyuv_body));
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", biyuv_kernel->get_kernel_name());
-    }
-    XCAM_ASSERT (biyuv_kernel->is_valid ());
-    biyuv_handler = new CLBiyuvImageHandler ("cl_handler_biyuv");
-    biyuv_handler->set_biyuv_kernel (biyuv_kernel);
+    bilateral_handler = new CLBilateralImageHandler (handler_name);
+    bilateral_kernel = new CLBilateralKernel (context, is_rgb);
+    XCAM_ASSERT (bilateral_kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR, bilateral_kernel->build_kernel (kernel_bilateral_info[kenel_idx], NULL) == XCAM_RETURN_NO_ERROR,
+        NULL, "build bilateral kernel failed");
+    bilateral_handler->add_kernel (bilateral_kernel);
 
-    return biyuv_handler;
+    XCAM_ASSERT (bilateral_kernel->is_valid ());
+
+    return bilateral_handler;
 }
 
 };

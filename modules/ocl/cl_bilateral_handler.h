@@ -1,8 +1,7 @@
 /*
- * cl_snr_handler.h - CL snr handler
+ * cl_biyuv_handler.h - CL Biyuv handler
  *
  *  Copyright (c) 2015 Intel Corporation
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Author: Shincy Tu <shincy.tu@intel.com>
+ * Author: Juan Zhao <juan.j.zhao@intel.com>
+ *             Wind Yuan <feng.yuan@intel.com>
  */
 
-#ifndef XCAM_CL_SNR_HANLDER_H
-#define XCAM_CL_SNR_HANLDER_H
+#ifndef XCAM_CL_BILATERAL_HANLDER_H
+#define XCAM_CL_BILATERAL_HANLDER_H
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
-#include "cl_denoise_handler.h"
 
 namespace XCam {
 
-class CLSnrImageKernel
+class CLBilateralKernel
     : public CLImageKernel
 {
 public:
-    explicit CLSnrImageKernel (SmartPtr<CLContext> &context,
-                               const char *name);
+    explicit CLBilateralKernel (SmartPtr<CLContext> &context, bool is_rgb);
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -41,24 +39,28 @@ protected:
         CLWorkSize &work_size);
 
 private:
-    XCAM_DEAD_COPY (CLSnrImageKernel);
+    XCAM_DEAD_COPY (CLBilateralKernel);
+    float        _sigma_r;
+    uint32_t     _imw;
+    uint32_t     _imh;
+    uint32_t     _vertical_offset;
+    bool         _is_rgb;
 };
 
-class CLSnrImageHandler
+class CLBilateralImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLSnrImageHandler (const char *name);
-    bool set_simple_kernel(SmartPtr<CLSnrImageKernel> &kernel);
+    explicit CLBilateralImageHandler (const char *name);
 
 private:
-    XCAM_DEAD_COPY (CLSnrImageHandler);
-    SmartPtr<CLSnrImageKernel>  _simple_kernel;
+    XCAM_DEAD_COPY (CLBilateralImageHandler);
+
 };
 
 SmartPtr<CLImageHandler>
-create_cl_snr_image_handler (SmartPtr<CLContext> &context);
+create_cl_bilateral_image_handler (SmartPtr<CLContext> &context, bool is_rgb);
 
 };
 
-#endif //XCAM_CL_SNR_HANLDER_H
+#endif //XCAM_CL_BILATERAL_HANLDER_H

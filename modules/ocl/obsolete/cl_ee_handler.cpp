@@ -53,7 +53,7 @@ CLEeImageKernel::prepare_arguments (
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     _vertical_offset_in = video_info_in.aligned_height;
-    _vertical_offset_out= video_info_out.aligned_height;
+    _vertical_offset_out = video_info_out.aligned_height;
 
     //set args;
     args[0].arg_adress = &_image_in->get_mem_id ();

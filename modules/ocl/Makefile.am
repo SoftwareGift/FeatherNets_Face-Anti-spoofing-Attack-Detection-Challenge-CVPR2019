@@ -38,26 +38,14 @@ xcam_ocl_sources = \
     cl_post_image_processor.cpp        \
     cl_multi_image_handler.cpp         \
     cl_csc_image_processor.cpp         \
-    cl_3a_stats_calculator.cpp         \
     cl_3a_stats_context.cpp            \
     cl_demo_handler.cpp                \
-    cl_blc_handler.cpp                 \
-    cl_hdr_handler.cpp                 \
     cl_blender.cpp                     \
     cl_pyramid_blender.cpp             \
     cl_geo_map_handler.cpp             \
-    cl_demosaic_handler.cpp            \
     cl_csc_handler.cpp                 \
-    cl_wb_handler.cpp                  \
-    cl_denoise_handler.cpp             \
-    cl_gamma_handler.cpp               \
-    cl_snr_handler.cpp                 \
-    cl_macc_handler.cpp                \
     cl_tnr_handler.cpp                 \
-    cl_ee_handler.cpp                  \
-    cl_dpc_handler.cpp                 \
     cl_defog_dcp_handler.cpp           \
-    cl_bnr_handler.cpp                 \
     cl_bayer_pipe_handler.cpp          \
     cl_bayer_basic_handler.cpp         \
     cl_yuv_pipe_handler.cpp            \
@@ -65,7 +53,7 @@ xcam_ocl_sources = \
     cl_tonemapping_handler.cpp         \
     cl_newtonemapping_handler.cpp      \
     cl_fisheye_handler.cpp             \
-    cl_biyuv_handler.cpp               \
+    cl_bilateral_handler.cpp           \
     cl_image_scaler.cpp                \
     cl_image_360_stitch.cpp            \
     cl_retinex_handler.cpp             \
@@ -111,7 +99,6 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_image_processor.h            \
     priority_buffer_queue.h         \
     cl_3a_image_processor.h         \
-    cl_3a_stats_calculator.h        \
     cl_3a_stats_context.h           \
     cl_rgb_pipe_handler.h           \
     cl_bayer_basic_handler.h        \

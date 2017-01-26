@@ -22,8 +22,6 @@
 #define XCAM_CL_BAYER_BASIC_HANLDER_H
 
 #include "xcam_utils.h"
-#include "cl_blc_handler.h"
-#include "cl_wb_handler.h"
 #include "cl_image_handler.h"
 #include "cl_memory.h"
 #include "cl_3a_stats_context.h"
@@ -33,6 +31,24 @@ namespace XCam {
 
 class CLBayerBasicImageHandler;
 class CLBayer3AStatsThread;
+
+#define XCAM_CL_BLC_DEFAULT_LEVEL 0.06
+
+/*  Black level correction configuration  */
+typedef struct  {
+    float     level_gr;  /* Black level for GR pixels */
+    float     level_r;   /* Black level for R pixels */
+    float     level_b;   /* Black level for B pixels */
+    float     level_gb;  /* Black level for GB pixels */
+    uint32_t  color_bits;
+} CLBLCConfig;
+
+typedef struct {
+    float           r_gain;
+    float           gr_gain;
+    float           gb_gain;
+    float           b_gain;
+} CLWBConfig;
 
 class CLBayerBasicImageKernel
     : public CLImageKernel

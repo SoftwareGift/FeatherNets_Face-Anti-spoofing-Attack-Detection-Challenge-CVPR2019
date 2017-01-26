@@ -20,7 +20,6 @@
 #include "cl_3a_image_processor.h"
 #include "cl_context.h"
 #include "cl_csc_handler.h"
-#include "cl_3a_stats_calculator.h"
 #include "cl_bayer_pipe_handler.h"
 #include "cl_yuv_pipe_handler.h"
 #if ENABLE_YEENR_HANDLER
@@ -42,11 +41,9 @@ CL3aImageProcessor::CL3aImageProcessor ()
     , _pipeline_profile (BasicPipelineProfile)
     , _capture_stage (TonemappingStage)
     , _wdr_mode (WDRdisabled)
-    , _hdr_mode (0)
     , _tnr_mode (0)
     , _enable_gamma (true)
     , _enable_macc (true)
-    , _enable_dpc (false)
     , _snr_mode (0)
 {
     keep_attached_buf (true);
@@ -436,17 +433,6 @@ CL3aImageProcessor::set_profile (const CL3aImageProcessor::PipelineProfile value
     return true;
 }
 
-
-bool
-CL3aImageProcessor::set_hdr (uint32_t mode)
-{
-    _hdr_mode = mode;
-
-    STREAM_LOCK;
-
-    return true;
-}
-
 bool
 CL3aImageProcessor::set_gamma (bool enable)
 {
@@ -475,16 +461,6 @@ CL3aImageProcessor::set_macc (bool enable)
     _enable_macc = enable;
 
     STREAM_LOCK;
-    return true;
-}
-
-bool
-CL3aImageProcessor::set_dpc (bool enable)
-{
-    _enable_dpc = enable;
-
-    STREAM_LOCK;
-
     return true;
 }
 

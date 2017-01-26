@@ -489,17 +489,17 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
         g_param_spec_enum ("analyzer", "3a analyzer", "3A Analyzer",
                            GST_TYPE_XCAM_SRC_ANALYZER, DEFAULT_PROP_ANALYZER,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-    
+
 #if HAVE_IA_AIQ
-        g_object_class_install_property (
-            gobject_class, PROP_CPF,
-            g_param_spec_string ("path-cpf", "cpf", "Path to cpf",
-                                 NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-    
-        g_object_class_install_property (
-            gobject_class, PROP_3A_LIB,
-            g_param_spec_string ("path-3alib", "3a lib", "Path to dynamic 3A library",
-                                 NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property (
+        gobject_class, PROP_CPF,
+        g_param_spec_string ("path-cpf", "cpf", "Path to cpf",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_3A_LIB,
+        g_param_spec_string ("path-3alib", "3a lib", "Path to dynamic 3A library",
+                             NULL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 #endif
 
 #if HAVE_LIBCL
@@ -1208,7 +1208,7 @@ translate_format_to_xcam (GstVideoFormat format)
     case GST_VIDEO_FORMAT_Y42B:
         return V4L2_PIX_FMT_YUV422P;
 
-    //RGB
+        //RGB
     case GST_VIDEO_FORMAT_RGBx:
         return V4L2_PIX_FMT_RGB32;
     case GST_VIDEO_FORMAT_BGRx:
@@ -1638,8 +1638,10 @@ gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode)
 
 #if HAVE_LIBCL
     SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
+    CL3aImageProcessor::CLTonemappingMode tone_map_value =
+        (mode ? CL3aImageProcessor::Haleq : CL3aImageProcessor::WDRdisabled);
     if (cl_image_processor.ptr ())
-        return (gboolean) cl_image_processor->set_hdr (mode);
+        return (gboolean) cl_image_processor->set_tonemapping(tone_map_value);
     else
         return false;
 #else
@@ -1692,17 +1694,10 @@ gst_xcam_src_set_dpc_mode (GstXCam3A *xcam3a, gboolean enable)
 {
     GST_XCAM_INTERFACE_HEADER (xcam3a, src, device_manager, analyzer);
     XCAM_UNUSED (analyzer);
-
-#if HAVE_LIBCL
-    SmartPtr<CL3aImageProcessor> cl_image_processor = device_manager->get_cl_image_processor ();
-    if (cl_image_processor.ptr ())
-        return cl_image_processor->set_dpc (enable);
-    else
-        return false;
-#else
     XCAM_UNUSED (enable);
+
+    XCAM_LOG_WARNING ("xcamsrc: dpc is not supported");
     return true;
-#endif
 }
 
 static gboolean
