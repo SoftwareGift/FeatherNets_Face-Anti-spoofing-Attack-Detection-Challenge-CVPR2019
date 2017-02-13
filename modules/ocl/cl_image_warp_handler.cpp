@@ -204,7 +204,9 @@ CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
 {
     XCAM_UNUSED (output);
 
-    _warp_config_list.pop_front ();
+    if (!_warp_config_list.empty ()) {
+        _warp_config_list.pop_front ();
+    }
 
     return XCAM_RETURN_NO_ERROR;
 }
