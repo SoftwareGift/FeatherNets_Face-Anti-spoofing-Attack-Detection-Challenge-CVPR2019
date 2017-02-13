@@ -55,6 +55,7 @@ private:
     XCam::Mutex     _mutex;
     XCam::Cond      _exit_cond;
     bool            _started;
+    bool            _stopped;
 };
 
 };

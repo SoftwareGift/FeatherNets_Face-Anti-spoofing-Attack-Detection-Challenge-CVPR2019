@@ -28,6 +28,7 @@ Thread::Thread (const char *name)
     : _name (NULL)
     , _thread_id (0)
     , _started (false)
+    , _stopped (true)
 {
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
@@ -58,7 +59,6 @@ Thread::thread_func (void *user_data)
             if (!thread->_started || ret == false) {
                 thread->_started = false;
                 thread->_thread_id = 0;
-                thread->_exit_cond.signal();
                 ret = false;
                 break;
             }
@@ -68,6 +68,10 @@ Thread::thread_func (void *user_data)
     }
 
     thread->stopped ();
+
+    SmartLock locker(thread->_mutex);
+    thread->_stopped = true;
+    thread->_exit_cond.broadcast ();
 
     return 0;
 }
@@ -94,6 +98,7 @@ bool Thread::start ()
     if (pthread_create (&_thread_id, NULL, (void * (*)(void*))thread_func, this) != 0)
         return false;
     _started = true;
+    _stopped = false;
 
 #ifdef __USE_GNU
     char thread_name[16];
@@ -121,6 +126,8 @@ bool Thread::stop ()
     SmartLock locker(_mutex);
     if (_started) {
         _started = false;
+    }
+    if (!_stopped) {
         _exit_cond.wait(_mutex);
     }
     return true;
