@@ -104,6 +104,7 @@ void usage(const char* arg0)
             "\t--loop        optional, how many loops need to run for performance test, default: 0\n"
             "\t--save        optional, save file or not, select from [true/false], default: true\n"
             "\t--stitch-mode optional, image stitching mode, select from [360/blend], default: 360\n"
+            "\t--scale-mode  optional, image scaling mode, select from [local/global], default: local\n"
             "\t--enable-seam optional, enable seam finder in blending area, default: no\n"
             "\t--help        usage\n",
             arg0);
@@ -390,6 +391,7 @@ int main (int argc, char *argv[])
     bool enable_seam = false;
     bool need_save_output = true;
     ImageStitchMode stitch_mode = IMAGE_STITCH_MODE_360;
+    CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
     char file_in_name[XCAM_MAX_STR_SIZE], file_out_name[XCAM_MAX_STR_SIZE];
 
     const struct option long_opts[] = {
@@ -402,6 +404,7 @@ int main (int argc, char *argv[])
         {"loop", required_argument, NULL, 'l'},
         {"save", required_argument, NULL, 's'},
         {"stitch-mode", required_argument, NULL, 't'},
+        {"scale-mode", required_argument, NULL, 'c'},
         {"enable-seam", no_argument, NULL, 'S'},
         {"help", no_argument, NULL, 'e'},
         {NULL, 0, NULL, 0},
@@ -441,6 +444,16 @@ int main (int argc, char *argv[])
                 stitch_mode = IMAGE_STITCH_MODE_BLEND;
             else {
                 XCAM_LOG_ERROR ("incorrect stitching mode");
+                return -1;
+            }
+            break;
+        case 'c':
+            if (!strcasecmp (optarg, "local"))
+                scale_mode = CLBlenderScaleLocal;
+            else if (!strcasecmp (optarg, "global"))
+                scale_mode = CLBlenderScaleGlobal;
+            else {
+                XCAM_LOG_ERROR ("incorrect scaling mode");
                 return -1;
             }
             break;
@@ -494,7 +507,7 @@ int main (int argc, char *argv[])
 
     ImageStitchInfo image0_stitch_info, image1_stitch_info;
     if (stitch_mode == IMAGE_STITCH_MODE_360) {
-        image_360 = create_image_360_stitch (context, enable_seam).dynamic_cast_ptr<CLImage360Stitch> ();
+        image_360 = create_image_360_stitch (context, enable_seam, scale_mode).dynamic_cast_ptr<CLImage360Stitch> ();
         XCAM_ASSERT (image_360.ptr ());
         image_360->set_output_size (output_width, output_height);
 

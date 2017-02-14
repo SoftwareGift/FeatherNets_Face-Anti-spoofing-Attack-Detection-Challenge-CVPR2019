@@ -55,6 +55,7 @@ struct PyramidLayer {
     uint32_t                 mask_width[CLBlenderPlaneMax];
     SmartPtr<CLBuffer>       blend_mask[CLBlenderPlaneMax]; // sizeof(float) * mask_width
     SmartPtr<CLImage>        seam_mask[CLSeamMaskCount];
+    SmartPtr<CLImage>        scale_image[CLBlenderPlaneMax];
 
 #if CL_PYRAMID_ENABLE_DUMP
     SmartPtr<CLImage>        dump_gauss_resize[CLBlenderPlaneMax];
@@ -66,7 +67,7 @@ struct PyramidLayer {
     void bind_buf_to_layer0 (
         SmartPtr<CLContext> context,
         SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output,
-        const Rect &merge0_rect, const Rect &merge1_rect, bool need_uv);
+        const Rect &merge0_rect, const Rect &merge1_rect, bool need_uv, CLBlenderScaleMode scale_mode);
     void init_layer0 (SmartPtr<CLContext> context, bool last_layer, bool need_uv, int mask_radius, float mask_sigma);
     void build_cl_images (SmartPtr<CLContext> context, bool need_lap, bool need_uv);
     bool copy_mask_from_y_to_uv (SmartPtr<CLContext> &context);
@@ -82,7 +83,8 @@ class CLPyramidBlender
     friend class CLPyramidBlendKernel;
 
 public:
-    explicit CLPyramidBlender (const char *name, int layers, bool need_uv, bool need_seam);
+    explicit CLPyramidBlender (
+        const char *name, int layers, bool need_uv, bool need_seam, CLBlenderScaleMode scale_mode);
     ~CLPyramidBlender ();
 
     //void set_blend_kernel (SmartPtr<CLLinearBlenderKernel> kernel, int index);
@@ -90,6 +92,7 @@ public:
     SmartPtr<CLImage> get_lap_image (uint32_t layer, uint32_t buf_index, bool is_uv);
     SmartPtr<CLImage> get_blend_image (uint32_t layer, bool is_uv);
     SmartPtr<CLImage> get_reconstruct_image (uint32_t layer, bool is_uv);
+    SmartPtr<CLImage> get_scale_image (bool is_uv);
     SmartPtr<CLBuffer> get_blend_mask (uint32_t layer, bool is_uv);
     SmartPtr<CLImage> get_seam_mask (uint32_t layer);
     const PyramidLayer &get_pyramid_layer (uint32_t layer) const;
@@ -328,7 +331,6 @@ private:
     float                              _out_width, _out_height;
 };
 
-
 class CLPyramidReconstructKernel
     : public CLImageKernel
 {
@@ -370,6 +372,41 @@ private:
     int                                _out_reconstruct_offset_x;
 };
 
+class CLPyramidScaleKernel
+    : public CLImageKernel
+{
+public:
+    explicit CLPyramidScaleKernel (
+        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, bool is_uv);
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
+    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+
+private:
+    SmartPtr<CLImage>  get_input_scale () {
+        return _blender->get_reconstruct_image (0, _is_uv);
+    }
+    SmartPtr<CLImage>  get_output_scale () {
+        return _blender->get_scale_image (_is_uv);
+    }
+
+    int get_output_offset_x ();
+
+    XCAM_DEAD_COPY (CLPyramidScaleKernel);
+
+private:
+    SmartPtr<CLPyramidBlender>         _blender;
+    bool                               _is_uv;
+    int                                _out_offset_x;
+    uint32_t                           _output_width;
+    uint32_t                           _output_height;
+    SmartPtr<CLImage>                  _input_scale;
+};
+
 class CLPyramidCopyKernel
     : public CLImageKernel
 {
@@ -389,7 +426,10 @@ private:
         return _blender->get_gauss_image (0, _buf_index, _is_uv);
     }
     SmartPtr<CLImage>  get_output () {
-        return _blender->get_reconstruct_image (0, _is_uv);
+        if (_blender->get_scale_mode () == CLBlenderScaleLocal)
+            return _blender->get_scale_image (_is_uv);
+        else
+            return _blender->get_reconstruct_image (0, _is_uv);
     }
 
     XCAM_DEAD_COPY (CLPyramidCopyKernel);

@@ -24,12 +24,13 @@
 
 namespace XCam {
 
-CLBlender::CLBlender (const char *name, bool need_uv)
+CLBlender::CLBlender (const char *name, bool need_uv, CLBlenderScaleMode scale_mode)
     : CLImageHandler (name)
     , _output_width (0)
     , _output_height (0)
     , _need_uv (need_uv)
     , _swap_input_index (false)
+    , _scale_mode (scale_mode)
 {
 }
 
@@ -38,6 +39,7 @@ CLBlender::set_merge_window (const Rect &window) {
     _merge_window = window;
     _merge_window.pos_x = XCAM_ALIGN_AROUND (_merge_window.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
     _merge_window.width = XCAM_ALIGN_AROUND (_merge_window.width, XCAM_BLENDER_ALIGNED_WIDTH);
+    XCAM_ASSERT (_merge_window.width >= XCAM_BLENDER_ALIGNED_WIDTH);
     XCAM_LOG_DEBUG(
         "CLBlender(%s) merge window:(x:%d, width:%d), blend_width:%d",
         XCAM_STR (get_name()),
@@ -69,10 +71,14 @@ CLBlender::set_input_merge_area (const Rect &area, uint32_t index)
         XCAM_LOG_ERROR ("set_input_merge_area(idx:%d) failed, need set merge window first", index);
         return false;
     }
-    XCAM_ASSERT (fabs((int32_t)(area.width - _merge_window.width)) < XCAM_BLENDER_ALIGNED_WIDTH);
+
+    if (_scale_mode == CLBlenderScaleGlobal)
+        XCAM_ASSERT (fabs((int32_t)(area.width - _merge_window.width)) < XCAM_BLENDER_ALIGNED_WIDTH);
+
     _input_merge_area[index] = area;
     _input_merge_area[index].pos_x = XCAM_ALIGN_AROUND (_input_merge_area[index].pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    _input_merge_area[index].width = _merge_window.width;
+    if (_scale_mode == CLBlenderScaleGlobal)
+        _input_merge_area[index].width = _merge_window.width;
 
     XCAM_LOG_DEBUG(
         "CLBlender(%s) buf(%d) merge area:(x:%d, width:%d)",

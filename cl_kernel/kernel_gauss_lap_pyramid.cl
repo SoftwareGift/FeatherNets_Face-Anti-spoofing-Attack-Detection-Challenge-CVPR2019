@@ -232,6 +232,30 @@ kernel_pyramid_blend (
 }
 
 __kernel void
+kernel_pyramid_scale (
+    __read_only image2d_t input, __write_only image2d_t output,
+    int out_offset_x, int output_width, int output_height)
+{
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
+    int g_x = get_global_id (0);
+    int g_y = get_global_id (1);
+
+    float2 normCoor = (float2)(g_x, g_y) / (float2)(output_width, output_height);
+    float8 out_data;
+    float step_x;
+
+#if !PYRAMID_UV
+    step_x = 0.125f / output_width;
+    out_data = read_scale_y (input, sampler, normCoor, step_x) * 256.0f;
+#else
+    step_x = 0.25f / output_width;
+    out_data = read_scale_uv (input, sampler, normCoor, step_x) * 256.0f;
+#endif
+
+    write_imageui (output, (int2)(g_x + out_offset_x, g_y), convert_uint4(as_ushort4(convert_uchar8(out_data))));
+}
+
+__kernel void
 kernel_pyramid_copy (
     __read_only image2d_t input, int in_offset_x,
     __write_only image2d_t output, int out_offset_x,

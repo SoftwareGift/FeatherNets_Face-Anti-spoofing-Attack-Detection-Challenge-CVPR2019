@@ -37,7 +37,7 @@ public:
         ImageIdxCount,
     };
 public:
-    explicit CLImage360Stitch ();
+    explicit CLImage360Stitch (CLBlenderScaleMode scale_mode);
 
     void set_output_size (uint32_t width, uint32_t height) {
         _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
@@ -59,9 +59,13 @@ protected:
         VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
-    XCamReturn prepare_blender_parameters (
+    XCamReturn prepare_global_scale_blender_parameters (
         SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
 
+    XCamReturn prepare_local_scale_blender_parameters (
+        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
+
+private:
     XCAM_DEAD_COPY (CLImage360Stitch);
 
 private:
@@ -70,10 +74,12 @@ private:
     uint32_t               _output_width;
     uint32_t               _output_height;
     Rect                   _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
+    CLBlenderScaleMode     _scale_mode;
 };
 
 SmartPtr<CLImageHandler>
-create_image_360_stitch (SmartPtr<CLContext> &context, bool need_seam = false);
+create_image_360_stitch (
+    SmartPtr<CLContext> &context, bool need_seam = false, CLBlenderScaleMode scale_mode = CLBlenderScaleLocal);
 
 }
 

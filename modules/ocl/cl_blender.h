@@ -29,6 +29,11 @@
 
 namespace XCam {
 
+enum CLBlenderScaleMode {
+    CLBlenderScaleLocal = 0,
+    CLBlenderScaleGlobal
+};
+
 enum {
     CLBlenderPlaneY = 0,
     CLBlenderPlaneUV,
@@ -46,7 +51,7 @@ class CLBlender
     : public CLImageHandler
 {
 public:
-    explicit CLBlender (const char *name, bool need_uv);
+    explicit CLBlender (const char *name, bool need_uv, CLBlenderScaleMode scale_mode);
 
     void set_output_size (uint32_t width, uint32_t height) {
         _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
@@ -72,6 +77,10 @@ public:
     }
     bool is_merge_window_set () const {
         return _merge_window.pos_x || _merge_window.width;
+    }
+
+    CLBlenderScaleMode get_scale_mode () const {
+        return _scale_mode;
     }
 
     void swap_input_idx (bool flag) {
@@ -102,13 +111,16 @@ private:
     Rect                             _merge_window;  // for output buffer
     bool                             _need_uv;
     bool                             _swap_input_index;
+    CLBlenderScaleMode               _scale_mode;
 };
 
 SmartPtr<CLImageHandler>
 create_linear_blender (SmartPtr<CLContext> &context, bool need_uv = true);
 
 SmartPtr<CLImageHandler>
-create_pyramid_blender (SmartPtr<CLContext> &context, int layer = 1, bool need_uv = true, bool need_seam = true);
+create_pyramid_blender (
+    SmartPtr<CLContext> &context, int layer = 1, bool need_uv = true,
+    bool need_seam = true, CLBlenderScaleMode scale_mode = CLBlenderScaleLocal);
 
 };
 
