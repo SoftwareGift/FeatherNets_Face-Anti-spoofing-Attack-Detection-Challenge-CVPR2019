@@ -47,6 +47,34 @@ struct Rect {
     Rect () : pos_x (0), pos_y (0), width (0), height (0) {}
 };
 
+class CLBlenderScaleKernel
+    : public CLImageKernel
+{
+public:
+    explicit CLBlenderScaleKernel (SmartPtr<CLContext> &context, bool is_uv);
+
+protected:
+    virtual XCamReturn prepare_arguments (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
+        CLArgument args[], uint32_t &arg_count,
+        CLWorkSize &work_size);
+
+    virtual SmartPtr<CLImage> get_input_image (SmartPtr<DrmBoBuffer> &input) = 0;
+    virtual SmartPtr<CLImage> get_output_image (SmartPtr<DrmBoBuffer> &output) = 0;
+
+    virtual bool get_output_info (
+        SmartPtr<DrmBoBuffer> &output, uint32_t &out_width, uint32_t &out_height, int &out_offset_x) = 0;
+
+private:
+    XCAM_DEAD_COPY (CLBlenderScaleKernel);
+
+protected:
+    bool                               _is_uv;
+    int                                _output_offset_x;
+    uint32_t                           _output_width;
+    uint32_t                           _output_height;
+};
+
 class CLBlender
     : public CLImageHandler
 {

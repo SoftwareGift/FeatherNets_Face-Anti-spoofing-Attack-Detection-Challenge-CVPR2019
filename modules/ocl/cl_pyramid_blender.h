@@ -372,39 +372,25 @@ private:
     int                                _out_reconstruct_offset_x;
 };
 
-class CLPyramidScaleKernel
-    : public CLImageKernel
+class CLBlenderLocalScaleKernel
+    : public CLBlenderScaleKernel
 {
 public:
-    explicit CLPyramidScaleKernel (
+    explicit CLBlenderLocalScaleKernel (
         SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, bool is_uv);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<CLImage> get_input_image (SmartPtr<DrmBoBuffer> &input);
+    virtual SmartPtr<CLImage> get_output_image (SmartPtr<DrmBoBuffer> &output);
+
+    virtual bool get_output_info (
+        SmartPtr<DrmBoBuffer> &output, uint32_t &out_width, uint32_t &out_height, int &out_offset_x);
 
 private:
-    SmartPtr<CLImage>  get_input_scale () {
-        return _blender->get_reconstruct_image (0, _is_uv);
-    }
-    SmartPtr<CLImage>  get_output_scale () {
-        return _blender->get_scale_image (_is_uv);
-    }
-
-    int get_output_offset_x ();
-
-    XCAM_DEAD_COPY (CLPyramidScaleKernel);
+    XCAM_DEAD_COPY (CLBlenderLocalScaleKernel);
 
 private:
     SmartPtr<CLPyramidBlender>         _blender;
-    bool                               _is_uv;
-    int                                _out_offset_x;
-    uint32_t                           _output_width;
-    uint32_t                           _output_height;
-    SmartPtr<CLImage>                  _input_scale;
 };
 
 class CLPyramidCopyKernel

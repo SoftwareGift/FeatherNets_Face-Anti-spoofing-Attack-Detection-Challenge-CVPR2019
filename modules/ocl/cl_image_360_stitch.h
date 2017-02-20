@@ -27,6 +27,23 @@
 
 namespace XCam {
 
+class CLBlenderGlobalScaleKernel
+    : public CLBlenderScaleKernel
+{
+public:
+    explicit CLBlenderGlobalScaleKernel (SmartPtr<CLContext> &context, bool is_uv);
+
+protected:
+    virtual SmartPtr<CLImage> get_input_image (SmartPtr<DrmBoBuffer> &input);
+    virtual SmartPtr<CLImage> get_output_image (SmartPtr<DrmBoBuffer> &output);
+
+    virtual bool get_output_info (
+        SmartPtr<DrmBoBuffer> &output, uint32_t &out_width, uint32_t &out_height, int &out_offset_x);
+
+private:
+    XCAM_DEAD_COPY (CLBlenderGlobalScaleKernel);
+};
+
 class CLImage360Stitch
     : public CLMultiImageHandler
 {
@@ -59,6 +76,8 @@ protected:
         VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
+    SmartPtr<DrmBoBuffer> create_scale_input_buffer (SmartPtr<DrmBoBuffer> &output);
+    XCamReturn reset_buffer_info (SmartPtr<DrmBoBuffer> &input);
     XCamReturn prepare_global_scale_blender_parameters (
         SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
 
