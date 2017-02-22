@@ -10,7 +10,7 @@ AC_PREREQ([2.60])
 AC_CONFIG_MACRO_DIR([m4])
 AC_INIT([libxcam], [xcam_version], [feng.yuan@intel.com], [libxcam])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 
 #xcam version
 XCAM_MAJOR_VERSION=xcam_major_version
