@@ -58,8 +58,8 @@ CLGeoMapKernel::prepare_arguments (
     const CLImageDesc &outuv_desc = output_uv->get_image_desc ();
     SmartPtr<CLImage> geo_image = _handler->get_geo_map_image ();
     _handler->get_geo_equivalent_out_size (_geo_scale_size[0], _geo_scale_size[1]);
-    _out_size[0] = _handler->get_ouput_width ();
-    _out_size[1] = _handler->get_ouput_height ();
+    _out_size[0] = _handler->get_output_width ();
+    _out_size[1] = _handler->get_output_height ();
 
     arg_count = 0;
     args[arg_count].arg_adress = &input_y->get_mem_id ();

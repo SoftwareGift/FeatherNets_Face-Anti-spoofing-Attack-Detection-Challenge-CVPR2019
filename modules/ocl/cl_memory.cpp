@@ -588,7 +588,7 @@ CLVaImage::merge_multi_plane (
         break;
 
     default:
-        XCAM_LOG_WARNING ("CLVaImage unknow format(%s) plane change", xcam_fourcc_to_string(video_info.format));
+        XCAM_LOG_WARNING ("CLVaImage unknown format(%s) plane change", xcam_fourcc_to_string(video_info.format));
         return false;
     }
     cl_desc.array_size = 0;

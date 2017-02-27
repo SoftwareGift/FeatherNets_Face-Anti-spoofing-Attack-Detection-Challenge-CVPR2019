@@ -474,7 +474,7 @@ int main (int argc, char *argv[])
     }
 
     if (optind < argc || argc < 2) {
-        XCAM_LOG_ERROR ("unknow option %s", argv[optind]);
+        XCAM_LOG_ERROR ("unknown option %s", argv[optind]);
         usage (argv[0]);
         return -1;
     }

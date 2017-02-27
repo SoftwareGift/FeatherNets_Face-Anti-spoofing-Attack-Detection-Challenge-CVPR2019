@@ -86,7 +86,7 @@ CLFisheye2GPSKernel::prepare_arguments (
 
     uint32_t dst_w, dst_h;
     float dst_range_x, dst_range_y;
-    _handler->get_ouput_size (dst_w, dst_h);
+    _handler->get_output_size (dst_w, dst_h);
     _out_center[0] = (float)dst_w / 2.0f;
     _out_center[1] = (float)dst_h / 2.0f;
 
@@ -162,7 +162,7 @@ CLFisheyeHandler::set_output_size (uint32_t width, uint32_t height)
 }
 
 void
-CLFisheyeHandler::get_ouput_size (uint32_t &width, uint32_t &height) const
+CLFisheyeHandler::get_output_size (uint32_t &width, uint32_t &height) const
 {
     width = _output_width;
     height = _output_height;

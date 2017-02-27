@@ -118,7 +118,6 @@ create_cl_bilateral_image_handler (SmartPtr<CLContext> &context, bool is_rgb)
 {
     SmartPtr<CLBilateralImageHandler> bilateral_handler;
     SmartPtr<CLImageKernel> bilateral_kernel;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     const char *handler_name = (is_rgb ? "cl_bilateral_rgb" : "cl_bilateral_nv12");
     int kenel_idx = (is_rgb ? KernelBilateralRGB : KernelBilateralNV12);
 

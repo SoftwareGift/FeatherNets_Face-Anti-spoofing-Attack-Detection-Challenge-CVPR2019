@@ -163,7 +163,7 @@ private:
     SmartPtr<CLImage> get_input_1 () {
         return _blender->get_lap_image (_layer, 1, _is_uv);
     }
-    SmartPtr<CLImage> get_ouput () {
+    SmartPtr<CLImage> get_output () {
         return _blender->get_blend_image (_layer, _is_uv);
     }
     SmartPtr<CLBuffer> get_blend_mask () {

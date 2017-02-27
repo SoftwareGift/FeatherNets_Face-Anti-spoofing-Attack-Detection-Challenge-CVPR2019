@@ -99,7 +99,7 @@ bool
 V4l2Device::set_framerate (uint32_t n, uint32_t d)
 {
     if (_format.fmt.pix.pixelformat) {
-        XCAM_LOG_WARNING ("device(%s) set framerate failed since formated was already set.", XCAM_STR(_name));
+        XCAM_LOG_WARNING ("device(%s) set framerate failed since formatted was already set.", XCAM_STR(_name));
         return false;
     }
 

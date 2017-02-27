@@ -70,7 +70,7 @@ class CLFisheyeHandler
 public:
     explicit CLFisheyeHandler ();
     void set_output_size (uint32_t width, uint32_t height);
-    void get_ouput_size (uint32_t &width, uint32_t &height) const;
+    void get_output_size (uint32_t &width, uint32_t &height) const;
 
     void set_dst_range (float longitude, float latitude);
     void get_dst_range (float &longitude, float &latitude) const;

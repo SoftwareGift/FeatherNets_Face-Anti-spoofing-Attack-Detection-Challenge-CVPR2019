@@ -140,7 +140,7 @@ X3aResultFactory::create_3a_result (XCam3aResultHead *from)
         result = create_digital_video_stabilizer ((XCamDVSResult*)from);
         break;
     default:
-        XCAM_LOG_WARNING ("create 3a result with unknow result type:%d", type);
+        XCAM_LOG_WARNING ("create 3a result with unknown result type:%d", type);
         break;
     }
 

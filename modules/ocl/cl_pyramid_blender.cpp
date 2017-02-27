@@ -840,7 +840,7 @@ CLPyramidBlendKernel::prepare_arguments (
 
     SmartPtr<CLImage> image_in0 = get_input_0 ();
     SmartPtr<CLImage> image_in1 = get_input_1 ();
-    SmartPtr<CLImage> image_out = get_ouput ();
+    SmartPtr<CLImage> image_out = get_output ();
     SmartPtr<CLMemory> buf_mask;
     if (_need_seam)
         buf_mask = get_seam_mask ();
@@ -943,7 +943,7 @@ CLPyramidTransformKernel::prepare_arguments (
         ERROR,
         _output_gauss.ptr () && _output_gauss->is_valid (),
         XCAM_RETURN_ERROR_CL,
-        "CLPyramidTransformKernel change ouput gauss image format failed");
+        "CLPyramidTransformKernel change output gauss image format failed");
 
     _gauss_offset_x = get_input_gauss_offset_x () / 8;
     XCAM_ASSERT (_gauss_offset_x * 8 == get_input_gauss_offset_x ());
@@ -1301,7 +1301,7 @@ CLPyramidLapKernel::prepare_arguments (
         ERROR,
         image_out_lap.ptr () && _next_gauss->is_valid (),
         XCAM_RETURN_ERROR_CL,
-        "CLPyramidTransformKernel change ouput gauss image format failed");
+        "CLPyramidTransformKernel change output gauss image format failed");
 
     next_gauss_pixel_width = cl_desc_next_gauss.width;
     next_gauss_pixel_height = cl_desc_next_gauss.height;
@@ -1429,7 +1429,7 @@ CLPyramidReconstructKernel::prepare_arguments (
         ERROR,
         _input_reconstruct.ptr () && _input_reconstruct->is_valid (),
         XCAM_RETURN_ERROR_CL,
-        "CLPyramidTransformKernel change ouput gauss image format failed");
+        "CLPyramidTransformKernel change output gauss image format failed");
 
     input_gauss_width = cl_desc_in_reconst.width;
     input_gauss_height = cl_desc_in_reconst.height;

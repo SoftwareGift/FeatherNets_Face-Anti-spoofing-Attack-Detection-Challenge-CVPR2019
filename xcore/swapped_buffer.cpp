@@ -83,7 +83,7 @@ SwappedBuffer::swap_clone (SmartPtr<SwappedBuffer> self, uint32_t flags)
         WARNING,
         flags && (flags & _swap_flags) == flags,
         NULL,
-        "SwappedBuffer swap_clone failed since flags doens't match");
+        "SwappedBuffer swap_clone failed since flags doesn't match");
 
     const VideoBufferInfo &cur_info = this->get_video_info ();
     VideoBufferInfo out_info;

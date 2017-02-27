@@ -5,7 +5,7 @@ Copyright (C) 2014-2017 Intel Corporation
 libxcam core source code under the terms of Apache License, Version 2.0
 
 #### Description:
-ibXCam is a project for extended camera features and focus on image
+libXCam is a project for extended camera features and focus on image
 quality improvement and video analysis. There are lots features supported
 in image pre-processing, image post-processing and smart analysis. This
 library makes GPU/CPU/ISP working together to improve image quality.
@@ -52,7 +52,7 @@ OpenCL is used to improve performance in different platforms.
 
 #### Building and installing:
   * Environment variable settings<BR>
-    For different --prefix options, the environment variables may be different.Please set the environment variable according to the actual situation.<BR>
+    For different --prefix options, the environment variables may be different. Please set the environment variable according to the actual situation.<BR>
     --prefix=/usr/local:
 
         export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH

@@ -67,10 +67,10 @@ public:
         _output_width = width;
         _output_height = height;
     }
-    uint32_t get_ouput_width () const {
+    uint32_t get_output_width () const {
         return _output_width;
     }
-    uint32_t get_ouput_height () const {
+    uint32_t get_output_height () const {
         return _output_height;
     }
 

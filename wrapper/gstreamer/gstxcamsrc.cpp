@@ -1002,7 +1002,7 @@ gst_xcam_src_start (GstBaseSrc *src)
     }
 #endif
     default:
-        XCAM_LOG_ERROR ("unknow image processor type");
+        XCAM_LOG_ERROR ("unknown image processor type");
         return false;
     }
 
@@ -1081,7 +1081,7 @@ gst_xcam_src_start (GstBaseSrc *src)
 #endif
 #endif
     default:
-        XCAM_LOG_ERROR ("unknow analyzer type");
+        XCAM_LOG_ERROR ("unknown analyzer type");
         return false;
     }
 

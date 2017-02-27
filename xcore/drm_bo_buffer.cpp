@@ -246,7 +246,7 @@ DrmBoBufferPool::init_swap_order (VideoBufferInfo &info)
                    (uint32_t)(SwappedBuffer::OrderY1Y0)) {
             info.offsets[0] = _swap_offsets[SwappedBuffer::SwapYOffset1];
         } else {
-            XCAM_LOG_WARNING ("BufferPool: There's unkown init_swap_order(Y):0x%04x", _swap_init_order);
+            XCAM_LOG_WARNING ("BufferPool: There's unknown init_swap_order(Y):0x%04x", _swap_init_order);
             return false;
         }
     }
@@ -258,7 +258,7 @@ DrmBoBufferPool::init_swap_order (VideoBufferInfo &info)
                    (uint32_t)(SwappedBuffer::OrderUV1UV0)) {
             info.offsets[1] = _swap_offsets[SwappedBuffer::SwapUVOffset1];
         } else {
-            XCAM_LOG_WARNING ("BufferPool: There's unkown init_swap_order(UV):0x%04x", _swap_init_order);
+            XCAM_LOG_WARNING ("BufferPool: There's unknown init_swap_order(UV):0x%04x", _swap_init_order);
             return false;
         }
     }

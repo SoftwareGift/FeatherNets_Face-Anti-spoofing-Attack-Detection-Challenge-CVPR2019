@@ -78,7 +78,7 @@ SmartAnalyzer::internal_init (uint32_t width, uint32_t height, double framerate)
         SmartPtr<SmartAnalysisHandler> handler = *i_handler;
         XCamReturn ret = handler->create_context (handler);
         if (ret != XCAM_RETURN_NO_ERROR) {
-            XCAM_LOG_WARNING ("smart analyzer initilize handler(%s) context failed", XCAM_STR(handler->get_name()));
+            XCAM_LOG_WARNING ("smart analyzer initialize handler(%s) context failed", XCAM_STR(handler->get_name()));
         }
     }
 

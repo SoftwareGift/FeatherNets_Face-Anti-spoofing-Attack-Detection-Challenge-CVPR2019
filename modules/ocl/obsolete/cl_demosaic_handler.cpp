@@ -96,7 +96,7 @@ CLBayer2RGBImageHandler::prepare_buffer_pool_video_info (
         WARNING,
         format_inited,
         XCAM_RETURN_ERROR_PARAM,
-        "CL image handler(%s) ouput format(%s) unsupported",
+        "CL image handler(%s) output format(%s) unsupported",
         get_name (), xcam_fourcc_to_string (_output_format));
 
     return XCAM_RETURN_NO_ERROR;

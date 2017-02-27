@@ -297,7 +297,7 @@ translate_3a_results_to_xcam (X3aResultList &list,
             break;
         }
         default: {
-            XCAM_LOG_WARNING ("unknow type(%d) in translation", isp_result->get_type());
+            XCAM_LOG_WARNING ("unknown type(%d) in translation", isp_result->get_type());
             break;
         }
         }

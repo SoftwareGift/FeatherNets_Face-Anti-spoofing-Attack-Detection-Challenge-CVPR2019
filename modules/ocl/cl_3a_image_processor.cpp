@@ -271,7 +271,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
     }
 
     default:
-        XCAM_LOG_WARNING ("CL3aImageProcessor unknow 3a result:%d", res_type);
+        XCAM_LOG_WARNING ("CL3aImageProcessor unknown 3a result:%d", res_type);
         break;
     }
 

@@ -170,7 +170,7 @@ private:
     XCAM_OBJ_PROFILING_DEFINES;
 };
 
-// never allocate buffer, only swap ouput from input
+// never allocate buffer, only swap output from input
 class CLCloneImageHandler
     : public CLImageHandler
 {

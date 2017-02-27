@@ -255,7 +255,7 @@ int main (int argc, char *argv[])
     }
 
     if (optind < argc || argc < 2) {
-        printf("unknow option %s\n", argv[optind]);
+        printf("unknown option %s\n", argv[optind]);
         usage (argv[0]);
         return -1;
     }
