@@ -262,14 +262,14 @@ void print_help (const char *bin_name)
             "\t -n interval     save file on every [interval] frame\n"
             "\t -f pixel_fmt    specify output pixel format\n"
             "\t                 pixel_fmt select from [NV12, YUYV, BA10, BA12], default is [NV12]\n"
+            "\t -W image_width  specify image width, default is [1920]\n"
+            "\t -H image_height specify image height, default is [1080]\n"
             "\t -d cap_mode     specify capture mode\n"
             "\t                 cap_mode select from [video, still], default is [video]\n"
             "\t -i frame_save   specify the frame count to save, default is 0 which means endless\n"
             "\t -p preview on   enable local display, need root privilege\n"
             "\t --usb           specify node for usb camera device, enables capture path through USB camera \n"
             "\t                 specify [/dev/video4, /dev/video5] depending on which node USB camera is attached\n"
-            "\t --resolution    specify the resolution of usb camera\n"
-            "\t                 select from [1920x1080, 1280x720 ...], default is [1920x1080]\n"
             "\t -e display_mode preview mode\n"
             "\t                 select from [primary, overlay], default is [primary]\n"
             "\t --sync          set analyzer in sync mode\n"
@@ -363,11 +363,11 @@ int main (int argc, char *argv[])
     SmartPtr<char> path_to_fake = NULL;
 
     int opt;
-    const char *short_opts = "sca:n:m:f:d:b:pi:e:r:h";
+    const char *short_opts = "sca:n:m:f:W:H:d:b:pi:e:r:h";
     const struct option long_opts[] = {
         {"tnr", required_argument, NULL, 'T'},
         {"tnr-level", required_argument, NULL, 'L'},
-        {"wdr-mode", required_argument, NULL, 'W'},
+        {"wdr-mode", required_argument, NULL, 'w'},
         {"enable-bnr", no_argument, NULL, 'B'},
         {"defog-mode", required_argument, NULL, 'X'},
         {"wavelet-mode", required_argument, NULL, 'V'},
@@ -375,7 +375,6 @@ int main (int argc, char *argv[])
         {"enable-wireframe", no_argument, NULL, 'F'},
         {"enable-warp", no_argument, NULL, 'A'},
         {"usb", required_argument, NULL, 'U'},
-        {"resolution", required_argument, NULL, 'R'},
         {"sync", no_argument, NULL, 'Y'},
         {"capture", required_argument, NULL, 'C'},
         {"pipeline", required_argument, NULL, 'P'},
@@ -453,9 +452,13 @@ int main (int argc, char *argv[])
             usb_device_name = strndup(optarg, XCAM_MAX_STR_SIZE);
             XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", XCAM_STR(usb_device_name.ptr ()));
             break;
-        case 'R':
+        case 'W':
             XCAM_ASSERT (optarg);
-            sscanf (optarg, "%d%*c%d", &frame_width, &frame_height);
+            frame_width = atoi(optarg);
+            break;
+        case 'H':
+            XCAM_ASSERT (optarg);
+            frame_height = atoi(optarg);
             break;
         case 'e': {
             XCAM_ASSERT (optarg);
@@ -579,7 +582,7 @@ int main (int argc, char *argv[])
             tnr_level = atoi(optarg);
             break;
         }
-        case 'W': {
+        case 'w': {
             XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "gaussian"))
                 wdr_mode = CL3aImageProcessor::Gaussian;

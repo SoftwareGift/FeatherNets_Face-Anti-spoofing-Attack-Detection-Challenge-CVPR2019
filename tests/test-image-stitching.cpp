@@ -198,7 +198,7 @@ fisheye_correction (
     SmartPtr<CLFisheyeHandler> fisheye_handler, const CLFisheyeInfo fisheye_info,
     SmartPtr<DrmBoBuffer> input_buf, SmartPtr<DrmBoBuffer> &output_buf,
     uint32_t output_width, uint32_t output_height,
-    char *file_name, int frame_num)
+    const char *file_name, int frame_num)
 {
     fisheye_handler->set_fisheye_info (fisheye_info);
     fisheye_handler->set_dst_range (max_dst_angle, 180.0f);
@@ -392,7 +392,8 @@ int main (int argc, char *argv[])
     bool need_save_output = true;
     ImageStitchMode stitch_mode = IMAGE_STITCH_MODE_360;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
-    char file_in_name[XCAM_MAX_STR_SIZE], file_out_name[XCAM_MAX_STR_SIZE];
+    const char *file_in_name = NULL;
+    const char *file_out_name = NULL;
 
     const struct option long_opts[] = {
         {"input", required_argument, NULL, 'i'},
@@ -414,10 +415,12 @@ int main (int argc, char *argv[])
     while ((opt = getopt_long(argc, argv, "", long_opts, NULL)) != -1) {
         switch (opt) {
         case 'i':
-            strncpy (file_in_name, optarg, XCAM_MAX_STR_SIZE);
+            XCAM_ASSERT (optarg);
+            file_in_name = optarg;
             break;
         case 'o':
-            strncpy (file_out_name, optarg, XCAM_MAX_STR_SIZE);
+            XCAM_ASSERT (optarg);
+            file_out_name = optarg;
             break;
         case 'w':
             input_width = atoi(optarg);
@@ -473,6 +476,11 @@ int main (int argc, char *argv[])
     if (optind < argc || argc < 2) {
         XCAM_LOG_ERROR ("unknow option %s", argv[optind]);
         usage (argv[0]);
+        return -1;
+    }
+
+    if (!file_in_name || !file_out_name) {
+        XCAM_LOG_ERROR ("input/output path is NULL");
         return -1;
     }
 
