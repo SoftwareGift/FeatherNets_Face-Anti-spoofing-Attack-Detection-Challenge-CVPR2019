@@ -36,9 +36,9 @@
  */
 
 #include "gstxcamsrc.h"
-#include "gstxcaminterface.h"
 #include "gstxcambufferpool.h"
 #if HAVE_IA_AIQ
+#include "gstxcaminterface.h"
 #include "dynamic_analyzer_loader.h"
 #include "hybrid_analyzer_loader.h"
 #include "x3a_analyze_tuner.h"
@@ -71,7 +71,9 @@ using namespace GstXCam;
 
 #define DEFAULT_PROP_SENSOR             0
 #define DEFAULT_PROP_MEM_MODE           V4L2_MEMORY_DMABUF
+#if HAVE_IA_AIQ
 #define DEFAULT_PROP_ENABLE_3A          TRUE
+#endif
 #define DEFAULT_PROP_ENABLE_USB         FALSE
 #define DEFAULT_PROP_BUFFERCOUNT        8
 #define DEFAULT_PROP_PIXELFORMAT        V4L2_PIX_FMT_NV12 //420 instead of 0
@@ -323,12 +325,10 @@ gst_xcam_src_cl_pipe_profile_get_type (void)
 }
 #endif
 
-
 enum {
     PROP_0,
     PROP_DEVICE,
     PROP_SENSOR,
-    PROP_ENABLE_3A,
     PROP_MEM_MODE,
     PROP_BUFFERCOUNT,
     PROP_FIELD,
@@ -337,7 +337,10 @@ enum {
     PROP_3A_ANALYZER,
     PROP_PIPE_PROFLE,
     PROP_CPF,
+#if HAVE_IA_AIQ
+    PROP_ENABLE_3A,
     PROP_3A_LIB,
+#endif
     PROP_INPUT_FMT,
     PROP_ENABLE_USB,
     PROP_WAVELET_MODE,
@@ -348,11 +351,15 @@ enum {
     PROP_FAKE_INPUT
 };
 
+#if HAVE_IA_AIQ
 static void gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE  (GstXCamSrc, gst_xcam_src, GST_TYPE_PUSH_SRC,
                           G_IMPLEMENT_INTERFACE (GST_TYPE_XCAM_3A_IF,
                                   gst_xcam_src_xcam_3a_interface_init));
+#else
+G_DEFINE_TYPE (GstXCamSrc, gst_xcam_src, GST_TYPE_PUSH_SRC);
+#endif
 
 #define parent_class gst_xcam_src_parent_class
 
@@ -369,6 +376,7 @@ static gboolean gst_xcam_src_unlock_stop (GstBaseSrc *src);
 static GstFlowReturn gst_xcam_src_alloc (GstBaseSrc *src, guint64 offset, guint size, GstBuffer **buffer);
 static GstFlowReturn gst_xcam_src_fill (GstPushSrc *src, GstBuffer *out);
 
+#if HAVE_IA_AIQ
 /* GstXCamInterface implementation */
 static gboolean gst_xcam_src_set_white_balance_mode (GstXCam3A *xcam3a, XCamAwbMode mode);
 static gboolean gst_xcam_src_set_awb_speed (GstXCam3A *xcam3a, double speed);
@@ -405,6 +413,7 @@ static gboolean gst_xcam_src_set_hdr_mode (GstXCam3A *xcam3a, guint8 mode);
 static gboolean gst_xcam_src_set_denoise_mode (GstXCam3A *xcam3a, guint32 mode);
 static gboolean gst_xcam_src_set_gamma_mode (GstXCam3A *xcam3a, gboolean enable);
 static gboolean gst_xcam_src_set_dpc_mode(GstXCam3A * xcam3a, gboolean enable);
+#endif
 
 static gboolean gst_xcam_src_plugin_init (GstPlugin * xcamsrc);
 
@@ -480,17 +489,17 @@ gst_xcam_src_class_init (GstXCamSrcClass * klass)
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     g_object_class_install_property (
-        gobject_class, PROP_ENABLE_3A,
-        g_param_spec_boolean ("enable-3a", "enable 3a", "Enable 3A",
-                              DEFAULT_PROP_ENABLE_3A, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
-    g_object_class_install_property (
         gobject_class, PROP_3A_ANALYZER,
         g_param_spec_enum ("analyzer", "3a analyzer", "3A Analyzer",
                            GST_TYPE_XCAM_SRC_ANALYZER, DEFAULT_PROP_ANALYZER,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
 #if HAVE_IA_AIQ
+    g_object_class_install_property (
+        gobject_class, PROP_ENABLE_3A,
+        g_param_spec_boolean ("enable-3a", "enable 3a", "Enable 3A",
+                              DEFAULT_PROP_ENABLE_3A, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     g_object_class_install_property (
         gobject_class, PROP_CPF,
         g_param_spec_string ("path-cpf", "cpf", "Path to cpf",
@@ -579,9 +588,9 @@ gst_xcam_src_init (GstXCamSrc *xcamsrc)
     xcamsrc->capture_mode = V4L2_CAPTURE_MODE_VIDEO;
     xcamsrc->device = NULL;
     xcamsrc->enable_usb = DEFAULT_PROP_ENABLE_USB;
-    xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
 
 #if HAVE_IA_AIQ
+    xcamsrc->enable_3a = DEFAULT_PROP_ENABLE_3A;
     xcamsrc->path_to_cpf = strndup(DEFAULT_CPF_FILE_NAME, XCAM_MAX_STR_SIZE);
     xcamsrc->path_to_3alib = strndup(DEFAULT_DYNAMIC_3A_LIB, XCAM_MAX_STR_SIZE);
 #endif
@@ -676,14 +685,14 @@ gst_xcam_src_get_property (
     case PROP_IMAGE_PROCESSOR:
         g_value_set_enum (value, src->image_processor_type);
         break;
-    case PROP_ENABLE_3A:
-        g_value_set_boolean (value, src->enable_3a);
-        break;
     case PROP_3A_ANALYZER:
         g_value_set_enum (value, src->analyzer_type);
         break;
 
 #if HAVE_IA_AIQ
+    case PROP_ENABLE_3A:
+        g_value_set_boolean (value, src->enable_3a);
+        break;
     case PROP_CPF:
         g_value_set_string (value, src->path_to_cpf);
         break;
@@ -792,14 +801,14 @@ gst_xcam_src_set_property (
         }
 #endif
         break;
-    case PROP_ENABLE_3A:
-        src->enable_3a = g_value_get_boolean (value);
-        break;
     case PROP_3A_ANALYZER:
         src->analyzer_type = (AnalyzerType)g_value_get_enum (value);
         break;
 
 #if HAVE_IA_AIQ
+    case PROP_ENABLE_3A:
+        src->enable_3a = g_value_get_boolean (value);
+        break;
     case PROP_CPF: {
         const char * cpf = g_value_get_string (value);
         if (src->path_to_cpf)
@@ -849,6 +858,7 @@ gst_xcam_src_set_property (
     }
 }
 
+#if HAVE_IA_AIQ
 static void
 gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface)
 {
@@ -891,6 +901,7 @@ gst_xcam_src_xcam_3a_interface_init (GstXCam3AInterface *iface)
     iface->set_gamma_mode = gst_xcam_src_set_gamma_mode;
     iface->set_dpc_mode = gst_xcam_src_set_dpc_mode;
 }
+#endif
 
 static gboolean
 gst_xcam_src_start (GstBaseSrc *src)
@@ -1369,6 +1380,7 @@ gst_xcam_src_fill (GstPushSrc *basesrc, GstBuffer *buf)
     return GST_FLOW_OK;
 }
 
+#if HAVE_IA_AIQ
 static gboolean
 gst_xcam_src_set_white_balance_mode (GstXCam3A *xcam3a, XCamAwbMode mode)
 {
@@ -1699,6 +1711,7 @@ gst_xcam_src_set_dpc_mode (GstXCam3A *xcam3a, gboolean enable)
     XCAM_LOG_WARNING ("xcamsrc: dpc is not supported");
     return true;
 }
+#endif
 
 static gboolean
 gst_xcam_src_plugin_init (GstPlugin * xcamsrc)

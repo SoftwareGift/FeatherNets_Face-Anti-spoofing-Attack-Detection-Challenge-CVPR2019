@@ -1,4 +1,6 @@
+if ENABLE_IA_AIQ
 SUBDIRS = interface
+endif
 
 plugin_LTLIBRARIES = \
     libgstxcamsrc.la \
@@ -18,6 +20,14 @@ ISP_LA = $(top_builddir)/modules/isp/libxcam_isp.la
 
 OCL_DIR = $(top_builddir)/modules/ocl
 OCL_LA = $(top_builddir)/modules/ocl/libxcam_ocl.la
+
+if ENABLE_IA_AIQ
+XCAM_INTERFACE_DIR = -I$(top_builddir)/wrapper/gstreamer/interface
+XCAM_INTERFACE_LA = $(top_builddir)/wrapper/gstreamer/interface/libgstxcaminterface.la
+else
+XCAM_INTERFACE_DIR =
+XCAM_INTERFACE_LA =
+endif
 
 PTHREAD_LDFLAGS = -pthread
 
@@ -51,11 +61,11 @@ libgstxcamsrc_la_SOURCES = \
 libgstxcamsrc_la_CXXFLAGS = \
     $(GST_CFLAGS) $(XCAMGST_CXXFLAGS) -I$(XCORE_DIR) \
     -I$(top_builddir)/wrapper/gstreamer              \
-    -I$(top_builddir)/wrapper/gstreamer/interface    \
+    $(XCAM_INTERFACE_DIR)                            \
     $(NULL)
 
 libgstxcamsrc_la_LIBADD = $(XCAMGST_LIBS) \
-    $(top_builddir)/wrapper/gstreamer/interface/libgstxcaminterface.la \
+    $(XCAM_INTERFACE_LA)              \
     $(XCORE_LA) $(GST_ALLOCATOR_LIBS) \
     $(GST_VIDEO_LIBS) $(GST_LIBS)     \
     $(NULL)
