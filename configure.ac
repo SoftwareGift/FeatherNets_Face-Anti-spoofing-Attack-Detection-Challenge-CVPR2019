@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 m4_define([xcam_major_version], [0])
-m4_define([xcam_minor_version], [8])
+m4_define([xcam_minor_version], [9])
 m4_define([xcam_micro_version], [0])
 m4_define([xcam_version], [xcam_major_version.xcam_minor_version.xcam_micro_version])
 
@@ -21,6 +21,11 @@ XCAM_VERSION_HEX="0x$XCAM_MAJOR_VERSION$XCAM_MINOR_VERSION$XCAM_MICRO_VERSION"
 AC_DEFINE_UNQUOTED(XCAM_VERSION, $XCAM_VERSION_HEX,
     [define libxcam version])
 AC_SUBST(XCAM_VERSION)
+
+XCAM_LT_VERSION="xcam_major_version:xcam_minor_version:xcam_micro_version"
+XCAM_LT_LDFLAGS="-version-number $XCAM_LT_VERSION"
+AC_SUBST(XCAM_LT_VERSION)
+AC_SUBST(XCAM_LT_LDFLAGS)
 
 # Checks for programs.
 AC_PROG_CC

@@ -71,6 +71,7 @@ libxcam_isp_la_LIBADD = \
     $(NULL)
 
 libxcam_isp_la_LDFLAGS = \
+    $(XCAM_LT_LDFLAGS)  \
     $(PTHREAD_LDFLAGS)  \
     $(NULL)
 

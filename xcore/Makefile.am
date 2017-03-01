@@ -71,6 +71,7 @@ libxcam_core_la_SOURCES = \
 
 libxcam_core_la_LDFLAGS = \
     -no-undefined       \
+    $(XCAM_LT_LDFLAGS)  \
     $(PTHREAD_LDFLAGS)  \
     $(NULL)
 

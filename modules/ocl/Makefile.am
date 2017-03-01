@@ -82,6 +82,7 @@ libxcam_ocl_la_LIBADD = \
     $(NULL)
 
 libxcam_ocl_la_LDFLAGS = \
+    $(XCAM_LT_LDFLAGS) \
     $(PTHREAD_LDFLAGS) \
     $(NULL)
 
