@@ -30,113 +30,6 @@ namespace XCam {
 SmartAnalysisHandler::SmartHandlerMap SmartAnalysisHandler::_handler_map;
 Mutex SmartAnalysisHandler::_handler_map_lock;
 
-class SmartBuffer
-    : public XCamVideoBufferIntel
-{
-public:
-    SmartBuffer (SmartPtr<BufferProxy> buf);
-    ~SmartBuffer ();
-
-    static void     buf_ref (XCamVideoBuffer *data);
-    static void     buf_unref (XCamVideoBuffer *data);
-    static uint8_t *buf_map (XCamVideoBuffer *data);
-    static void     buf_unmap (XCamVideoBuffer *data);
-    static int      buf_get_fd (XCamVideoBuffer *data);
-    static void    *buf_get_bo (XCamVideoBufferIntel *data);
-
-private:
-    XCAM_DEAD_COPY (SmartBuffer);
-
-private:
-    mutable RefCount       *_ref;
-    SmartPtr<DrmBoBuffer>   _buf_ptr;
-};
-
-SmartBuffer::SmartBuffer (SmartPtr<BufferProxy> buf)
-    : _ref (NULL)
-{
-    XCAM_ASSERT (buf.ptr ());
-    this->_buf_ptr = buf.dynamic_cast_ptr<DrmBoBuffer> ();
-    XCAM_ASSERT (this->_buf_ptr.ptr ());
-
-    if (!buf.ptr ()) {
-        return;
-    }
-
-    _ref = new RefCount ();
-
-    const VideoBufferInfo& video_info = buf->get_video_info ();
-
-    this->base.info = *((const XCamVideoBufferInfo*)&video_info);
-    this->base.mem_type = XCAM_MEM_TYPE_PRIVATE_BO;
-    this->base.timestamp = buf->get_timestamp ();
-
-    this->base.ref = SmartBuffer::buf_ref;
-    this->base.unref = SmartBuffer::buf_unref;
-    this->base.map = SmartBuffer::buf_map;
-    this->base.unmap = SmartBuffer::buf_unmap;
-    this->base.get_fd = SmartBuffer::buf_get_fd;
-    this->get_bo = SmartBuffer::buf_get_bo;
-}
-
-SmartBuffer::~SmartBuffer ()
-{
-    delete _ref;
-}
-
-void
-SmartBuffer::buf_ref (XCamVideoBuffer *data)
-{
-    SmartBuffer *buf = (SmartBuffer*) data;
-    XCAM_ASSERT (buf->_ref);
-    if (buf->_ref)
-        buf->_ref->ref ();
-}
-
-void
-SmartBuffer::buf_unref (XCamVideoBuffer *data)
-{
-    SmartBuffer *buf = (SmartBuffer*) data;
-    XCAM_ASSERT (buf->_ref);
-    if (buf->_ref) {
-        if (!buf->_ref->unref()) {
-            delete buf;
-        }
-    }
-}
-
-uint8_t *
-SmartBuffer::buf_map (XCamVideoBuffer *data)
-{
-    SmartBuffer *buf = (SmartBuffer*) data;
-    XCAM_ASSERT (buf->_buf_ptr.ptr ());
-    return buf->_buf_ptr->map ();
-}
-
-void
-SmartBuffer::buf_unmap (XCamVideoBuffer *data)
-{
-    SmartBuffer *buf = (SmartBuffer*) data;
-    XCAM_ASSERT (buf->_buf_ptr.ptr ());
-    buf->_buf_ptr->unmap ();
-}
-
-int
-SmartBuffer::buf_get_fd (XCamVideoBuffer *data)
-{
-    SmartBuffer *buf = (SmartBuffer*) data;
-    XCAM_ASSERT (buf->_buf_ptr.ptr ());
-    return buf->_buf_ptr->get_fd ();
-}
-
-void *
-SmartBuffer::buf_get_bo (XCamVideoBufferIntel *data)
-{
-    SmartBuffer *buf = (SmartBuffer*) data;
-    XCAM_ASSERT (buf->_buf_ptr.ptr ());
-    return buf->_buf_ptr->get_bo ();
-}
-
 SmartAnalysisHandler::SmartAnalysisHandler (XCamSmartAnalysisDescription *desc, SmartPtr<SmartAnalyzerLoader> &loader, const char *name)
     : _desc (desc)
     , _loader (loader)
@@ -262,7 +155,7 @@ SmartAnalysisHandler::analyze (SmartPtr<BufferProxy> &buffer, X3aResultList &res
 {
     XCAM_LOG_DEBUG ("smart handler(%s) analyze", XCAM_STR(get_name()));
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    XCamVideoBuffer *video_buffer = (XCamVideoBuffer *)(new SmartBuffer (buffer));
+    XCamVideoBuffer *video_buffer = convert_to_external_buffer (buffer);
     XCam3aResultHead *res_array[XCAM_3A_MAX_RESULT_COUNT];
     uint32_t res_count = XCAM_3A_MAX_RESULT_COUNT;
 

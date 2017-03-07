@@ -150,6 +150,8 @@ private:
     bool                     _started;
 };
 
+XCamVideoBuffer *convert_to_external_buffer (SmartPtr<BufferProxy> &buf);
+
 };
 
 #endif //XCAM_BUFFER_POOL_H

@@ -46,6 +46,8 @@ private:
     bool        _need_close_fd;
 };
 
+SmartPtr<DmaVideoBuffer> external_buf_to_dma_buf (XCamVideoBuffer *buf);
+
 }
 
 #endif //XCAM_DMA_VIDEO_BUFFER_H

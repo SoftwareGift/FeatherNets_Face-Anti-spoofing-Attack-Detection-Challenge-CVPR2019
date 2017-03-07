@@ -23,6 +23,18 @@
 
 namespace XCam {
 
+class DmaVideoBufferPriv
+    : public DmaVideoBuffer
+{
+    friend SmartPtr<DmaVideoBuffer> external_buf_to_dma_buf (XCamVideoBuffer *buf);
+protected:
+    DmaVideoBufferPriv (const VideoBufferInfo &info, XCamVideoBuffer *buf);
+    ~DmaVideoBufferPriv ();
+
+private:
+    XCamVideoBuffer *_external_buf;
+};
+
 DmaVideoBuffer::DmaVideoBuffer (const VideoBufferInfo &info, int dma_fd, bool need_close_fd)
     : VideoBuffer (info)
     , _dma_fd (dma_fd)
@@ -54,6 +66,45 @@ int
 DmaVideoBuffer::get_fd ()
 {
     return _dma_fd;
+}
+
+DmaVideoBufferPriv::DmaVideoBufferPriv (const VideoBufferInfo &info, XCamVideoBuffer *buf)
+    : DmaVideoBuffer (info, xcam_video_buffer_get_fd (buf), false)
+    , _external_buf (buf)
+{
+    if (buf->ref)
+        xcam_video_buffer_ref (buf);
+}
+
+DmaVideoBufferPriv::~DmaVideoBufferPriv ()
+{
+    if (_external_buf && _external_buf->unref && _external_buf->ref)
+        xcam_video_buffer_unref (_external_buf);
+}
+
+SmartPtr<DmaVideoBuffer>
+external_buf_to_dma_buf (XCamVideoBuffer *buf)
+{
+    VideoBufferInfo buf_info;
+    SmartPtr<DmaVideoBuffer> video_buffer;
+
+    XCAM_FAIL_RETURN (
+        ERROR, buf, NULL,
+        "external_buf_to_dma_buf failed since buf is NULL");
+
+    int buffer_fd = 0;
+    if (buf->get_fd)
+        buffer_fd = xcam_video_buffer_get_fd(buf);
+
+    XCAM_FAIL_RETURN (
+        ERROR, buffer_fd > 0, NULL,
+        "external_buf_to_dma_buf failed, can't get buf file-handle");
+
+    buf_info.init (buf->info.format, buf->info.width, buf->info.height,
+                   buf->info.aligned_width, buf->info.aligned_height, buf->info.size);
+    video_buffer = new DmaVideoBufferPriv (buf_info, buf);
+    XCAM_ASSERT (video_buffer.ptr ());
+    return video_buffer;
 }
 
 }
