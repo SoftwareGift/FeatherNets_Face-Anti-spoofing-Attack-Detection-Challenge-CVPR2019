@@ -1,7 +1,5 @@
 plugin_LTLIBRARIES = libxcam_3a_aiq.la
 
-PTHREAD_LDFLAGS = -pthread
-
 XCAMAIQ_CXXFLAGS = $(XCAM_CXXFLAGS)
 XCAMAIQ_LIBS = \
     $(NULL)

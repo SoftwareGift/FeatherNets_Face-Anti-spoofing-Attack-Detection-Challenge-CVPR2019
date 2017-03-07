@@ -16,5 +16,10 @@ TESTS_DIR =
 endif
 endif
 
+if ENABLE_CAPI
+CAPI_DIR = capi
+else
+CAPI_DIR =
+endif
 SUBDIRS = xcore $(CLX_KERNEL_DIR) $(CLX_BIN_DIR) modules plugins \
-          wrapper $(TESTS_DIR) pkgconfig
+          wrapper $(CAPI_DIR) $(TESTS_DIR) pkgconfig

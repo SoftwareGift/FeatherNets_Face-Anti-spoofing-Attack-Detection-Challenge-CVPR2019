@@ -1,7 +1,5 @@
 lib_LTLIBRARIES = libxcam_ocl.la
 
-PTHREAD_LDFLAGS = -pthread
-
 XCAMOCL_CXXFLAGS = $(XCAM_CXXFLAGS)
 XCAMOCL_LIBS = -ldl  \
     $(NULL)

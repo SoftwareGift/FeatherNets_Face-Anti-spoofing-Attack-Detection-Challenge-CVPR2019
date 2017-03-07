@@ -1,7 +1,5 @@
 lib_LTLIBRARIES = libxcam_isp.la
 
-PTHREAD_LDFLAGS = -pthread
-
 XCAMISP_CXXFLAGS = $(XCAM_CXXFLAGS)
 XCAMISP_LIBS = \
     $(NULL)

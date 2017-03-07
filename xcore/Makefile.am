@@ -1,7 +1,5 @@
 lib_LTLIBRARIES = libxcam_core.la
 
-PTHREAD_LDFLAGS = -pthread
-
 XCAM_CORE_CXXFLAGS = $(XCAM_CXXFLAGS)
 XCAM_CORE_LIBS = \
     -ldl      \
