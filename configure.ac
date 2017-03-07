@@ -69,6 +69,11 @@ AC_ARG_ENABLE(opencv,
                    [enable opencv library, @<:@default=no@:>@]),
     [], [enable_opencv="no"])
 
+AC_ARG_ENABLE(capi,
+    AS_HELP_STRING([--enable-capi],
+                   [enable libxcam-capi library, @<:@default=yes@:>@]),
+    [], [enable_capi="yes"])
+
 # documentation
 AC_ARG_ENABLE(docs,
     [AC_HELP_STRING([--enable-docs],
@@ -127,6 +132,12 @@ fi
 HAVE_OPENCV=0
 if test "$enable_opencv" = "yes"; then
     PKG_CHECK_MODULES(OPENCV, [opencv], [HAVE_OPENCV=1], [HAVE_OPENCV=0])
+fi
+
+# check capi build
+ENABLE_CAPI=0
+if test "$enable_capi" = "yes"; then
+    ENABLE_CAPI=1
 fi
 
 # check AIQ
@@ -264,6 +275,10 @@ AC_DEFINE_UNQUOTED([HAVE_OPENCV], $HAVE_OPENCV,
     [have opencv])
 AM_CONDITIONAL([HAVE_OPENCV], [test "$HAVE_OPENCV" -eq 1])
 
+AC_DEFINE_UNQUOTED([ENABLE_CAPI], $ENABLE_CAPI,
+    [enable capi build])
+AM_CONDITIONAL([ENABLE_CAPI], [test "$ENABLE_CAPI" -eq 1])
+
 #atomisp
 AM_CONDITIONAL([USE_LOCAL_ATOMISP], [test "$USE_LOCAL_ATOMISP" -eq 1])
 
@@ -291,6 +306,7 @@ AC_CONFIG_FILES([Makefile
                  plugins/smart/dvs/Makefile
                  plugins/smart/dvs/libdvs/Makefile
                  plugins/smart/sample/Makefile
+                 capi/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
                  pkgconfig/xcam_core.pc
@@ -316,4 +332,5 @@ echo "
      have opencv lib            : $have_opencv
      enable 3a lib              : $enable_3alib
      enable smart analysis lib  : $enable_smartlib
+     enable libxcam-capi lib    : $enable_capi
 "
