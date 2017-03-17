@@ -1,13 +1,13 @@
 /*
  * cv_feature_match.cpp - optical flow feature match
  *
- *  Copyright (c) 2016 Intel Corporation
+ *  Copyright (c) 2016-2017 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * 	 http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,11 +31,10 @@ using namespace XCam;
 static const int sitch_min_width = 56;
 
 static const int min_corners = 8;
-static const float max_offset = 16.0f;
 static const float offset_factor = 0.8f;
 
 static const int delta_count = 4;  // cur_count - last_count
-static const float delta_mean_offset = 0.1f;  // cur_mean_offset - last_mean_offset
+static const float delta_mean_offset = 1.0f; //0.1f;  // cur_mean_offset - last_mean_offset
 static const float delta_offset = 12.0f;  // cur_mean_offset - last_offset
 
 void
@@ -111,8 +110,6 @@ get_valid_offsets (
             continue;
 
         float offset = corner1[i].x - corner0[i].x;
-        if (fabs (offset) > max_offset)
-            continue;
 
         sum += offset;
         ++count;
@@ -135,14 +132,13 @@ get_mean_offset (vector<float> offsets, float sum, int &count, float &mean_offse
         return false;
 
     mean_offset = sum / count;
-    if (mean_offset > max_offset)
-        return false;
+
     XCAM_LOG_INFO (
         "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
         mean_offset, 0.0f, 0, count);
 
     bool ret = true;
-    float delta = mean_offset;
+    float delta = 20.0f;//mean_offset;
     float pre_mean_offset = mean_offset;
     for (int try_times = 1; try_times < 4; ++try_times) {
         int recur_count = 0;
@@ -163,8 +159,7 @@ get_mean_offset (vector<float> offsets, float sum, int &count, float &mean_offse
         XCAM_LOG_INFO (
             "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
             mean_offset, pre_mean_offset, try_times, recur_count);
-        if (fabs (mean_offset) > max_offset ||
-                fabs (mean_offset - pre_mean_offset) > fabs (delta)) {
+        if (fabs (mean_offset - pre_mean_offset) > fabs (delta) * 1.2f) {
             ret = false;
             break;
         }
@@ -209,11 +204,10 @@ calc_match_optical_flow (
 
     bool ret = get_mean_offset (offsets, offset_sum, count, mean_offset);
     if (ret) {
-        if (fabs (count - last_count) < delta_count &&
-                fabs (mean_offset - last_mean_offset) < delta_mean_offset)
-            out_x_offset = 0.0f;
-        else if (fabs (mean_offset - out_x_offset) < delta_offset)
+        if (fabs (mean_offset - last_mean_offset) < delta_mean_offset ||
+                fabs (mean_offset - out_x_offset) < delta_offset) {
             out_x_offset = out_x_offset * offset_factor + mean_offset * (1.0f - offset_factor);
+        }
     } else
         out_x_offset = 0.0f;
 
@@ -279,14 +273,14 @@ optical_flow_feature_match (
 
     vector<float> err0, err1;
     vector<uchar> status0, status1;
-	calcOpticalFlowPyrLK (
+    calcOpticalFlowPyrLK (
         image0_left, image1_right, corner0_left, corner1_right,
         status0, err0, Size(5, 5), 3,
-        TermCriteria (TermCriteria::COUNT+TermCriteria::EPS, 10, 0.01));
+        TermCriteria (TermCriteria::COUNT + TermCriteria::EPS, 10, 0.01));
     calcOpticalFlowPyrLK (
         image0_right, image1_left, corner0_right, corner1_left,
         status1, err1, Size(5, 5), 3,
-        TermCriteria (TermCriteria::COUNT+TermCriteria::EPS, 10, 0.01));
+        TermCriteria (TermCriteria::COUNT + TermCriteria::EPS, 10, 0.01));
 
     Rect tmp_stitch0 = image1_crop_right;
     Rect tmp_stitch1 = image0_crop_left;
