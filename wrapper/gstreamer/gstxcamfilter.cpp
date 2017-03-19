@@ -160,6 +160,8 @@ static void gst_xcam_filter_finalize (GObject * object);
 static void gst_xcam_filter_set_property (GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
 static void gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
 static gboolean gst_xcam_filter_start (GstBaseTransform *trans);
+static GstCaps *gst_xcam_filter_transform_caps (
+    GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps, GstCaps *filter);
 static gboolean gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *outcaps);
 static gboolean gst_xcam_filter_stop (GstBaseTransform *trans);
 static void gst_xcam_filter_before_transform (GstBaseTransform *trans, GstBuffer *buffer);
@@ -238,6 +240,7 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
 
     basetrans_class->start = GST_DEBUG_FUNCPTR (gst_xcam_filter_start);
     basetrans_class->stop = GST_DEBUG_FUNCPTR (gst_xcam_filter_stop);
+    basetrans_class->transform_caps = GST_DEBUG_FUNCPTR (gst_xcam_filter_transform_caps);
     basetrans_class->set_caps = GST_DEBUG_FUNCPTR (gst_xcam_filter_set_caps);
     basetrans_class->before_transform = GST_DEBUG_FUNCPTR (gst_xcam_filter_before_transform);
     basetrans_class->prepare_output_buffer = GST_DEBUG_FUNCPTR (gst_xcam_filter_prepare_output_buffer);
@@ -443,6 +446,63 @@ gst_xcam_filter_stop (GstBaseTransform *trans)
         pipe_manager->stop ();
 
     return true;
+}
+
+static GstCaps *
+gst_xcam_filter_transform_caps (
+    GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps, GstCaps *filter)
+{
+    GstCaps *src_caps, *peer_caps, *intersect_caps;
+    GstStructure *sink_struct, *src_struct;
+    GstPad *peer_pad;
+    gint sink_width, sink_height, src_width, src_height;
+
+    src_caps = gst_pad_get_pad_template_caps (trans->srcpad);
+
+    if (direction == GST_PAD_SRC || !gst_caps_is_fixed (caps))
+        goto filtering;
+
+    sink_struct = gst_caps_get_structure (caps, 0);
+    if (!gst_structure_get_int (sink_struct, "width", &sink_width) ||
+            !gst_structure_get_int (sink_struct, "height", &sink_height))
+        goto filtering;
+
+    peer_pad = gst_pad_get_peer (trans->srcpad);
+    peer_caps = gst_pad_query_caps (peer_pad, src_caps);
+    if (!peer_pad || gst_caps_is_empty (peer_caps)) {
+        gst_caps_unref (peer_caps);
+        goto filtering;
+    }
+
+    intersect_caps = gst_caps_intersect_full (peer_caps, src_caps, GST_CAPS_INTERSECT_FIRST);
+    gst_caps_unref (src_caps);
+    src_caps = intersect_caps;
+
+    src_struct = gst_caps_get_structure (src_caps, 0);
+    if (!gst_structure_get_int (src_struct, "width", &src_width))
+        src_width = sink_width;
+    if (!gst_structure_get_int (src_struct, "height", &src_height))
+        src_height = sink_height;
+
+    gint fps_n, fps_d;
+    if (!gst_structure_get_fraction (src_struct, "framerate", &fps_n, &fps_d) &&
+            !gst_structure_get_fraction (sink_struct, "framerate", &fps_n, &fps_d)) {
+        fps_n = 25;
+        fps_d = 1;
+    }
+
+    gst_structure_set (src_struct, "width", G_TYPE_INT, src_width,
+                       "height", G_TYPE_INT, src_height,
+                       "framerate", GST_TYPE_FRACTION, fps_n, fps_d, NULL);
+
+filtering:
+    if (filter) {
+        intersect_caps = gst_caps_intersect_full (filter, src_caps, GST_CAPS_INTERSECT_FIRST);
+        gst_caps_unref (src_caps);
+        src_caps = intersect_caps;
+    }
+
+    return src_caps;
 }
 
 static gboolean
