@@ -307,6 +307,7 @@ int main (int argc, char *argv[])
     switch (handler_type) {
     case TestHandlerDemo:
         image_handler = create_cl_demo_image_handler (context);
+        // image_handler = create_cl_binary_demo_image_handler (context);
         break;
     case TestHandlerColorConversion: {
         SmartPtr<CLCscImageHandler> csc_handler;

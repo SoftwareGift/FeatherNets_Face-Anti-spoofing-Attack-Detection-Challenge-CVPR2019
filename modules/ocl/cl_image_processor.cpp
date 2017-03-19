@@ -367,6 +367,7 @@ CLImageProcessor::create_handlers ()
 {
     SmartPtr<CLImageHandler> demo_handler;
     demo_handler = create_cl_demo_image_handler (_context);
+    // demo_handler = create_cl_binary_demo_image_handler (_context);
     XCAM_FAIL_RETURN (
         WARNING,
         demo_handler.ptr (),
