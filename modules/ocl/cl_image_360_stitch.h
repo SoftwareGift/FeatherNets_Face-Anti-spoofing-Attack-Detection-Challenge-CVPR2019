@@ -23,9 +23,39 @@
 
 #include "xcam_utils.h"
 #include "cl_multi_image_handler.h"
+#include "cl_fisheye_handler.h"
 #include "cl_blender.h"
 
 namespace XCam {
+
+enum ImageIdx {
+	ImageIdxMain,
+	ImageIdxSecondary,
+	ImageIdxCount,
+};
+
+struct ImageCropInfo {
+    uint32_t left;
+    uint32_t right;
+    uint32_t top;
+    uint32_t bottom;
+
+    ImageCropInfo () : left (0), right (0), top (0), bottom (0) {}
+};
+
+typedef struct {
+    uint32_t output_width;
+    uint32_t output_height;
+    uint32_t merge_width[ImageIdxCount];
+
+    ImageCropInfo crop[ImageIdxCount];
+    CLFisheyeInfo fisheye_info[ImageIdxCount];
+} CLStitchInfo;
+
+typedef struct {
+    Rect merge_left;
+    Rect merge_right;
+} ImageMergeInfo;
 
 class CLBlenderGlobalScaleKernel
     : public CLBlenderScaleKernel
@@ -48,52 +78,66 @@ class CLImage360Stitch
     : public CLMultiImageHandler
 {
 public:
-    enum ImageIdx {
-        ImageIdxMain,
-        ImageIdxSecondary,
-        ImageIdxCount,
-    };
-public:
-    explicit CLImage360Stitch (CLBlenderScaleMode scale_mode);
+    explicit CLImage360Stitch (SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode);
 
+    bool init_stitch_info (CLStitchInfo stitch_info);
     void set_output_size (uint32_t width, uint32_t height) {
         _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
         _output_height = height;
     }
+
+    bool set_fisheye_handler (SmartPtr<CLFisheyeHandler> fisheye, int index);
     bool set_left_blender (SmartPtr<CLBlender> blender);
     bool set_right_blender (SmartPtr<CLBlender> blender);
 
     bool set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1);
-
     const Rect &get_image_overlap (ImageIdx image, int num) {
         XCAM_ASSERT (image < ImageIdxCount && num < 2);
         return _overlaps[image][num];
     }
 
 protected:
-    virtual XCamReturn prepare_buffer_pool_video_info (
-        const VideoBufferInfo &input,
-        VideoBufferInfo &output);
+    virtual XCamReturn prepare_buffer_pool_video_info (const VideoBufferInfo &input, VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn execute_self_prepare_parameters (
+        SmartPtr<CLImageHandler> specified_handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
-    SmartPtr<DrmBoBuffer> create_scale_input_buffer (SmartPtr<DrmBoBuffer> &output);
-    XCamReturn reset_buffer_info (SmartPtr<DrmBoBuffer> &input);
+    XCamReturn prepare_fisheye_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn prepare_local_scale_blender_parameters (
+        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
     XCamReturn prepare_global_scale_blender_parameters (
         SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
 
-    XCamReturn prepare_local_scale_blender_parameters (
-        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
+    SmartPtr<DrmBoBuffer> create_bo_buffer (uint32_t width, uint32_t height);
+    XCamReturn reset_buffer_info (SmartPtr<DrmBoBuffer> &input);
+
+    virtual XCamReturn sub_handler_execute_done (SmartPtr<CLImageHandler> &handler);
+
+    void calc_fisheye_initial_info (SmartPtr<DrmBoBuffer> &output);
+    void update_image_overlap ();
 
 private:
     XCAM_DEAD_COPY (CLImage360Stitch);
 
 private:
-    SmartPtr<CLBlender>    _left_blender;
-    SmartPtr<CLBlender>    _right_blender;
-    uint32_t               _output_width;
-    uint32_t               _output_height;
-    Rect                   _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
-    CLBlenderScaleMode     _scale_mode;
+    SmartPtr<CLContext>         _context;
+    SmartPtr<CLFisheyeHandler>  _fisheye[ImageIdxCount];
+    SmartPtr<DrmBoBuffer>       _fisheye_buf0;
+    SmartPtr<DrmBoBuffer>       _fisheye_buf1;
+    uint32_t                    _fisheye_width;
+    uint32_t                    _fisheye_height;
+
+    SmartPtr<CLBlender>         _left_blender;
+    SmartPtr<CLBlender>         _right_blender;
+
+    uint32_t                    _output_width;
+    uint32_t                    _output_height;
+    uint32_t                    _merge_width[ImageIdxCount];
+    ImageCropInfo               _crop_info[ImageIdxCount];
+    ImageMergeInfo              _img_merge_info[ImageIdxCount];
+    Rect                        _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
+
+    CLBlenderScaleMode          _scale_mode;
 };
 
 SmartPtr<CLImageHandler>

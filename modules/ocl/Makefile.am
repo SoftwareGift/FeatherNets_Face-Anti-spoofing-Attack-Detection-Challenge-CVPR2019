@@ -22,6 +22,11 @@ XCAMOCL_LIBS += \
     $(NULL)
 endif
 
+if HAVE_OPENCV
+XCAMOCL_CXXFLAGS += $(OPENCV_CFLAGS)
+XCAMOCL_LIBS += $(OPENCV_LIBS)
+endif
+
 xcam_ocl_sources = \
     cl_context.cpp                     \
     cl_device.cpp                      \
@@ -63,6 +68,10 @@ xcam_ocl_sources = \
     cl_image_warp_handler.cpp          \
     priority_buffer_queue.cpp          \
     $(NULL)
+
+if HAVE_OPENCV
+xcam_ocl_sources += cv_feature_match.cpp
+endif
 
 libxcam_ocl_la_SOURCES = \
     $(xcam_ocl_sources)    \
@@ -125,5 +134,9 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_newwavelet_denoise_handler.h \
     cl_wire_frame_handler.h         \
     $(NULL)
+
+if HAVE_OPENCV
+nobase_libxcam_oclinclude_HEADERS += cv_feature_match.h
+endif
 
 libxcam_ocl_la_LIBTOOLFLAGS = --tag=disable-static

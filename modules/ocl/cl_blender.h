@@ -31,7 +31,8 @@ namespace XCam {
 
 enum CLBlenderScaleMode {
     CLBlenderScaleLocal = 0,
-    CLBlenderScaleGlobal
+    CLBlenderScaleGlobal,
+    CLBlenderScaleMax
 };
 
 enum {

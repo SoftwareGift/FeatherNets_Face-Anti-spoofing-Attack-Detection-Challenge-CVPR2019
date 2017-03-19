@@ -86,6 +86,7 @@ class CLMultiImageHandler;
 class CLImageHandler
 {
     friend class CLMultiImageHandler;
+    friend class CLImage360Stitch;
 
 public:
     typedef std::list<SmartPtr<CLImageKernel>> KernelList;
@@ -132,7 +133,7 @@ public:
     bool is_handler_enabled () const;
 
     virtual bool is_ready ();
-    XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual void emit_stop ();
 
 protected:

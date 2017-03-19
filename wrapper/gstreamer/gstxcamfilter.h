@@ -82,11 +82,15 @@ struct _GstXCamFilter
     uint8_t                      denoise_3d_ref_count;
     gboolean                     enable_wireframe;
     gboolean                     enable_image_warp;
+    bool                         enable_stitch;
+    bool                         stitch_enable_seam;
+    CLBlenderScaleMode           stitch_scale_mode;
 
     uint32_t                     delay_buf_num;
     uint32_t                     cached_buf_num;
     GstAllocator                 *allocator;
-    GstVideoInfo                 gst_video_info;
+    GstVideoInfo                 gst_sink_video_info;
+    GstVideoInfo                 gst_src_video_info;
     SmartPtr<DrmBoBufferPool>    buf_pool;
     SmartPtr<MainPipeManager>    pipe_manager;
 };

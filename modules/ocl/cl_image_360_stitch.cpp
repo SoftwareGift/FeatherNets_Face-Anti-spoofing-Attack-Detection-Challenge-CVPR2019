@@ -19,8 +19,15 @@
  */
 
 #include "cl_image_360_stitch.h"
+#include "cv_feature_match.h"
 
 #define XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH 64
+
+#define STITCH_CHECK(ret, msg, ...) \
+    if ((ret) != XCAM_RETURN_NO_ERROR) {        \
+        XCAM_LOG_WARNING (msg, ## __VA_ARGS__); \
+        return ret;                             \
+    }
 
 namespace XCam {
 
@@ -94,12 +101,29 @@ CLBlenderGlobalScaleKernel::get_output_info (
     return true;
 }
 
-CLImage360Stitch::CLImage360Stitch (CLBlenderScaleMode scale_mode)
+CLImage360Stitch::CLImage360Stitch (SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode)
     : CLMultiImageHandler ("CLImage360Stitch")
+    , _context (context)
+    , _fisheye_width (0)
+    , _fisheye_height (0)
     , _output_width (0)
     , _output_height (0)
+    , _merge_width {0, 0}
     , _scale_mode (scale_mode)
 {
+#if HAVE_OPENCV
+    init_opencv_ocl (context);
+#endif
+}
+
+bool
+CLImage360Stitch::set_fisheye_handler (SmartPtr<CLFisheyeHandler> fisheye, int index)
+{
+    XCAM_ASSERT (index < ImageIdxCount);
+
+    _fisheye[index] = fisheye;
+    SmartPtr<CLImageHandler> handler = fisheye;
+    return add_image_handler (handler);
 }
 
 bool
@@ -121,6 +145,20 @@ CLImage360Stitch::set_right_blender (SmartPtr<CLBlender> blender)
 }
 
 bool
+CLImage360Stitch::init_stitch_info (CLStitchInfo stitch_info)
+{
+    set_output_size (stitch_info.output_width, stitch_info.output_height);
+
+    for (int index = 0; index < ImageIdxCount; ++index) {
+        _merge_width[index] = stitch_info.merge_width[index];
+        _fisheye[index]->set_fisheye_info (stitch_info.fisheye_info[index]);
+        _crop_info[index] = stitch_info.crop[index];
+    }
+
+    return true;
+}
+
+bool
 CLImage360Stitch::set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1)
 {
     XCAM_ASSERT (idx < ImageIdxCount);
@@ -129,10 +167,59 @@ CLImage360Stitch::set_image_overlap (const int idx, const Rect &overlap0, const 
     return true;
 }
 
+void
+CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<DrmBoBuffer> &output)
+{
+    const VideoBufferInfo &out_info = output->get_video_info ();
+    _fisheye_width = (out_info.width + _merge_width[0] + _merge_width[1]
+                      + _crop_info[0].left + _crop_info[0].right
+                      + _crop_info[1].left + _crop_info[1].right) / 2;
+    _fisheye_width = XCAM_ALIGN_UP (_fisheye_width, 16);
+    _fisheye_height = out_info.height + _crop_info[0].top + _crop_info[0].bottom;
+    XCAM_LOG_INFO (
+        "fisheye correction output size width:%d height:%d",
+        _fisheye_width, _fisheye_height);
+
+    float max_dst_angle = 180.0f * _fisheye_width / _fisheye_height;
+    for (int index = 0; index < ImageIdxCount; ++index) {
+        _fisheye[index]->set_dst_range (max_dst_angle, 180.0f);
+        _fisheye[index]->set_output_size (_fisheye_width, _fisheye_height);
+    }
+}
+
+void
+CLImage360Stitch::update_image_overlap ()
+{
+    static bool is_stitch_info_inited = false;
+    if (!is_stitch_info_inited) {
+        _img_merge_info[0].merge_left.pos_x = _crop_info[0].left;
+        _img_merge_info[0].merge_left.pos_y = _crop_info[0].top;
+        _img_merge_info[0].merge_left.width = _merge_width[0];
+        _img_merge_info[0].merge_left.height = _fisheye_height - _crop_info[0].top - _crop_info[0].bottom;
+        _img_merge_info[0].merge_right.pos_x = _fisheye_width - _crop_info[0].right - _merge_width[1];
+        _img_merge_info[0].merge_right.pos_y = _crop_info[0].top;
+        _img_merge_info[0].merge_right.width = _merge_width[1];
+        _img_merge_info[0].merge_right.height = _fisheye_height - _crop_info[0].top - _crop_info[0].bottom;
+
+        _img_merge_info[1].merge_left.pos_x = _crop_info[1].left;
+        _img_merge_info[1].merge_left.pos_y = _crop_info[1].top;
+        _img_merge_info[1].merge_left.width = _merge_width[1];
+        _img_merge_info[1].merge_left.height = _fisheye_height - _crop_info[1].top - _crop_info[1].bottom;
+        _img_merge_info[1].merge_right.pos_x = _fisheye_width - _crop_info[1].right - _merge_width[0];
+        _img_merge_info[1].merge_right.pos_y = _crop_info[1].top;
+        _img_merge_info[1].merge_right.width = _merge_width[0];
+        _img_merge_info[1].merge_right.height = _fisheye_height - _crop_info[1].top - _crop_info[1].bottom;
+
+        is_stitch_info_inited = true;
+    }
+
+    set_image_overlap (0, _img_merge_info[0].merge_left, _img_merge_info[0].merge_right);
+    set_image_overlap (1, _img_merge_info[1].merge_left, _img_merge_info[1].merge_right);
+}
+
 XCamReturn
 CLImage360Stitch::prepare_buffer_pool_video_info (
-    const VideoBufferInfo &input,
-    VideoBufferInfo &output)
+    const VideoBufferInfo &input, VideoBufferInfo &output)
 {
     uint32_t output_width = _output_width;
     uint32_t output_height = _output_height;
@@ -149,6 +236,21 @@ CLImage360Stitch::prepare_buffer_pool_video_info (
     output.init (
         input.format, output_width, output_height,
         XCAM_ALIGN_UP(output_width, aligned_width), XCAM_ALIGN_UP(output_height, 16));
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLImage360Stitch::prepare_fisheye_parameters (
+    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_UNUSED (input);
+
+    static bool is_fisheye_inited = false;
+    if (!is_fisheye_inited) {
+        calc_fisheye_initial_info (output);
+        is_fisheye_inited = true;
+    }
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -304,17 +406,41 @@ CLImage360Stitch::prepare_local_scale_blender_parameters (
     return ret;
 }
 
+XCamReturn
+CLImage360Stitch::execute_self_prepare_parameters (
+    SmartPtr<CLImageHandler> specified_handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_ASSERT (specified_handler.ptr ());
+
+    for (HandlerList::iterator i_handler = _handler_list.begin ();
+            i_handler != _handler_list.end (); ++i_handler) {
+        SmartPtr<CLImageHandler> &handler = *i_handler;
+        XCAM_ASSERT (handler.ptr ());
+        if (specified_handler.ptr () != handler.ptr ())
+            continue;
+
+        XCamReturn ret = handler->prepare_parameters (input, output);
+        if (ret == XCAM_RETURN_BYPASS)
+            return ret;
+
+        XCAM_FAIL_RETURN (
+            WARNING,
+            ret == XCAM_RETURN_NO_ERROR,
+            ret,
+            "CLImage360Stitch(%s) prepare parameters failed on handler(%s)",
+            XCAM_STR (get_name ()), XCAM_STR (handler->get_name ()));
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 SmartPtr<DrmBoBuffer>
-CLImage360Stitch::create_scale_input_buffer (SmartPtr<DrmBoBuffer> &output)
+CLImage360Stitch::create_bo_buffer (uint32_t width, uint32_t height)
 {
     VideoBufferInfo buf_info;
-    const VideoBufferInfo &output_info = output->get_video_info ();
-
-    uint32_t preset_width = XCAM_ALIGN_UP (output_info.width + XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH, 16);
-    buf_info.init (
-        output_info.format, preset_width, output_info.height,
-        XCAM_ALIGN_UP (preset_width, 16),
-        XCAM_ALIGN_UP (output_info.height, 16));
+    width = XCAM_ALIGN_UP (width, 16);
+    buf_info.init (V4L2_PIX_FMT_NV12, width, height,
+                   XCAM_ALIGN_UP (width, 16), XCAM_ALIGN_UP (height, 16));
 
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
     SmartPtr<BufferPool> buf_pool = new DrmBoBufferPool (display);
@@ -348,49 +474,128 @@ CLImage360Stitch::reset_buffer_info (SmartPtr<DrmBoBuffer> &input)
     return XCAM_RETURN_NO_ERROR;
 }
 
-
 XCamReturn
 CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    SmartPtr<DrmBoBuffer> input0 = input;
-    SmartPtr<DrmBoBuffer> input1 = input0->find_typed_attach<DrmBoBuffer> ();
-    XCAM_FAIL_RETURN(
-        WARNING,
-        input1.ptr (),
-        XCAM_RETURN_ERROR_PARAM,
-        "CLImage360Stitch(%s) does NOT find second buffer in attachment", get_name());
+    ret = prepare_fisheye_parameters (input, output);
+    STITCH_CHECK (ret, "prepare fisheye parameters failed");
+    _fisheye_buf0 = create_bo_buffer (_fisheye_width, _fisheye_height);
+    _fisheye_buf1 = create_bo_buffer (_fisheye_width, _fisheye_height);
+    XCAM_ASSERT (_fisheye_buf0.ptr () && _fisheye_buf1.ptr ());
 
-    SmartPtr<DrmBoBuffer> scale_input;
-    if (_scale_mode == CLBlenderScaleLocal)
-        ret = prepare_local_scale_blender_parameters (input0, input1, output);
-    else {
-        scale_input = create_scale_input_buffer (output);
-        XCAM_ASSERT (scale_input.ptr ());
-        ret = prepare_global_scale_blender_parameters (input0, input1, scale_input);
-    }
-    XCAM_FAIL_RETURN(
-        WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        XCAM_RETURN_ERROR_PARAM,
-        "CLImage360Stitch(%s) failed to prepare blender parameters", get_name());
+    ret = execute_self_prepare_parameters (_fisheye[0], input, _fisheye_buf0);
+    STITCH_CHECK (ret, "execute first fisheye prepare_parameters failed");
+    ret = execute_self_prepare_parameters (_fisheye[1], input, _fisheye_buf1);
+    STITCH_CHECK (ret, "execute second fisheye prepare_parameters failed");
+
+    _fisheye_buf0->attach_buffer (_fisheye_buf1);
+    update_image_overlap ();
 
     if (_scale_mode == CLBlenderScaleLocal) {
-        ret = CLMultiImageHandler::prepare_parameters (input0, output);
+        ret = prepare_local_scale_blender_parameters (_fisheye_buf0, _fisheye_buf1, output);
+        STITCH_CHECK (ret, "prepare local scale blender parameters failed");
+
+        ret = execute_self_prepare_parameters (_left_blender, _fisheye_buf0, output);
+        STITCH_CHECK (ret, "left blender: execute prepare_parameters failed");
+        ret = execute_self_prepare_parameters (_right_blender, _fisheye_buf0, output);
+        STITCH_CHECK (ret, "right blender: execute prepare_parameters failed");
     } else {
-        ret = CLMultiImageHandler::prepare_parameters (input0, scale_input);
-        XCAM_FAIL_RETURN(
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            XCAM_RETURN_ERROR_PARAM,
-            "CLImage360Stitch(%s) failed to prepare parameters", get_name());
+        const VideoBufferInfo &buf_info = output->get_video_info ();
+        SmartPtr<DrmBoBuffer> scale_input = create_bo_buffer (buf_info.width + XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH,
+                                                              buf_info.height);
+        XCAM_ASSERT (scale_input.ptr ());
+
+        ret = prepare_global_scale_blender_parameters (_fisheye_buf0, _fisheye_buf1, scale_input);
+        STITCH_CHECK (ret, "prepare global scale blender parameters failed");
+
+        ret = execute_self_prepare_parameters (_left_blender, _fisheye_buf0, scale_input);
+        STITCH_CHECK (ret, "left blender: execute prepare_parameters failed");
+        ret = execute_self_prepare_parameters (_right_blender, _fisheye_buf0, scale_input);
+        STITCH_CHECK (ret, "right blender: execute prepare_parameters failed");
 
         input = scale_input;
         reset_buffer_info (input);
     }
 
-    return ret;
+    return XCAM_RETURN_NO_ERROR;
+}
+
+#if HAVE_OPENCV
+static void
+convert_to_cv_rect (
+    ImageMergeInfo merge_info0, ImageMergeInfo merge_info1,
+    cv::Rect &crop_area1, cv::Rect &crop_area2, cv::Rect &crop_area3, cv::Rect &crop_area4)
+{
+    crop_area1.x = merge_info0.merge_left.pos_x;
+    crop_area1.y = merge_info0.merge_left.pos_y + merge_info0.merge_left.height / 3;
+    crop_area1.width = merge_info0.merge_left.width;
+    crop_area1.height = merge_info0.merge_left.height / 3;
+    crop_area2.x = merge_info0.merge_right.pos_x;
+    crop_area2.y = merge_info0.merge_right.pos_y + merge_info0.merge_right.height / 3;
+    crop_area2.width = merge_info0.merge_right.width;
+    crop_area2.height = merge_info0.merge_right.height / 3;
+
+    crop_area3.x = merge_info1.merge_left.pos_x;
+    crop_area3.y = merge_info1.merge_left.pos_y + merge_info1.merge_left.height / 3;
+    crop_area3.width = merge_info1.merge_left.width;
+    crop_area3.height = merge_info1.merge_left.height / 3;
+    crop_area4.x = merge_info1.merge_right.pos_x;
+    crop_area4.y = merge_info1.merge_right.pos_y + merge_info1.merge_right.height / 3;
+    crop_area4.width = merge_info1.merge_right.width;
+    crop_area4.height = merge_info1.merge_right.height / 3;
+}
+
+static void
+convert_to_xcam_rect (
+    cv::Rect crop_area1, cv::Rect crop_area2, cv::Rect crop_area3, cv::Rect crop_area4,
+    ImageMergeInfo &merge_info0, ImageMergeInfo &merge_info1)
+{
+    merge_info0.merge_left.pos_x = crop_area1.x;
+    merge_info0.merge_left.width = crop_area1.width;
+    merge_info0.merge_right.pos_x = crop_area2.x;
+    merge_info0.merge_right.width = crop_area2.width;
+
+    merge_info1.merge_left.pos_x = crop_area3.x;
+    merge_info1.merge_left.width = crop_area3.width;
+    merge_info1.merge_right.pos_x = crop_area4.x;
+    merge_info1.merge_right.width = crop_area4.width;
+}
+
+static void
+calc_feature_match (
+    SmartPtr<CLContext> context, int fisheye_width,
+    SmartPtr<DrmBoBuffer> fisheye_buf0, SmartPtr<DrmBoBuffer> fisheye_buf1,
+    ImageMergeInfo &merge_info0, ImageMergeInfo &merge_info1,
+    const char *input_name, int frame_num)
+{
+    cv::Rect crop_area1, crop_area2, crop_area3, crop_area4;
+
+    convert_to_cv_rect (merge_info0, merge_info1, crop_area1, crop_area2, crop_area3, crop_area4);
+    optical_flow_feature_match (context, fisheye_width, fisheye_buf0, fisheye_buf1,
+                                crop_area1, crop_area2, crop_area3, crop_area4, input_name, frame_num);
+    convert_to_xcam_rect (crop_area1, crop_area2, crop_area3, crop_area4, merge_info0, merge_info1);
+}
+#endif
+
+XCamReturn
+CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
+{
+#if HAVE_OPENCV
+    XCAM_ASSERT (handler.ptr ());
+
+    if (handler.ptr () == _fisheye[ImageIdxCount - 1].ptr ()) {
+        const VideoBufferInfo &buf_info = _fisheye_buf0->get_video_info ();
+
+        calc_feature_match (_context, buf_info.width, _fisheye_buf0, _fisheye_buf1,
+                            _img_merge_info[0], _img_merge_info[1], "feature_match", 0);
+    }
+#else
+    XCAM_UNUSED (handler);
+#endif
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 static SmartPtr<CLImageKernel>
@@ -422,9 +627,17 @@ create_image_360_stitch (SmartPtr<CLContext> &context, bool need_seam, CLBlender
 {
     const int layer = 2;
     const bool need_uv = true;
+    SmartPtr<CLFisheyeHandler> fisheye;
     SmartPtr<CLBlender>  left_blender, right_blender;
-    SmartPtr<CLImage360Stitch> stitch = new CLImage360Stitch (scale_mode);
+    SmartPtr<CLImage360Stitch> stitch = new CLImage360Stitch (context, scale_mode);
     XCAM_ASSERT (stitch.ptr ());
+
+    for (int index = 0; index < ImageIdxCount; ++index) {
+        fisheye = create_fisheye_handler (context).dynamic_cast_ptr<CLFisheyeHandler> ();
+        XCAM_FAIL_RETURN (ERROR, fisheye.ptr (), NULL, "image_360_stitch create fisheye handler failed");
+        fisheye->disable_buf_pool (true);
+        stitch->set_fisheye_handler (fisheye, index);
+    }
 
     left_blender = create_pyramid_blender (context, layer, need_uv, need_seam, scale_mode).dynamic_cast_ptr<CLBlender> ();
     XCAM_FAIL_RETURN (ERROR, left_blender.ptr (), NULL, "image_360_stitch create left blender failed");

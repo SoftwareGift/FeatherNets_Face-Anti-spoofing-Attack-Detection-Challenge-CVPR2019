@@ -27,16 +27,19 @@
 using namespace XCam;
 using namespace GstXCam;
 
-#define DEFAULT_SMART_ANALYSIS_LIB_DIR  "/usr/lib/xcam/plugins/smart"
-#define DEFAULT_DELAY_BUFFER_NUM        2
+#define DEFAULT_SMART_ANALYSIS_LIB_DIR      "/usr/lib/xcam/plugins/smart"
+#define DEFAULT_DELAY_BUFFER_NUM            2
 
-#define DEFAULT_PROP_BUFFERCOUNT        8
-#define DEFAULT_PROP_COPY_MODE          COPY_MODE_CPU
-#define DEFAULT_PROP_DEFOG_MODE         DEFOG_NONE
-#define DEFAULT_PROP_WAVELET_MODE       NONE_WAVELET
-#define DEFAULT_PROP_3D_DENOISE_MODE    DENOISE_3D_NONE
-#define DEFAULT_PROP_ENABLE_WIREFRAME   FALSE
-#define DEFAULT_PROP_ENABLE_IMAGE_WARP  FALSE
+#define DEFAULT_PROP_BUFFERCOUNT            8
+#define DEFAULT_PROP_COPY_MODE              COPY_MODE_CPU
+#define DEFAULT_PROP_DEFOG_MODE             DEFOG_NONE
+#define DEFAULT_PROP_WAVELET_MODE           NONE_WAVELET
+#define DEFAULT_PROP_3D_DENOISE_MODE        DENOISE_3D_NONE
+#define DEFAULT_PROP_ENABLE_WIREFRAME       FALSE
+#define DEFAULT_PROP_ENABLE_IMAGE_WARP      FALSE
+#define DEFAULT_PROP_ENABLE_IMAGE_STITCH    FALSE
+#define DEFAULT_PROP_STITCH_ENABLE_SEAM     FALSE
+#define DEFAULT_PROP_STITCH_SCALE_MODE      CLBlenderScaleLocal
 
 XCAM_BEGIN_DECLARE
 
@@ -48,7 +51,10 @@ enum {
     PROP_WAVELET_MODE,
     PROP_DENOISE_3D_MODE,
     PROP_ENABLE_WIREFRAME,
-    PROP_ENABLE_IMAGE_WARP
+    PROP_ENABLE_IMAGE_WARP,
+    PROP_ENABLE_IMAGE_STITCH,
+    PROP_STITCH_ENABLE_SEAM,
+    PROP_STITCH_SCALE_MODE,
 };
 
 #define GST_TYPE_XCAM_FILTER_COPY_MODE (gst_xcam_filter_copy_mode_get_type ())
@@ -132,6 +138,26 @@ gst_xcam_filter_3d_denoise_mode_get_type (void)
     if (g_once_init_enter (&g_type)) {
         const GType type =
             g_enum_register_static ("GstXCamFilter3DDenoiseModeType", denoise_3d_mode_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
+#define GST_TYPE_XCAM_FILTER_STITCH_SCALE_MODE (gst_xcam_filter_stitch_scale_mode_get_type ())
+static GType
+gst_xcam_filter_stitch_scale_mode_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue stitch_scale_mode_types [] = {
+        {CLBlenderScaleLocal, "Image stitch local scale", "local"},
+        {CLBlenderScaleGlobal, "Image stitch glocal scale", "global"},
+        {0, NULL, NULL}
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamFilterStitchScaleModeType", stitch_scale_mode_types);
         g_once_init_leave (&g_type, type);
     }
 
@@ -227,6 +253,22 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
         g_param_spec_boolean ("enable-warp", "enable image warp", "Enable Image Warp",
                               DEFAULT_PROP_ENABLE_IMAGE_WARP, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+    g_object_class_install_property (
+        gobject_class, PROP_ENABLE_IMAGE_STITCH,
+        g_param_spec_boolean ("enable-stitch", "enable image stitch", "Enable Image Stitch",
+                              DEFAULT_PROP_ENABLE_IMAGE_STITCH, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_STITCH_ENABLE_SEAM,
+        g_param_spec_boolean ("stitch-seam", "enable seam just for stitch", "Enable Seam Just For Stitch",
+                              DEFAULT_PROP_STITCH_ENABLE_SEAM, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+    g_object_class_install_property (
+        gobject_class, PROP_STITCH_SCALE_MODE,
+        g_param_spec_enum ("stitch-scale", "stitch scale mode", "Stitch Scale Mode",
+                           GST_TYPE_XCAM_FILTER_STITCH_SCALE_MODE, DEFAULT_PROP_STITCH_SCALE_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Filter",
                                           "Filter/Effect/Video",
@@ -258,6 +300,9 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->denoise_3d_ref_count = 2;
     xcamfilter->enable_wireframe = DEFAULT_PROP_ENABLE_WIREFRAME;
     xcamfilter->enable_image_warp = DEFAULT_PROP_ENABLE_IMAGE_WARP;
+    xcamfilter->enable_stitch = DEFAULT_PROP_ENABLE_IMAGE_STITCH;
+    xcamfilter->stitch_enable_seam = DEFAULT_PROP_STITCH_ENABLE_SEAM;
+    xcamfilter->stitch_scale_mode = DEFAULT_PROP_STITCH_SCALE_MODE;
 
     xcamfilter->delay_buf_num = DEFAULT_DELAY_BUFFER_NUM;
     xcamfilter->cached_buf_num = 0;
@@ -308,6 +353,15 @@ gst_xcam_filter_set_property (GObject *object, guint prop_id, const GValue *valu
     case PROP_ENABLE_IMAGE_WARP:
         xcamfilter->enable_image_warp = g_value_get_boolean (value);
         break;
+    case PROP_ENABLE_IMAGE_STITCH:
+        xcamfilter->enable_stitch = g_value_get_boolean (value);
+        break;
+    case PROP_STITCH_ENABLE_SEAM:
+        xcamfilter->stitch_enable_seam = g_value_get_boolean (value);
+        break;
+    case PROP_STITCH_SCALE_MODE:
+        xcamfilter->stitch_scale_mode = (CLBlenderScaleMode) g_value_get_enum (value);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -341,6 +395,15 @@ gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GPa
     case PROP_ENABLE_IMAGE_WARP:
         g_value_set_boolean (value, xcamfilter->enable_image_warp);
         break;
+    case PROP_ENABLE_IMAGE_STITCH:
+        g_value_set_boolean (value, xcamfilter->enable_stitch);
+        break;
+    case PROP_STITCH_ENABLE_SEAM:
+        g_value_set_boolean (value, xcamfilter->stitch_enable_seam);
+        break;
+    case PROP_STITCH_SCALE_MODE:
+        g_value_set_enum (value, xcamfilter->stitch_scale_mode);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -351,6 +414,14 @@ static gboolean
 gst_xcam_filter_start (GstBaseTransform *trans)
 {
     GstXCamFilter *xcamfilter = GST_XCAM_FILTER (trans);
+
+    if (xcamfilter->buf_count <= xcamfilter->delay_buf_num) {
+        XCAM_LOG_ERROR (
+            "buffer count (%d) should be greater than delayed buffer number (%d)",
+            xcamfilter->buf_count,
+            xcamfilter->delay_buf_num);
+        return false;
+    }
 
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     SmartPtr<SmartAnalyzer> smart_analyzer;
@@ -452,10 +523,15 @@ static GstCaps *
 gst_xcam_filter_transform_caps (
     GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps, GstCaps *filter)
 {
+    GstXCamFilter *xcamfilter = GST_XCAM_FILTER (trans);
+
     GstCaps *src_caps, *peer_caps, *intersect_caps;
     GstStructure *sink_struct, *src_struct;
     GstPad *peer_pad;
     gint sink_width, sink_height, src_width, src_height;
+
+    gboolean is_sink_width = false;
+    gboolean is_sink_height = false;
 
     src_caps = gst_pad_get_pad_template_caps (trans->srcpad);
 
@@ -470,6 +546,25 @@ gst_xcam_filter_transform_caps (
     peer_pad = gst_pad_get_peer (trans->srcpad);
     peer_caps = gst_pad_query_caps (peer_pad, src_caps);
     if (!peer_pad || gst_caps_is_empty (peer_caps)) {
+        if (xcamfilter->enable_stitch) {
+            src_height = XCAM_ALIGN_UP (sink_width / 2, 16);
+            if (src_height * 2 != sink_width) {
+                gst_caps_unref (src_caps);
+                gst_caps_unref (peer_caps);
+                XCAM_LOG_ERROR ("xcamfilter stitch incorrect size, sink-width(%d) / 2 should be aligned with 16",
+                                sink_width);
+                return NULL;
+            }
+            src_width = sink_width;
+
+            gst_caps_unref (src_caps);
+            src_caps = gst_caps_copy (caps);
+            src_struct = gst_caps_get_structure (src_caps, 0);
+
+            gst_structure_set (src_struct, "width", G_TYPE_INT, src_width,
+                               "height", G_TYPE_INT, src_height, NULL);
+        }
+
         gst_caps_unref (peer_caps);
         goto filtering;
     }
@@ -479,10 +574,25 @@ gst_xcam_filter_transform_caps (
     src_caps = intersect_caps;
 
     src_struct = gst_caps_get_structure (src_caps, 0);
-    if (!gst_structure_get_int (src_struct, "width", &src_width))
+    if (!gst_structure_get_int (src_struct, "width", &src_width)) {
+        is_sink_width = true;
         src_width = sink_width;
-    if (!gst_structure_get_int (src_struct, "height", &src_height))
+    }
+    if (!gst_structure_get_int (src_struct, "height", &src_height)) {
+        is_sink_height = true;
         src_height = sink_height;
+    }
+
+    if (xcamfilter->enable_stitch) {
+        if (is_sink_width && is_sink_height)
+            src_height = XCAM_ALIGN_UP (src_width / 2, 16);
+
+        if (src_width != src_height * 2) {
+            XCAM_LOG_ERROR ("xcamfilter incorrect stitch size width:%d height:%d", src_width, src_height);
+            gst_caps_unref (src_caps);
+            return NULL;
+        }
+    }
 
     gint fps_n, fps_d;
     if (!gst_structure_get_fraction (src_struct, "framerate", &fps_n, &fps_d) &&
@@ -505,24 +615,38 @@ filtering:
     return src_caps;
 }
 
-static gboolean
-check_video_info (GstVideoInfo in_info, GstVideoInfo out_info)
+static CLStitchInfo
+get_stitch_initial_info (uint32_t out_width, uint32_t out_height)
 {
-    XCAM_FAIL_RETURN (
-        ERROR,
-        GST_VIDEO_INFO_FORMAT (&in_info) == GST_VIDEO_FORMAT_NV12 ||
-        GST_VIDEO_INFO_FORMAT (&out_info) == GST_VIDEO_FORMAT_NV12,
-        false,
-        "xcamfilter only support NV12 stream");
+    CLStitchInfo stitch_info;
 
-    XCAM_FAIL_RETURN (
-        ERROR,
-        GST_VIDEO_INFO_WIDTH (&in_info) == GST_VIDEO_INFO_WIDTH (&out_info) ||
-        GST_VIDEO_INFO_HEIGHT (&in_info) == GST_VIDEO_INFO_HEIGHT (&out_info),
-        false,
-        "xcamfilter doesn't support size changing");
+    stitch_info.output_width = out_width;
+    stitch_info.output_height = out_height;
 
-    return true;
+    stitch_info.merge_width[0] = 56;
+    stitch_info.merge_width[1] = 56;
+
+    stitch_info.crop[0].left = 96;
+    stitch_info.crop[0].right = 96;
+    stitch_info.crop[0].top = 0;
+    stitch_info.crop[0].bottom = 0;
+    stitch_info.crop[1].left = 96;
+    stitch_info.crop[1].right = 96;
+    stitch_info.crop[1].top = 0;
+    stitch_info.crop[1].bottom = 0;
+
+    stitch_info.fisheye_info[0].center_x = 480.0f;
+    stitch_info.fisheye_info[0].center_y = 480.0f;
+    stitch_info.fisheye_info[0].wide_angle = 202.8f;
+    stitch_info.fisheye_info[0].radius = 480.0f;
+    stitch_info.fisheye_info[0].rotate_angle = -90.0f;
+    stitch_info.fisheye_info[1].center_x = 1440.0f;
+    stitch_info.fisheye_info[1].center_y = 480.0f;
+    stitch_info.fisheye_info[1].wide_angle = 202.8f;
+    stitch_info.fisheye_info[1].radius = 480.0f;
+    stitch_info.fisheye_info[1].rotate_angle = 89.4f;
+
+    return stitch_info;
 }
 
 static gboolean
@@ -537,19 +661,33 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
         return false;
     }
 
-    if (!check_video_info (in_info, out_info)) {
-        return false;
-    }
-    xcamfilter->gst_video_info = in_info;
+    XCAM_FAIL_RETURN (
+        ERROR,
+        GST_VIDEO_INFO_FORMAT (&in_info) == GST_VIDEO_FORMAT_NV12 ||
+        GST_VIDEO_INFO_FORMAT (&out_info) == GST_VIDEO_FORMAT_NV12,
+        false,
+        "xcamfilter only support NV12 stream");
+    xcamfilter->gst_sink_video_info = in_info;
+    xcamfilter->gst_src_video_info = out_info;
 
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     SmartPtr<CLPostImageProcessor> processor = pipe_manager->get_image_processor();
     XCAM_ASSERT (pipe_manager.ptr () && processor.ptr ());
+    if (!processor->set_output_format (V4L2_PIX_FMT_NV12))
+        return false;
+
     if (processor->is_scaled ())
         processor->set_scaler_factor (640.0 / GST_VIDEO_INFO_WIDTH (&in_info));
     //processor->set_scaler_factor (0.5f);
-    if (!processor->set_output_format (V4L2_PIX_FMT_NV12))
-        return false;
+
+    if (xcamfilter->enable_stitch) {
+        CLStitchInfo stitch_info = get_stitch_initial_info (GST_VIDEO_INFO_WIDTH (&out_info),
+                                                            GST_VIDEO_INFO_HEIGHT (&out_info));
+        processor->set_image_stitch (xcamfilter->enable_stitch, xcamfilter->stitch_enable_seam,
+                                     xcamfilter->stitch_scale_mode, stitch_info);
+        XCAM_LOG_INFO ("xcamfilter stitch output size width:%d height:%d",
+                       GST_VIDEO_INFO_WIDTH (&out_info), GST_VIDEO_INFO_HEIGHT (&out_info));
+    }
 
     if (pipe_manager->start () != XCAM_RETURN_NO_ERROR) {
         XCAM_LOG_ERROR ("pipe manager start failed");
@@ -563,14 +701,6 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
         GST_VIDEO_INFO_HEIGHT (&in_info),
         XCAM_ALIGN_UP (GST_VIDEO_INFO_WIDTH (&in_info), 16),
         XCAM_ALIGN_UP (GST_VIDEO_INFO_HEIGHT (&in_info), 16));
-
-    if (xcamfilter->buf_count <= xcamfilter->delay_buf_num) {
-        XCAM_LOG_ERROR (
-            "buffer count (%d) should be greater than delayed buffer number (%d)",
-            xcamfilter->buf_count,
-            xcamfilter->delay_buf_num);
-        return false;
-    }
 
     SmartPtr<DrmBoBufferPool> buf_pool = xcamfilter->buf_pool;
     XCAM_ASSERT (buf_pool.ptr ());
@@ -733,7 +863,7 @@ gst_xcam_filter_before_transform (GstBaseTransform *trans, GstBuffer *buffer)
         }
 
         video_buf = drm_buf;
-        copy_gstbuf_to_xcambuf (xcamfilter->gst_video_info, buffer, video_buf);
+        copy_gstbuf_to_xcambuf (xcamfilter->gst_sink_video_info, buffer, video_buf);
     }
 
     if (pipe_manager->push_buffer (video_buf) != XCAM_RETURN_NO_ERROR) {
@@ -750,7 +880,6 @@ gst_xcam_filter_prepare_output_buffer (GstBaseTransform *trans, GstBuffer *input
     GstXCamFilter *xcamfilter = GST_XCAM_FILTER (trans);
     GstFlowReturn ret = GST_FLOW_OK;
 
-    SmartPtr<DrmBoBufferPool> buf_pool = xcamfilter->buf_pool;
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     SmartPtr<VideoBuffer> video_buf;
 
@@ -769,7 +898,7 @@ gst_xcam_filter_prepare_output_buffer (GstBaseTransform *trans, GstBuffer *input
     }
 
     if (xcamfilter->copy_mode == COPY_MODE_CPU) {
-        ret = copy_xcambuf_to_gstbuf (xcamfilter->gst_video_info, video_buf, outbuf);
+        ret = copy_xcambuf_to_gstbuf (xcamfilter->gst_src_video_info, video_buf, outbuf);
     } else if (xcamfilter->copy_mode == COPY_MODE_DMA) {
         GstAllocator *allocator = xcamfilter->allocator;
         ret = append_xcambuf_to_gstbuf (allocator, video_buf, outbuf);

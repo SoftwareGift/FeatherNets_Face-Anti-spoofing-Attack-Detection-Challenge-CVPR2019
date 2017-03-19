@@ -1,5 +1,5 @@
 /*
- * feature_match.cpp - optical flow feature match
+ * cv_feature_match.cpp - optical flow feature match
  *
  *  Copyright (c) 2016 Intel Corporation
  *
@@ -19,17 +19,7 @@
  * Author: Yinhang Liu <yinhangx.liu@intel.com>
  */
 
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-
-#include <cl_context.h>
-#include <cl_device.h>
-#include <cl_memory.h>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/ocl.hpp>
+#include "cv_feature_match.h"
 
 using namespace std;
 using namespace cv;

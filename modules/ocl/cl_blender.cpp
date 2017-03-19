@@ -39,8 +39,6 @@ CLBlenderScaleKernel::prepare_arguments (
     CLArgument args[], uint32_t &arg_count,
     CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
 
     _image_in = get_input_image (input);

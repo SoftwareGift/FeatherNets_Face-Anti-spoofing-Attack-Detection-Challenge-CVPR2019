@@ -100,7 +100,6 @@ test_image_stitching_LDADD = \
 	$(NULL)
 
 if HAVE_OPENCV
-test_image_stitching_SOURCES += feature_match.cpp
 test_image_stitching_CXXFLAGS += $(OPENCV_CFLAGS)
 test_image_stitching_LDADD += $(OPENCV_LIBS)
 endif

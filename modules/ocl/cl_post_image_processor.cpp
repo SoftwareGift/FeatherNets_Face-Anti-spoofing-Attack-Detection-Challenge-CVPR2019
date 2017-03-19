@@ -53,6 +53,9 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _enable_scaler (false)
     , _enable_wireframe (false)
     , _enable_image_warp (false)
+    , _enable_stitch (false)
+    , _stitch_enable_seam (false)
+    , _stitch_scale_mode (CLBlenderScaleLocal)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -363,6 +366,33 @@ CLPostImageProcessor::create_handlers ()
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
     add_handler (image_handler);
 
+    /* image warp */
+    image_handler = create_cl_image_warp_handler (context);
+    _image_warp = image_handler.dynamic_cast_ptr<CLImageWarpHandler> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _image_warp.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create image warp handler failed");
+    _image_warp->enable_handler (_enable_image_warp);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
+    /* image stitch */
+    image_handler = create_image_360_stitch (context, _stitch_enable_seam, _stitch_scale_mode);
+    _stitch = image_handler.dynamic_cast_ptr<CLImage360Stitch> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _stitch.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create image stitch handler failed");
+    _stitch->init_stitch_info (_stitch_info);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+    image_handler->enable_handler (_enable_stitch);
+    add_handler (image_handler);
+
     /* csc (nv12torgba) */
     image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
     _csc = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
@@ -375,19 +405,6 @@ CLPostImageProcessor::create_handlers ()
     _csc->set_output_format (_output_fourcc);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
-    add_handler (image_handler);
-
-    /* image warp */
-    image_handler = create_cl_image_warp_handler (context);
-    _image_warp = image_handler.dynamic_cast_ptr<CLImageWarpHandler> ();
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _image_warp.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CLPostImageProcessor create image warp handler failed");
-    _image_warp->enable_handler (_enable_image_warp);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
-    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
     return XCAM_RETURN_NO_ERROR;
@@ -460,6 +477,26 @@ bool
 CLPostImageProcessor::set_image_warp (bool enable)
 {
     _enable_image_warp = enable;
+
+    STREAM_LOCK;
+
+    return true;
+}
+
+bool
+CLPostImageProcessor::set_image_stitch (
+    bool enable_stitch, bool enable_seem, CLBlenderScaleMode scale_mode, CLStitchInfo stitch_info)
+{
+    XCAM_ASSERT (scale_mode < CLBlenderScaleMax);
+
+    _enable_stitch = enable_stitch;
+    if (enable_stitch)
+        _stitch_enable_seam = enable_seem;
+    else
+        _stitch_enable_seam = false;
+
+    _stitch_scale_mode = scale_mode;
+    _stitch_info = stitch_info;
 
     STREAM_LOCK;
 
