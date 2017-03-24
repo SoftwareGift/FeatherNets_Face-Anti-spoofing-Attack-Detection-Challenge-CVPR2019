@@ -40,6 +40,7 @@ public:
     bool end_of_file ();
     XCamReturn open (const char *name, const char *option);
     XCamReturn close ();
+    XCamReturn rewind ();
     XCamReturn read_buf (const SmartPtr<BufferProxy> &buf);
     XCamReturn write_buf (const SmartPtr<BufferProxy> buf);
 

@@ -59,6 +59,15 @@ ImageFileHandle::close ()
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+ImageFileHandle::rewind ()
+{
+    if (!is_valid ())
+        return XCAM_RETURN_ERROR_FILE;
+    return (fseek(_fp, 0L, SEEK_SET) == 0) ? XCAM_RETURN_NO_ERROR : XCAM_RETURN_ERROR_FILE;
+}
+
+
 bool
 ImageFileHandle::end_of_file()
 {

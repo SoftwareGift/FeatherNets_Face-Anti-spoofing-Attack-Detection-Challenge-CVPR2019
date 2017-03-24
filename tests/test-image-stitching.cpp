@@ -7,7 +7,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * 	 http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -132,7 +132,7 @@ int main (int argc, char *argv[])
     uint32_t output_height = 960;
     uint32_t output_width = output_height * 2;
 
-    int loop = 0;
+    int loop = 1;
     bool enable_seam = false;
     bool need_save_output = true;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
@@ -233,7 +233,7 @@ int main (int argc, char *argv[])
     printf ("output height:\t%d\n", output_height);
     printf ("loop count:\t%d\n", loop);
     printf ("save file:\t%s\n", need_save_output ? "true" : "false");
-    printf ("scale mode:\t%s\n", scale_mode == CLBlenderScaleLocal? "local" : "global");
+    printf ("scale mode:\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
     printf ("seam mask:\t%s\n", enable_seam ? "true" : "false");
     printf ("---------------------------\n");
 
@@ -271,34 +271,39 @@ int main (int argc, char *argv[])
 #endif
 
     int i = 0;
-    do {
-        input_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
-        XCAM_ASSERT (input_buf.ptr ());
-        read_buf = input_buf;
-        ret = file_in.read_buf (read_buf);
-        if (ret == XCAM_RETURN_BYPASS)
-            break;
-        if (ret == XCAM_RETURN_ERROR_FILE) {
-            XCAM_LOG_ERROR ("read buffer from %s failed", file_in_name);
-            return -1;
-        }
+    while (loop--) {
+        ret = file_in.rewind ();
+        CHECK (ret, "image_360 stitch rewind file(%s) failed", file_in_name);
 
-        ret = image_360->execute (input_buf, output_buf);
-        CHECK (ret, "image_360 stitch execute failed");
+        do {
+            input_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+            XCAM_ASSERT (input_buf.ptr ());
+            read_buf = input_buf;
+            ret = file_in.read_buf (read_buf);
+            if (ret == XCAM_RETURN_BYPASS)
+                break;
+            if (ret == XCAM_RETURN_ERROR_FILE) {
+                XCAM_LOG_ERROR ("read buffer from %s failed", file_in_name);
+                return -1;
+            }
 
-        if (need_save_output) {
+            ret = image_360->execute (input_buf, output_buf);
+            CHECK (ret, "image_360 stitch execute failed");
+
+            if (need_save_output) {
 #if HAVE_OPENCV
-            cv::Mat out_mat;
-            convert_to_mat (context, output_buf, out_mat);
-            writer.write (out_mat);
+                cv::Mat out_mat;
+                convert_to_mat (context, output_buf, out_mat);
+                writer.write (out_mat);
 #endif
-        } else {
-            ensure_gpu_buffer_done (output_buf);
-        }
+            } else {
+                ensure_gpu_buffer_done (output_buf);
+            }
 
-        FPS_CALCULATION (image_stitching, 30);
-        ++i;
-    } while (true);
+            FPS_CALCULATION (image_stitching, 30);
+            ++i;
+        } while (true);
+    }
 
     return 0;
 }
