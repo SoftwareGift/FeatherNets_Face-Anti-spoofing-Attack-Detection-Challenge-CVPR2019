@@ -133,9 +133,11 @@ get_mean_offset (vector<float> offsets, float sum, int &count, float &mean_offse
 
     mean_offset = sum / count;
 
+#if XCAM_OF_DEBUG
     XCAM_LOG_INFO (
         "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
         mean_offset, 0.0f, 0, count);
+#endif
 
     bool ret = true;
     float delta = 20.0f;//mean_offset;
@@ -156,9 +158,12 @@ get_mean_offset (vector<float> offsets, float sum, int &count, float &mean_offse
         }
 
         mean_offset = sum / recur_count;
+
+#if XCAM_OF_DEBUG
         XCAM_LOG_INFO (
             "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
             mean_offset, pre_mean_offset, try_times, recur_count);
+#endif
         if (fabs (mean_offset - pre_mean_offset) > fabs (delta) * 1.2f) {
             ret = false;
             break;
@@ -183,13 +188,13 @@ calc_match_optical_flow (
     Size img0_size = image0.size ();
     Size img1_size = image1.size ();
     XCAM_ASSERT (img0_size.height == img1_size.height);
-    Size size (img0_size.width + img1_size.width, img0_size.height);
 
+#if XCAM_OF_DEBUG
+    Size size (img0_size.width + img1_size.width, img0_size.height);
     out_image.create (size, image0.type ());
     image0.copyTo (out_image (Rect(0, 0, img0_size.width, img0_size.height)));
     image1.copyTo (out_image (Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
 
-#if XCAM_OF_DEBUG
     Size scale_size = size * XCAM_OF_DRAW_SCALE;
     resize (out_image, out_image, scale_size, 0, 0);
 #endif
@@ -291,9 +296,11 @@ optical_flow_feature_match (
     if (image1_crop_right.x != tmp_stitch0.x || image1_crop_right.width != tmp_stitch0.width ||
             image0_crop_left.x != tmp_stitch1.x || image0_crop_left.width != tmp_stitch1.width)
         x_offset0 = 0.0f;
+#if XCAM_OF_DEBUG
     XCAM_LOG_INFO (
         "Stiching area 0: image0_left_area(x:%d, width:%d), image1_right_area(x:%d, width:%d)",
         image0_crop_left.x, image0_crop_left.width, image1_crop_right.x, image1_crop_right.width);
+#endif
 
     tmp_stitch0 = image0_crop_right;
     tmp_stitch1 = image1_crop_left;
@@ -304,9 +311,12 @@ optical_flow_feature_match (
     if (image0_crop_right.x != tmp_stitch0.x || image0_crop_right.width != tmp_stitch0.width ||
             image1_crop_left.x != tmp_stitch1.x || image1_crop_left.width != tmp_stitch1.width)
         x_offset1 = 0.0f;
+
+#if XCAM_OF_DEBUG
     XCAM_LOG_INFO (
         "Stiching area 1: image0_right_area(x:%d, width:%d), image1_left_area(x:%d, width:%d)",
         image0_crop_right.x, image0_crop_right.width, image1_crop_left.x, image1_crop_left.width);
+#endif
 
 #if XCAM_OF_DEBUG
     char file_name[1024];
