@@ -22,6 +22,7 @@
 #define XCAM_CONTEXT_PRIV_H
 
 #include <xcam_utils.h>
+#include <string.h>
 #include <ocl/cl_image_handler.h>
 #include <ocl/cl_context.h>
 
@@ -43,7 +44,13 @@ enum HandleType {
 
 bool handle_name_equal (const char *name, HandleType type);
 
-typedef std::map<const char*, const char*> ContextParams;
+typedef struct _CompareStr {
+    bool operator() (const char* str1, const char* str2) const {
+        return strncmp(str1, str2, 1024) < 0;
+    }
+} CompareStr;
+
+typedef std::map<const char*, const char*, CompareStr> ContextParams;
 
 class ContextBase {
 public:
@@ -60,6 +67,9 @@ public:
 
     SmartPtr<CLImageHandler> get_handler() const {
         return  _handler;
+    }
+    SmartPtr<DrmBoBufferPool> get_input_buffer_pool() const {
+        return  _inbuf_pool;
     }
     HandleType get_type () const {
         return _type;
@@ -78,6 +88,7 @@ protected:
     HandleType                       _type;
     char                            *_usage;
     SmartPtr<CLImageHandler>         _handler;
+    SmartPtr<DrmBoBufferPool>        _inbuf_pool;
 
     //parameters
     bool                             _alloc_out_buf;

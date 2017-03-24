@@ -33,6 +33,7 @@
 
 using namespace XCam;
 
+#define DEFAULT_INPUT_BUFFER_POOL_COUNT  20
 static const char *HandleNames[] = {
     "None",
     "3DNR",
@@ -54,6 +55,11 @@ ContextBase::ContextBase (HandleType type)
     , _usage (NULL)
     , _alloc_out_buf (false)
 {
+    if (!_inbuf_pool.ptr()) {
+        SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
+        _inbuf_pool = new DrmBoBufferPool (display);
+        XCAM_ASSERT (_inbuf_pool.ptr ());
+    }
 }
 
 ContextBase::~ContextBase ()
@@ -80,11 +86,32 @@ find_value (const ContextParams &param_list, const char *name)
 XCamReturn
 ContextBase::set_parameters (ContextParams &param_list)
 {
+    VideoBufferInfo buf_info;
+    uint32_t image_format = V4L2_PIX_FMT_NV12;
+    uint32_t image_width = 1920;
+    uint32_t image_height = 1080;
+
+    const char *width = find_value (param_list, "width");
+    if (width) {
+        image_width = atoi(width);
+    }
+    const char *height = find_value (param_list, "height");
+    if (height) {
+        image_height = atoi(height);
+    }
+    buf_info.init (image_format, image_width, image_height);
+    _inbuf_pool->set_video_info (buf_info);
+    if (!_inbuf_pool->reserve (DEFAULT_INPUT_BUFFER_POOL_COUNT)) {
+        XCAM_LOG_ERROR ("init buffer pool failed");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
     const char *flag = find_value (param_list, "alloc-out-buf");
     if (flag && !strncasecmp (flag, "true", strlen("true"))) {
         _alloc_out_buf = true;
-    } else
+    } else {
         _alloc_out_buf = false;
+    }
     return XCAM_RETURN_NO_ERROR;
 }
 

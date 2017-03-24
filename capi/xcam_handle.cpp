@@ -149,8 +149,66 @@ external_buf_to_drm_buf (XCamVideoBuffer *buf)
         ERROR, dma_buf.ptr (), NULL,
         "external_buf_to_drm_buf failed");
 
+    video_buf = dma_buf;
     XCAM_ASSERT (display.ptr ());
     drm_buf = display->convert_to_drm_bo_buf (display, video_buf);
+    return drm_buf;
+}
+
+SmartPtr<DrmBoBuffer>
+copy_external_buf_to_drm_buf (XCamHandle *handle, XCamVideoBuffer *buf)
+{
+    if (!handle || !buf) {
+        XCAM_LOG_WARNING ("xcam handle can NOT be NULL");
+        return NULL;
+    }
+
+    ContextBase *context = CONTEXT_BASE_CAST (handle);
+    if (!context) {
+        XCAM_LOG_WARNING ("xcam handle context can NOT be NULL");
+        return NULL;
+    }
+
+    const XCamVideoBufferInfo src_info = buf->info;
+    uint8_t* src = buf->map (buf);
+    uint8_t* p_src = src;
+    if (!src) {
+        XCAM_LOG_WARNING ("xcam handle map buffer failed");
+        return NULL;
+    }
+    uint32_t height = src_info.height;
+
+    SmartPtr<DrmBoBufferPool> buf_pool = context->get_input_buffer_pool();
+    XCAM_ASSERT (buf_pool.ptr ());
+
+    SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
+    XCAM_ASSERT (tmp_buf.ptr ());
+    SmartPtr<DrmBoBuffer> drm_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
+    SmartPtr<VideoBuffer> video_buf = drm_buf;
+    const XCamVideoBufferInfo dest_info = video_buf->get_video_info ();
+
+    uint8_t* dest = video_buf->map ();
+    uint8_t* p_dest = dest;
+
+    for (uint32_t index = 0; index < src_info.components; index++) {
+        src += src_info.offsets[index];
+        p_src = src;
+
+        dest += dest_info.offsets[index];
+        p_dest = dest;
+        if (src_info.format == V4L2_PIX_FMT_NV12) {
+            height = height >> index;
+        }
+        for (uint32_t i = 0; i < height; i++) {
+            memcpy (p_dest, p_src, src_info.strides[index]);
+            p_src += src_info.strides[index];
+            p_dest += dest_info.strides[index];
+        }
+    }
+
+    buf->unmap (buf);
+    video_buf->unmap ();
+
     return drm_buf;
 }
 
@@ -168,7 +226,11 @@ xcam_handle_execute (XCamHandle *handle, XCamVideoBuffer *buf_in, XCamVideoBuffe
         ERROR, context->get_handler().ptr (), XCAM_RETURN_ERROR_PARAM,
         "context (%s) failed, handler was not initialized", context->get_type_name ());
 
-    input = external_buf_to_drm_buf (buf_in);
+    if (buf_in->mem_type == XCAM_MEM_TYPE_GPU) {
+        input = external_buf_to_drm_buf (buf_in);
+    } else {
+        input = copy_external_buf_to_drm_buf (handle, buf_in);
+    }
     XCAM_FAIL_RETURN (
         ERROR, input.ptr (), XCAM_RETURN_ERROR_MEM,
         "xcam_handle(%s) execute failed, buf_in convert to DRM buffer failed.",
