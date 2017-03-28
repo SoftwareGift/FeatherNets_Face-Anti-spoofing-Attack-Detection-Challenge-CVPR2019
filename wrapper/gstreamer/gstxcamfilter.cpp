@@ -615,40 +615,6 @@ filtering:
     return src_caps;
 }
 
-static CLStitchInfo
-get_stitch_initial_info (uint32_t out_width, uint32_t out_height)
-{
-    CLStitchInfo stitch_info;
-
-    stitch_info.output_width = out_width;
-    stitch_info.output_height = out_height;
-
-    stitch_info.merge_width[0] = 56;
-    stitch_info.merge_width[1] = 56;
-
-    stitch_info.crop[0].left = 96;
-    stitch_info.crop[0].right = 96;
-    stitch_info.crop[0].top = 0;
-    stitch_info.crop[0].bottom = 0;
-    stitch_info.crop[1].left = 96;
-    stitch_info.crop[1].right = 96;
-    stitch_info.crop[1].top = 0;
-    stitch_info.crop[1].bottom = 0;
-
-    stitch_info.fisheye_info[0].center_x = 480.0f;
-    stitch_info.fisheye_info[0].center_y = 480.0f;
-    stitch_info.fisheye_info[0].wide_angle = 202.8f;
-    stitch_info.fisheye_info[0].radius = 480.0f;
-    stitch_info.fisheye_info[0].rotate_angle = -90.0f;
-    stitch_info.fisheye_info[1].center_x = 1440.0f;
-    stitch_info.fisheye_info[1].center_y = 480.0f;
-    stitch_info.fisheye_info[1].wide_angle = 202.8f;
-    stitch_info.fisheye_info[1].radius = 480.0f;
-    stitch_info.fisheye_info[1].rotate_angle = 89.4f;
-
-    return stitch_info;
-}
-
 static gboolean
 gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *outcaps)
 {
@@ -681,10 +647,10 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
     //processor->set_scaler_factor (0.5f);
 
     if (xcamfilter->enable_stitch) {
-        CLStitchInfo stitch_info = get_stitch_initial_info (GST_VIDEO_INFO_WIDTH (&out_info),
-                                                            GST_VIDEO_INFO_HEIGHT (&out_info));
         processor->set_image_stitch (xcamfilter->enable_stitch, xcamfilter->stitch_enable_seam,
-                                     xcamfilter->stitch_scale_mode, stitch_info);
+                                     xcamfilter->stitch_scale_mode,
+                                     GST_VIDEO_INFO_WIDTH (&out_info),
+                                     GST_VIDEO_INFO_HEIGHT (&out_info));
         XCAM_LOG_INFO ("xcamfilter stitch output size width:%d height:%d",
                        GST_VIDEO_INFO_WIDTH (&out_info), GST_VIDEO_INFO_HEIGHT (&out_info));
     }

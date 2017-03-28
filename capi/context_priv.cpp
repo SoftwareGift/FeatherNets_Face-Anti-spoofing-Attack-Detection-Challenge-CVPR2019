@@ -53,6 +53,8 @@ handle_name_equal (const char *name, HandleType type)
 ContextBase::ContextBase (HandleType type)
     : _type (type)
     , _usage (NULL)
+    , _image_width (0)
+    , _image_height (0)
     , _alloc_out_buf (false)
 {
     if (!_inbuf_pool.ptr()) {
@@ -88,18 +90,23 @@ ContextBase::set_parameters (ContextParams &param_list)
 {
     VideoBufferInfo buf_info;
     uint32_t image_format = V4L2_PIX_FMT_NV12;
-    uint32_t image_width = 1920;
-    uint32_t image_height = 1080;
+    _image_width = 1920;
+    _image_height = 1080;
 
     const char *width = find_value (param_list, "width");
     if (width) {
-        image_width = atoi(width);
+        _image_width = atoi(width);
     }
     const char *height = find_value (param_list, "height");
     if (height) {
-        image_height = atoi(height);
+        _image_height = atoi(height);
     }
-    buf_info.init (image_format, image_width, image_height);
+    if (_image_width == 0 || _image_height == 0) {
+        XCAM_LOG_ERROR ("illegal image size width:%d height:%d", _image_width, _image_height);
+        return XCAM_RETURN_ERROR_PARAM;
+    }
+
+    buf_info.init (image_format, _image_width, _image_height);
     _inbuf_pool->set_video_info (buf_info);
     if (!_inbuf_pool->reserve (DEFAULT_INPUT_BUFFER_POOL_COUNT)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
@@ -196,6 +203,18 @@ DVSContext::create_handler (SmartPtr<CLContext> &context)
 SmartPtr<CLImageHandler>
 StitchContext::create_handler (SmartPtr<CLContext> &context)
 {
-    return create_image_360_stitch (context);
+    uint32_t sttch_width = _image_width;
+    uint32_t sttch_height = XCAM_ALIGN_UP (sttch_width / 2, 16);
+    if (sttch_width != sttch_height * 2) {
+        XCAM_LOG_ERROR ("incorrect stitch size width:%d height:%d", sttch_width, sttch_height);
+        return NULL;
+    }
+
+    SmartPtr<CLImage360Stitch> image_360 = create_image_360_stitch(context).dynamic_cast_ptr<CLImage360Stitch> ();
+    XCAM_FAIL_RETURN (ERROR, image_360.ptr (), NULL, "create image stitch handler failed");
+    image_360->set_output_size (sttch_width, sttch_height);
+    XCAM_LOG_INFO ("stitch output size width:%d height:%d", sttch_width, sttch_height);
+
+    return image_360;
 }
 

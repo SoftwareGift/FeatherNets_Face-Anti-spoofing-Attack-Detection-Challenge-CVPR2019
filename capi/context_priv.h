@@ -91,6 +91,8 @@ protected:
     SmartPtr<DrmBoBufferPool>        _inbuf_pool;
 
     //parameters
+    uint32_t                         _image_width;
+    uint32_t                         _image_height;
     bool                             _alloc_out_buf;
 };
 

@@ -43,14 +43,16 @@ struct ImageCropInfo {
     ImageCropInfo () : left (0), right (0), top (0), bottom (0) {}
 };
 
-typedef struct {
-    uint32_t output_width;
-    uint32_t output_height;
+struct CLStitchInfo{
     uint32_t merge_width[ImageIdxCount];
 
     ImageCropInfo crop[ImageIdxCount];
     CLFisheyeInfo fisheye_info[ImageIdxCount];
-} CLStitchInfo;
+
+    CLStitchInfo () {
+        xcam_mem_clear (merge_width);
+    }
+};
 
 typedef struct {
     Rect merge_left;
@@ -136,6 +138,8 @@ private:
     ImageCropInfo               _crop_info[ImageIdxCount];
     ImageMergeInfo              _img_merge_info[ImageIdxCount];
     Rect                        _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
+
+    bool                        _is_stitch_inited;
 
     CLBlenderScaleMode          _scale_mode;
 };

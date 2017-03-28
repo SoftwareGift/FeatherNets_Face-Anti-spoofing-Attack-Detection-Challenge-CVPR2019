@@ -56,6 +56,8 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _enable_stitch (false)
     , _stitch_enable_seam (false)
     , _stitch_scale_mode (CLBlenderScaleLocal)
+    , _stitch_width (0)
+    , _stitch_height (0)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -387,7 +389,7 @@ CLPostImageProcessor::create_handlers ()
         _stitch.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create image stitch handler failed");
-    _stitch->init_stitch_info (_stitch_info);
+    _stitch->set_output_size (_stitch_width, _stitch_height);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     image_handler->enable_handler (_enable_stitch);
@@ -485,7 +487,8 @@ CLPostImageProcessor::set_image_warp (bool enable)
 
 bool
 CLPostImageProcessor::set_image_stitch (
-    bool enable_stitch, bool enable_seem, CLBlenderScaleMode scale_mode, CLStitchInfo stitch_info)
+    bool enable_stitch, bool enable_seem, CLBlenderScaleMode scale_mode,
+    uint32_t stitch_width, uint32_t stitch_height)
 {
     XCAM_ASSERT (scale_mode < CLBlenderScaleMax);
 
@@ -496,7 +499,8 @@ CLPostImageProcessor::set_image_stitch (
         _stitch_enable_seam = false;
 
     _stitch_scale_mode = scale_mode;
-    _stitch_info = stitch_info;
+    _stitch_width = stitch_width;
+    _stitch_height = stitch_height;
 
     STREAM_LOCK;
 

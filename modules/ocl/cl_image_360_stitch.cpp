@@ -103,6 +103,37 @@ CLBlenderGlobalScaleKernel::get_output_info (
     return true;
 }
 
+static CLStitchInfo
+get_default_stitch_info ()
+{
+    CLStitchInfo stitch_info;
+
+    stitch_info.merge_width[0] = 56;
+    stitch_info.merge_width[1] = 56;
+
+    stitch_info.crop[0].left = 96;
+    stitch_info.crop[0].right = 96;
+    stitch_info.crop[0].top = 0;
+    stitch_info.crop[0].bottom = 0;
+    stitch_info.crop[1].left = 96;
+    stitch_info.crop[1].right = 96;
+    stitch_info.crop[1].top = 0;
+    stitch_info.crop[1].bottom = 0;
+
+    stitch_info.fisheye_info[0].center_x = 480.0f;
+    stitch_info.fisheye_info[0].center_y = 480.0f;
+    stitch_info.fisheye_info[0].wide_angle = 202.8f;
+    stitch_info.fisheye_info[0].radius = 480.0f;
+    stitch_info.fisheye_info[0].rotate_angle = -90.0f;
+    stitch_info.fisheye_info[1].center_x = 1440.0f;
+    stitch_info.fisheye_info[1].center_y = 480.0f;
+    stitch_info.fisheye_info[1].wide_angle = 202.8f;
+    stitch_info.fisheye_info[1].radius = 480.0f;
+    stitch_info.fisheye_info[1].rotate_angle = 89.4f;
+
+    return stitch_info;
+}
+
 CLImage360Stitch::CLImage360Stitch (SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode)
     : CLMultiImageHandler ("CLImage360Stitch")
     , _context (context)
@@ -110,9 +141,11 @@ CLImage360Stitch::CLImage360Stitch (SmartPtr<CLContext> &context, CLBlenderScale
     , _fisheye_height (0)
     , _output_width (0)
     , _output_height (0)
-    , _merge_width {0, 0}
+    , _is_stitch_inited (false)
     , _scale_mode (scale_mode)
 {
+    xcam_mem_clear (_merge_width);
+
 #if HAVE_OPENCV
     init_opencv_ocl (context);
 #endif
@@ -149,13 +182,18 @@ CLImage360Stitch::set_right_blender (SmartPtr<CLBlender> blender)
 bool
 CLImage360Stitch::init_stitch_info (CLStitchInfo stitch_info)
 {
-    set_output_size (stitch_info.output_width, stitch_info.output_height);
+    if (_is_stitch_inited) {
+        XCAM_LOG_WARNING ("stitching info was initialized and can't be set twice");
+        return false;
+    }
 
     for (int index = 0; index < ImageIdxCount; ++index) {
         _merge_width[index] = stitch_info.merge_width[index];
         _fisheye[index]->set_fisheye_info (stitch_info.fisheye_info[index]);
         _crop_info[index] = stitch_info.crop[index];
     }
+
+    _is_stitch_inited = true;
 
     return true;
 }
@@ -223,21 +261,23 @@ XCamReturn
 CLImage360Stitch::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input, VideoBufferInfo &output)
 {
-    uint32_t output_width = _output_width;
-    uint32_t output_height = _output_height;
-
+    if (_output_width == 0 || _output_height == 0) {
+        _output_width = input.width;
+        _output_height = XCAM_ALIGN_UP (input.width / 2, 16);
+    }
     XCAM_FAIL_RETURN(
         WARNING,
-        output_width && output_height,
+        _output_width && _output_height && (_output_width == _output_height * 2),
         XCAM_RETURN_ERROR_PARAM,
         "CLImage360Stitch(%s) prepare buffer pool info failed since width:%d height:%d was not set correctly",
-        XCAM_STR(get_name()), output_width, output_height);
+        XCAM_STR(get_name()), _output_width, _output_height);
 
     // aligned at least XCAM_BLENDER_ALIGNED_WIDTH
     uint32_t aligned_width = XCAM_MAX (16, XCAM_BLENDER_ALIGNED_WIDTH);
     output.init (
-        input.format, output_width, output_height,
-        XCAM_ALIGN_UP(output_width, aligned_width), XCAM_ALIGN_UP(output_height, 16));
+        input.format, _output_width, _output_height,
+        XCAM_ALIGN_UP(_output_width, aligned_width), XCAM_ALIGN_UP(_output_height, 16));
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -480,6 +520,8 @@ XCamReturn
 CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    if (!_is_stitch_inited)
+        init_stitch_info (get_default_stitch_info ());
 
     ret = prepare_fisheye_parameters (input, output);
     STITCH_CHECK (ret, "prepare fisheye parameters failed");

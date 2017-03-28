@@ -40,12 +40,9 @@
 using namespace XCam;
 
 static CLStitchInfo
-get_stitch_initial_info (uint32_t out_width, uint32_t out_height)
+get_stitch_initial_info ()
 {
     CLStitchInfo stitch_info;
-
-    stitch_info.output_width = out_width;
-    stitch_info.output_height = out_height;
 
     stitch_info.merge_width[0] = 56;
     stitch_info.merge_width[1] = 56;
@@ -240,7 +237,8 @@ int main (int argc, char *argv[])
     context = CLDevice::instance ()->get_context ();
     image_360 = create_image_360_stitch (context, enable_seam, scale_mode).dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_ASSERT (image_360.ptr ());
-    CLStitchInfo stitch_info = get_stitch_initial_info (output_width, output_height);
+    image_360->set_output_size (output_width, output_height);
+    CLStitchInfo stitch_info = get_stitch_initial_info ();
     image_360->init_stitch_info (stitch_info);
 
     input_buf_info.init (input_format, input_width, input_height);

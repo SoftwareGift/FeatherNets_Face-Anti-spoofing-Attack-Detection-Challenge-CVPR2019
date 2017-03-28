@@ -91,7 +91,8 @@ public:
     virtual bool set_wireframe (bool enable);
     virtual bool set_image_warp (bool enable);
     virtual bool set_image_stitch (
-        bool enable_stitch, bool enable_seem, CLBlenderScaleMode scale_mode, CLStitchInfo stitch_info);
+        bool enable_stitch, bool enable_seem, CLBlenderScaleMode scale_mode,
+        uint32_t stitch_width, uint32_t stitch_height);
 
 protected:
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
@@ -121,7 +122,6 @@ private:
     SmartPtr<CLImage360Stitch>                _stitch;
 
     double                                    _scaler_factor;
-    CLStitchInfo                              _stitch_info;
 
     CLTnrMode                                 _tnr_mode;
     CLDefogMode                               _defog_mode;
@@ -136,6 +136,8 @@ private:
     bool                                      _enable_stitch;
     bool                                      _stitch_enable_seam;
     CLBlenderScaleMode                        _stitch_scale_mode;
+    uint32_t                                  _stitch_width;
+    uint32_t                                  _stitch_height;
 };
 
 };
