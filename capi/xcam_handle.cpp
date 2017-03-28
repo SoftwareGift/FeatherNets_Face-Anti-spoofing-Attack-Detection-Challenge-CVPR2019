@@ -191,7 +191,7 @@ copy_external_buf_to_drm_buf (XCamHandle *handle, XCamVideoBuffer *buf)
     uint8_t* p_dest = dest;
 
     for (uint32_t index = 0; index < src_info.components; index++) {
-        src += src_info.offsets[index];
+        src += (int32_t)src_info.offsets[index];
         p_src = src;
 
         dest += dest_info.offsets[index];
