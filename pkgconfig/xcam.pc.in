@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@/xcam
 
-Name: libxcam_core
+Name: libxcam
 Description: extended camera features
-Requires:  
+Requires:
 Version: @XCAM_VERSION@
-Libs: -L${libdir} -lxcam_core
+Libs: -L${libdir} -lxcam_capi -lxcam_ocl -lxcam_core
 Cflags: -I${includedir}
 
