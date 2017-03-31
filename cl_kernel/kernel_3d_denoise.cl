@@ -116,6 +116,7 @@ inline void average_slice(float8 ref,
 }
 
 inline void weighted_average (__read_only image2d_t input,
+                              __local uchar8* ref_cache,
                               bool load_observe,
                               float8* observe,
                               float8* restore,
@@ -132,8 +133,6 @@ inline void weighted_average (__read_only image2d_t input,
     const int group_id_x = get_group_id(0);
     const int group_id_y = get_group_id(1);
 
-    __local uchar8 local_ref_cache[REF_BLOCK_HEIGHT * REF_BLOCK_WIDTH];
-
     int start_x = mad24(group_id_x, WORKGROUP_WIDTH, -REF_BLOCK_X_OFFSET);
     int start_y = mad24(group_id_y, WORKGROUP_HEIGHT, -REF_BLOCK_Y_OFFSET);
 
@@ -143,9 +142,9 @@ inline void weighted_average (__read_only image2d_t input,
         int corrd_x = start_x + (j % REF_BLOCK_WIDTH);
         int corrd_y = start_y + (j / REF_BLOCK_WIDTH);
 
-        local_ref_cache[j] = as_uchar8( convert_ushort4(read_imageui(input,
-                                        sampler,
-                                        (int2)(corrd_x, corrd_y))));
+        ref_cache[j] = as_uchar8( convert_ushort4(read_imageui(input,
+                                  sampler,
+                                  (int2)(corrd_x, corrd_y))));
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -157,15 +156,15 @@ inline void weighted_average (__read_only image2d_t input,
 
     if (load_observe) {
         (*observe) = convert_float8(
-                         local_ref_cache[mad24(local_id_y + REF_BLOCK_Y_OFFSET,
-                                               REF_BLOCK_WIDTH,
-                                               local_id_x + REF_BLOCK_X_OFFSET)]);
+                         ref_cache[mad24(local_id_y + REF_BLOCK_Y_OFFSET,
+                                         REF_BLOCK_WIDTH,
+                                         local_id_x + REF_BLOCK_X_OFFSET)]);
         (*restore) = (*observe);
         (*sum_weight) = 1.0f;
     }
 
     float8 ref[2] = {0.0f, 0.0f};
-    __local uchar4* p_ref = (__local uchar4*)(local_ref_cache);
+    __local uchar4* p_ref = (__local uchar4*)(ref_cache);
 
     // top-left
     ref[0] = convert_float8(*(__local uchar8*)(p_ref + mad24(local_id_y,
@@ -230,17 +229,19 @@ __kernel void kernel_3d_denoise ( float gain,
     const int sg_id = get_sub_group_id();
     const int sg_lid = (get_local_id(1) * WORKGROUP_WIDTH + get_local_id(0)) % 8;
 
-    weighted_average (input, true, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
+    __local uchar8 ref_cache[REF_BLOCK_HEIGHT * REF_BLOCK_WIDTH];
+
+    weighted_average (input, ref_cache, true, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
 
 #if ENABLE_IIR_FILERING
-    weighted_average (restoredPrev, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
+    weighted_average (restoredPrev, ref_cache, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
 #else
 #if REFERENCE_FRAME_COUNT > 1
-    weighted_average (inputPrev1, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
+    weighted_average (inputPrev1, ref_cache, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
 #endif
 
 #if REFERENCE_FRAME_COUNT > 2
-    weighted_average (inputPrev2, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
+    weighted_average (inputPrev2, ref_cache, false, &observe, &restore, &sum_weight, gain, threshold, sg_id, sg_lid);
 #endif
 #endif
 

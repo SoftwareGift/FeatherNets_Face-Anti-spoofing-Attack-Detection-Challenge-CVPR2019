@@ -32,7 +32,9 @@
 
 
 inline void weighted_average (__read_only image2d_t input,
+                              __local float4* ref_cache,
                               bool load_observe,
+                              __local float4* observe_cache,
                               float4* restore,
                               float2* sum_weight,
                               float gain,
@@ -44,9 +46,6 @@ inline void weighted_average (__read_only image2d_t input,
     const int local_id_y = get_local_id(1);
     const int group_id_x = get_group_id(0);
     const int group_id_y = get_group_id(1);
-
-    __local float4 ref_cache[REF_BLOCK_HEIGHT * REF_BLOCK_WIDTH];
-    __local float4 observe_cache[WORK_BLOCK_HEIGHT * WORK_BLOCK_WIDTH];
 
     int i = local_id_x + local_id_y * WORK_BLOCK_WIDTH;
     int start_x = mad24(group_id_x, WORK_BLOCK_WIDTH, -REF_BLOCK_X_OFFSET);
@@ -105,7 +104,7 @@ inline void weighted_average (__read_only image2d_t input,
             gradient.s0 = (gradient.s0 + gradient.s1 + gradient.s2 + gradient.s3) / 15.0f;
             gain = (gradient.s0 < threshold) ? gain : 2.0f * gain;
 
-            weight = native_exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
+            weight = native_exp(-gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
             weight = (weight < 0) ? 0 : weight;
             (*sum_weight).s0 = (*sum_weight).s0 + weight;
 
@@ -151,7 +150,7 @@ inline void weighted_average (__read_only image2d_t input,
             gradient.s0 = (gradient.s0 + gradient.s1 + gradient.s2 + gradient.s3) / 15.0f;
             gain = (gradient.s0 < threshold) ? gain : 2.0f * gain;
 
-            weight = native_exp(gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
+            weight = native_exp(-gain * (dist.s0 + dist.s1 + dist.s2 + dist.s3));
             weight = (weight < 0) ? 0 : weight;
             (*sum_weight).s1 = (*sum_weight).s1 + weight;
 
@@ -174,18 +173,25 @@ __kernel void kernel_3d_denoise_slm( float gain,
     float4 restore[8] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     float2 sum_weight = {0.0f, 0.0f};
 
-    weighted_average (input, true, restore, &sum_weight, gain, threshold);
+    __local float4 ref_cache[REF_BLOCK_HEIGHT * REF_BLOCK_WIDTH];
+    __local float4 observe_cache[WORK_BLOCK_HEIGHT * WORK_BLOCK_WIDTH];
+
+    weighted_average (input, ref_cache, true, observe_cache, restore, &sum_weight, gain, threshold);
+
+#if 1
 
 #if ENABLE_IIR_FILERING
-    weighted_average (restoredPrev, false, restore, &sum_weight, gain, threshold);
+    weighted_average (restoredPrev, ref_cache, false, observe_cache, restore, &sum_weight, gain, threshold);
 #else
 #if REFERENCE_FRAME_COUNT > 1
-    weighted_average (inputPrev1, false, restore, &sum_weight, gain, threshold);
+    weighted_average (inputPrev1, ref_cache, false, observe_cache, restore, &sum_weight, gain, threshold);
 #endif
 
 #if REFERENCE_FRAME_COUNT > 2
-    weighted_average (inputPrev2, false, restore, &sum_weight, gain, threshold);
+    weighted_average (inputPrev2, ref_cache, false, observe_cache, restore, &sum_weight, gain, threshold);
 #endif
+#endif
+
 #endif
 
     restore[0] = restore[0] / sum_weight.s0;
