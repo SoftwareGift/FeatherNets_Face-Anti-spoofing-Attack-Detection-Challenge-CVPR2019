@@ -1,3 +1,14 @@
+2017/04/01: release libxcam version 0.9.0
+ * 360 video stitching improvement.
+   - remove sharp boundary in sphere mode by local/global area resize.
+   - tune algorithm parameters to preserve blinking.
+   - integrate 360 stitching pipeline into libxcam module.
+   - gst-xcam-filter supports 360 stitching case.
+
+ * export C APIs for each OpenCL feature.
+   - support stich/3d-nr/wavelet-nr/defog features by xcam handle.
+   - be designed for FFmpeg xcam video filter usage.
+
 2016/12/30: release libxcam version 0.8.0
  * Digital Video Stabilization (DVS)
    - enable DVS smart analysis plugin.
