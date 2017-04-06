@@ -20,6 +20,8 @@
 
 #include "stabilizer.h"
 
+#define XCAM_DVS_CL_PATH_ENABLE 0
+
 Mat
 OnePassVideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 {
@@ -84,13 +86,34 @@ OnePassVideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 Mat
 OnePassVideoStabilizer::estimateMotion()
 {
-#if 0
+#if XCAM_DVS_CL_PATH_ENABLE
     cv::UMat frame0 = at(curPos_ - 1, frames_).getUMat(ACCESS_READ);
     cv::UMat frame1 = at(curPos_, frames_).getUMat(ACCESS_READ);
 
-    return motionEstimator_.dynamicCast<KeypointBasedMotionEstimator>()->estimate(frame0, frame1);
-#endif
+    cv::UMat ugrayImage0;
+    cv::UMat ugrayImage1;
+    if ( frame0.type() != CV_8U )
+    {
+        cvtColor( frame0, ugrayImage0, COLOR_BGR2GRAY );
+    }
+    else
+    {
+        ugrayImage0 = frame0;
+    }
+
+    if ( frame1.type() != CV_8U )
+    {
+        cvtColor( frame1, ugrayImage1, COLOR_BGR2GRAY );
+    }
+    else
+    {
+        ugrayImage1 = frame1;
+    }
+
+    return motionEstimator_.dynamicCast<KeypointBasedMotionEstimator>()->estimate(ugrayImage0, ugrayImage1);
+#else
     return motionEstimator_.dynamicCast<KeypointBasedMotionEstimator>()->estimate(at(curPos_ - 1, frames_), at(curPos_, frames_));
+#endif
 }
 
 void
@@ -181,13 +204,34 @@ TwoPassVideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 Mat
 TwoPassVideoStabilizer::estimateMotion()
 {
-#if 0
+#if XCAM_DVS_CL_PATH_ENABLE
     cv::UMat frame0 = at(curPos_ - 1, frames_).getUMat(ACCESS_READ);
     cv::UMat frame1 = at(curPos_, frames_).getUMat(ACCESS_READ);
 
-    return motionEstimator_.dynamicCast<KeypointBasedMotionEstimator>()->estimate(frame0, frame1);
-#endif
+    cv::UMat ugrayImage0;
+    cv::UMat ugrayImage1;
+    if ( frame0.type() != CV_8U )
+    {
+        cvtColor( frame0, ugrayImage0, COLOR_BGR2GRAY );
+    }
+    else
+    {
+        ugrayImage0 = frame0;
+    }
+
+    if ( frame1.type() != CV_8U )
+    {
+        cvtColor( frame1, ugrayImage1, COLOR_BGR2GRAY );
+    }
+    else
+    {
+        ugrayImage1 = frame1;
+    }
+
+    return motionEstimator_.dynamicCast<KeypointBasedMotionEstimator>()->estimate(ugrayImage0, ugrayImage1);
+#else
     return motionEstimator_.dynamicCast<KeypointBasedMotionEstimator>()->estimate(at(curPos_ - 1, frames_), at(curPos_, frames_));
+#endif
 }
 
 void
