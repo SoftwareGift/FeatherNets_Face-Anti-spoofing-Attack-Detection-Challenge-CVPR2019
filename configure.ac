@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([xcam_major_version], [0])
-m4_define([xcam_minor_version], [9])
+m4_define([xcam_major_version], [1])
+m4_define([xcam_minor_version], [0])
 m4_define([xcam_micro_version], [0])
 m4_define([xcam_version], [xcam_major_version.xcam_minor_version.xcam_micro_version])
 
