@@ -394,7 +394,7 @@ int main (int argc, char *argv[])
             ensure_gpu_buffer_done (output_buf);
         }
 
-        FPS_CALCULATION (image_blend, 100);
+        FPS_CALCULATION (image_blend, XCAM_OBJ_DUR_FRAME_NUM);
         ++i;
     } while (i < loop);
 

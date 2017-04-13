@@ -298,7 +298,7 @@ int main (int argc, char *argv[])
                 ensure_gpu_buffer_done (output_buf);
             }
 
-            FPS_CALCULATION (image_stitching, 30);
+            FPS_CALCULATION (image_stitching, XCAM_OBJ_DUR_FRAME_NUM);
             ++i;
         } while (true);
     }

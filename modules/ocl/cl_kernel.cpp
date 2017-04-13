@@ -44,6 +44,8 @@ CLKernel::CLKernel (SmartPtr<CLContext> &context, const char *name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
 
     set_default_work_size ();
+
+    XCAM_OBJ_PROFILING_INIT;
 }
 
 CLKernel::~CLKernel ()
@@ -309,7 +311,7 @@ CLKernel::execute (
     _context->finish ();
     char name[1024];
     snprintf (name, 1024, "%s-%p", XCAM_STR (_name), this);
-    XCAM_OBJ_PROFILING_END (name, 30);
+    XCAM_OBJ_PROFILING_END (name, XCAM_OBJ_DUR_FRAME_NUM);
 #endif
     return ret;
 }

@@ -309,7 +309,7 @@ CLImageProcessor::process_cl_buffer_queue ()
 
         XCAM_OBJ_PROFILING_START;
         CLDevice::instance()->get_context ()->finish ();
-        XCAM_OBJ_PROFILING_END (get_name (), 30);
+        XCAM_OBJ_PROFILING_END (get_name (), XCAM_OBJ_DUR_FRAME_NUM);
 
         // buffer done, push back
         _done_buffer_queue.push (out_data);

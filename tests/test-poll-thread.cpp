@@ -93,7 +93,7 @@ PollCB::poll_buffer_ready (SmartPtr<VideoBuffer> &buf) {
 
     SmartPtr<VideoBuffer> base = buf;
     XCAM_LOG_DEBUG("%s", __FUNCTION__);
-    FPS_CALCULATION (fps_buf, 30);
+    FPS_CALCULATION (fps_buf, XCAM_OBJ_DUR_FRAME_NUM);
 
     // dump_to_file( (void*) buf->get_v4l2_userptr(),
     //               buf->get_v4l2_buf_length()

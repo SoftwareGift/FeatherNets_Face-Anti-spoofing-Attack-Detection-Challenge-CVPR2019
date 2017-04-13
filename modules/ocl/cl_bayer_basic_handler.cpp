@@ -160,6 +160,8 @@ CLBayerBasicImageKernel::CLBayerBasicImageKernel (SmartPtr<CLContext> &context, 
     XCAM_ASSERT (_3a_stats_context.ptr ());
     _3a_stats_thread = new CLBayer3AStatsThread (this);
     XCAM_ASSERT (_3a_stats_thread.ptr ());
+
+    XCAM_OBJ_PROFILING_INIT;
 }
 
 CLBayerBasicImageKernel::~CLBayerBasicImageKernel ()
@@ -377,7 +379,7 @@ CLBayerBasicImageKernel::process_stats_buffer (SmartPtr<DrmBoBuffer> &buffer, Sm
     if (cl_stats.ptr ())
         _3a_stats_context->release_buffer (cl_stats);
 
-    XCAM_OBJ_PROFILING_END ("3a_stats_cpu_copy(async)", 30);
+    XCAM_OBJ_PROFILING_END ("3a_stats_cpu_copy(async)", XCAM_OBJ_DUR_FRAME_NUM);
 
     return _handler->post_stats (stats_3a);
 }

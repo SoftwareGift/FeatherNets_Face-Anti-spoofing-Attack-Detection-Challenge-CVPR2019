@@ -23,6 +23,9 @@
 
 #include <stdio.h>
 
+// default duration of frame numbers
+#define XCAM_OBJ_DUR_FRAME_NUM 30
+
 #define XCAM_STATIC_FPS_CALCULATION(objname, count) \
     do{                                             \
         static uint32_t num_frame = 0;              \

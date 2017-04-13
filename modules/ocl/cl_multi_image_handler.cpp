@@ -122,7 +122,7 @@ CLMultiImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer
     CLDevice::instance()->get_context ()->finish ();
 #endif
 
-    XCAM_OBJ_PROFILING_END (XCAM_STR (_name), 30);
+    XCAM_OBJ_PROFILING_END (XCAM_STR (_name), XCAM_OBJ_DUR_FRAME_NUM);
 
     if (ret != XCAM_RETURN_NO_ERROR)
         return ret;

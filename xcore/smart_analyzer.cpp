@@ -161,7 +161,7 @@ SmartAnalyzer::analyze (SmartPtr<BufferProxy> &buffer)
         notify_calculation_done (results);
     }
 
-    XCAM_OBJ_PROFILING_END ("smart analysis", 30);
+    XCAM_OBJ_PROFILING_END ("smart analysis", XCAM_OBJ_DUR_FRAME_NUM);
 
     return XCAM_RETURN_NO_ERROR;
 }

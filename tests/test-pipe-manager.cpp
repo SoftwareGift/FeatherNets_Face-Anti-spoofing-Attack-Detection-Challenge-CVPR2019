@@ -94,14 +94,14 @@ private:
 void
 MainPipeManager::post_buffer (const SmartPtr<VideoBuffer> &buf)
 {
-    FPS_CALCULATION (fps_buf, 30);
+    FPS_CALCULATION (fps_buf, XCAM_OBJ_DUR_FRAME_NUM);
 
     XCAM_OBJ_PROFILING_START;
 
     if (_enable_display)
         display_buf (buf);
 
-    XCAM_OBJ_PROFILING_END("main_pipe_manager_display", 30);
+    XCAM_OBJ_PROFILING_END("main_pipe_manager_display", XCAM_OBJ_DUR_FRAME_NUM);
 }
 
 int

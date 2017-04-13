@@ -151,7 +151,7 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
     if (_enable_display)
         display_buf (buf);
 
-    XCAM_OBJ_PROFILING_END("main_dev_manager_display", 30);
+    XCAM_OBJ_PROFILING_END("main_dev_manager_display", XCAM_OBJ_DUR_FRAME_NUM);
 
     if (!_save_file)
         return ;
