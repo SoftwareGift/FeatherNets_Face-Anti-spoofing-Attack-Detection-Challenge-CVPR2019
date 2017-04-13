@@ -44,7 +44,6 @@ void optical_flow_feature_match (
     SmartPtr<CLContext> context, int output_width,
     SmartPtr<DrmBoBuffer> buf0, SmartPtr<DrmBoBuffer> buf1,
     cv::Rect &image0_crop_left, cv::Rect &image0_crop_right,
-    cv::Rect &image1_crop_left, cv::Rect &image1_crop_right,
-    const char *input_name, int frame_num);
+    cv::Rect &image1_crop_left, cv::Rect &image1_crop_right);
 
 #endif // XCAM_CV_FEATURE_MATCH_H

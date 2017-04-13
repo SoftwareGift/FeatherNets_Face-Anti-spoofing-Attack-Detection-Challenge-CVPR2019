@@ -611,14 +611,13 @@ static void
 calc_feature_match (
     SmartPtr<CLContext> context, int fisheye_width,
     SmartPtr<DrmBoBuffer> fisheye_buf0, SmartPtr<DrmBoBuffer> fisheye_buf1,
-    ImageMergeInfo &merge_info0, ImageMergeInfo &merge_info1,
-    const char *input_name, int frame_num)
+    ImageMergeInfo &merge_info0, ImageMergeInfo &merge_info1)
 {
     cv::Rect crop_area1, crop_area2, crop_area3, crop_area4;
 
     convert_to_cv_rect (merge_info0, merge_info1, crop_area1, crop_area2, crop_area3, crop_area4);
     optical_flow_feature_match (context, fisheye_width, fisheye_buf0, fisheye_buf1,
-                                crop_area1, crop_area2, crop_area3, crop_area4, input_name, frame_num);
+                                crop_area1, crop_area2, crop_area3, crop_area4);
     convert_to_xcam_rect (crop_area1, crop_area2, crop_area3, crop_area4, merge_info0, merge_info1);
 }
 #endif
@@ -633,7 +632,7 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
         const VideoBufferInfo &buf_info = _fisheye_buf0->get_video_info ();
 
         calc_feature_match (_context, buf_info.width, _fisheye_buf0, _fisheye_buf1,
-                            _img_merge_info[0], _img_merge_info[1], "feature_match", 0);
+                            _img_merge_info[0], _img_merge_info[1]);
     }
 #else
     XCAM_UNUSED (handler);

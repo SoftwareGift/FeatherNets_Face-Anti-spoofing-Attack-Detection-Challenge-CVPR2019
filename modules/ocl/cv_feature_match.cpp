@@ -21,8 +21,6 @@
 
 #include "cv_feature_match.h"
 
-using namespace std;
-using namespace cv;
 using namespace XCam;
 
 #define XCAM_OF_DEBUG 0
@@ -47,62 +45,78 @@ init_opencv_ocl (SmartPtr<CLContext> context)
         char *platform_name = CLDevice::instance()->get_platform_name ();
         cl_device_id device_id = CLDevice::instance()->get_device_id ();
         cl_context context_id = context->get_context_id ();
-        ocl::attachContext (platform_name, platform_id, context_id, device_id);
+        cv::ocl::attachContext (platform_name, platform_id, context_id, device_id);
 
         is_ocl_inited = true;
     }
 }
 
 bool
-convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, Mat &image)
+convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image)
 {
     SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (context, buffer);
     VideoBufferInfo info = buffer->get_video_info ();
     cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 
-    UMat umat;
-    ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
+    cv::UMat umat;
+    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
     if (umat.empty ()) {
         XCAM_LOG_ERROR ("convert bo buffer to UMat failed");
         return false;
     }
 
-    Mat mat;
+    cv::Mat mat;
     umat.copyTo (mat);
     if (mat.empty ()) {
         XCAM_LOG_ERROR ("copy UMat to Mat failed");
         return false;
     }
 
-    cvtColor (mat, image, COLOR_YUV2BGR_NV12);
+    cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);
+    return true;
+}
+
+bool
+convert_to_umat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::UMat &image)
+{
+    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (context, buffer);
+    VideoBufferInfo info = buffer->get_video_info ();
+    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
+
+    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height, info.width, CV_8U, image);
+    if (image.empty ()) {
+        XCAM_LOG_ERROR ("convert bo buffer to UMat failed");
+        return false;
+    }
+
     return true;
 }
 
 static void
-add_detected_data (Mat image, Ptr<Feature2D> detector, vector<Point2f> &corners)
+add_detected_data (cv::UMat image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners)
 {
-    vector<KeyPoint> keypoints;
+    std::vector<cv::KeyPoint> keypoints;
     detector->detect (image, keypoints);
     corners.reserve (corners.size () + keypoints.size ());
     for (size_t i = 0; i < keypoints.size (); ++i) {
-        KeyPoint &kp = keypoints[i];
+        cv::KeyPoint &kp = keypoints[i];
         corners.push_back (kp.pt);
     }
 }
 
 static void
 get_valid_offsets (
-    Mat out_image, Size img0_size,
-    vector<Point2f> corner0, vector<Point2f> corner1,
-    vector<uchar> status, vector<float> error,
-    vector<float> &offsets, float &sum, int &count)
+    cv::UMat out_image, cv::Size img0_size,
+    std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
+    std::vector<uchar> status, std::vector<float> error,
+    std::vector<float> &offsets, float &sum, int &count)
 {
     count = 0;
     sum = 0.0f;
     for (uint32_t i = 0; i < status.size (); ++i) {
 #if XCAM_OF_DEBUG
-        Point start = Point(corner0[i]) * XCAM_OF_DRAW_SCALE;
-        circle (out_image, start, 4, Scalar(255, 0, 0), XCAM_OF_DRAW_SCALE);
+        cv::Point start = cv::Point(corner0[i]) * XCAM_OF_DRAW_SCALE;
+        cv::circle (out_image, start, 4, cv::Scalar(255, 255, 255), XCAM_OF_DRAW_SCALE);
 #endif
         if (!status[i] || error[i] > 16)
             continue;
@@ -116,8 +130,8 @@ get_valid_offsets (
         offsets.push_back (offset);
 
 #if XCAM_OF_DEBUG
-        Point end = (Point(corner1[i]) + Point (img0_size.width, 0)) * XCAM_OF_DRAW_SCALE;
-        line (out_image, start, end, Scalar(0, 0, 255), XCAM_OF_DRAW_SCALE);
+        cv::Point end = (cv::Point(corner1[i]) + cv::Point (img0_size.width, 0)) * XCAM_OF_DRAW_SCALE;
+        cv::line (out_image, start, end, cv::Scalar(255, 255, 255), XCAM_OF_DRAW_SCALE);
 #else
         XCAM_UNUSED (out_image);
         XCAM_UNUSED (img0_size);
@@ -126,7 +140,7 @@ get_valid_offsets (
 }
 
 static bool
-get_mean_offset (vector<float> offsets, float sum, int &count, float &mean_offset)
+get_mean_offset (std::vector<float> offsets, float sum, int &count, float &mean_offset)
 {
     if (count < min_corners)
         return false;
@@ -177,29 +191,29 @@ get_mean_offset (vector<float> offsets, float sum, int &count, float &mean_offse
     return ret;
 }
 
-static Mat
-calc_match_optical_flow (
-    Mat image0, Mat image1,
-    vector<Point2f> corner0, vector<Point2f> corner1,
-    vector<uchar> &status, vector<float> &error,
+static cv::UMat
+calc_of_match (
+    cv::UMat image0, cv::UMat image1,
+    std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
+    std::vector<uchar> &status, std::vector<float> &error,
     int &last_count, float &last_mean_offset, float &out_x_offset)
 {
-    Mat out_image;
-    Size img0_size = image0.size ();
-    Size img1_size = image1.size ();
+    cv::UMat out_image;
+    cv::Size img0_size = image0.size ();
+    cv::Size img1_size = image1.size ();
     XCAM_ASSERT (img0_size.height == img1_size.height);
 
 #if XCAM_OF_DEBUG
-    Size size (img0_size.width + img1_size.width, img0_size.height);
+    cv::Size size (img0_size.width + img1_size.width, img0_size.height);
     out_image.create (size, image0.type ());
-    image0.copyTo (out_image (Rect(0, 0, img0_size.width, img0_size.height)));
-    image1.copyTo (out_image (Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
+    image0.copyTo (out_image (cv::Rect(0, 0, img0_size.width, img0_size.height)));
+    image1.copyTo (out_image (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
 
-    Size scale_size = size * XCAM_OF_DRAW_SCALE;
-    resize (out_image, out_image, scale_size, 0, 0);
+    cv::Size scale_size = size * XCAM_OF_DRAW_SCALE;
+    cv::resize (out_image, out_image, scale_size, 0, 0);
 #endif
 
-    vector<float> offsets;
+    std::vector<float> offsets;
     float offset_sum = 0.0f;
     int count = 0;
     float mean_offset = 0.0f;
@@ -223,7 +237,7 @@ calc_match_optical_flow (
 }
 
 static void
-adjust_stitch_area (int dst_width, Rect &stitch0, Rect &stitch1)
+adjust_stitch_area (int dst_width, cv::Rect &stitch0, cv::Rect &stitch1)
 {
     int final_overlap_width = stitch1.x + stitch1.width + (dst_width - (stitch0.x + stitch0.width));
     final_overlap_width = XCAM_ALIGN_AROUND (final_overlap_width, 8);
@@ -237,102 +251,82 @@ adjust_stitch_area (int dst_width, Rect &stitch0, Rect &stitch1)
     stitch0.width = sitch_min_width;
 }
 
+static void
+detect_and_match (
+    cv::UMat img_left, cv::UMat img_right, cv::Rect &crop_left, cv::Rect &crop_right,
+    int &valid_count, float &mean_offset, float &x_offset, int dst_width)
+{
+    std::vector<float> err;
+    std::vector<uchar> status;
+    std::vector<cv::Point2f> corner_left, corner_right;
+    cv::Ptr<cv::Feature2D> fast_detector;
+
+    fast_detector = cv::FastFeatureDetector::create (20, true);
+    add_detected_data (img_left, fast_detector, corner_left);
+    if (corner_left.empty ()) {
+        valid_count = 0;
+        mean_offset = 0.0f;
+        x_offset = 0.0f;
+        return;
+    }
+
+    cv::calcOpticalFlowPyrLK (
+        img_left, img_right, corner_left, corner_right,
+        status, err, cv::Size (16, 16), 3,
+        cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 10, 0.01));
+    cv::UMat img_out = calc_of_match (img_left, img_right, corner_left, corner_right,
+                                      status, err, valid_count, mean_offset, x_offset);
+
+    cv::Rect tmp_crop_left = crop_left;
+    cv::Rect tmp_crop_right = crop_right;
+    crop_left.x -= x_offset;
+    adjust_stitch_area (dst_width, crop_left, crop_right);
+    if (crop_left.x != tmp_crop_left.x || crop_left.width != tmp_crop_left.width ||
+            crop_right.x != tmp_crop_right.x || crop_right.width != tmp_crop_right.width)
+        x_offset = 0.0f;
+
+#if XCAM_OF_DEBUG
+    static int idx = 0;
+    static int frame_num = 0;
+    XCAM_LOG_INFO (
+        "Stiching area %d: left_area(x:%d, width:%d), right_area(x:%d, width:%d)",
+        idx, crop_left.x, crop_left.width, crop_right.x, crop_right.width);
+
+    char file_name[1024];
+    snprintf (file_name, 1024, "feature_match_%d_OF_%d.jpg", frame_num, idx);
+    cv::imwrite (file_name, img_out);
+    XCAM_LOG_INFO ("write feature match: %s", file_name);
+
+    if (idx == 1)
+        frame_num++;
+    idx = (idx == 0) ? 1 : 0;
+#endif
+}
+
 void
 optical_flow_feature_match (
     SmartPtr<CLContext> context, int dst_width,
     SmartPtr<DrmBoBuffer> buf0, SmartPtr<DrmBoBuffer> buf1,
-    Rect &image0_crop_left, Rect &image0_crop_right,
-    Rect &image1_crop_left, Rect &image1_crop_right,
-    const char *input_name, int frame_num)
+    cv::Rect &image0_crop_left, cv::Rect &image0_crop_right,
+    cv::Rect &image1_crop_left, cv::Rect &image1_crop_right)
 {
-    Mat image0, image1;
-    Mat image0_left, image0_right, image1_left, image1_right;
-    Mat image0_left_rgb, image0_right_rgb, image1_left_rgb, image1_right_rgb;
-    vector<Point2f> corner0_left, corner0_right, corner1_left, corner1_right;
-    Mat out_image0, out_image1;
+    cv::UMat image0, image1;
+    cv::UMat image0_left, image0_right, image1_left, image1_right;
     static float x_offset0 = 0.0f, x_offset1 = 0.0f;
     static int valid_count0 = 0, valid_count1 = 0;
     static float mean_offset0 = 0.0f, mean_offset1 = 0.0f;
 
-    if (!convert_to_mat (context, buf0, image0) || !convert_to_mat (context, buf1, image1))
+    if (!convert_to_umat (context, buf0, image0) || !convert_to_umat (context, buf1, image1))
         return;
 
-    image0_left_rgb = image0 (image0_crop_left);
-    cvtColor (image0_left_rgb, image0_left, COLOR_BGR2GRAY);
-    image0_right_rgb = image0 (image0_crop_right);
-    cvtColor (image0_right_rgb, image0_right, COLOR_BGR2GRAY);
+    image0_left = image0 (image0_crop_left);
+    image0_right = image0 (image0_crop_right);
+    image1_left = image1 (image1_crop_left);
+    image1_right = image1 (image1_crop_right);
 
-    image1_left_rgb = image1 (image1_crop_left);
-    cvtColor (image1_left_rgb, image1_left, COLOR_BGR2GRAY);
-    image1_right_rgb = image1 (image1_crop_right);
-    cvtColor (image1_right_rgb, image1_right, COLOR_BGR2GRAY);
-
-    Ptr<Feature2D> gft_detector, orb_detector;
-    gft_detector = GFTTDetector::create (300, 0.01, 5, 5, false);
-    orb_detector = ORB::create (200, 1.5, 2, 9);
-
-    add_detected_data (image0_left, gft_detector, corner0_left);
-    add_detected_data (image0_left, orb_detector, corner0_left);
-    add_detected_data (image0_right, gft_detector, corner0_right);
-    add_detected_data (image0_right, orb_detector, corner0_right);
-
-    vector<float> err0, err1;
-    vector<uchar> status0, status1;
-    calcOpticalFlowPyrLK (
-        image0_left, image1_right, corner0_left, corner1_right,
-        status0, err0, Size(5, 5), 3,
-        TermCriteria (TermCriteria::COUNT + TermCriteria::EPS, 10, 0.01));
-    calcOpticalFlowPyrLK (
-        image0_right, image1_left, corner0_right, corner1_left,
-        status1, err1, Size(5, 5), 3,
-        TermCriteria (TermCriteria::COUNT + TermCriteria::EPS, 10, 0.01));
-
-    Rect tmp_stitch0 = image1_crop_right;
-    Rect tmp_stitch1 = image0_crop_left;
-    out_image0 = calc_match_optical_flow (image0_left_rgb, image1_right_rgb, corner0_left, corner1_right,
-                                          status0, err0, valid_count0, mean_offset0, x_offset0);
-    image1_crop_right.x += x_offset0;
-    adjust_stitch_area (dst_width, image1_crop_right, image0_crop_left);
-    if (image1_crop_right.x != tmp_stitch0.x || image1_crop_right.width != tmp_stitch0.width ||
-            image0_crop_left.x != tmp_stitch1.x || image0_crop_left.width != tmp_stitch1.width)
-        x_offset0 = 0.0f;
-#if XCAM_OF_DEBUG
-    XCAM_LOG_INFO (
-        "Stiching area 0: image0_left_area(x:%d, width:%d), image1_right_area(x:%d, width:%d)",
-        image0_crop_left.x, image0_crop_left.width, image1_crop_right.x, image1_crop_right.width);
-#endif
-
-    tmp_stitch0 = image0_crop_right;
-    tmp_stitch1 = image1_crop_left;
-    out_image1 = calc_match_optical_flow (image0_right_rgb, image1_left_rgb, corner0_right, corner1_left,
-                                          status1, err1, valid_count1, mean_offset1, x_offset1);
-    image0_crop_right.x -= x_offset1;
-    adjust_stitch_area (dst_width, image0_crop_right, image1_crop_left);
-    if (image0_crop_right.x != tmp_stitch0.x || image0_crop_right.width != tmp_stitch0.width ||
-            image1_crop_left.x != tmp_stitch1.x || image1_crop_left.width != tmp_stitch1.width)
-        x_offset1 = 0.0f;
-
-#if XCAM_OF_DEBUG
-    XCAM_LOG_INFO (
-        "Stiching area 1: image0_right_area(x:%d, width:%d), image1_left_area(x:%d, width:%d)",
-        image0_crop_right.x, image0_crop_right.width, image1_crop_left.x, image1_crop_left.width);
-#endif
-
-#if XCAM_OF_DEBUG
-    char file_name[1024];
-    char *tmp_name = strdup (input_name);
-    char *prefix = strtok (tmp_name, ".");
-    snprintf (file_name, 1024, "%s_%d_OF_stitching_0.jpg", prefix, frame_num);
-    imwrite (file_name, out_image0);
-    XCAM_LOG_INFO ("write feature match: %s", file_name);
-
-    snprintf (file_name, 1024, "%s_%d_OF_stitching_1.jpg", prefix, frame_num);
-    imwrite (file_name, out_image1);
-    XCAM_LOG_INFO ("write feature match: %s", file_name);
-    free (tmp_name);
-#else
-    XCAM_UNUSED (input_name);
-    XCAM_UNUSED (frame_num);
-#endif
+    detect_and_match (image1_right, image0_left, image1_crop_right, image0_crop_left,
+                      valid_count0, mean_offset0, x_offset0, dst_width);
+    detect_and_match (image0_right, image1_left, image0_crop_right, image1_crop_left,
+                      valid_count1, mean_offset1, x_offset1, dst_width);
 }
 
