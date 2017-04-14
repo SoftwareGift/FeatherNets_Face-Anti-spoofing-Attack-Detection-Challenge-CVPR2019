@@ -76,7 +76,7 @@
 #define XCAM_DEAD_COPY(ClassObj)                \
         ClassObj (const ClassObj&);             \
         ClassObj & operator= (const ClassObj&)  \
-
+ 
 
 #define XCAM_STR(str)  ((str) ? (str) : "null")
 #define XCAM_BOOL2STR(value)  ((value) ? "true" : "false")
@@ -116,5 +116,8 @@
 #else
 #define PRIuS "u"
 #endif
+
+#define PI 3.1415926f
+#define degree2radian(degree) ((degree) * PI / 180.0f)
 
 #endif //XCAM_DEFS_H

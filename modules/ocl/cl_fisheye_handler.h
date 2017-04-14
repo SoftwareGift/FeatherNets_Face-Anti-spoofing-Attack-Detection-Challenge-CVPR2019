@@ -23,13 +23,9 @@
 
 #include "xcam_utils.h"
 #include "cl_image_handler.h"
+#include "cl_geo_map_handler.h"
 
 namespace XCam {
-
-enum {
-    CLLongitude,
-    Latitude,
-};
 
 struct CLFisheyeInfo {
     float    center_x;
@@ -65,10 +61,11 @@ private:
 
 class CLFisheyeHandler
     : public CLImageHandler
+    , public GeoKernelParamCallback
 {
     friend class CLFisheye2GPSKernel;
 public:
-    explicit CLFisheyeHandler ();
+    explicit CLFisheyeHandler (bool use_map);
     void set_output_size (uint32_t width, uint32_t height);
     void get_output_size (uint32_t &width, uint32_t &height) const;
 
@@ -80,11 +77,21 @@ public:
     }
 
 protected:
+    // derived from CLImageHandler
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input,
         VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+
+    // derived from GeoKernelParamCallback
+    virtual SmartPtr<CLImage> get_geo_input_image (CLNV12PlaneIdx index);
+    virtual SmartPtr<CLImage> get_geo_output_image (CLNV12PlaneIdx index);
+    virtual SmartPtr<CLImage> get_geo_map_table () {
+        return _geo_table;
+    }
+    virtual void get_geo_equivalent_out_size (float &width, float &height);
+    virtual void get_geo_pixel_out_size (float &width, float &height);
 
 private:
     SmartPtr<CLImage> &get_input_image (CLNV12PlaneIdx index) {
@@ -96,6 +103,10 @@ private:
         return _output [index];
     }
 
+    SmartPtr<CLImage> create_geo_table (uint32_t width, uint32_t height);
+    XCamReturn generate_fisheye_table (
+        uint32_t fisheye_width, uint32_t fisheye_height, const CLFisheyeInfo &fisheye_info);
+
     XCAM_DEAD_COPY (CLFisheyeHandler);
 
 private:
@@ -104,12 +115,15 @@ private:
     float                            _range_longitude;
     float                            _range_latitude;
     CLFisheyeInfo                    _fisheye_info;
+    float                            _map_factor;
+    bool                             _use_map;
+    SmartPtr<CLImage>                _geo_table;
     SmartPtr<CLImage>                _input[CLNV12PlaneMax];
     SmartPtr<CLImage>                _output[CLNV12PlaneMax];
 };
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (SmartPtr<CLContext> &context);
+create_fisheye_handler (SmartPtr<CLContext> &context, bool use_map = false);
 
 }
 

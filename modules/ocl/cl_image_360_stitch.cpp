@@ -548,7 +548,7 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
     } else {
         const VideoBufferInfo &buf_info = output->get_video_info ();
         SmartPtr<DrmBoBuffer> scale_input = create_bo_buffer (buf_info.width + XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH,
-                                                              buf_info.height);
+                                            buf_info.height);
         XCAM_ASSERT (scale_input.ptr ());
 
         ret = prepare_global_scale_blender_parameters (_fisheye_buf0, _fisheye_buf1, scale_input);

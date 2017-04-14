@@ -19,13 +19,13 @@ typedef struct {
     float    rotate_angle;
 } FisheyeInfo;
 
-__inline float2 calculate_fisheye_pos (float2 gps_pos, FisheyeInfo *fisheye)
+__inline float2 calculate_fisheye_pos (float2 gps_pos, const FisheyeInfo *info)
 {
     float z = cos (gps_pos.y);
     float x = sin (gps_pos.y) * cos (gps_pos.x);
     float y = sin (gps_pos.y) * sin (gps_pos.x);
     float r_angle = acos (y);
-    float r = r_angle * (fisheye->radius * 2.0f) / fisheye->wide_angle;
+    float r = r_angle * (info->radius * 2.0f) / info->wide_angle;
     float xz_size = sqrt(x * x + z * z);
 
     float2 dst;
@@ -33,16 +33,33 @@ __inline float2 calculate_fisheye_pos (float2 gps_pos, FisheyeInfo *fisheye)
     dst.y = -r * z / xz_size;
 
     float2 ret;
-    ret.x = cos(fisheye->rotate_angle) * dst.x - sin(fisheye->rotate_angle) * dst.y;
-    ret.y = sin(fisheye->rotate_angle) * dst.x + cos (fisheye->rotate_angle) * dst.y;
+    ret.x = cos(info->rotate_angle) * dst.x - sin(info->rotate_angle) * dst.y;
+    ret.y = sin(info->rotate_angle) * dst.x + cos (info->rotate_angle) * dst.y;
 
-    return ret + (float2)(fisheye->center_x, fisheye->center_y);
+    return ret + (float2)(info->center_x, info->center_y);
+}
+
+__kernel void
+kernel_fisheye_table (
+    const FisheyeInfo info, const float2 fisheye_image_size,
+    __write_only image2d_t table, const float2 radian_per_pixel, const float2 table_center)
+{
+    int2 out_pos = (int2)(get_global_id (0), get_global_id (1));
+    float2 gps_pos = (convert_float2 (out_pos) - table_center) * radian_per_pixel + PI / 2.0f;
+    float2 pos = calculate_fisheye_pos (gps_pos, &info);
+    float2 min_pos = (float2)(info.center_x - info.radius, info.center_y - info.radius);
+    float2 max_pos = (float2)(info.center_x + info.radius, info.center_y + info.radius);
+    pos = clamp (pos, min_pos, max_pos);
+    pos /= fisheye_image_size;
+    write_imagef (table, out_pos, (float4)(pos, 0.0f, 0.0f));
 }
 
 __kernel void
 kernel_fisheye_2_gps (
-    __read_only image2d_t input_y, __read_only image2d_t input_uv, float2 input_y_size, FisheyeInfo fisheye,
-    __write_only image2d_t output_y, __write_only image2d_t output_uv, float2 dst_center, float2 radian_per_pixel)
+    __read_only image2d_t input_y, __read_only image2d_t input_uv,
+    const float2 input_y_size, const FisheyeInfo info,
+    __write_only image2d_t output_y, __write_only image2d_t output_uv,
+    const float2 dst_center, const float2 radian_per_pixel)
 {
     const int g_x = get_global_id (0);
     const int g_y_uv = get_global_id (1);
@@ -58,7 +75,7 @@ kernel_fisheye_2_gps (
 
 #pragma unroll
     for (int i = 0; i < PIXEL_PER_WI; ++i) {
-        float2 pos = calculate_fisheye_pos (gps_pos, &fisheye);
+        float2 pos = calculate_fisheye_pos (gps_pos, &info);
         src_pos[i] = pos / input_y_size;
         src_ptr[i] = read_imagef (input_y, sampler, src_pos[i]).x;
         gps_pos.x += radian_per_pixel.x;
@@ -73,7 +90,7 @@ kernel_fisheye_2_gps (
     gps_pos.y += radian_per_pixel.y;
 #pragma unroll
     for (int i = 0; i < PIXEL_PER_WI; ++i) {
-        float2 pos = calculate_fisheye_pos (gps_pos, &fisheye);
+        float2 pos = calculate_fisheye_pos (gps_pos, &info);
         pos /= input_y_size;
         src_ptr[i] = read_imagef (input_y, sampler, pos).x;
         gps_pos.x += radian_per_pixel.x;

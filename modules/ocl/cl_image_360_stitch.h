@@ -29,9 +29,9 @@
 namespace XCam {
 
 enum ImageIdx {
-	ImageIdxMain,
-	ImageIdxSecondary,
-	ImageIdxCount,
+    ImageIdxMain,
+    ImageIdxSecondary,
+    ImageIdxCount,
 };
 
 struct ImageCropInfo {
@@ -43,7 +43,7 @@ struct ImageCropInfo {
     ImageCropInfo () : left (0), right (0), top (0), bottom (0) {}
 };
 
-struct CLStitchInfo{
+struct CLStitchInfo {
     uint32_t merge_width[ImageIdxCount];
 
     ImageCropInfo crop[ImageIdxCount];
