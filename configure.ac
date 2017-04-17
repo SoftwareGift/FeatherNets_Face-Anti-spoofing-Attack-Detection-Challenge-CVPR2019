@@ -134,6 +134,33 @@ if test "$enable_opencv" = "yes"; then
     PKG_CHECK_MODULES(OPENCV, [opencv], [HAVE_OPENCV=1], [HAVE_OPENCV=0])
 fi
 
+# check dvs opencl path
+ENABLE_DVS_CL_PATH=0
+if test "$HAVE_OPENCV" -eq 1; then
+    AC_LANG(C++)
+    saved_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $OPENCV_CFLAGS"
+    saved_LIBS="$LIBS"
+    LIBS="$LIBS $OPENCV_LIBS"
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM(
+            [[#include <opencv2/core.hpp>
+              #include <opencv2/opencv.hpp>
+            ]],
+            [[cv::UMat frame0;
+              cv::UMat frame1;
+              cv::videostab::MotionEstimatorRansacL2 est;
+              cv::videostab::KeypointBasedMotionEstimator kpest(&est);
+              kpest.estimate(frame0, frame1);
+            ]]
+           )],
+        [ENABLE_DVS_CL_PATH=1],
+        [ENABLE_DVS_CL_PATH=0]
+    )
+    CPPFLAGS="$saved_CPPFLAGS"
+    LIBS="$saved_LIBS"
+fi
+
 # check capi build
 ENABLE_CAPI=0
 if test "$enable_capi" = "yes"; then
@@ -274,6 +301,10 @@ AM_CONDITIONAL([HAVE_LIBCL], [test "$HAVE_LIBCL" -eq 1])
 AC_DEFINE_UNQUOTED([HAVE_OPENCV], $HAVE_OPENCV,
     [have opencv])
 AM_CONDITIONAL([HAVE_OPENCV], [test "$HAVE_OPENCV" -eq 1])
+
+AC_DEFINE_UNQUOTED([ENABLE_DVS_CL_PATH], $ENABLE_DVS_CL_PATH,
+    [enable dvs cl path])
+AM_CONDITIONAL([ENABLE_DVS_CL_PATH], [test "$ENABLE_DVS_CL_PATH" -eq 1])
 
 AC_DEFINE_UNQUOTED([ENABLE_CAPI], $ENABLE_CAPI,
     [enable capi build])

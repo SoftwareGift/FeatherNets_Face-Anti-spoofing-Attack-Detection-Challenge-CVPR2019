@@ -119,10 +119,13 @@ void DigitalVideoStabilizer::nextStabilizedMotion(DvsData* frame, DvsResult* res
         }
     }
 #if 0
-    printf ("proj_mat[%d]=(%f, %f, %f, %f, %f, %f, %f, %f, %f \n)", result->frame_id,
+    printf ("proj_mat(%d, :)={%f, %f, %f, %f, %f, %f, %f, %f, %f}; \n", result->frame_id + 1,
             result->proj_mat[0][0], result->proj_mat[0][1], result->proj_mat[0][2],
             result->proj_mat[1][0], result->proj_mat[1][1], result->proj_mat[1][2],
             result->proj_mat[2][0], result->proj_mat[2][1], result->proj_mat[2][2]);
+
+    printf ("amplitude(%d, :)={%f, %f}; \n", result->frame_id + 1,
+            result->proj_mat[0][2], result->proj_mat[1][2]);
 #endif
 }
 

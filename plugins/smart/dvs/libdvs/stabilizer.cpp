@@ -20,8 +20,6 @@
 
 #include "stabilizer.h"
 
-#define XCAM_DVS_CL_PATH_ENABLE 0
-
 Mat
 OnePassVideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 {
@@ -86,7 +84,7 @@ OnePassVideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 Mat
 OnePassVideoStabilizer::estimateMotion()
 {
-#if XCAM_DVS_CL_PATH_ENABLE
+#if ENABLE_DVS_CL_PATH
     cv::UMat frame0 = at(curPos_ - 1, frames_).getUMat(ACCESS_READ);
     cv::UMat frame1 = at(curPos_, frames_).getUMat(ACCESS_READ);
 
@@ -204,7 +202,7 @@ TwoPassVideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 Mat
 TwoPassVideoStabilizer::estimateMotion()
 {
-#if XCAM_DVS_CL_PATH_ENABLE
+#if ENABLE_DVS_CL_PATH
     cv::UMat frame0 = at(curPos_ - 1, frames_).getUMat(ACCESS_READ);
     cv::UMat frame1 = at(curPos_, frames_).getUMat(ACCESS_READ);
 
