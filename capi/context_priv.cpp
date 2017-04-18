@@ -210,7 +210,9 @@ StitchContext::create_handler (SmartPtr<CLContext> &context)
         return NULL;
     }
 
-    SmartPtr<CLImage360Stitch> image_360 = create_image_360_stitch(context).dynamic_cast_ptr<CLImage360Stitch> ();
+    SmartPtr<CLImage360Stitch> image_360 =
+        create_image_360_stitch(
+            context, _need_seam, _scale_mode, _fisheye_map).dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_FAIL_RETURN (ERROR, image_360.ptr (), NULL, "create image stitch handler failed");
     image_360->set_output_size (sttch_width, sttch_height);
     XCAM_LOG_INFO ("stitch output size width:%d height:%d", sttch_width, sttch_height);

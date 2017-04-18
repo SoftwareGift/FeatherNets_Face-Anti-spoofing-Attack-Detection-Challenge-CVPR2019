@@ -91,7 +91,8 @@ public:
     virtual bool set_wireframe (bool enable);
     virtual bool set_image_warp (bool enable);
     virtual bool set_image_stitch (
-        bool enable_stitch, bool enable_seem, CLBlenderScaleMode scale_mode,
+        bool enable_stitch, bool enable_seam,
+        CLBlenderScaleMode scale_mode, bool enable_fisheye_map,
         uint32_t stitch_width, uint32_t stitch_height);
 
 protected:
@@ -135,6 +136,7 @@ private:
     bool                                      _enable_image_warp;
     bool                                      _enable_stitch;
     bool                                      _stitch_enable_seam;
+    bool                                      _stitch_fisheye_map;
     CLBlenderScaleMode                        _stitch_scale_mode;
     uint32_t                                  _stitch_width;
     uint32_t                                  _stitch_height;

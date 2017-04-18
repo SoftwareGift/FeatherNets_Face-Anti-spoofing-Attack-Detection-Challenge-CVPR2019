@@ -25,6 +25,7 @@
 #include <string.h>
 #include <ocl/cl_image_handler.h>
 #include <ocl/cl_context.h>
+#include <ocl/cl_blender.h>
 
 using namespace XCam;
 
@@ -83,6 +84,9 @@ protected:
     }
 
     virtual SmartPtr<CLImageHandler> create_handler (SmartPtr<CLContext> &context) = 0;
+
+private:
+    XCAM_DEAD_COPY (ContextBase);
 
 protected:
     HandleType                       _type;
@@ -157,9 +161,17 @@ class StitchContext
 public:
     StitchContext ()
         : ContextBase (HandleTypeStitch)
+        , _need_seam (false)
+        , _fisheye_map (false)
+        , _scale_mode (CLBlenderScaleLocal)
     {}
 
     virtual SmartPtr<CLImageHandler> create_handler (SmartPtr<CLContext> &context);
+
+private:
+    bool                  _need_seam;
+    bool                  _fisheye_map;
+    CLBlenderScaleMode    _scale_mode;
 };
 
 #endif //XCAM_CONTEXT_PRIV_H

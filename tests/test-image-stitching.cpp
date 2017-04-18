@@ -131,6 +131,7 @@ int main (int argc, char *argv[])
 
     int loop = 1;
     bool enable_seam = false;
+    bool enable_fisheye_map = false;
     bool need_save_output = true;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
     const char *file_in_name = NULL;
@@ -147,6 +148,7 @@ int main (int argc, char *argv[])
         {"save", required_argument, NULL, 's'},
         {"scale-mode", required_argument, NULL, 'c'},
         {"enable-seam", no_argument, NULL, 'S'},
+        {"enable-fisheyemap", no_argument, NULL, 'F'},
         {"help", no_argument, NULL, 'e'},
         {NULL, 0, NULL, 0},
     };
@@ -193,6 +195,9 @@ int main (int argc, char *argv[])
         case 'S':
             enable_seam = true;
             break;
+        case 'F':
+            enable_fisheye_map = true;
+            break;
         case 'e':
             usage (argv[0]);
             return -1;
@@ -232,10 +237,13 @@ int main (int argc, char *argv[])
     printf ("save file:\t%s\n", need_save_output ? "true" : "false");
     printf ("scale mode:\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
     printf ("seam mask:\t%s\n", enable_seam ? "true" : "false");
+    printf ("fisheye map:\t%s\n", enable_fisheye_map ? "true" : "false");
     printf ("---------------------------\n");
 
     context = CLDevice::instance ()->get_context ();
-    image_360 = create_image_360_stitch (context, enable_seam, scale_mode).dynamic_cast_ptr<CLImage360Stitch> ();
+    image_360 =
+        create_image_360_stitch (
+            context, enable_seam, scale_mode, enable_fisheye_map).dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_ASSERT (image_360.ptr ());
     image_360->set_output_size (output_width, output_height);
     CLStitchInfo stitch_info = get_stitch_initial_info ();

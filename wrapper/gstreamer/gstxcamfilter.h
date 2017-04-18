@@ -82,8 +82,9 @@ struct _GstXCamFilter
     uint8_t                      denoise_3d_ref_count;
     gboolean                     enable_wireframe;
     gboolean                     enable_image_warp;
-    bool                         enable_stitch;
-    bool                         stitch_enable_seam;
+    gboolean                     enable_stitch;
+    gboolean                     stitch_enable_seam;
+    gboolean                     stitch_fisheye_map;
     CLBlenderScaleMode           stitch_scale_mode;
 
     uint32_t                     delay_buf_num;

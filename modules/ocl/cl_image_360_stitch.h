@@ -146,7 +146,8 @@ private:
 
 SmartPtr<CLImageHandler>
 create_image_360_stitch (
-    SmartPtr<CLContext> &context, bool need_seam = false, CLBlenderScaleMode scale_mode = CLBlenderScaleLocal);
+    SmartPtr<CLContext> &context, bool need_seam = false,
+    CLBlenderScaleMode scale_mode = CLBlenderScaleLocal, bool fisheye_map = false);
 
 }
 

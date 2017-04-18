@@ -547,8 +547,8 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
         STITCH_CHECK (ret, "right blender: execute prepare_parameters failed");
     } else {
         const VideoBufferInfo &buf_info = output->get_video_info ();
-        SmartPtr<DrmBoBuffer> scale_input = create_bo_buffer (buf_info.width + XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH,
-                                            buf_info.height);
+        SmartPtr<DrmBoBuffer> scale_input =
+            create_bo_buffer (buf_info.width + XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH, buf_info.height);
         XCAM_ASSERT (scale_input.ptr ());
 
         ret = prepare_global_scale_blender_parameters (_fisheye_buf0, _fisheye_buf1, scale_input);
@@ -666,7 +666,9 @@ create_blender_global_scale_kernel (SmartPtr<CLContext> &context, bool is_uv)
 }
 
 SmartPtr<CLImageHandler>
-create_image_360_stitch (SmartPtr<CLContext> &context, bool need_seam, CLBlenderScaleMode scale_mode)
+create_image_360_stitch (
+    SmartPtr<CLContext> &context, bool need_seam,
+    CLBlenderScaleMode scale_mode, bool fisheye_map)
 {
     const int layer = 2;
     const bool need_uv = true;
@@ -676,7 +678,7 @@ create_image_360_stitch (SmartPtr<CLContext> &context, bool need_seam, CLBlender
     XCAM_ASSERT (stitch.ptr ());
 
     for (int index = 0; index < ImageIdxCount; ++index) {
-        fisheye = create_fisheye_handler (context).dynamic_cast_ptr<CLFisheyeHandler> ();
+        fisheye = create_fisheye_handler (context, fisheye_map).dynamic_cast_ptr<CLFisheyeHandler> ();
         XCAM_FAIL_RETURN (ERROR, fisheye.ptr (), NULL, "image_360_stitch create fisheye handler failed");
         fisheye->disable_buf_pool (true);
         stitch->set_fisheye_handler (fisheye, index);
