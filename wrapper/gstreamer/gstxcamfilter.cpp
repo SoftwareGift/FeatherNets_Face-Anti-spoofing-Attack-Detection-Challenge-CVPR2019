@@ -415,7 +415,7 @@ gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GPa
         g_value_set_enum (value, xcamfilter->stitch_scale_mode);
         break;
     case PROP_STITCH_FISHEYE_MAP:
-        g_value_set_enum (value, xcamfilter->stitch_fisheye_map);
+        g_value_set_boolean (value, xcamfilter->stitch_fisheye_map);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

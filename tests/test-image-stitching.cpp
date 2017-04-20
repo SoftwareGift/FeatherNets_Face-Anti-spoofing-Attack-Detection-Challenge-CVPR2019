@@ -74,17 +74,18 @@ void usage(const char* arg0)
 {
     printf ("Usage:\n"
             "%s --input file --output file\n"
-            "\t--input       input image(NV12)\n"
-            "\t--output      output image(NV12)\n"
-            "\t--input-w     optional, input width, default: 1920\n"
-            "\t--input-h     optional, input height, default: 1080\n"
-            "\t--output-w    optional, output width, default: 1920\n"
-            "\t--output-h    optional, output width, default: 960\n"
-            "\t--loop        optional, how many loops need to run for performance test, default: 0\n"
-            "\t--save        optional, save file or not, select from [true/false], default: true\n"
-            "\t--scale-mode  optional, image scaling mode, select from [local/global], default: local\n"
-            "\t--enable-seam optional, enable seam finder in blending area, default: no\n"
-            "\t--help        usage\n",
+            "\t--input             input image(NV12)\n"
+            "\t--output            output image(NV12)\n"
+            "\t--input-w           optional, input width, default: 1920\n"
+            "\t--input-h           optional, input height, default: 1080\n"
+            "\t--output-w          optional, output width, default: 1920\n"
+            "\t--output-h          optional, output width, default: 960\n"
+            "\t--loop              optional, how many loops need to run for performance test, default: 0\n"
+            "\t--save              optional, save file or not, select from [true/false], default: true\n"
+            "\t--scale-mode        optional, image scaling mode, select from [local/global], default: local\n"
+            "\t--enable-seam       optional, enable seam finder in blending area, default: no\n"
+            "\t--enable-fisheyemap optional, enable fisheye map, default: no\n"
+            "\t--help              usage\n",
             arg0);
 }
 

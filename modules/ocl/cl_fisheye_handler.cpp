@@ -300,6 +300,7 @@ CLFisheyeHandler::create_geo_table (uint32_t width, uint32_t height)
     return image;
 }
 
+#if 0
 static void
 dump_geo_table (SmartPtr<CLImage> table)
 {
@@ -330,6 +331,7 @@ dump_geo_table (SmartPtr<CLImage> table)
     fclose (fp);
     table->enqueue_unmap (ptr);
 }
+#endif
 
 XCamReturn
 CLFisheyeHandler::generate_fisheye_table (

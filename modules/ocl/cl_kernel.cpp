@@ -22,7 +22,7 @@
 #include "cl_context.h"
 #include "cl_device.h"
 
-#define ENABLE_DEBUG_KERNEL 1
+#define ENABLE_DEBUG_KERNEL 0
 
 #define XCAM_CL_KERNEL_DEFAULT_WORK_DIM 2
 #define XCAM_CL_KERNEL_DEFAULT_LOCAL_WORK_SIZE 0
