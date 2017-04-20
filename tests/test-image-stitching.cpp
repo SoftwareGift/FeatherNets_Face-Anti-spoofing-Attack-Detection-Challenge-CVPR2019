@@ -116,7 +116,7 @@ int main (int argc, char *argv[])
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLContext> context;
     SmartPtr<DrmDisplay> display;
-    SmartPtr<DrmBoBufferPool> buf_pool;
+    SmartPtr<BufferPool> buf_pool;
     SmartPtr<BufferProxy> read_buf;
     ImageFileHandle file_in, file_out;
     SmartPtr<DrmBoBuffer> input_buf, output_buf;
@@ -249,6 +249,7 @@ int main (int argc, char *argv[])
     image_360->set_output_size (output_width, output_height);
     CLStitchInfo stitch_info = get_stitch_initial_info ();
     image_360->init_stitch_info (stitch_info);
+    image_360->set_pool_type (CLImageHandler::DrmBoPoolType);
 
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
@@ -256,7 +257,7 @@ int main (int argc, char *argv[])
     buf_pool = new DrmBoBufferPool (display);
     XCAM_ASSERT (buf_pool.ptr ());
     buf_pool->set_video_info (input_buf_info);
-    if (!buf_pool->reserve (2)) {
+    if (!buf_pool->reserve (6)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
         return -1;
     }

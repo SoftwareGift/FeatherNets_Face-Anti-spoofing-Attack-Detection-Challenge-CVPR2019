@@ -34,6 +34,17 @@ enum ImageIdx {
     ImageIdxCount,
 };
 
+struct CLFisheyeParams {
+    SmartPtr<CLFisheyeHandler>  handler;
+    SmartPtr<BufferPool>        pool;
+    SmartPtr<DrmBoBuffer>       buf;
+
+    uint32_t                    width;
+    uint32_t                    height;
+
+    CLFisheyeParams () : width (0), height (0) {}
+};
+
 struct ImageCropInfo {
     uint32_t left;
     uint32_t right;
@@ -110,7 +121,7 @@ protected:
     XCamReturn prepare_global_scale_blender_parameters (
         SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
 
-    SmartPtr<DrmBoBuffer> create_bo_buffer (uint32_t width, uint32_t height);
+    bool create_buffer_pool (SmartPtr<BufferPool> &buf_pool, uint32_t width, uint32_t height);
     XCamReturn reset_buffer_info (SmartPtr<DrmBoBuffer> &input);
 
     virtual XCamReturn sub_handler_execute_done (SmartPtr<CLImageHandler> &handler);
@@ -123,12 +134,7 @@ private:
 
 private:
     SmartPtr<CLContext>         _context;
-    SmartPtr<CLFisheyeHandler>  _fisheye[ImageIdxCount];
-    SmartPtr<DrmBoBuffer>       _fisheye_buf0;
-    SmartPtr<DrmBoBuffer>       _fisheye_buf1;
-    uint32_t                    _fisheye_width;
-    uint32_t                    _fisheye_height;
-
+    CLFisheyeParams             _fisheye[ImageIdxCount];
     SmartPtr<CLBlender>         _left_blender;
     SmartPtr<CLBlender>         _right_blender;
 
@@ -142,6 +148,7 @@ private:
     bool                        _is_stitch_inited;
 
     CLBlenderScaleMode          _scale_mode;
+    SmartPtr<BufferPool>        _scale_buf_pool;
 };
 
 SmartPtr<CLImageHandler>
