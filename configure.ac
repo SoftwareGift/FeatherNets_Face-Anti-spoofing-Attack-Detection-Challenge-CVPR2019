@@ -339,7 +339,7 @@ AC_CONFIG_FILES([Makefile
                  capi/Makefile
                  tests/Makefile
                  pkgconfig/Makefile
-                 pkgconfig/xcam.pc
+                 pkgconfig/libxcam.pc
                 ])
 
 AC_OUTPUT

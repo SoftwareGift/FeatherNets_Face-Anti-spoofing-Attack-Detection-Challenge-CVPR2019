@@ -1,4 +1,4 @@
-pcverfiles = xcam.pc
+pcverfiles = libxcam.pc
 
 all-local: $(pcverfiles)
 
@@ -6,7 +6,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = $(pcverfiles)
 
 CLEANFILES = $(pcverfiles)
-pcinfiles = xcam.pc.in
+pcinfiles = libxcam.pc.in
 
 DISTCLEANFILES = $(pcinfiles:.in=)
 EXTRA_DIST = $(pcinfiles)

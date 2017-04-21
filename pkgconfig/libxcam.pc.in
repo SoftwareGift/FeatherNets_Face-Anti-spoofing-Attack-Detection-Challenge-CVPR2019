@@ -8,5 +8,5 @@ Description: extended camera features
 Requires:
 Version: @XCAM_VERSION@
 Libs: -L${libdir} -lxcam_capi -lxcam_ocl -lxcam_core
-Cflags: -I${includedir}
+Cflags: -I${includedir} -I${includedir}/xcam
 
