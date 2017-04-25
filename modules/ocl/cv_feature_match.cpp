@@ -31,9 +31,8 @@ static const int sitch_min_width = 56;
 static const int min_corners = 8;
 static const float offset_factor = 0.8f;
 
-static const int delta_count = 4;  // cur_count - last_count
-static const float delta_mean_offset = 1.0f; //0.1f;  // cur_mean_offset - last_mean_offset
-static const float delta_offset = 12.0f;  // cur_mean_offset - last_offset
+static const float delta_mean_offset = 1.0f; // cur_mean_offset - last_mean_offset
+static const float max_adjusted_offset = 12.0f; // max offset of each adjustment
 
 void
 init_opencv_ocl (SmartPtr<CLContext> context)
@@ -118,9 +117,9 @@ get_valid_offsets (
         cv::Point start = cv::Point(corner0[i]) * XCAM_OF_DRAW_SCALE;
         cv::circle (out_image, start, 4, cv::Scalar(255, 255, 255), XCAM_OF_DRAW_SCALE);
 #endif
-        if (!status[i] || error[i] > 16)
+        if (!status[i] || error[i] > 24)
             continue;
-        if (fabs(corner0[i].y - corner1[i].y) >= 4)
+        if (fabs(corner0[i].y - corner1[i].y) >= 8)
             continue;
 
         float offset = corner1[i].x - corner0[i].x;
@@ -223,12 +222,12 @@ calc_of_match (
 
     bool ret = get_mean_offset (offsets, offset_sum, count, mean_offset);
     if (ret) {
-        if (fabs (mean_offset - last_mean_offset) < delta_mean_offset ||
-                fabs (mean_offset - out_x_offset) < delta_offset) {
+        if (fabs (mean_offset - last_mean_offset) < delta_mean_offset) {
             out_x_offset = out_x_offset * offset_factor + mean_offset * (1.0f - offset_factor);
+            if (fabs (out_x_offset) > max_adjusted_offset)
+                out_x_offset = (out_x_offset > 0.0f) ? max_adjusted_offset : (-max_adjusted_offset);
         }
-    } else
-        out_x_offset = 0.0f;
+    }
 
     last_count = count;
     last_mean_offset = mean_offset;
@@ -237,9 +236,14 @@ calc_of_match (
 }
 
 static void
-adjust_stitch_area (int dst_width, cv::Rect &stitch0, cv::Rect &stitch1)
+adjust_stitch_area (int dst_width, float &x_offset, cv::Rect &stitch0, cv::Rect &stitch1)
 {
-    int final_overlap_width = stitch1.x + stitch1.width + (dst_width - (stitch0.x + stitch0.width));
+    if (fabs (x_offset) < 5.0f)
+        return;
+
+    int last_overlap_width = stitch1.x + stitch1.width + (dst_width - (stitch0.x + stitch0.width));
+    // int final_overlap_width = stitch1.x + stitch1.width + (dst_width - (stitch0.x - x_offset + stitch0.width));
+    int final_overlap_width = last_overlap_width + x_offset;
     final_overlap_width = XCAM_ALIGN_AROUND (final_overlap_width, 8);
     XCAM_ASSERT (final_overlap_width >= sitch_min_width);
     int center = final_overlap_width / 2;
@@ -249,6 +253,9 @@ adjust_stitch_area (int dst_width, cv::Rect &stitch0, cv::Rect &stitch1)
     stitch1.width = sitch_min_width;
     stitch0.x = dst_width - final_overlap_width + stitch1.x;
     stitch0.width = sitch_min_width;
+
+    float delta_offset = final_overlap_width - last_overlap_width;
+    x_offset -= delta_offset;
 }
 
 static void
@@ -261,33 +268,32 @@ detect_and_match (
     std::vector<cv::Point2f> corner_left, corner_right;
     cv::Ptr<cv::Feature2D> fast_detector;
 
+#if XCAM_OF_DEBUG
+    static int idx = 0;
+    static int frame_num = 0;
+#endif
+
     fast_detector = cv::FastFeatureDetector::create (20, true);
     add_detected_data (img_left, fast_detector, corner_left);
     if (corner_left.empty ()) {
-        valid_count = 0;
-        mean_offset = 0.0f;
-        x_offset = 0.0f;
+#if XCAM_OF_DEBUG
+        if (idx == 1)
+            frame_num++;
+        idx = (idx == 0) ? 1 : 0;
+#endif
         return;
     }
 
     cv::calcOpticalFlowPyrLK (
         img_left, img_right, corner_left, corner_right,
         status, err, cv::Size (16, 16), 3,
-        cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 10, 0.01));
+        cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 10, 0.01f));
     cv::UMat img_out = calc_of_match (img_left, img_right, corner_left, corner_right,
                                       status, err, valid_count, mean_offset, x_offset);
 
-    cv::Rect tmp_crop_left = crop_left;
-    cv::Rect tmp_crop_right = crop_right;
-    crop_left.x -= x_offset;
-    adjust_stitch_area (dst_width, crop_left, crop_right);
-    if (crop_left.x != tmp_crop_left.x || crop_left.width != tmp_crop_left.width ||
-            crop_right.x != tmp_crop_right.x || crop_right.width != tmp_crop_right.width)
-        x_offset = 0.0f;
+    adjust_stitch_area (dst_width, x_offset, crop_left, crop_right);
 
 #if XCAM_OF_DEBUG
-    static int idx = 0;
-    static int frame_num = 0;
     XCAM_LOG_INFO (
         "Stiching area %d: left_area(x:%d, width:%d), right_area(x:%d, width:%d)",
         idx, crop_left.x, crop_left.width, crop_right.x, crop_right.width);
