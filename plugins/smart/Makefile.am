@@ -1,5 +1,5 @@
 
-if HAVE_OPENCV
+if ENABLE_DVS
 if HAVE_LIBCL
 DVS_DIR = dvs
 else

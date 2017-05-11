@@ -134,6 +134,19 @@ if test "$enable_opencv" = "yes"; then
     PKG_CHECK_MODULES(OPENCV, [opencv], [HAVE_OPENCV=1], [HAVE_OPENCV=0])
 fi
 
+# check opencv videostab module
+ENABLE_DVS=0
+if test "$HAVE_OPENCV" -eq 1; then
+    AC_LANG(C++)
+    saved_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $OPENCV_CFLAGS"
+    saved_LIBS="$LIBS"
+    LIBS="$LIBS $OPENCV_LIBS"
+    AC_CHECK_HEADER([opencv2/videostab.hpp], [ENABLE_DVS=1], [ENABLE_DVS=0])
+    CPPFLAGS="$saved_CPPFLAGS"
+    LIBS="$saved_LIBS"
+fi
+
 # check dvs opencl path
 ENABLE_DVS_CL_PATH=0
 if test "$HAVE_OPENCV" -eq 1; then
@@ -302,6 +315,10 @@ AC_DEFINE_UNQUOTED([HAVE_OPENCV], $HAVE_OPENCV,
     [have opencv])
 AM_CONDITIONAL([HAVE_OPENCV], [test "$HAVE_OPENCV" -eq 1])
 
+AC_DEFINE_UNQUOTED([ENABLE_DVS], $ENABLE_DVS,
+    [enable dvs])
+AM_CONDITIONAL([ENABLE_DVS], [test "$ENABLE_DVS" -eq 1])
+
 AC_DEFINE_UNQUOTED([ENABLE_DVS_CL_PATH], $ENABLE_DVS_CL_PATH,
     [enable dvs cl path])
 AM_CONDITIONAL([ENABLE_DVS_CL_PATH], [test "$ENABLE_DVS_CL_PATH" -eq 1])
@@ -348,6 +365,7 @@ if test "$USE_LOCAL_AIQ" -eq 1; then use_local_aiq="yes"; else  use_local_aiq="n
 if test "$USE_LOCAL_ATOMISP" -eq 1; then use_local_atomisp="yes"; else  use_local_atomisp="no"; fi
 if test "$HAVE_LIBCL" -eq 1; then have_libcl="yes"; else  have_libcl="no"; fi
 if test "$HAVE_OPENCV" -eq 1; then have_opencv="yes"; else have_opencv="no"; fi
+if test "$ENABLE_DVS" -eq 1; then enable_dvs="yes"; else enable_dvs="no"; fi
 
 echo "
      libxcam configuration summary
@@ -362,5 +380,6 @@ echo "
      have opencv lib            : $have_opencv
      enable 3a lib              : $enable_3alib
      enable smart analysis lib  : $enable_smartlib
+     enable dvs                 : $enable_dvs
      enable libxcam-capi lib    : $enable_capi
 "
