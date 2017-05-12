@@ -163,6 +163,7 @@ public:
         : ContextBase (HandleTypeStitch)
         , _need_seam (false)
         , _fisheye_map (false)
+        , _fm_ocl (false)
         , _scale_mode (CLBlenderScaleLocal)
     {}
 
@@ -171,6 +172,7 @@ public:
 private:
     bool                  _need_seam;
     bool                  _fisheye_map;
+    bool                  _fm_ocl;
     CLBlenderScaleMode    _scale_mode;
 };
 

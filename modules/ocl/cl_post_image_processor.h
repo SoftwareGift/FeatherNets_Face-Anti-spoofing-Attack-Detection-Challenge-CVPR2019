@@ -26,7 +26,7 @@
 #include <base/xcam_3a_types.h>
 #include "cl_image_processor.h"
 #include "stats_callback_interface.h"
-#include "cl_image_360_stitch.h"
+#include "cl_blender.h"
 
 namespace XCam {
 
@@ -40,6 +40,7 @@ class CL3DDenoiseImageHandler;
 class CLImageScaler;
 class CLWireFrameImageHandler;
 class CLImageWarpHandler;
+class CLImage360Stitch;
 
 class CLPostImageProcessor
     : public CLImageProcessor
@@ -91,9 +92,8 @@ public:
     virtual bool set_wireframe (bool enable);
     virtual bool set_image_warp (bool enable);
     virtual bool set_image_stitch (
-        bool enable_stitch, bool enable_seam,
-        CLBlenderScaleMode scale_mode, bool enable_fisheye_map,
-        uint32_t stitch_width, uint32_t stitch_height);
+        bool enable_stitch, bool enable_seam, CLBlenderScaleMode scale_mode, bool enable_fisheye_map,
+        bool fm_ocl, uint32_t stitch_width, uint32_t stitch_height);
 
 protected:
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
@@ -137,6 +137,7 @@ private:
     bool                                      _enable_stitch;
     bool                                      _stitch_enable_seam;
     bool                                      _stitch_fisheye_map;
+    bool                                      _stitch_fm_ocl;
     CLBlenderScaleMode                        _stitch_scale_mode;
     uint32_t                                  _stitch_width;
     uint32_t                                  _stitch_height;

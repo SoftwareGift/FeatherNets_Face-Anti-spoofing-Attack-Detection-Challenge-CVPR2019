@@ -25,6 +25,9 @@
 #include "cl_multi_image_handler.h"
 #include "cl_fisheye_handler.h"
 #include "cl_blender.h"
+#if HAVE_OPENCV
+#include "cv_feature_match.h"
+#endif
 
 namespace XCam {
 
@@ -109,9 +112,12 @@ public:
         return _overlaps[image][num];
     }
 
+    void set_feature_match_ocl (bool use_ocl);
+
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (const VideoBufferInfo &input, VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
     XCamReturn execute_self_prepare_parameters (
         SmartPtr<CLImageHandler> specified_handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
@@ -137,6 +143,9 @@ private:
     CLFisheyeParams             _fisheye[ImageIdxCount];
     SmartPtr<CLBlender>         _left_blender;
     SmartPtr<CLBlender>         _right_blender;
+#if HAVE_OPENCV
+    SmartPtr<CVFeatureMatch>    _feature_match;
+#endif
 
     uint32_t                    _output_width;
     uint32_t                    _output_height;

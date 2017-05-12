@@ -217,6 +217,10 @@ StitchContext::create_handler (SmartPtr<CLContext> &context)
     image_360->set_output_size (sttch_width, sttch_height);
     XCAM_LOG_INFO ("stitch output size width:%d height:%d", sttch_width, sttch_height);
 
+#if HAVE_OPENCV
+    image_360->set_feature_match_ocl (_fm_ocl);
+#endif
+
     return image_360;
 }
 

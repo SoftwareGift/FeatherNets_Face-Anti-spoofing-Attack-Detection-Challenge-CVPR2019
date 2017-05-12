@@ -30,10 +30,6 @@
 #include "cl_fisheye_handler.h"
 #include "cl_image_360_stitch.h"
 
-#if HAVE_OPENCV
-#include "cv_feature_match.h"
-#endif
-
 #define XCAM_STITCHING_DEBUG 0
 #define XCAM_ALIGNED_WIDTH 16
 
@@ -70,6 +66,43 @@ get_stitch_initial_info ()
     return stitch_info;
 }
 
+#if HAVE_OPENCV
+void
+init_opencv_ocl (SmartPtr<CLContext> context)
+{
+    cl_platform_id platform_id = CLDevice::instance()->get_platform_id ();
+    char *platform_name = CLDevice::instance()->get_platform_name ();
+    cl_device_id device_id = CLDevice::instance()->get_device_id ();
+    cl_context context_id = context->get_context_id ();
+    cv::ocl::attachContext (platform_name, platform_id, context_id, device_id);
+}
+
+bool
+convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image)
+{
+    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (context, buffer);
+    VideoBufferInfo info = buffer->get_video_info ();
+    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
+
+    cv::UMat umat;
+    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
+    if (umat.empty ()) {
+        XCAM_LOG_ERROR ("convert bo buffer to UMat failed");
+        return false;
+    }
+
+    cv::Mat mat;
+    umat.copyTo (mat);
+    if (mat.empty ()) {
+        XCAM_LOG_ERROR ("copy UMat to Mat failed");
+        return false;
+    }
+
+    cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);
+    return true;
+}
+#endif
+
 void usage(const char* arg0)
 {
     printf ("Usage:\n"
@@ -85,6 +118,9 @@ void usage(const char* arg0)
             "\t--scale-mode        optional, image scaling mode, select from [local/global], default: local\n"
             "\t--enable-seam       optional, enable seam finder in blending area, default: no\n"
             "\t--enable-fisheyemap optional, enable fisheye map, default: no\n"
+#if HAVE_OPENCV
+            "\t--fm-ocl            optional, enable ocl for feature match, select from [true/false], default: false\n"
+#endif
             "\t--help              usage\n",
             arg0);
 }
@@ -121,7 +157,6 @@ int main (int argc, char *argv[])
     ImageFileHandle file_in, file_out;
     SmartPtr<DrmBoBuffer> input_buf, output_buf;
     VideoBufferInfo input_buf_info, output_buf_info;
-    SmartPtr<CLImageHandler> image_handler;
     SmartPtr<CLImage360Stitch> image_360;
 
     uint32_t input_format = V4L2_PIX_FMT_NV12;
@@ -133,6 +168,9 @@ int main (int argc, char *argv[])
     int loop = 1;
     bool enable_seam = false;
     bool enable_fisheye_map = false;
+#if HAVE_OPENCV
+    bool fm_ocl = false;
+#endif
     bool need_save_output = true;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
     const char *file_in_name = NULL;
@@ -150,6 +188,9 @@ int main (int argc, char *argv[])
         {"scale-mode", required_argument, NULL, 'c'},
         {"enable-seam", no_argument, NULL, 'S'},
         {"enable-fisheyemap", no_argument, NULL, 'F'},
+#if HAVE_OPENCV
+        {"fm-ocl", required_argument, NULL, 'O'},
+#endif
         {"help", no_argument, NULL, 'e'},
         {NULL, 0, NULL, 0},
     };
@@ -199,6 +240,11 @@ int main (int argc, char *argv[])
         case 'F':
             enable_fisheye_map = true;
             break;
+#if HAVE_OPENCV
+        case 'O':
+            fm_ocl = (strcasecmp (optarg, "true") == 0 ? true : false);
+            break;
+#endif
         case 'e':
             usage (argv[0]);
             return -1;
@@ -227,19 +273,22 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    printf ("Description----------------\n");
-    printf ("input file:\t%s\n", file_in_name);
-    printf ("output file:\t%s\n", file_out_name);
-    printf ("input width:\t%d\n", input_width);
-    printf ("input height:\t%d\n", input_height);
-    printf ("output width:\t%d\n", output_width);
-    printf ("output height:\t%d\n", output_height);
-    printf ("loop count:\t%d\n", loop);
-    printf ("save file:\t%s\n", need_save_output ? "true" : "false");
-    printf ("scale mode:\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
-    printf ("seam mask:\t%s\n", enable_seam ? "true" : "false");
-    printf ("fisheye map:\t%s\n", enable_fisheye_map ? "true" : "false");
-    printf ("---------------------------\n");
+    printf ("Description------------------------\n");
+    printf ("input file:\t\t%s\n", file_in_name);
+    printf ("output file:\t\t%s\n", file_out_name);
+    printf ("input width:\t\t%d\n", input_width);
+    printf ("input height:\t\t%d\n", input_height);
+    printf ("output width:\t\t%d\n", output_width);
+    printf ("output height:\t\t%d\n", output_height);
+    printf ("loop count:\t\t%d\n", loop);
+    printf ("save file:\t\t%s\n", need_save_output ? "true" : "false");
+    printf ("scale mode:\t\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
+    printf ("seam mask:\t\t%s\n", enable_seam ? "true" : "false");
+    printf ("fisheye map:\t\t%s\n", enable_fisheye_map ? "true" : "false");
+#if HAVE_OPENCV
+    printf ("feature match ocl:\t%s\n", fm_ocl ? "true" : "false");
+#endif
+    printf ("-----------------------------------\n");
 
     context = CLDevice::instance ()->get_context ();
     image_360 =
@@ -249,6 +298,9 @@ int main (int argc, char *argv[])
     image_360->set_output_size (output_width, output_height);
     CLStitchInfo stitch_info = get_stitch_initial_info ();
     image_360->init_stitch_info (stitch_info);
+#if HAVE_OPENCV
+    image_360->set_feature_match_ocl (fm_ocl);
+#endif
     image_360->set_pool_type (CLImageHandler::DrmBoPoolType);
 
     input_buf_info.init (input_format, input_width, input_height);

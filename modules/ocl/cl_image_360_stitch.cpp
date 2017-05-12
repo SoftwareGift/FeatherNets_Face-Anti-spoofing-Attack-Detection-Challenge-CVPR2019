@@ -19,9 +19,6 @@
  */
 
 #include "cl_image_360_stitch.h"
-#if HAVE_OPENCV
-#include "cv_feature_match.h"
-#endif
 
 #define XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH 64
 
@@ -145,7 +142,8 @@ CLImage360Stitch::CLImage360Stitch (SmartPtr<CLContext> &context, CLBlenderScale
     xcam_mem_clear (_merge_width);
 
 #if HAVE_OPENCV
-    init_opencv_ocl (context);
+    _feature_match = new CVFeatureMatch (context);
+    XCAM_ASSERT (_feature_match.ptr ());
 #endif
 }
 
@@ -203,6 +201,17 @@ CLImage360Stitch::set_image_overlap (const int idx, const Rect &overlap0, const 
     _overlaps[idx][0] = overlap0;
     _overlaps[idx][1] = overlap1;
     return true;
+}
+
+void
+CLImage360Stitch::set_feature_match_ocl (bool fm_ocl)
+{
+#if HAVE_OPENCV
+    _feature_match->set_ocl (fm_ocl);
+#else
+    XCAM_UNUSED (fm_ocl);
+    XCAM_LOG_WARNING ("non-OpenCV mode, failed to set ocl for feature match");
+#endif
 }
 
 void
@@ -574,59 +583,39 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+CLImage360Stitch::execute_done (SmartPtr<DrmBoBuffer> &output)
+{
+#if HAVE_OPENCV
+    if (!_feature_match->is_ocl_path ())
+        CLDevice::instance()->get_context ()->finish ();
+#endif
+
+    return CLMultiImageHandler::execute_done (output);
+}
+
 #if HAVE_OPENCV
 static void
-convert_to_cv_rect (
-    ImageMergeInfo merge_info0, ImageMergeInfo merge_info1,
-    cv::Rect &crop_area1, cv::Rect &crop_area2, cv::Rect &crop_area3, cv::Rect &crop_area4)
+convert_to_cv_rect (ImageMergeInfo merge_info, cv::Rect &crop_left, cv::Rect &crop_right)
 {
-    crop_area1.x = merge_info0.merge_left.pos_x;
-    crop_area1.y = merge_info0.merge_left.pos_y + merge_info0.merge_left.height / 3;
-    crop_area1.width = merge_info0.merge_left.width;
-    crop_area1.height = merge_info0.merge_left.height / 3;
-    crop_area2.x = merge_info0.merge_right.pos_x;
-    crop_area2.y = merge_info0.merge_right.pos_y + merge_info0.merge_right.height / 3;
-    crop_area2.width = merge_info0.merge_right.width;
-    crop_area2.height = merge_info0.merge_right.height / 3;
+    crop_left.x = merge_info.merge_left.pos_x;
+    crop_left.y = merge_info.merge_left.pos_y + merge_info.merge_left.height / 3;
+    crop_left.width = merge_info.merge_left.width;
+    crop_left.height = merge_info.merge_left.height / 3;
 
-    crop_area3.x = merge_info1.merge_left.pos_x;
-    crop_area3.y = merge_info1.merge_left.pos_y + merge_info1.merge_left.height / 3;
-    crop_area3.width = merge_info1.merge_left.width;
-    crop_area3.height = merge_info1.merge_left.height / 3;
-    crop_area4.x = merge_info1.merge_right.pos_x;
-    crop_area4.y = merge_info1.merge_right.pos_y + merge_info1.merge_right.height / 3;
-    crop_area4.width = merge_info1.merge_right.width;
-    crop_area4.height = merge_info1.merge_right.height / 3;
+    crop_right.x = merge_info.merge_right.pos_x;
+    crop_right.y = merge_info.merge_right.pos_y + merge_info.merge_right.height / 3;
+    crop_right.width = merge_info.merge_right.width;
+    crop_right.height = merge_info.merge_right.height / 3;
 }
 
 static void
-convert_to_xcam_rect (
-    cv::Rect crop_area1, cv::Rect crop_area2, cv::Rect crop_area3, cv::Rect crop_area4,
-    ImageMergeInfo &merge_info0, ImageMergeInfo &merge_info1)
+convert_to_xcam_rect (cv::Rect crop_left, cv::Rect crop_right, ImageMergeInfo &merge_info)
 {
-    merge_info0.merge_left.pos_x = crop_area1.x;
-    merge_info0.merge_left.width = crop_area1.width;
-    merge_info0.merge_right.pos_x = crop_area2.x;
-    merge_info0.merge_right.width = crop_area2.width;
-
-    merge_info1.merge_left.pos_x = crop_area3.x;
-    merge_info1.merge_left.width = crop_area3.width;
-    merge_info1.merge_right.pos_x = crop_area4.x;
-    merge_info1.merge_right.width = crop_area4.width;
-}
-
-static void
-calc_feature_match (
-    SmartPtr<CLContext> context, int fisheye_width,
-    SmartPtr<DrmBoBuffer> fisheye_buf0, SmartPtr<DrmBoBuffer> fisheye_buf1,
-    ImageMergeInfo &merge_info0, ImageMergeInfo &merge_info1)
-{
-    cv::Rect crop_area1, crop_area2, crop_area3, crop_area4;
-
-    convert_to_cv_rect (merge_info0, merge_info1, crop_area1, crop_area2, crop_area3, crop_area4);
-    optical_flow_feature_match (context, fisheye_width, fisheye_buf0, fisheye_buf1,
-                                crop_area1, crop_area2, crop_area3, crop_area4);
-    convert_to_xcam_rect (crop_area1, crop_area2, crop_area3, crop_area4, merge_info0, merge_info1);
+    merge_info.merge_left.pos_x = crop_left.x;
+    merge_info.merge_left.width = crop_left.width;
+    merge_info.merge_right.pos_x = crop_right.x;
+    merge_info.merge_right.width = crop_right.width;
 }
 #endif
 
@@ -637,10 +626,17 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
     XCAM_ASSERT (handler.ptr ());
 
     if (handler.ptr () == _fisheye[ImageIdxCount - 1].handler.ptr ()) {
-        const VideoBufferInfo &buf_info = _fisheye[0].buf->get_video_info ();
+        cv::Rect img0_crop_left, img0_crop_right, img1_crop_left, img1_crop_right;
 
-        calc_feature_match (_context, buf_info.width, _fisheye[0].buf, _fisheye[1].buf,
-                            _img_merge_info[0], _img_merge_info[1]);
+        convert_to_cv_rect (_img_merge_info[0], img0_crop_left, img0_crop_right);
+        convert_to_cv_rect (_img_merge_info[1], img1_crop_left, img1_crop_right);
+
+        _feature_match->optical_flow_feature_match (
+            _fisheye[0].width, _fisheye[0].buf, _fisheye[1].buf,
+            img0_crop_left, img0_crop_right, img1_crop_left, img1_crop_right);
+
+        convert_to_xcam_rect (img0_crop_left, img0_crop_right, _img_merge_info[0]);
+        convert_to_xcam_rect (img1_crop_left, img1_crop_right, _img_merge_info[1]);
     }
 #else
     XCAM_UNUSED (handler);

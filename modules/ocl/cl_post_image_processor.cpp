@@ -32,6 +32,7 @@
 #include "cl_wire_frame_handler.h"
 #include "cl_csc_handler.h"
 #include "cl_image_warp_handler.h"
+#include "cl_image_360_stitch.h"
 
 #define XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE 6
 #define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 12
@@ -56,6 +57,7 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _enable_stitch (false)
     , _stitch_enable_seam (false)
     , _stitch_fisheye_map (false)
+    , _stitch_fm_ocl (false)
     , _stitch_scale_mode (CLBlenderScaleLocal)
     , _stitch_width (0)
     , _stitch_height (0)
@@ -394,6 +396,9 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create image stitch handler failed");
     _stitch->set_output_size (_stitch_width, _stitch_height);
+#if HAVE_OPENCV
+    _stitch->set_feature_match_ocl (_stitch_fm_ocl);
+#endif
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     image_handler->enable_handler (_enable_stitch);
@@ -491,9 +496,8 @@ CLPostImageProcessor::set_image_warp (bool enable)
 
 bool
 CLPostImageProcessor::set_image_stitch (
-    bool enable_stitch, bool enable_seam,
-    CLBlenderScaleMode scale_mode,  bool enable_fisheye_map,
-    uint32_t stitch_width, uint32_t stitch_height)
+    bool enable_stitch, bool enable_seam, CLBlenderScaleMode scale_mode, bool enable_fisheye_map,
+    bool fm_ocl, uint32_t stitch_width, uint32_t stitch_height)
 {
     XCAM_ASSERT (scale_mode < CLBlenderScaleMax);
 
@@ -507,6 +511,12 @@ CLPostImageProcessor::set_image_stitch (
     _stitch_fisheye_map = enable_fisheye_map;
     _stitch_width = stitch_width;
     _stitch_height = stitch_height;
+
+#if HAVE_OPENCV
+    _stitch_fm_ocl = fm_ocl;
+#else
+    XCAM_UNUSED (fm_ocl);
+#endif
 
     STREAM_LOCK;
 

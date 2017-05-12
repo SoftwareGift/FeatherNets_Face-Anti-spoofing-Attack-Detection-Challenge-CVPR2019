@@ -41,6 +41,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_STITCH_ENABLE_SEAM     FALSE
 #define DEFAULT_PROP_STITCH_SCALE_MODE      CLBlenderScaleLocal
 #define DEFAULT_PROP_STITCH_FISHEYE_MAP     FALSE
+#define DEFAULT_PROP_STITCH_FM_OCL          FALSE
 
 XCAM_BEGIN_DECLARE
 
@@ -57,6 +58,7 @@ enum {
     PROP_STITCH_ENABLE_SEAM,
     PROP_STITCH_SCALE_MODE,
     PROP_STITCH_FISHEYE_MAP,
+    PROP_STITCH_FM_OCL
 };
 
 #define GST_TYPE_XCAM_FILTER_COPY_MODE (gst_xcam_filter_copy_mode_get_type ())
@@ -270,10 +272,18 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
         g_param_spec_enum ("stitch-scale", "stitch scale mode", "Stitch Scale Mode",
                            GST_TYPE_XCAM_FILTER_STITCH_SCALE_MODE, DEFAULT_PROP_STITCH_SCALE_MODE,
                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     g_object_class_install_property (
         gobject_class, PROP_STITCH_FISHEYE_MAP,
         g_param_spec_boolean ("stitch-fisheye-map", "stitch fisheye map", "Enable fisheye map for stitch",
                               DEFAULT_PROP_STITCH_FISHEYE_MAP, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+#if HAVE_OPENCV
+    g_object_class_install_property (
+        gobject_class, PROP_STITCH_FM_OCL,
+        g_param_spec_boolean ("stitch-fm-ocl", "stitch enable ocl for feature match", "Enable ocl for feature match",
+                              DEFAULT_PROP_STITCH_FM_OCL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+#endif
 
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Filter",
@@ -309,6 +319,7 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->enable_stitch = DEFAULT_PROP_ENABLE_IMAGE_STITCH;
     xcamfilter->stitch_enable_seam = DEFAULT_PROP_STITCH_ENABLE_SEAM;
     xcamfilter->stitch_fisheye_map = DEFAULT_PROP_STITCH_FISHEYE_MAP;
+    xcamfilter->stitch_fm_ocl = DEFAULT_PROP_STITCH_FM_OCL;
     xcamfilter->stitch_scale_mode = DEFAULT_PROP_STITCH_SCALE_MODE;
 
     xcamfilter->delay_buf_num = DEFAULT_DELAY_BUFFER_NUM;
@@ -372,6 +383,11 @@ gst_xcam_filter_set_property (GObject *object, guint prop_id, const GValue *valu
     case PROP_STITCH_FISHEYE_MAP:
         xcamfilter->stitch_fisheye_map = g_value_get_boolean (value);
         break;
+#if HAVE_OPENCV
+    case PROP_STITCH_FM_OCL:
+        xcamfilter->stitch_fm_ocl = g_value_get_boolean (value);
+        break;
+#endif
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -417,6 +433,11 @@ gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GPa
     case PROP_STITCH_FISHEYE_MAP:
         g_value_set_boolean (value, xcamfilter->stitch_fisheye_map);
         break;
+#if HAVE_OPENCV
+    case PROP_STITCH_FM_OCL:
+        g_value_set_boolean (value, xcamfilter->stitch_fm_ocl);
+        break;
+#endif
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -660,10 +681,10 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
     //processor->set_scaler_factor (0.5f);
 
     if (xcamfilter->enable_stitch) {
-        processor->set_image_stitch (xcamfilter->enable_stitch, xcamfilter->stitch_enable_seam,
-                                     xcamfilter->stitch_scale_mode, xcamfilter->stitch_fisheye_map,
-                                     GST_VIDEO_INFO_WIDTH (&out_info),
-                                     GST_VIDEO_INFO_HEIGHT (&out_info));
+        processor->set_image_stitch (
+            xcamfilter->enable_stitch, xcamfilter->stitch_enable_seam,
+            xcamfilter->stitch_scale_mode, xcamfilter->stitch_fisheye_map, xcamfilter->stitch_fm_ocl,
+            GST_VIDEO_INFO_WIDTH (&out_info), GST_VIDEO_INFO_HEIGHT (&out_info));
         XCAM_LOG_INFO ("xcamfilter stitch output size width:%d height:%d",
                        GST_VIDEO_INFO_WIDTH (&out_info), GST_VIDEO_INFO_HEIGHT (&out_info));
     }
