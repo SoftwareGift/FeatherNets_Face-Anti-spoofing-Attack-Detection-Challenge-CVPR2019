@@ -159,12 +159,19 @@ class StitchContext
     : public ContextBase
 {
 public:
+    enum StitchResMode {
+        StitchRes1080P = 0,
+        StitchRes4K
+    };
+
+public:
     StitchContext ()
         : ContextBase (HandleTypeStitch)
         , _need_seam (false)
         , _fisheye_map (false)
         , _fm_ocl (false)
         , _scale_mode (CLBlenderScaleLocal)
+        , _res_mode (StitchRes1080P)
     {}
 
     virtual SmartPtr<CLImageHandler> create_handler (SmartPtr<CLContext> &context);
@@ -174,6 +181,7 @@ private:
     bool                  _fisheye_map;
     bool                  _fm_ocl;
     CLBlenderScaleMode    _scale_mode;
+    StitchResMode         _res_mode;
 };
 
 #endif //XCAM_CONTEXT_PRIV_H

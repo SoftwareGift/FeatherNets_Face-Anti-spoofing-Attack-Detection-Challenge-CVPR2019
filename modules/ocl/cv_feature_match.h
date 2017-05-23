@@ -27,6 +27,7 @@
 #include <dma_video_buffer.h>
 #include <smartptr.h>
 #include "xcam_obj_debug.h"
+#include "image_file_handle.h"
 
 #include <cl_context.h>
 #include <cl_device.h>
@@ -67,6 +68,8 @@ public:
         return _use_ocl;
     }
 
+    void set_config (const CVFMConfig config);
+
     void optical_flow_feature_match (
         int output_width, SmartPtr<DrmBoBuffer> buf0, SmartPtr<DrmBoBuffer> buf1,
         cv::Rect &img0_crop_left, cv::Rect &img0_crop_right, cv::Rect &img1_crop_left, cv::Rect &img1_crop_right);
@@ -74,6 +77,7 @@ public:
 protected:
     void init_opencv_ocl ();
 
+    bool convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image);
     bool get_crop_image (SmartPtr<DrmBoBuffer> buffer,
         cv::Rect img_crop_left, cv::Rect img_crop_right, cv::UMat &img_left, cv::UMat &img_right);
 

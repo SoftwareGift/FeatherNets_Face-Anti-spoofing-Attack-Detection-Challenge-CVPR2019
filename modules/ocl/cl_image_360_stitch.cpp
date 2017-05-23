@@ -100,50 +100,125 @@ CLBlenderGlobalScaleKernel::get_output_info (
     return true;
 }
 
+#if HAVE_OPENCV
+static CVFMConfig
+get_fm_default_config (CLStitchResMode res_mode)
+{
+    CVFMConfig config;
+
+    switch (res_mode) {
+    case CLStitchRes1080P: {
+        config.sitch_min_width = 56;
+        config.min_corners = 8;
+        config.offset_factor = 0.8f;
+        config.delta_mean_offset = 5.0f;
+        config.max_adjusted_offset = 12.0f;
+
+        break;
+    }
+    case CLStitchRes4K: {
+        config.sitch_min_width = 160;
+        config.min_corners = 8;
+        config.offset_factor = 0.8f;
+        config.delta_mean_offset = 5.0f;
+        config.max_adjusted_offset = 12.0f;
+
+        break;
+    }
+    default:
+        XCAM_LOG_DEBUG ("unknown reslution mode (%d)", res_mode);
+        break;
+    }
+
+    return config;
+}
+#endif
+
 static CLStitchInfo
-get_default_stitch_info ()
+get_default_stitch_info (CLStitchResMode res_mode)
 {
     CLStitchInfo stitch_info;
 
-    stitch_info.merge_width[0] = 56;
-    stitch_info.merge_width[1] = 56;
+    switch (res_mode) {
+    case CLStitchRes1080P: {
+        stitch_info.merge_width[0] = 56;
+        stitch_info.merge_width[1] = 56;
 
-    stitch_info.crop[0].left = 96;
-    stitch_info.crop[0].right = 96;
-    stitch_info.crop[0].top = 0;
-    stitch_info.crop[0].bottom = 0;
-    stitch_info.crop[1].left = 96;
-    stitch_info.crop[1].right = 96;
-    stitch_info.crop[1].top = 0;
-    stitch_info.crop[1].bottom = 0;
+        stitch_info.crop[0].left = 96;
+        stitch_info.crop[0].right = 96;
+        stitch_info.crop[0].top = 0;
+        stitch_info.crop[0].bottom = 0;
+        stitch_info.crop[1].left = 96;
+        stitch_info.crop[1].right = 96;
+        stitch_info.crop[1].top = 0;
+        stitch_info.crop[1].bottom = 0;
 
-    stitch_info.fisheye_info[0].center_x = 480.0f;
-    stitch_info.fisheye_info[0].center_y = 480.0f;
-    stitch_info.fisheye_info[0].wide_angle = 202.8f;
-    stitch_info.fisheye_info[0].radius = 480.0f;
-    stitch_info.fisheye_info[0].rotate_angle = -90.0f;
-    stitch_info.fisheye_info[1].center_x = 1440.0f;
-    stitch_info.fisheye_info[1].center_y = 480.0f;
-    stitch_info.fisheye_info[1].wide_angle = 202.8f;
-    stitch_info.fisheye_info[1].radius = 480.0f;
-    stitch_info.fisheye_info[1].rotate_angle = 89.4f;
+        stitch_info.fisheye_info[0].center_x = 480.0f;
+        stitch_info.fisheye_info[0].center_y = 480.0f;
+        stitch_info.fisheye_info[0].wide_angle = 202.8f;
+        stitch_info.fisheye_info[0].radius = 480.0f;
+        stitch_info.fisheye_info[0].rotate_angle = -90.0f;
+        stitch_info.fisheye_info[1].center_x = 1440.0f;
+        stitch_info.fisheye_info[1].center_y = 480.0f;
+        stitch_info.fisheye_info[1].wide_angle = 202.8f;
+        stitch_info.fisheye_info[1].radius = 480.0f;
+        stitch_info.fisheye_info[1].rotate_angle = 89.4f;
+
+        break;
+    }
+    case CLStitchRes4K: {
+        stitch_info.merge_width[0] = 160;
+        stitch_info.merge_width[1] = 160;
+
+        stitch_info.crop[0].left = 64;
+        stitch_info.crop[0].right = 64;
+        stitch_info.crop[0].top = 0;
+        stitch_info.crop[0].bottom = 0;
+        stitch_info.crop[1].left = 64;
+        stitch_info.crop[1].right = 64;
+        stitch_info.crop[1].top = 0;
+        stitch_info.crop[1].bottom = 0;
+
+        stitch_info.fisheye_info[0].center_x = 1024.0f;
+        stitch_info.fisheye_info[0].center_y = 1024.0f;
+        stitch_info.fisheye_info[0].wide_angle = 195.0f;
+        stitch_info.fisheye_info[0].radius = 1040.0f;
+        stitch_info.fisheye_info[0].rotate_angle = 0.0f;
+
+        stitch_info.fisheye_info[1].center_x = 3072.0f;
+        stitch_info.fisheye_info[1].center_y = 1016.0f;
+        stitch_info.fisheye_info[1].wide_angle = 192.0f;
+        stitch_info.fisheye_info[1].radius = 1040.0f;
+        stitch_info.fisheye_info[1].rotate_angle = 0.4f;
+
+        break;
+    }
+    default:
+        XCAM_LOG_DEBUG ("unknown reslution mode (%d)", res_mode);
+        break;
+    }
 
     return stitch_info;
 }
 
-CLImage360Stitch::CLImage360Stitch (SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode)
+CLImage360Stitch::CLImage360Stitch (
+    SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode)
     : CLMultiImageHandler ("CLImage360Stitch")
     , _context (context)
     , _output_width (0)
     , _output_height (0)
-    , _is_stitch_inited (false)
     , _scale_mode (scale_mode)
+    , _is_stitch_inited (false)
 {
     xcam_mem_clear (_merge_width);
 
 #if HAVE_OPENCV
     _feature_match = new CVFeatureMatch (context);
     XCAM_ASSERT (_feature_match.ptr ());
+
+    _feature_match->set_config (get_fm_default_config (res_mode));
+#else
+    XCAM_UNUSED (res_mode);
 #endif
 }
 
@@ -530,8 +605,6 @@ XCamReturn
 CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    if (!_is_stitch_inited)
-        init_stitch_info (get_default_stitch_info ());
 
     ret = prepare_fisheye_parameters (input, output);
     STITCH_CHECK (ret, "prepare fisheye parameters failed");
@@ -670,15 +743,14 @@ create_blender_global_scale_kernel (SmartPtr<CLContext> &context, bool is_uv)
 }
 
 SmartPtr<CLImageHandler>
-create_image_360_stitch (
-    SmartPtr<CLContext> &context, bool need_seam,
-    CLBlenderScaleMode scale_mode, bool fisheye_map)
+create_image_360_stitch (SmartPtr<CLContext> &context, bool need_seam,
+    CLBlenderScaleMode scale_mode, bool fisheye_map, CLStitchResMode res_mode)
 {
     const int layer = 2;
     const bool need_uv = true;
     SmartPtr<CLFisheyeHandler> fisheye;
     SmartPtr<CLBlender>  left_blender, right_blender;
-    SmartPtr<CLImage360Stitch> stitch = new CLImage360Stitch (context, scale_mode);
+    SmartPtr<CLImage360Stitch> stitch = new CLImage360Stitch (context, scale_mode, res_mode);
     XCAM_ASSERT (stitch.ptr ());
 
     for (int index = 0; index < ImageIdxCount; ++index) {
@@ -709,6 +781,7 @@ create_image_360_stitch (
         }
     }
 
+    stitch->init_stitch_info (get_default_stitch_info (res_mode));
     return stitch;
 }
 

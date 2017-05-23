@@ -246,12 +246,13 @@ kernel_pyramid_scale (
 
 #if !PYRAMID_UV
     step_x = 0.125f / output_width;
-    out_data = read_scale_y (input, sampler, normCoor, step_x) * 256.0f;
+    out_data = read_scale_y (input, sampler, normCoor, step_x) * 255.0f;
 #else
     step_x = 0.25f / output_width;
-    out_data = read_scale_uv (input, sampler, normCoor, step_x) * 256.0f;
+    out_data = read_scale_uv (input, sampler, normCoor, step_x) * 255.0f;
 #endif
 
+    out_data = clamp (out_data + 0.5f, 0.0f, 255.0f);
     write_imageui (output, (int2)(g_x + out_offset_x, g_y), convert_uint4(as_ushort4(convert_uchar8(out_data))));
 }
 

@@ -31,6 +31,11 @@
 
 namespace XCam {
 
+enum CLStitchResMode {
+    CLStitchRes1080P,
+    CLStitchRes4K
+};
+
 enum ImageIdx {
     ImageIdxMain,
     ImageIdxSecondary,
@@ -94,7 +99,8 @@ class CLImage360Stitch
     : public CLMultiImageHandler
 {
 public:
-    explicit CLImage360Stitch (SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode);
+    explicit CLImage360Stitch (
+        SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode);
 
     bool init_stitch_info (CLStitchInfo stitch_info);
     void set_output_size (uint32_t width, uint32_t height) {
@@ -154,16 +160,18 @@ private:
     ImageMergeInfo              _img_merge_info[ImageIdxCount];
     Rect                        _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
 
-    bool                        _is_stitch_inited;
-
     CLBlenderScaleMode          _scale_mode;
     SmartPtr<BufferPool>        _scale_buf_pool;
+
+    CLStitchResMode             _res_mode;
+
+    bool                        _is_stitch_inited;
 };
 
 SmartPtr<CLImageHandler>
 create_image_360_stitch (
-    SmartPtr<CLContext> &context, bool need_seam = false,
-    CLBlenderScaleMode scale_mode = CLBlenderScaleLocal, bool fisheye_map = false);
+    SmartPtr<CLContext> &context, bool need_seam = false, CLBlenderScaleMode scale_mode = CLBlenderScaleLocal,
+    bool fisheye_map = false, CLStitchResMode res_mode = CLStitchRes1080P);
 
 }
 

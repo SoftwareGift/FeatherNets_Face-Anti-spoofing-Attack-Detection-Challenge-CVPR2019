@@ -67,6 +67,11 @@ typedef enum {
     DENOISE_3D_UV
 } Denoise3DModeType;
 
+enum StitchResMode {
+	StitchRes1080P = 0,
+	StitchRes4K
+};
+
 typedef struct _GstXCamFilter      GstXCamFilter;
 typedef struct _GstXCamFilterClass GstXCamFilterClass;
 
@@ -87,6 +92,7 @@ struct _GstXCamFilter
     gboolean                     stitch_fisheye_map;
     gboolean                     stitch_fm_ocl;
     CLBlenderScaleMode           stitch_scale_mode;
+    StitchResMode                stitch_res_mode;
 
     uint32_t                     delay_buf_num;
     uint32_t                     cached_buf_num;

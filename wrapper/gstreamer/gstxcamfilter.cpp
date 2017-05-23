@@ -42,6 +42,7 @@ using namespace GstXCam;
 #define DEFAULT_PROP_STITCH_SCALE_MODE      CLBlenderScaleLocal
 #define DEFAULT_PROP_STITCH_FISHEYE_MAP     FALSE
 #define DEFAULT_PROP_STITCH_FM_OCL          FALSE
+#define DEFAULT_PROP_STITCH_RES_MODE        StitchRes1080P
 
 XCAM_BEGIN_DECLARE
 
@@ -58,7 +59,8 @@ enum {
     PROP_STITCH_ENABLE_SEAM,
     PROP_STITCH_SCALE_MODE,
     PROP_STITCH_FISHEYE_MAP,
-    PROP_STITCH_FM_OCL
+    PROP_STITCH_FM_OCL,
+    PROP_STITCH_RES_MODE
 };
 
 #define GST_TYPE_XCAM_FILTER_COPY_MODE (gst_xcam_filter_copy_mode_get_type ())
@@ -162,6 +164,26 @@ gst_xcam_filter_stitch_scale_mode_get_type (void)
     if (g_once_init_enter (&g_type)) {
         const GType type =
             g_enum_register_static ("GstXCamFilterStitchScaleModeType", stitch_scale_mode_types);
+        g_once_init_leave (&g_type, type);
+    }
+
+    return g_type;
+}
+
+#define GST_TYPE_XCAM_FILTER_STITCH_RES_MODE (gst_xcam_filter_stitch_res_mode_get_type ())
+static GType
+gst_xcam_filter_stitch_res_mode_get_type (void)
+{
+    static GType g_type = 0;
+    static const GEnumValue stitch_res_mode_types [] = {
+        {StitchRes1080P, "Image stitch 1080P mode", "1080p"},
+        {StitchRes4K, "Image stitch 4K mode", "4k"},
+        {0, NULL, NULL}
+    };
+
+    if (g_once_init_enter (&g_type)) {
+        const GType type =
+            g_enum_register_static ("GstXCamFilterStitchResModeType", stitch_res_mode_types);
         g_once_init_leave (&g_type, type);
     }
 
@@ -285,6 +307,12 @@ gst_xcam_filter_class_init (GstXCamFilterClass *klass)
                               DEFAULT_PROP_STITCH_FM_OCL, (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 #endif
 
+    g_object_class_install_property (
+        gobject_class, PROP_STITCH_RES_MODE,
+        g_param_spec_enum ("stitch-res-mode", "stitch resolution mode", "Stitch Resolution Mode",
+                           GST_TYPE_XCAM_FILTER_STITCH_RES_MODE, DEFAULT_PROP_STITCH_RES_MODE,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
     gst_element_class_set_details_simple (element_class,
                                           "Libxcam Filter",
                                           "Filter/Effect/Video",
@@ -321,6 +349,7 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->stitch_fisheye_map = DEFAULT_PROP_STITCH_FISHEYE_MAP;
     xcamfilter->stitch_fm_ocl = DEFAULT_PROP_STITCH_FM_OCL;
     xcamfilter->stitch_scale_mode = DEFAULT_PROP_STITCH_SCALE_MODE;
+    xcamfilter->stitch_res_mode = DEFAULT_PROP_STITCH_RES_MODE;
 
     xcamfilter->delay_buf_num = DEFAULT_DELAY_BUFFER_NUM;
     xcamfilter->cached_buf_num = 0;
@@ -388,6 +417,9 @@ gst_xcam_filter_set_property (GObject *object, guint prop_id, const GValue *valu
         xcamfilter->stitch_fm_ocl = g_value_get_boolean (value);
         break;
 #endif
+    case PROP_STITCH_RES_MODE:
+        xcamfilter->stitch_res_mode = (StitchResMode) g_value_get_enum (value);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -438,6 +470,9 @@ gst_xcam_filter_get_property (GObject *object, guint prop_id, GValue *value, GPa
         g_value_set_boolean (value, xcamfilter->stitch_fm_ocl);
         break;
 #endif
+    case PROP_STITCH_RES_MODE:
+        g_value_set_enum (value, xcamfilter->stitch_res_mode);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -684,7 +719,7 @@ gst_xcam_filter_set_caps (GstBaseTransform *trans, GstCaps *incaps, GstCaps *out
         processor->set_image_stitch (
             xcamfilter->enable_stitch, xcamfilter->stitch_enable_seam,
             xcamfilter->stitch_scale_mode, xcamfilter->stitch_fisheye_map, xcamfilter->stitch_fm_ocl,
-            GST_VIDEO_INFO_WIDTH (&out_info), GST_VIDEO_INFO_HEIGHT (&out_info));
+            GST_VIDEO_INFO_WIDTH (&out_info), GST_VIDEO_INFO_HEIGHT (&out_info), (uint32_t) xcamfilter->stitch_res_mode);
         XCAM_LOG_INFO ("xcamfilter stitch output size width:%d height:%d",
                        GST_VIDEO_INFO_WIDTH (&out_info), GST_VIDEO_INFO_HEIGHT (&out_info));
     }
