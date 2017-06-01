@@ -53,56 +53,17 @@ typedef struct {
 class CLBayerBasicImageKernel
     : public CLImageKernel
 {
-    friend class CLBayer3AStatsThread;
 public:
-    explicit CLBayerBasicImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLBayerBasicImageHandler>& handler);
-    virtual ~CLBayerBasicImageKernel ();
-    void set_stats_bits (uint32_t stats_bits);
-
-    bool set_blc (const XCam3aResultBlackLevel &blc);
-    bool set_wb (const XCam3aResultWhiteBalance &wb);
-    bool set_gamma_table (const XCam3aResultGammaTable &gamma);
-
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
-    virtual void pre_stop ();
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCamReturn process_stats_buffer (SmartPtr<DrmBoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats);
-
-    XCAM_DEAD_COPY (CLBayerBasicImageKernel);
-
-private:
-    uint32_t                  _input_aligned_width;
-    uint32_t                  _out_aligned_height;
-    SmartPtr<CLBuffer>        _buffer_in;
-    CLBLCConfig               _blc_config;
-    CLWBConfig                _wb_config;
-
-    float                     _gamma_table[XCAM_GAMMA_TABLE_SIZE + 1];
-    SmartPtr<CLBuffer>        _gamma_table_buffer;
-
-    bool                      _is_first_buf;
-
-    SmartPtr<CLBuffer>                    _stats_cl_buffer;
-    SmartPtr<CL3AStatsCalculatorContext>  _3a_stats_context;
-    SmartPtr<CLBayer3AStatsThread>        _3a_stats_thread;
-    SmartPtr<CLBayerBasicImageHandler>    _handler;
-
-    XCAM_OBJ_PROFILING_DEFINES;
+    explicit CLBayerBasicImageKernel (const SmartPtr<CLContext> &context);
 };
 
 class CLBayerBasicImageHandler
     : public CLImageHandler
 {
-
+    friend class CLBayer3AStatsThread;
 public:
-    explicit CLBayerBasicImageHandler (const char *name);
+    explicit CLBayerBasicImageHandler (const SmartPtr<CLContext> &context, const char *name);
+    ~CLBayerBasicImageHandler ();
 
     void set_stats_callback (SmartPtr<StatsCallback> &callback) {
         _stats_callback = callback;
@@ -112,24 +73,38 @@ public:
     bool set_blc_config (const XCam3aResultBlackLevel &blc);
     bool set_wb_config (const XCam3aResultWhiteBalance &wb);
     bool set_gamma_table (const XCam3aResultGammaTable &gamma);
+    void set_stats_bits (uint32_t stats_bits);
 
+    virtual void emit_stop ();
     XCamReturn post_stats (const SmartPtr<X3aStats> &stats);
+    XCamReturn process_stats_buffer (SmartPtr<DrmBoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
-        const VideoBufferInfo &input,
-        VideoBufferInfo &output);
+        const VideoBufferInfo &input, VideoBufferInfo &output);
+    virtual XCamReturn prepare_parameters (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
 
 private:
-    SmartPtr<CLBayerBasicImageKernel>   _bayer_kernel;
+    SmartPtr<CLBayerBasicImageKernel>     _bayer_kernel;
+    bool                                  _is_first_buf;
+    CLBLCConfig                           _blc_config;
+    CLWBConfig                            _wb_config;
+    float                                 _gamma_table[XCAM_GAMMA_TABLE_SIZE + 1];
 
-    SmartPtr<StatsCallback>            _stats_callback;
+    SmartPtr<CL3AStatsCalculatorContext>  _3a_stats_context;
+    SmartPtr<CLBayer3AStatsThread>        _3a_stats_thread;
+    SmartPtr<CLBuffer>                    _stats_cl_buffer;
+
+    SmartPtr<StatsCallback>               _stats_callback;
+
+    XCAM_OBJ_PROFILING_DEFINES;
 };
-
 
 SmartPtr<CLImageHandler>
 create_cl_bayer_basic_image_handler (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     bool enable_gamma = true,
     uint32_t stats_bits = 8);
 

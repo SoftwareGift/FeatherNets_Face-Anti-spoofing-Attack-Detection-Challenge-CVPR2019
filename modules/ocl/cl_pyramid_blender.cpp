@@ -56,7 +56,7 @@ enum {
     KernelSeamBlender
 };
 
-const XCamKernelInfo kernels_info [] = {
+static const XCamKernelInfo kernels_info [] = {
     {
         "kernel_gauss_scale_transform",
 #include "kernel_gauss_lap_pyramid.clx"
@@ -200,8 +200,9 @@ PyramidLayer::PyramidLayer ()
 }
 
 CLPyramidBlender::CLPyramidBlender (
-    const char *name, int layers, bool need_uv, bool need_seam, CLBlenderScaleMode scale_mode)
-    : CLBlender (name, need_uv, scale_mode)
+    const SmartPtr<CLContext> &context, const char *name,
+    int layers, bool need_uv, bool need_seam, CLBlenderScaleMode scale_mode)
+    : CLBlender (context, name, need_uv, scale_mode)
     , _layers (0)
     , _need_seam (need_seam)
     , _seam_pos_stride (0)
@@ -796,8 +797,8 @@ CLPyramidBlender::fill_seam_mask ()
 XCamReturn
 CLPyramidBlender::execute_done (SmartPtr<DrmBoBuffer> &output)
 {
-    XCAM_UNUSED (output);
     int max_plane = (need_uv () ? 2 : 1);
+    XCAM_UNUSED (output);
 
 #if CL_PYRAMID_ENABLE_DUMP
     dump_buffers ();
@@ -819,7 +820,8 @@ CLPyramidBlender::execute_done (SmartPtr<DrmBoBuffer> &output)
 }
 
 CLPyramidBlendKernel::CLPyramidBlendKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool is_uv, bool need_seam)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+    uint32_t layer, bool is_uv, bool need_seam)
     : CLImageKernel (context)
     , _blender (blender)
     , _layer (layer)
@@ -829,13 +831,8 @@ CLPyramidBlendKernel::CLPyramidBlendKernel (
 }
 
 XCamReturn
-CLPyramidBlendKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLPyramidBlendKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
 
     SmartPtr<CLImage> image_in0 = get_input_0 ();
@@ -850,22 +847,10 @@ CLPyramidBlendKernel::prepare_arguments (
     XCAM_ASSERT (image_in0.ptr () && image_in1.ptr () && image_out.ptr ());
     const CLImageDesc &cl_desc_out = image_out->get_image_desc ();
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &image_in0->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &image_in1->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &buf_mask->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &image_out->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image_in0));
+    args.push_back (new CLMemArgument (image_in1));
+    args.push_back (new CLMemArgument (buf_mask));
+    args.push_back (new CLMemArgument (image_out));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 8;
@@ -876,7 +861,7 @@ CLPyramidBlendKernel::prepare_arguments (
 }
 
 CLPyramidTransformKernel::CLPyramidTransformKernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer,
     uint32_t buf_index,
@@ -886,7 +871,6 @@ CLPyramidTransformKernel::CLPyramidTransformKernel (
     , _layer (layer)
     , _buf_index (buf_index)
     , _is_uv (is_uv)
-    , _gauss_offset_x (0)
 {
     XCAM_ASSERT (layer <= XCAM_CL_PYRAMID_MAX_LEVEL);
     XCAM_ASSERT (buf_index <= XCAM_CL_BLENDER_IMAGE_NUM);
@@ -917,13 +901,8 @@ CLPyramidTransformKernel::get_input_gauss_offset_x ()
 }
 
 XCamReturn
-CLPyramidTransformKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLPyramidTransformKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
 
     SmartPtr<CLImage> image_in_gauss = get_input_gauss();
@@ -937,39 +916,28 @@ CLPyramidTransformKernel::prepare_arguments (
     cl_desc_out_gauss.width = cl_desc_out_gauss_pre.width * 2;
     cl_desc_out_gauss.height = cl_desc_out_gauss_pre.height;
     cl_desc_out_gauss.row_pitch = cl_desc_out_gauss_pre.row_pitch;
-    _output_gauss.release ();
-    change_image_format (context, image_out_gauss, _output_gauss, cl_desc_out_gauss);
+    SmartPtr<CLImage> format_image_out;
+    change_image_format (context, image_out_gauss, format_image_out, cl_desc_out_gauss);
     XCAM_FAIL_RETURN (
         ERROR,
-        _output_gauss.ptr () && _output_gauss->is_valid (),
+        format_image_out.ptr () && format_image_out->is_valid (),
         XCAM_RETURN_ERROR_CL,
         "CLPyramidTransformKernel change output gauss image format failed");
 
-    _gauss_offset_x = get_input_gauss_offset_x () / 8;
-    XCAM_ASSERT (_gauss_offset_x * 8 == get_input_gauss_offset_x ());
+    int gauss_offset_x = get_input_gauss_offset_x () / 8;
+    XCAM_ASSERT (gauss_offset_x * 8 == get_input_gauss_offset_x ());
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &image_in_gauss->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_gauss_offset_x;
-    args[arg_count].arg_size = sizeof (_gauss_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_output_gauss->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image_in_gauss));
+    args.push_back (new CLArgumentT<int> (gauss_offset_x));
+    args.push_back (new CLMemArgument (format_image_out));
 
 #if CL_PYRAMID_ENABLE_DUMP
     int plane = _is_uv ? 1 : 0;
     SmartPtr<CLImage> dump_original = _blender->get_pyramid_layer (_layer).dump_original[plane][_buf_index];
 
-    args[arg_count].arg_adress = &dump_original->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (dump_original));
 
-    printf ("L%dI%d: gauss_offset_x:%d \n", _layer, _buf_index, _gauss_offset_x);
+    printf ("L%dI%d: gauss_offset_x:%d \n", _layer, _buf_index, gauss_offset_x);
 #endif
 
     const int workitem_lines = 2;
@@ -983,57 +951,33 @@ CLPyramidTransformKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLPyramidTransformKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _output_gauss.release ();
-    return CLImageKernel::post_execute (output);
-}
-
 CLSeamDiffKernel::CLSeamDiffKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
     : CLImageKernel (context)
     , _blender (blender)
 {
 }
 
 XCamReturn
-CLSeamDiffKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLSeamDiffKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
-
     const PyramidLayer &layer0 = _blender->get_pyramid_layer (0);
     SmartPtr<CLImage> image0 = layer0.gauss_image[CLBlenderPlaneY][0];
     SmartPtr<CLImage> image1 = layer0.gauss_image[CLBlenderPlaneY][1];
     SmartPtr<CLImage> out_diff = _blender->get_image_diff ();
     CLImageDesc out_diff_desc = out_diff->get_image_desc ();
 
+    int image_offset_x[XCAM_CL_BLENDER_IMAGE_NUM];
+
     for (uint32_t i = 0; i < XCAM_CL_BLENDER_IMAGE_NUM; ++i) {
-        _image_offset_x[i] = layer0.gauss_offset_x[CLBlenderPlaneY][i] / 8;
+        image_offset_x[i] = layer0.gauss_offset_x[CLBlenderPlaneY][i] / 8;
     }
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &image0->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-    args[arg_count].arg_adress = &_image_offset_x[0];
-    args[arg_count].arg_size = sizeof (_image_offset_x[0]);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &image1->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-    args[arg_count].arg_adress = &_image_offset_x[1];
-    args[arg_count].arg_size = sizeof (_image_offset_x[1]);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &out_diff->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image0));
+    args.push_back (new CLArgumentT<int> (image_offset_x[0]));
+    args.push_back (new CLMemArgument (image1));
+    args.push_back (new CLArgumentT<int> (image_offset_x[1]));
+    args.push_back (new CLMemArgument (out_diff));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 8;
@@ -1045,35 +989,26 @@ CLSeamDiffKernel::prepare_arguments (
 }
 
 CLSeamDPKernel::CLSeamDPKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
     : CLImageKernel (context)
     , _blender (blender)
-    , _seam_stride (0)
-    , _max_pos (0)
-    , _seam_height (0)
-    , _seam_offset_x (0)
-    , _seam_valid_with (0)
 {
 }
 
 XCamReturn
-CLSeamDPKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLSeamDPKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
 #define ELEMENT_PIXEL 1
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
+
     uint32_t width, height, stride;
     uint32_t pos_offset_x, pos_valid_width;
     _blender->get_seam_info (width, height, stride);
     _blender->get_seam_pos_info (pos_offset_x, pos_valid_width);
-    _seam_height = (int)height;
-    _seam_stride = (int)stride / ELEMENT_PIXEL;
-    _seam_offset_x = (int)pos_offset_x / ELEMENT_PIXEL; // ushort8
-    _seam_valid_with = (int)pos_valid_width / ELEMENT_PIXEL;
-    _max_pos = (int)(pos_offset_x + pos_valid_width - 1);
+    int seam_height = (int)height;
+    int seam_stride = (int)stride / ELEMENT_PIXEL;
+    int seam_offset_x = (int)pos_offset_x / ELEMENT_PIXEL; // ushort8
+    int seam_valid_with = (int)pos_valid_width / ELEMENT_PIXEL;
+    int max_pos = (int)(pos_offset_x + pos_valid_width - 1);
 
     SmartPtr<CLImage> image = _blender->get_image_diff ();
     SmartPtr<CLBuffer> pos_buf = _blender->get_seam_pos_buf ();
@@ -1087,77 +1022,42 @@ CLSeamDPKernel::prepare_arguments (
     cl_desc_convert.width = cl_orig.width * (8 / ELEMENT_PIXEL);
     cl_desc_convert.height = cl_orig.height;
     cl_desc_convert.row_pitch = cl_orig.row_pitch;
-    change_image_format (get_context (), image, _convert_image, cl_desc_convert);
-    XCAM_ASSERT (_convert_image.ptr () && _convert_image->is_valid ());
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &_convert_image->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    SmartPtr<CLImage> convert_image;
+    change_image_format (get_context (), image, convert_image, cl_desc_convert);
+    XCAM_ASSERT (convert_image.ptr () && convert_image->is_valid ());
 
-    args[arg_count].arg_adress = &pos_buf->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &sum_buf->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_seam_offset_x;
-    args[arg_count].arg_size = sizeof (_seam_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_seam_valid_with;
-    args[arg_count].arg_size = sizeof (_seam_valid_with);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_max_pos;
-    args[arg_count].arg_size = sizeof (_max_pos);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_seam_height;
-    args[arg_count].arg_size = sizeof (_seam_height);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_seam_stride;
-    args[arg_count].arg_size = sizeof (_seam_stride);
-    ++arg_count;
+    args.push_back (new CLMemArgument (convert_image));
+    args.push_back (new CLMemArgument (pos_buf));
+    args.push_back (new CLMemArgument (sum_buf));
+    args.push_back (new CLArgumentT<int> (seam_offset_x));
+    args.push_back (new CLArgumentT<int> (seam_valid_with));
+    args.push_back (new CLArgumentT<int> (max_pos));
+    args.push_back (new CLArgumentT<int> (seam_height));
+    args.push_back (new CLArgumentT<int> (seam_stride));
 
     work_size.dim = 1;
-    work_size.local[0] = XCAM_ALIGN_UP(_seam_valid_with, 16);
+    work_size.local[0] = XCAM_ALIGN_UP(seam_valid_with, 16);
     work_size.global[0] = work_size.local[0] * 2;
 
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLSeamDPKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _convert_image.release ();
-    return CLImageKernel::post_execute (output);
-}
-
 CLPyramidSeamMaskKernel::CLPyramidSeamMaskKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer,
-    bool scale, bool need_slm)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+    uint32_t layer, bool scale, bool need_slm)
     : CLImageKernel (context)
     , _blender (blender)
     , _layer (layer)
     , _need_scale (scale)
     , _need_slm (need_slm)
-    , _image_width (0)
 {
     XCAM_ASSERT (layer < blender->get_layers ());
 }
 
 XCamReturn
-CLPyramidSeamMaskKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLPyramidSeamMaskKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     ret = _blender->fill_seam_mask ();
     XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidSeamMaskKernel fill seam mask failed");
@@ -1171,20 +1071,14 @@ CLPyramidSeamMaskKernel::prepare_arguments (
     XCAM_ASSERT (input_image.ptr () && out_gauss.ptr ());
     XCAM_ASSERT (input_image->is_valid () && out_gauss->is_valid ());
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &input_image->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (input_image));
+    args.push_back (new CLMemArgument (out_gauss));
 
-    args[arg_count].arg_adress = &out_gauss->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+
 
     if (_need_slm) {
-        _image_width = out_gauss_desc.width;
-        args[arg_count].arg_adress = &_image_width;
-        args[arg_count].arg_size = sizeof (_image_width);
-        ++arg_count;
+        int image_width = out_gauss_desc.width;
+        args.push_back (new CLArgumentT<int> (image_width));
     }
 
     if (_need_scale) {
@@ -1197,11 +1091,10 @@ CLPyramidSeamMaskKernel::prepare_arguments (
         output_desc.width = input_desc.width * 2;
         output_desc.height = input_desc.height;
         output_desc.row_pitch = input_desc.row_pitch;
-        change_image_format (context, out_orig, _output_scale_image, output_desc);
 
-        args[arg_count].arg_adress = &_output_scale_image->get_mem_id ();
-        args[arg_count].arg_size = sizeof (cl_mem);
-        ++arg_count;
+        SmartPtr<CLImage> output_scale_image;
+        change_image_format (context, out_orig, output_scale_image, output_desc);
+        args.push_back (new CLMemArgument (output_scale_image));
     }
 
     uint32_t workitem_height = XCAM_ALIGN_UP (out_gauss_desc.height, 2) / 2;
@@ -1223,15 +1116,8 @@ CLPyramidSeamMaskKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLPyramidSeamMaskKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _output_scale_image.release ();
-    return CLImageKernel::post_execute (output);
-}
-
 CLPyramidLapKernel::CLPyramidLapKernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer,
     uint32_t buf_index,
@@ -1241,10 +1127,6 @@ CLPyramidLapKernel::CLPyramidLapKernel (
     , _layer (layer)
     , _buf_index (buf_index)
     , _is_uv (is_uv)
-    , _cur_gauss_offset_x (0)
-    , _lap_offset_x (0)
-    , _out_width (0)
-    , _out_height (0)
 {
     XCAM_ASSERT (layer <= XCAM_CL_PYRAMID_MAX_LEVEL);
     XCAM_ASSERT (buf_index <= XCAM_CL_BLENDER_IMAGE_NUM);
@@ -1267,13 +1149,8 @@ CLPyramidLapKernel::get_output_lap_offset_x ()
 }
 
 XCamReturn
-CLPyramidLapKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLPyramidLapKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
 
     SmartPtr<CLImage> cur_gauss_image = get_current_gauss();
@@ -1295,11 +1172,11 @@ CLPyramidLapKernel::prepare_arguments (
     }
     cl_desc_next_gauss.height = cl_desc_next_gauss_tmp.height;
     cl_desc_next_gauss.row_pitch = cl_desc_next_gauss_tmp.row_pitch;
-    _next_gauss.release ();
-    change_image_format (context, next_gauss_image_tmp, _next_gauss, cl_desc_next_gauss);
+    SmartPtr<CLImage> next_gauss;
+    change_image_format (context, next_gauss_image_tmp, next_gauss, cl_desc_next_gauss);
     XCAM_FAIL_RETURN (
         ERROR,
-        image_out_lap.ptr () && _next_gauss->is_valid (),
+        next_gauss.ptr () && next_gauss->is_valid (),
         XCAM_RETURN_ERROR_CL,
         "CLPyramidTransformKernel change output gauss image format failed");
 
@@ -1307,50 +1184,25 @@ CLPyramidLapKernel::prepare_arguments (
     next_gauss_pixel_height = cl_desc_next_gauss.height;
 
     // out format(current layer): CL_UNSIGNED_INT16 + CL_RGBA
-    _out_width = CLImage::calculate_pixel_bytes (cl_desc_next_gauss.format) * cl_desc_next_gauss.width * 2.0f / 8.0f;
-    _out_height = next_gauss_pixel_height * 2.0f;
-    _sampler_offset_x = SAMPLER_POSITION_OFFSET / next_gauss_pixel_width;
-    _sampler_offset_y = SAMPLER_POSITION_OFFSET / next_gauss_pixel_height;
+    float out_width = CLImage::calculate_pixel_bytes (cl_desc_next_gauss.format) * cl_desc_next_gauss.width * 2.0f / 8.0f;
+    float out_height = next_gauss_pixel_height * 2.0f;
+    float sampler_offset_x = SAMPLER_POSITION_OFFSET / next_gauss_pixel_width;
+    float sampler_offset_y = SAMPLER_POSITION_OFFSET / next_gauss_pixel_height;
 
-    _cur_gauss_offset_x = get_cur_gauss_offset_x () / 8;
-    XCAM_ASSERT (_cur_gauss_offset_x * 8 == get_cur_gauss_offset_x ());
-    _lap_offset_x = get_output_lap_offset_x () / 8;
-    XCAM_ASSERT (_lap_offset_x * 8 == get_output_lap_offset_x ());
+    int cur_gauss_offset_x = get_cur_gauss_offset_x () / 8;
+    XCAM_ASSERT (cur_gauss_offset_x * 8 == get_cur_gauss_offset_x ());
+    int lap_offset_x = get_output_lap_offset_x () / 8;
+    XCAM_ASSERT (lap_offset_x * 8 == get_output_lap_offset_x ());
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &cur_gauss_image->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_cur_gauss_offset_x;
-    args[arg_count].arg_size = sizeof (_cur_gauss_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_next_gauss->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_sampler_offset_x;
-    args[arg_count].arg_size = sizeof (_sampler_offset_x);
-    ++arg_count;
-    args[arg_count].arg_adress = &_sampler_offset_y;
-    args[arg_count].arg_size = sizeof (_sampler_offset_y);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &image_out_lap->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_lap_offset_x;
-    args[arg_count].arg_size = sizeof (_lap_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_out_width;
-    args[arg_count].arg_size = sizeof (_out_width);
-    ++arg_count;
-    args[arg_count].arg_adress = &_out_height;
-    args[arg_count].arg_size = sizeof (_out_height);
-    ++arg_count;
+    args.push_back (new CLMemArgument (cur_gauss_image));
+    args.push_back (new CLArgumentT<int> (cur_gauss_offset_x));
+    args.push_back (new CLMemArgument (next_gauss));
+    args.push_back (new CLArgumentT<float> (sampler_offset_x));
+    args.push_back (new CLArgumentT<float> (sampler_offset_y));
+    args.push_back (new CLMemArgument (image_out_lap));
+    args.push_back (new CLArgumentT<int> (lap_offset_x));
+    args.push_back (new CLArgumentT<float> (out_width));
+    args.push_back (new CLArgumentT<float> (out_height));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 8;
@@ -1361,25 +1213,13 @@ CLPyramidLapKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLPyramidLapKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _next_gauss.release ();
-    return CLImageKernel::post_execute (output);
-}
-
 CLPyramidReconstructKernel::CLPyramidReconstructKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer, bool is_uv)
     : CLImageKernel (context)
     , _blender (blender)
     , _layer (layer)
     , _is_uv (is_uv)
-    , _in_sampler_offset_x (0.0f)
-    , _in_sampler_offset_y (0.0f)
-    , _out_reconstruct_width (0.0f)
-    , _out_reconstruct_height (0.0f)
-    , _out_reconstruct_offset_x (0)
 {
     XCAM_ASSERT (layer <= XCAM_CL_PYRAMID_MAX_LEVEL);
 }
@@ -1395,13 +1235,8 @@ CLPyramidReconstructKernel::get_output_reconstrcut_offset_x ()
 }
 
 XCamReturn
-CLPyramidReconstructKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLPyramidReconstructKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
 
     SmartPtr<CLImage> image_in_reconst = get_input_reconstruct();
@@ -1423,61 +1258,38 @@ CLPyramidReconstructKernel::prepare_arguments (
     }
     cl_desc_in_reconst.height = cl_desc_in_reconst_pre.height;
     cl_desc_in_reconst.row_pitch = cl_desc_in_reconst_pre.row_pitch;
-    _input_reconstruct.release ();
-    change_image_format (context, image_in_reconst, _input_reconstruct, cl_desc_in_reconst);
+    SmartPtr<CLImage> input_reconstruct;
+    change_image_format (context, image_in_reconst, input_reconstruct, cl_desc_in_reconst);
     XCAM_FAIL_RETURN (
         ERROR,
-        _input_reconstruct.ptr () && _input_reconstruct->is_valid (),
+        input_reconstruct.ptr () && input_reconstruct->is_valid (),
         XCAM_RETURN_ERROR_CL,
         "CLPyramidTransformKernel change output gauss image format failed");
 
     input_gauss_width = cl_desc_in_reconst.width;
     input_gauss_height = cl_desc_in_reconst.height;
 
-    _out_reconstruct_width = CLImage::calculate_pixel_bytes (cl_desc_in_reconst.format) * cl_desc_in_reconst.width * 2.0f / 8.0f;
-    _out_reconstruct_height = input_gauss_height * 2.0f;
-    _in_sampler_offset_x = SAMPLER_POSITION_OFFSET / input_gauss_width;
-    _in_sampler_offset_y = SAMPLER_POSITION_OFFSET / input_gauss_height;
+    float out_reconstruct_width = CLImage::calculate_pixel_bytes (cl_desc_in_reconst.format) * cl_desc_in_reconst.width * 2.0f / 8.0f;
+    float out_reconstruct_height = input_gauss_height * 2.0f;
+    float in_sampler_offset_x = SAMPLER_POSITION_OFFSET / input_gauss_width;
+    float in_sampler_offset_y = SAMPLER_POSITION_OFFSET / input_gauss_height;
+    int out_reconstruct_offset_x = 0;
 
     if (_blender->get_scale_mode () == CLBlenderScaleLocal) {
-        _out_reconstruct_offset_x = 0;
+        out_reconstruct_offset_x = 0;
     } else {
-        _out_reconstruct_offset_x = get_output_reconstrcut_offset_x () / 8;
-        XCAM_ASSERT (_out_reconstruct_offset_x * 8 == get_output_reconstrcut_offset_x ());
+        out_reconstruct_offset_x = get_output_reconstrcut_offset_x () / 8;
+        XCAM_ASSERT (out_reconstruct_offset_x * 8 == get_output_reconstrcut_offset_x ());
     }
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &_input_reconstruct->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_in_sampler_offset_x;
-    args[arg_count].arg_size = sizeof (_in_sampler_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_in_sampler_offset_y;
-    args[arg_count].arg_size = sizeof (_in_sampler_offset_y);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &image_in_lap->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &image_out_reconst->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_out_reconstruct_offset_x;
-    args[arg_count].arg_size = sizeof (_out_reconstruct_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_out_reconstruct_width;
-    args[arg_count].arg_size = sizeof (_out_reconstruct_width);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_out_reconstruct_height;
-    args[arg_count].arg_size = sizeof (_out_reconstruct_height);
-    ++arg_count;
+    args.push_back (new CLMemArgument (input_reconstruct));
+    args.push_back (new CLArgumentT<float> (in_sampler_offset_x));
+    args.push_back (new CLArgumentT<float> (in_sampler_offset_y));
+    args.push_back (new CLMemArgument (image_in_lap));
+    args.push_back (new CLMemArgument (image_out_reconst));
+    args.push_back (new CLArgumentT<int> (out_reconstruct_offset_x));
+    args.push_back (new CLArgumentT<float> (out_reconstruct_width));
+    args.push_back (new CLArgumentT<float> (out_reconstruct_height));
 
 #if CL_PYRAMID_ENABLE_DUMP
     int i_plane = (_is_uv ? 1 : 0);
@@ -1485,17 +1297,12 @@ CLPyramidReconstructKernel::prepare_arguments (
     SmartPtr<CLImage>  dump_gauss_resize = cur_layer.dump_gauss_resize[i_plane];
     SmartPtr<CLImage>  dump_final = cur_layer.dump_final[i_plane];
 
-    args[arg_count].arg_adress = &dump_gauss_resize->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &dump_final->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (dump_gauss_resize));
+    args.push_back (new CLMemArgument (dump_final));
 
     printf ("Rec%d: reconstruct_offset_x:%d, out_width:%.2f, out_height:%.2f, in_sampler_offset_x:%.2f, in_sampler_offset_y:%.2f\n",
-            _layer, _out_reconstruct_offset_x, _out_reconstruct_width, _out_reconstruct_height,
-            _in_sampler_offset_x, _in_sampler_offset_y);
+            _layer, out_reconstruct_offset_x, out_reconstruct_width, out_reconstruct_height,
+            in_sampler_offset_x, in_sampler_offset_y);
 #endif
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
@@ -1507,12 +1314,6 @@ CLPyramidReconstructKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLPyramidReconstructKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _input_reconstruct.release ();
-    return CLImageKernel::post_execute (output);
-}
 
 void
 CLPyramidBlender::dump_buffers ()
@@ -1651,16 +1452,15 @@ CLPyramidBlender::dump_buffers ()
 }
 
 CLBlenderLocalScaleKernel::CLBlenderLocalScaleKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, bool is_uv)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, bool is_uv)
     : CLBlenderScaleKernel (context, is_uv)
     , _blender (blender)
 {
 }
 
 SmartPtr<CLImage>
-CLBlenderLocalScaleKernel::get_input_image (SmartPtr<DrmBoBuffer> &input)
+CLBlenderLocalScaleKernel::get_input_image ()
 {
-    XCAM_UNUSED (input);
     SmartPtr<CLContext> context = get_context ();
 
     SmartPtr<CLImage> rec_image = _blender->get_reconstruct_image (0, _is_uv);
@@ -1685,22 +1485,22 @@ CLBlenderLocalScaleKernel::get_input_image (SmartPtr<DrmBoBuffer> &input)
         NULL,
         "CLBlenderLocalScaleKernel change image format failed");
 
+    _image_in = new_image;
     return new_image;
 }
 
 SmartPtr<CLImage>
-CLBlenderLocalScaleKernel::get_output_image (SmartPtr<DrmBoBuffer> &output)
+CLBlenderLocalScaleKernel::get_output_image ()
 {
-    XCAM_UNUSED (output);
     return _blender->get_scale_image (_is_uv);
 }
 
 bool
 CLBlenderLocalScaleKernel::get_output_info (
-    SmartPtr<DrmBoBuffer> &output,
     uint32_t &out_width, uint32_t &out_height, int &out_offset_x)
 {
-    XCAM_UNUSED (output);
+    XCAM_ASSERT (_image_in.ptr ());
+
     const Rect &window = _blender->get_merge_window ();
     const CLImageDesc &desc_in = _image_in->get_image_desc ();
 
@@ -1713,97 +1513,66 @@ CLBlenderLocalScaleKernel::get_output_info (
 }
 
 CLPyramidCopyKernel::CLPyramidCopyKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t buf_index, bool is_uv)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+    uint32_t buf_index, bool is_uv)
     : CLImageKernel (context)
     , _blender (blender)
     , _is_uv (is_uv)
     , _buf_index (buf_index)
-    , _in_offset_x (0)
-    , _out_offset_x (0)
-    , _max_g_x (0)
-    , _max_g_y (0)
 {
 }
 
 XCamReturn
-CLPyramidCopyKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLPyramidCopyKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
 
-    _from = get_input ();
-    _to = get_output ();
+    SmartPtr<CLImage> from = get_input ();
+    SmartPtr<CLImage> to = get_output ();
 
-    const CLImageDesc &to_desc = _to->get_image_desc ();
+    const CLImageDesc &to_desc = to->get_image_desc ();
     const Rect &window = _blender->get_merge_window ();
     const Rect &input_area = _blender->get_input_valid_area (_buf_index);
     const Rect &merge_area = _blender->get_input_merge_area (_buf_index);
+    int in_offset_x = 0;
+    int out_offset_x = 0;
+    int max_g_x = 0, max_g_y = 0;
 
     if (_buf_index == 0) {
-        _in_offset_x = input_area.pos_x / 8;
-        _max_g_x = (merge_area.pos_x - input_area.pos_x) / 8;
-        _out_offset_x = window.pos_x / 8 - _max_g_x;
+        in_offset_x = input_area.pos_x / 8;
+        max_g_x = (merge_area.pos_x - input_area.pos_x) / 8;
+        out_offset_x = window.pos_x / 8 - max_g_x;
     } else {
-        _in_offset_x = (merge_area.pos_x + merge_area.width) / 8;
-        _out_offset_x = (window.pos_x + window.width) / 8;
-        _max_g_x = (input_area.pos_x + input_area.width) / 8 - _in_offset_x;
+        in_offset_x = (merge_area.pos_x + merge_area.width) / 8;
+        out_offset_x = (window.pos_x + window.width) / 8;
+        max_g_x = (input_area.pos_x + input_area.width) / 8 - in_offset_x;
     }
-    _max_g_y = to_desc.height;
-    XCAM_ASSERT (_max_g_x > 0 && _max_g_x <= (int)to_desc.width);
+    max_g_y = to_desc.height;
+    XCAM_ASSERT (max_g_x > 0 && max_g_x <= (int)to_desc.width);
 
 #if CL_PYRAMID_ENABLE_DUMP
-    printf ("copy(%d), in_offset_x:%d, out_offset_x:%d, max_x:%d\n", _buf_index, _in_offset_x, _out_offset_x, _max_g_x);
+    printf ("copy(%d), in_offset_x:%d, out_offset_x:%d, max_x:%d\n", _buf_index, in_offset_x, out_offset_x, max_g_x);
 #endif
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &_from->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_in_offset_x;
-    args[arg_count].arg_size = sizeof (_in_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_to->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_out_offset_x;
-    args[arg_count].arg_size = sizeof (_out_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_max_g_x;
-    args[arg_count].arg_size = sizeof (_max_g_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_max_g_y;
-    args[arg_count].arg_size = sizeof (_max_g_y);
-    ++arg_count;
+    args.push_back (new CLMemArgument (from));
+    args.push_back (new CLArgumentT<int> (in_offset_x));
+    args.push_back (new CLMemArgument (to));
+    args.push_back (new CLArgumentT<int> (out_offset_x));
+    args.push_back (new CLArgumentT<int> (max_g_x));
+    args.push_back (new CLArgumentT<int> (max_g_y));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 16;
     work_size.local[1] = 4;
-    work_size.global[0] = XCAM_ALIGN_UP (_max_g_x, work_size.local[0]);
-    work_size.global[1] = XCAM_ALIGN_UP (_max_g_y, work_size.local[1]);
+    work_size.global[0] = XCAM_ALIGN_UP (max_g_x, work_size.local[0]);
+    work_size.global[1] = XCAM_ALIGN_UP (max_g_y, work_size.local[1]);
 
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLPyramidCopyKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _from.release ();
-    _to.release ();
-    return CLImageKernel::post_execute (output);
-}
-
 static SmartPtr<CLImageKernel>
 create_pyramid_transform_kernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer, uint32_t buf_index, bool is_uv)
 {
     char transform_option[1024];
@@ -1824,7 +1593,7 @@ create_pyramid_transform_kernel (
 
 static SmartPtr<CLImageKernel>
 create_pyramid_lap_kernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer, uint32_t buf_index, bool is_uv)
 {
     char transform_option[1024];
@@ -1845,7 +1614,7 @@ create_pyramid_lap_kernel (
 
 static SmartPtr<CLImageKernel>
 create_pyramid_reconstruct_kernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer,
     bool is_uv)
@@ -1868,7 +1637,7 @@ create_pyramid_reconstruct_kernel (
 
 static SmartPtr<CLImageKernel>
 create_pyramid_blend_kernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer,
     bool is_uv,
@@ -1896,7 +1665,7 @@ create_pyramid_blend_kernel (
 
 static SmartPtr<CLImageKernel>
 create_pyramid_blender_local_scale_kernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     bool is_uv)
 {
@@ -1916,7 +1685,7 @@ create_pyramid_blender_local_scale_kernel (
 
 static SmartPtr<CLImageKernel>
 create_pyramid_copy_kernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     uint32_t buf_index,
     bool is_uv)
@@ -1937,7 +1706,7 @@ create_pyramid_copy_kernel (
 
 static SmartPtr<CLImageKernel>
 create_seam_diff_kernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
 {
     SmartPtr<CLImageKernel> kernel;
     kernel = new CLSeamDiffKernel (context, blender);
@@ -1952,7 +1721,7 @@ create_seam_diff_kernel (
 
 static SmartPtr<CLImageKernel>
 create_seam_DP_kernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
+    const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender)
 {
     SmartPtr<CLImageKernel> kernel;
     kernel = new CLSeamDPKernel (context, blender);
@@ -1967,7 +1736,7 @@ create_seam_DP_kernel (
 
 static SmartPtr<CLImageKernel>
 create_seam_mask_scale_kernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLPyramidBlender> &blender,
     uint32_t layer,
     bool need_scale,
@@ -1990,7 +1759,7 @@ create_seam_mask_scale_kernel (
 
 SmartPtr<CLImageHandler>
 create_pyramid_blender (
-    SmartPtr<CLContext> &context, int layer, bool need_uv,
+    const SmartPtr<CLContext> &context, int layer, bool need_uv,
     bool need_seam, CLBlenderScaleMode scale_mode)
 {
     SmartPtr<CLPyramidBlender> blender;
@@ -2007,7 +1776,7 @@ create_pyramid_blender (
         "create_pyramid_blender failed with wrong layer:%d, please set it between %d and %d",
         layer, 1, XCAM_CL_PYRAMID_MAX_LEVEL);
 
-    blender = new CLPyramidBlender ("cl_pyramid_blender", layer, need_uv, need_seam, scale_mode);
+    blender = new CLPyramidBlender (context, "cl_pyramid_blender", layer, need_uv, need_seam, scale_mode);
     XCAM_ASSERT (blender.ptr ());
 
     if (need_seam) {

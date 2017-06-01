@@ -24,60 +24,43 @@
 
 namespace XCam {
 
-CLBlenderScaleKernel::CLBlenderScaleKernel (SmartPtr<CLContext> &context, bool is_uv)
+CLBlenderScaleKernel::CLBlenderScaleKernel (const SmartPtr<CLContext> &context, bool is_uv)
     : CLImageKernel (context)
     , _is_uv (is_uv)
-    , _output_offset_x (0)
-    , _output_width (0)
-    , _output_height (0)
 {
 }
 
 XCamReturn
-CLBlenderScaleKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLBlenderScaleKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
 
-    _image_in = get_input_image (input);
-    _image_out = get_output_image (output);
-    XCAM_ASSERT (_image_in.ptr () && _image_out.ptr ());
-    get_output_info (output, _output_width, _output_height, _output_offset_x);
+    SmartPtr<CLImage> image_in = get_input_image ();
+    SmartPtr<CLImage> image_out = get_output_image ();
+    XCAM_ASSERT (image_in.ptr () && image_out.ptr ());
+    int output_offset_x;
+    uint32_t output_width, output_height;
+    get_output_info (output_width, output_height, output_offset_x);
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &_image_in->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_image_out->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_output_offset_x;
-    args[arg_count].arg_size = sizeof (_output_offset_x);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_output_width;
-    args[arg_count].arg_size = sizeof (_output_width);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_output_height;
-    args[arg_count].arg_size = sizeof (_output_height);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image_in));
+    args.push_back (new CLMemArgument (image_out));
+    args.push_back (new CLArgumentT<int> (output_offset_x));
+    args.push_back (new CLArgumentT<uint32_t> (output_width));
+    args.push_back (new CLArgumentT<uint32_t> (output_height));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 8;
     work_size.local[1] = 4;
-    work_size.global[0] = XCAM_ALIGN_UP (_output_width, work_size.local[0]);
-    work_size.global[1] = XCAM_ALIGN_UP (_output_height, work_size.local[1]);
+    work_size.global[0] = XCAM_ALIGN_UP (output_width, work_size.local[0]);
+    work_size.global[1] = XCAM_ALIGN_UP (output_height, work_size.local[1]);
 
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLBlender::CLBlender (const char *name, bool need_uv, CLBlenderScaleMode scale_mode)
-    : CLImageHandler (name)
+CLBlender::CLBlender (
+    const SmartPtr<CLContext> &context, const char *name,
+    bool need_uv, CLBlenderScaleMode scale_mode)
+    : CLImageHandler (context, name)
     , _output_width (0)
     , _output_height (0)
     , _need_uv (need_uv)
@@ -178,7 +161,7 @@ CLBlender::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffe
         input1 = next;
     }
 
-    SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
+    SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo &in0_info = input0->get_video_info ();
     const VideoBufferInfo &in1_info = input1->get_video_info ();
     const VideoBufferInfo &out_info = output->get_video_info ();

@@ -271,7 +271,6 @@ CLPostImageProcessor::create_handlers ()
                 _tnr.ptr (),
                 XCAM_RETURN_ERROR_CL,
                 "CLPostImageProcessor create tnr handler failed");
-            _tnr->set_mode (CL_TNR_TYPE_YUV);
             image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
             image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
             add_handler (image_handler);
@@ -353,7 +352,7 @@ CLPostImageProcessor::create_handlers ()
         _scaler.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create scaler handler failed");
-    _scaler->set_scaler_factor (_scaler_factor);
+    _scaler->set_scaler_factor (_scaler_factor, _scaler_factor);
     _scaler->set_buffer_callback (_stats_callback);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->enable_handler (_enable_scaler);
@@ -388,7 +387,7 @@ CLPostImageProcessor::create_handlers ()
     /* image stitch */
     image_handler =
         create_image_360_stitch (context, _stitch_enable_seam,
-            _stitch_scale_mode, _stitch_fisheye_map, (CLStitchResMode) _stitch_res_mode);
+                                 _stitch_scale_mode, _stitch_fisheye_map, (CLStitchResMode) _stitch_res_mode);
     _stitch = image_handler.dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_FAIL_RETURN (
         WARNING,

@@ -84,7 +84,8 @@ class CLPyramidBlender
 
 public:
     explicit CLPyramidBlender (
-        const char *name, int layers, bool need_uv, bool need_seam, CLBlenderScaleMode scale_mode);
+        const SmartPtr<CLContext> &context, const char *name,
+        int layers, bool need_uv, bool need_seam, CLBlenderScaleMode scale_mode);
     ~CLPyramidBlender ();
 
     //void set_blend_kernel (SmartPtr<CLLinearBlenderKernel> kernel, int index);
@@ -149,13 +150,11 @@ class CLPyramidBlendKernel
 {
 public:
     explicit CLPyramidBlendKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool is_uv, bool need_seam);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+        uint32_t layer, bool is_uv, bool need_seam);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 private:
     SmartPtr<CLImage> get_input_0 () {
         return _blender->get_lap_image (_layer, 0, _is_uv);
@@ -188,14 +187,11 @@ class CLPyramidTransformKernel
 {
 public:
     explicit CLPyramidTransformKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, uint32_t buf_index, bool is_uv);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+        uint32_t layer, uint32_t buf_index, bool is_uv);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLImage> get_input_gauss () {
@@ -215,8 +211,6 @@ private:
     uint32_t                           _layer;
     uint32_t                           _buf_index;
     bool                               _is_uv;
-    SmartPtr<CLImage>                  _output_gauss;
-    int                                _gauss_offset_x;
 };
 
 class CLSeamDiffKernel
@@ -224,17 +218,13 @@ class CLSeamDiffKernel
 {
 public:
     explicit CLSeamDiffKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLPyramidBlender>         _blender;
-    int                                _image_offset_x[XCAM_CL_BLENDER_IMAGE_NUM];
 
 };
 
@@ -243,24 +233,16 @@ class CLSeamDPKernel
 {
 public:
     explicit CLSeamDPKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLPyramidBlender>         _blender;
     int                                _seam_stride;
-    int                                _max_pos;
     int                                _seam_height;
-    int                                _seam_offset_x;
-    int                                _seam_valid_with;
 
-    SmartPtr<CLImage>                  _convert_image;
 };
 
 class CLPyramidSeamMaskKernel
@@ -268,24 +250,17 @@ class CLPyramidSeamMaskKernel
 {
 public:
     explicit CLPyramidSeamMaskKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool scale, bool need_slm);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+        uint32_t layer, bool scale, bool need_slm);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLPyramidBlender>         _blender;
     int                                _layer;
-    //int                                _input_offset;
     bool                               _need_scale;
     bool                               _need_slm;
-    int                                _image_width;
-    SmartPtr<CLImage>                  _output_scale_image;
-    SmartPtr<CLImage>                  out_image;
 };
 
 class CLPyramidLapKernel
@@ -293,14 +268,11 @@ class CLPyramidLapKernel
 {
 public:
     explicit CLPyramidLapKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, uint32_t buf_index, bool is_uv);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+        uint32_t layer, uint32_t buf_index, bool is_uv);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLImage> get_current_gauss () {
@@ -323,12 +295,6 @@ private:
     uint32_t                           _layer;
     uint32_t                           _buf_index;
     bool                               _is_uv;
-    SmartPtr<CLImage>                  _next_gauss;
-    int                                _cur_gauss_offset_x;
-    int                                _lap_offset_x;
-    //float                              _ratio_x, _ratio_y;
-    float                              _sampler_offset_x, _sampler_offset_y;
-    float                              _out_width, _out_height;
 };
 
 class CLPyramidReconstructKernel
@@ -336,14 +302,11 @@ class CLPyramidReconstructKernel
 {
 public:
     explicit CLPyramidReconstructKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t layer, bool is_uv);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+        uint32_t layer, bool is_uv);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLImage>  get_input_reconstruct () {
@@ -365,11 +328,6 @@ private:
     SmartPtr<CLPyramidBlender>         _blender;
     uint32_t                           _layer;
     bool                               _is_uv;
-    SmartPtr<CLImage>                  _input_reconstruct;
-    float                              _in_sampler_offset_x, _in_sampler_offset_y;
-    float                              _out_reconstruct_width;
-    float                              _out_reconstruct_height;
-    int                                _out_reconstruct_offset_x;
 };
 
 class CLBlenderLocalScaleKernel
@@ -377,20 +335,20 @@ class CLBlenderLocalScaleKernel
 {
 public:
     explicit CLBlenderLocalScaleKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, bool is_uv);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, bool is_uv);
 
 protected:
-    virtual SmartPtr<CLImage> get_input_image (SmartPtr<DrmBoBuffer> &input);
-    virtual SmartPtr<CLImage> get_output_image (SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<CLImage> get_input_image ();
+    virtual SmartPtr<CLImage> get_output_image ();
 
-    virtual bool get_output_info (
-        SmartPtr<DrmBoBuffer> &output, uint32_t &out_width, uint32_t &out_height, int &out_offset_x);
+    virtual bool get_output_info (uint32_t &out_width, uint32_t &out_height, int &out_offset_x);
 
 private:
     XCAM_DEAD_COPY (CLBlenderLocalScaleKernel);
 
 private:
     SmartPtr<CLPyramidBlender>         _blender;
+    SmartPtr<CLImage>                  _image_in;
 };
 
 class CLPyramidCopyKernel
@@ -398,14 +356,11 @@ class CLPyramidCopyKernel
 {
 public:
     explicit CLPyramidCopyKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender, uint32_t buf_index, bool is_uv);
+        const SmartPtr<CLContext> &context, SmartPtr<CLPyramidBlender> &blender,
+        uint32_t buf_index, bool is_uv);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLImage>  get_input () {
@@ -426,12 +381,8 @@ private:
     int                                _buf_index;
 
     // parameters
-    int                                _in_offset_x;
-    int                                _out_offset_x;
     int                                _max_g_x;
     int                                _max_g_y;
-    SmartPtr<CLImage>                  _from;
-    SmartPtr<CLImage>                  _to;
 };
 
 };

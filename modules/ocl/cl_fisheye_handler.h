@@ -43,20 +43,13 @@ class CLFisheye2GPSKernel
     : public CLImageKernel
 {
 public:
-    explicit CLFisheye2GPSKernel (SmartPtr<CLContext> &context, SmartPtr<CLFisheyeHandler> &handler);
+    explicit CLFisheye2GPSKernel (const SmartPtr<CLContext> &context, SmartPtr<CLFisheyeHandler> &handler);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<CLFisheyeHandler>  _handler;
-    float                       _input_y_size[2];
-    float                       _out_center[2]; //width/height
-    float                       _radian_per_pixel[2];
-    CLFisheyeInfo               _fisheye_info;
 };
 
 class CLFisheyeHandler
@@ -65,7 +58,7 @@ class CLFisheyeHandler
 {
     friend class CLFisheye2GPSKernel;
 public:
-    explicit CLFisheyeHandler (bool use_map);
+    explicit CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use_map);
     void set_output_size (uint32_t width, uint32_t height);
     void get_output_size (uint32_t &width, uint32_t &height) const;
 
@@ -79,8 +72,7 @@ public:
 protected:
     // derived from CLImageHandler
     virtual XCamReturn prepare_buffer_pool_video_info (
-        const VideoBufferInfo &input,
-        VideoBufferInfo &output);
+        const VideoBufferInfo &input, VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
 
@@ -123,7 +115,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (SmartPtr<CLContext> &context, bool use_map = false);
+create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map = false);
 
 }
 

@@ -33,46 +33,14 @@ class CLYuvPipeImageKernel
 {
 
 public:
-    explicit CLYuvPipeImageKernel (SmartPtr<CLContext> &context);
-    bool set_macc (const XCam3aResultMaccMatrix &macc);
-    bool set_matrix (const XCam3aResultColorMatrix &matrix);
-    bool set_tnr_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
-    bool set_tnr_enable (bool enable_tnr_yuv);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
-
-private:
-    XCAM_DEAD_COPY (CLYuvPipeImageKernel);
-    SmartPtr<CLBuffer>  _matrix_buffer;
-    SmartPtr<CLBuffer>  _macc_table_buffer;
-    float               _macc_table[XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE];
-    float               _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
-    uint32_t            _vertical_offset;
-    uint32_t            _plannar_offset;
-    float               _gain_yuv;
-    float               _thr_y;
-    float               _thr_uv;
-    uint32_t            _enable_tnr_yuv;
-    uint32_t            _enable_tnr_yuv_state;
-    SmartPtr<CLMemory>  _buffer_in;
-    SmartPtr<CLMemory>  _buffer_out;
-    SmartPtr<CLMemory>  _buffer_out_prev;
-
-    //
-    SmartPtr<CLMemory>  _buffer_out_UV;
-    SmartPtr<CLMemory>  _buffer_out_prev_UV;
+    explicit CLYuvPipeImageKernel (const SmartPtr<CLContext> &context);
 };
 
 class CLYuvPipeImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLYuvPipeImageHandler (const char *name);
+    explicit CLYuvPipeImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_yuv_pipe_kernel(SmartPtr<CLYuvPipeImageKernel> &kernel);
     bool set_macc_table (const XCam3aResultMaccMatrix &macc);
     bool set_rgbtoyuv_matrix (const XCam3aResultColorMatrix &matrix);
@@ -81,17 +49,31 @@ public:
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
-        const VideoBufferInfo &input,
-        VideoBufferInfo &output);
+        const VideoBufferInfo &input, VideoBufferInfo &output);
+    virtual XCamReturn prepare_parameters (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLYuvPipeImageHandler);
     SmartPtr<CLYuvPipeImageKernel> _yuv_pipe_kernel;
-    uint32_t  _output_format;
+    uint32_t                       _output_format;
+
+    float                          _macc_table[XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE];
+    float                          _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
+
+    //TNR
+    uint32_t                       _enable_tnr_yuv;
+    float                          _gain_yuv;
+    float                          _thr_y;
+    float                          _thr_uv;
+
+    uint32_t                       _enable_tnr_yuv_state;
+    SmartPtr<CLMemory>             _buffer_out_prev;
+    SmartPtr<CLMemory>             _buffer_out_prev_UV;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_yuv_pipe_image_handler (SmartPtr<CLContext> &context);
+create_cl_yuv_pipe_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

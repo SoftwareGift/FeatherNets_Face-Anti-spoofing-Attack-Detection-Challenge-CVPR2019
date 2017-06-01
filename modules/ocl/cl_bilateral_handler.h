@@ -30,36 +30,27 @@ class CLBilateralKernel
     : public CLImageKernel
 {
 public:
-    explicit CLBilateralKernel (SmartPtr<CLContext> &context, bool is_rgb);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLBilateralKernel);
-    float        _sigma_r;
-    uint32_t     _imw;
-    uint32_t     _imh;
-    uint32_t     _vertical_offset;
-    bool         _is_rgb;
+    explicit CLBilateralKernel (const SmartPtr<CLContext> &context);
 };
 
 class CLBilateralImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLBilateralImageHandler (const char *name);
+    explicit CLBilateralImageHandler (
+        const SmartPtr<CLContext> &context, const char *name, bool is_rgb);
+    void set_bi_kernel (SmartPtr<CLBilateralKernel> &kernel);
+
+protected:
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
-    XCAM_DEAD_COPY (CLBilateralImageHandler);
-
+    SmartPtr<CLBilateralKernel>  _kernel;
+    bool                         _is_rgb;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_bilateral_image_handler (SmartPtr<CLContext> &context, bool is_rgb);
+create_cl_bilateral_image_handler (const SmartPtr<CLContext> &context, bool is_rgb);
 
 };
 

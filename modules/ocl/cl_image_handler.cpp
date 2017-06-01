@@ -28,20 +28,7 @@ namespace XCam {
 
 #define XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM 4
 
-CLWorkSize::CLWorkSize ()
-    : dim (XCAM_DEFAULT_IMAGE_DIM)
-{
-    xcam_mem_clear (global);
-    xcam_mem_clear (local);
-}
-
-CLArgument::CLArgument()
-    : arg_adress (NULL)
-    , arg_size (0)
-{
-}
-
-CLImageKernel::CLImageKernel (SmartPtr<CLContext> &context, const char *name, bool enable)
+CLImageKernel::CLImageKernel (const SmartPtr<CLContext> &context, const char *name, bool enable)
     : CLKernel (context, name)
     , _enable (enable)
 {
@@ -61,92 +48,48 @@ CLImageKernel::~CLImageKernel ()
  * get_image_width/get_image_height
  */
 XCamReturn
-CLImageKernel::pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLImageKernel::pre_execute ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<CLContext> context = get_context ();
-#define XCAM_CL_MAX_ARGS 256
-    CLArgument args[XCAM_CL_MAX_ARGS];
-    uint32_t arg_count = XCAM_CL_MAX_ARGS;
+    CLArgList args;
     CLWorkSize work_size;
 
-    ret = prepare_arguments (input, output, args, arg_count, work_size);
+    XCAM_FAIL_RETURN (
+        ERROR, !is_arguments_set (), XCAM_RETURN_ERROR_PARAM,
+        "cl image kernel(%s) pre_execute failed since arguments was set somewhere", get_kernel_name ());
+
+    ret = prepare_arguments (args, work_size);
     XCAM_FAIL_RETURN (
         WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
+        ret == XCAM_RETURN_NO_ERROR, ret,
         "cl image kernel(%s) prepare arguments failed", get_kernel_name ());
 
-    XCAM_ASSERT (arg_count);
-    for (uint32_t i = 0; i < arg_count; ++i) {
-        ret = set_argument (i, args[i].arg_adress, args[i].arg_size);
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            ret,
-            "cl image kernel(%s) set argc(%d) failed", get_kernel_name (), i);
-    }
-
-    XCAM_ASSERT (work_size.global[0]);
-    ret = set_work_size (work_size.dim, work_size.global, work_size.local);
+    ret = set_arguments (args, work_size);
     XCAM_FAIL_RETURN (
         WARNING,
-        ret == XCAM_RETURN_NO_ERROR,
-        ret,
-        "cl image kernel(%s) set work size failed", get_kernel_name ());
+        ret == XCAM_RETURN_NO_ERROR, ret,
+        "cl image kernel(%s) set_arguments failed", get_kernel_name ());
 
-    return XCAM_RETURN_NO_ERROR;
+    return ret;
 }
 
 XCamReturn
 CLImageKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count, CLWorkSize &work_size)
+    CLArgList &args, CLWorkSize &work_size)
 {
-    SmartPtr<CLContext> context = get_context ();
+    XCAM_UNUSED (args);
+    XCAM_UNUSED (work_size);
 
-    _image_in = new CLVaImage (context, input);
-    _image_out = new CLVaImage (context, output);
-
-    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
-    XCAM_FAIL_RETURN (
-        WARNING,
-        _image_in->is_valid () && _image_out->is_valid (),
-        XCAM_RETURN_ERROR_MEM,
-        "cl image kernel(%s) in/out memory not available", get_kernel_name ());
-
-    //set args;
-    args[0].arg_adress = &_image_in->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
-    arg_count = 2;
-
-    work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    {
-        const CLImageDesc &out_info = _image_out->get_image_desc ();
-        work_size.global[0] = out_info.width;
-        work_size.global[1] = out_info.height;
-    }
-    work_size.local[0] = 0;
-    work_size.local[1] = 0;
-
-    return XCAM_RETURN_NO_ERROR;
+    XCAM_LOG_ERROR (
+        "cl image kernel(%s) prepare_arguments error."
+        "Did you forget to set_arguments or prepare_arguments was not derived", get_kernel_name ());
+    return XCAM_RETURN_ERROR_CL;
 }
 
-XCamReturn
-CLImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    XCAM_UNUSED (output);
-
-    _image_in.release ();
-    _image_out.release ();
-    return XCAM_RETURN_NO_ERROR;
-}
-
-CLImageHandler::CLImageHandler (const char *name)
+CLImageHandler::CLImageHandler (const SmartPtr<CLContext> &context, const char *name)
     : _name (NULL)
     , _enable (true)
+    , _context (context)
     , _buf_pool_type (CLImageHandler::CLBoPoolType)
     , _disable_buf_pool (false)
     , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
@@ -188,7 +131,7 @@ CLImageHandler::enable_buf_pool_swap_flags (
 }
 
 bool
-CLImageHandler::add_kernel (SmartPtr<CLImageKernel> &kernel)
+CLImageHandler::add_kernel (const SmartPtr<CLImageKernel> &kernel)
 {
     _kernels.push_back (kernel);
     return true;
@@ -226,8 +169,7 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
     if (_buf_pool_type == CLImageHandler::DrmBoPoolType)
         buffer_pool = new DrmBoBufferPool (display);
     else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
-        SmartPtr<XCam::CLContext> context = CLDevice::instance()->get_context ();
-        buffer_pool = new CLBoBufferPool (display, context);
+        buffer_pool = new CLBoBufferPool (display, get_context ());
     }
 
     XCAM_FAIL_RETURN(
@@ -275,6 +217,25 @@ CLImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBo
 {
     XCAM_ASSERT (input.ptr () && output.ptr ());
     return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLImageHandler::ensure_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCamReturn ret = prepare_parameters (input, output);
+    XCAM_FAIL_RETURN(
+        WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
+        "CLImageHandler(%s) failed to prepare_parameters", XCAM_STR (_name));
+
+    reset_buf_cache (input, output);
+    return ret;
+}
+
+void
+CLImageHandler::reset_buf_cache (const SmartPtr<DrmBoBuffer>& input, const SmartPtr<DrmBoBuffer>& output)
+{
+    _input_buf_cache = input;
+    _output_buf_cache = output;
 }
 
 XCamReturn
@@ -332,6 +293,78 @@ CLImageHandler::emit_stop ()
         _buf_pool->stop ();
 }
 
+SmartPtr<DrmBoBuffer> &
+CLImageHandler::get_input_buf ()
+{
+    XCAM_ASSERT (_input_buf_cache.ptr ());
+    return _input_buf_cache;
+}
+
+SmartPtr<DrmBoBuffer> &
+CLImageHandler::get_output_buf ()
+{
+    XCAM_ASSERT (_output_buf_cache.ptr ());
+    return _output_buf_cache;
+}
+
+XCamReturn
+CLImageHandler::execute_kernel (SmartPtr<CLImageKernel> &kernel)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    if (!kernel->is_enabled ())
+        return XCAM_RETURN_NO_ERROR;
+
+    if (!kernel->is_arguments_set ()) {
+        XCAM_FAIL_RETURN (
+            WARNING,
+            (ret = kernel->pre_execute ()) == XCAM_RETURN_NO_ERROR, ret,
+            "cl_image_handler(%s) pre_execute kernel(%s) failed",
+            XCAM_STR (_name), kernel->get_kernel_name ());
+    }
+
+    CLArgList args = kernel->get_args ();
+    ret = kernel->execute (kernel, false);
+    XCAM_FAIL_RETURN (
+        WARNING, ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS, ret,
+        "cl_image_handler(%s) execute kernel(%s) failed",
+        XCAM_STR (_name), kernel->get_kernel_name ());
+
+#if 0
+    ret = kernel->post_execute (args);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
+        ret,
+        "cl_image_handler(%s) post_execute kernel(%s) failed",
+        XCAM_STR (_name), kernel->get_kernel_name ());
+#endif
+
+    return ret;
+}
+
+XCamReturn
+CLImageHandler::execute_kernels ()
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    for (KernelList::iterator i_kernel = _kernels.begin ();
+            i_kernel != _kernels.end (); ++i_kernel) {
+        SmartPtr<CLImageKernel> &kernel = *i_kernel;
+
+        XCAM_FAIL_RETURN (
+            WARNING, kernel.ptr(), XCAM_RETURN_ERROR_PARAM,
+            "kernel empty");
+
+        ret = execute_kernel (kernel);
+
+        if (ret != XCAM_RETURN_NO_ERROR)
+            break;
+    }
+
+    return ret;
+}
+
 XCamReturn
 CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
@@ -355,62 +388,27 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
         "cl_image_handler (%s) prepare output buf failed", XCAM_STR (_name));
     XCAM_ASSERT (output.ptr ());
 
-    ret = prepare_parameters (input, output);
+    ret = ensure_parameters (input, output);
     XCAM_FAIL_RETURN (
-        WARNING,
-        (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
-        ret,
-        "cl_image_handler (%s) prepare parameters failed", XCAM_STR (_name));
+        WARNING, (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS), ret,
+        "cl_image_handler (%s) ensure parameters failed", XCAM_STR (_name));
+
     if (ret == XCAM_RETURN_BYPASS)
         return ret;
 
     XCAM_OBJ_PROFILING_START;
+    ret = execute_kernels ();
 
-    for (KernelList::iterator i_kernel = _kernels.begin ();
-            i_kernel != _kernels.end (); ++i_kernel) {
-        SmartPtr<CLImageKernel> &kernel = *i_kernel;
-
-        XCAM_FAIL_RETURN (
-            WARNING,
-            kernel.ptr(),
-            ret,
-            "kernel empty");
-
-        if (!kernel->is_enabled ())
-            continue;
-
-        XCAM_FAIL_RETURN (
-            WARNING,
-            (ret = kernel->pre_execute (input, output)) == XCAM_RETURN_NO_ERROR,
-            ret,
-            "cl_image_handler(%s) pre_execute kernel(%s) failed",
-            XCAM_STR (_name), kernel->get_kernel_name ());
-
-        XCAM_FAIL_RETURN (
-            WARNING,
-            (ret = kernel->execute ()) == XCAM_RETURN_NO_ERROR,
-            ret,
-            "cl_image_handler(%s) execute kernel(%s) failed",
-            XCAM_STR (_name), kernel->get_kernel_name ());
-
-        ret = kernel->post_execute (output);
-        XCAM_FAIL_RETURN (
-            WARNING,
-            (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
-            ret,
-            "cl_image_handler(%s) post_execute kernel(%s) failed",
-            XCAM_STR (_name), kernel->get_kernel_name ());
-
-        if (ret == XCAM_RETURN_BYPASS)
-            break;
-
-    }
+    reset_buf_cache (NULL, NULL);
 
 #if ENABLE_PROFILING
-    CLDevice::instance()->get_context ()->finish ();
+    get_context ()->finish ();
 #endif
-
     XCAM_OBJ_PROFILING_END (XCAM_STR (_name), XCAM_OBJ_DUR_FRAME_NUM);
+
+    XCAM_FAIL_RETURN (
+        WARNING, (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS), ret,
+        "cl_image_handler (%s) execute kernels failed", XCAM_STR (_name));
 
     if (ret != XCAM_RETURN_NO_ERROR)
         return ret;
@@ -471,8 +469,8 @@ CLImageHandler::append_kernels (SmartPtr<CLImageHandler> handler)
     return true;
 }
 
-CLCloneImageHandler::CLCloneImageHandler (const char *name)
-    : CLImageHandler (name)
+CLCloneImageHandler::CLCloneImageHandler (const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
     , _clone_flags (SwappedBuffer::SwapNone)
 {
 }

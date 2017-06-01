@@ -36,47 +36,38 @@ class CLGaussImageKernel
 {
 public:
     explicit CLGaussImageKernel (
-        SmartPtr<CLContext> &context,
-        uint32_t radius, float sigma);
+        const SmartPtr<CLContext> &context, uint32_t radius, float sigma);
     virtual ~CLGaussImageKernel ();
     bool set_gaussian(uint32_t radius, float sigma);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
     // new virtual fucntions
-    virtual SmartPtr<DrmBoBuffer> get_input_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<DrmBoBuffer> get_input_buf () = 0;
+    virtual SmartPtr<DrmBoBuffer> get_output_buf () = 0;
 
 protected:
     SmartPtr<CLBuffer>    _g_table_buffer;
     uint32_t              _g_radius;
     float                *_g_table;
-private:
-    XCAM_DEAD_COPY (CLGaussImageKernel);
 };
 
 class CLGaussImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLGaussImageHandler (const char *name);
+    explicit CLGaussImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_gauss_kernel(SmartPtr<CLGaussImageKernel> &kernel);
     bool set_gaussian_table(int size, float sigma);
 
 private:
-    XCAM_DEAD_COPY (CLGaussImageHandler);
     SmartPtr<CLGaussImageKernel> _gauss_kernel;
 };
 
 SmartPtr<CLImageHandler>
 create_cl_gauss_image_handler (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     uint32_t radius = XCAM_GAUSS_DEFAULT_RADIUS,
     float sigma = XCAM_GAUSS_DEFAULT_SIGMA);
 

@@ -32,45 +32,33 @@ class CLTonemappingImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLTonemappingImageKernel (SmartPtr<CLContext> &context,
-                                       const char *name);
-    bool set_wb (const XCam3aResultWhiteBalance &wb);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLTonemappingImageKernel);
-    CLWBConfig                _wb_config;
-    float                     _y_max;
-    float                     _y_target;
-    int                       _image_height;
+    explicit CLTonemappingImageKernel (
+        const SmartPtr<CLContext> &context, const char *name);
 };
 
 class CLTonemappingImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLTonemappingImageHandler (const char *name);
+    explicit CLTonemappingImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_tonemapping_kernel(SmartPtr<CLTonemappingImageKernel> &kernel);
     bool set_wb_config (const XCam3aResultWhiteBalance &wb);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
-        const VideoBufferInfo &input,
-        VideoBufferInfo &output);
+        const VideoBufferInfo &input, VideoBufferInfo &output);
+    virtual XCamReturn prepare_parameters (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLTonemappingImageHandler);
-    SmartPtr<CLTonemappingImageKernel>  _tonemapping_kernel;
-    int32_t  _output_format;
+    SmartPtr<CLTonemappingImageKernel>   _tonemapping_kernel;
+    int32_t                              _output_format;
+    CLWBConfig                           _wb_config;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_tonemapping_image_handler (SmartPtr<CLContext> &context);
+create_cl_tonemapping_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

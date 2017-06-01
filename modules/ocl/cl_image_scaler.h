@@ -44,36 +44,22 @@ class CLScalerKernel
 {
 public:
     explicit CLScalerKernel (
-        SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout);
+        const SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout);
 
 public:
     CLImageScalerMemoryLayout get_mem_layout () const {
         return _mem_layout;
     };
-    uint32_t get_pixel_format () const {
-        return _pixel_format;
-    };
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
     //new virtual functions
-    virtual SmartPtr<DrmBoBuffer> get_input_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-
-private:
-    XCAM_DEAD_COPY (CLScalerKernel);
+    virtual SmartPtr<DrmBoBuffer> get_input_buffer () = 0;
+    virtual SmartPtr<DrmBoBuffer> get_output_buffer () = 0;
 
 protected:
-    uint32_t _pixel_format;
     CLImageScalerMemoryLayout _mem_layout;
-    uint32_t _output_width;
-    uint32_t _output_height;
 };
 
 class CLImageScalerKernel
@@ -81,14 +67,11 @@ class CLImageScalerKernel
 {
 public:
     explicit CLImageScalerKernel (
-        SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLImageScaler> &scaler);
+        const SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLImageScaler> &scaler);
 
 protected:
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
-    virtual void pre_stop ();
-
-    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<DrmBoBuffer> get_input_buffer ();
+    virtual SmartPtr<DrmBoBuffer> get_output_buffer ();
 
 private:
     XCAM_DEAD_COPY (CLImageScalerKernel);
@@ -102,39 +85,37 @@ class CLImageScaler
 {
     friend class CLImageScalerKernel;
 public:
-    explicit CLImageScaler ();
+    explicit CLImageScaler (const SmartPtr<CLContext> &context);
     void set_buffer_callback (SmartPtr<StatsCallback> &callback) {
         _scaler_callback = callback;
     }
 
-    bool set_scaler_factor (const double factor);
-    double get_scaler_factor () const;
     bool set_scaler_factor (const double h_factor, const double v_factor);
     bool get_scaler_factor (double &h_factor, double &v_factor) const;
     SmartPtr<DrmBoBuffer> &get_scaler_buf () {
         return _scaler_buf;
     };
 
-    void pre_stop ();
+    void emit_stop ();
 
 protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+
+private:
     XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<DrmBoBuffer> &output);
-
-private:
     XCamReturn post_buffer (const SmartPtr<DrmBoBuffer> &buffer);
-    XCAM_DEAD_COPY (CLImageScaler);
 
 private:
-    double _h_scaler_factor;
-    double _v_scaler_factor;
-    SmartPtr<DrmBoBufferPool> _scaler_buf_pool;
-    SmartPtr<DrmBoBuffer>   _scaler_buf;
-    SmartPtr<StatsCallback> _scaler_callback;
+    double                     _h_scaler_factor;
+    double                     _v_scaler_factor;
+    SmartPtr<DrmBoBufferPool>  _scaler_buf_pool;
+    SmartPtr<DrmBoBuffer>      _scaler_buf;
+    SmartPtr<StatsCallback>    _scaler_callback;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_image_scaler_handler (SmartPtr<CLContext> &context, uint32_t format);
+create_cl_image_scaler_handler (const SmartPtr<CLContext> &context, uint32_t format);
 
 };
 

@@ -34,42 +34,39 @@ typedef struct _CLWireFrame {
     uint32_t height;
 } CLWireFrame;
 
+class CLWireFrameImageHandler;
+
 class CLWireFrameImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLWireFrameImageKernel (SmartPtr<CLContext> &context, const char *name);
-    bool set_wire_frame_config (const XCamFDResult *config, double scaler_factor);
+    explicit CLWireFrameImageKernel (
+        const SmartPtr<CLContext> &context,
+        const SmartPtr<CLWireFrameImageHandler> &handler,
+        const char *name);
+    ~CLWireFrameImageKernel ();
 
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
-    bool check_wire_frames_validity (uint32_t image_width, uint32_t image_height);
-    uint32_t get_border_coordinates_num ();
-    bool get_border_coordinates (uint32_t *coords);
-    XCAM_DEAD_COPY (CLWireFrameImageKernel);
-
-private:
-    uint32_t                                 _wire_frames_num;
+    SmartPtr<CLWireFrameImageHandler>        _handler;
     uint32_t                                 _wire_frames_coords_num;
     uint32_t                                 *_wire_frames_coords;
-    CLWireFrame                              _wire_frames [XCAM_WIRE_FRAME_MAX_COUNT];
-    SmartPtr<CLImage>                        _image_out_uv;
-    SmartPtr<CLBuffer>                       _wire_frames_coords_buf;
 };
 
 class CLWireFrameImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLWireFrameImageHandler (const char *name);
+    explicit CLWireFrameImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_wire_frame_kernel (SmartPtr<CLWireFrameImageKernel> &kernel);
     bool set_wire_frame_config (const XCamFDResult *config, double scaler_factor = 1.0);
+
+    bool check_wire_frames_validity (uint32_t image_width, uint32_t image_height);
+    uint32_t get_border_coordinates_num ();
+    bool get_border_coordinates (uint32_t *coords);
 
 protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
@@ -77,10 +74,13 @@ protected:
 private:
     XCAM_DEAD_COPY (CLWireFrameImageHandler);
     SmartPtr<CLWireFrameImageKernel>         _wire_frame_kernel;
+
+    uint32_t                                 _wire_frames_num;
+    CLWireFrame                              _wire_frames [XCAM_WIRE_FRAME_MAX_COUNT];
 };
 
 SmartPtr<CLImageHandler>
-create_cl_wire_frame_image_handler (SmartPtr<CLContext> &context);
+create_cl_wire_frame_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

@@ -33,19 +33,19 @@ public:
     typedef std::list<SmartPtr<CLImageHandler> > HandlerList;
 
 public:
-    explicit CLMultiImageHandler (const char *name)
-        : CLImageHandler (name)
-    {}
+    explicit CLMultiImageHandler (const SmartPtr<CLContext> &context, const char *name);
     virtual ~CLMultiImageHandler ();
     bool add_image_handler (SmartPtr<CLImageHandler> &handler);
 
-    virtual XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-
 protected:
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_kernels ();
     virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
 
     virtual XCamReturn sub_handler_execute_done (SmartPtr<CLImageHandler> &handler);
+
+    XCamReturn ensure_handler_parameters (
+        const SmartPtr<CLImageHandler> &handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLMultiImageHandler);

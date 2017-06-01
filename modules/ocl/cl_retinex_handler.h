@@ -50,16 +50,16 @@ class CLRetinexScalerImageKernel
 {
 public:
     explicit CLRetinexScalerImageKernel (
-        SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLRetinexImageHandler> &retinex);
-    virtual void pre_stop ();
+        const SmartPtr<CLContext> &context,
+        CLImageScalerMemoryLayout mem_layout,
+        SmartPtr<CLRetinexImageHandler> &retinex);
 
 protected:
     //derived from CLScalerKernel
-    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<DrmBoBuffer> get_input_buffer ();
+    virtual SmartPtr<DrmBoBuffer> get_output_buffer ();
 
 private:
-    XCAM_DEAD_COPY (CLRetinexScalerImageKernel);
     SmartPtr<CLRetinexImageHandler> _retinex;
 
 };
@@ -69,19 +69,15 @@ class CLRetinexGaussImageKernel
 {
 public:
     explicit CLRetinexGaussImageKernel (
-        SmartPtr<CLContext> &context,
+        const SmartPtr<CLContext> &context,
         SmartPtr<CLRetinexImageHandler> &retinex,
         uint32_t index,
         uint32_t radius, float sigma);
-    virtual SmartPtr<DrmBoBuffer> get_input_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual SmartPtr<DrmBoBuffer> get_output_parameter (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual SmartPtr<DrmBoBuffer> get_input_buf ();
+    virtual SmartPtr<DrmBoBuffer> get_output_buf ();
 
 
 private:
-    XCAM_DEAD_COPY (CLRetinexGaussImageKernel);
-
     SmartPtr<CLRetinexImageHandler> _retinex;
     uint32_t                        _index;
 
@@ -91,31 +87,21 @@ class CLRetinexImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLRetinexImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &retinex);
+    explicit CLRetinexImageKernel (const SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &retinex);
 
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
-    XCAM_DEAD_COPY (CLRetinexImageKernel);
-
-    SmartPtr<CLImage>                _image_in_ga[XCAM_RETINEX_MAX_SCALE];
-    SmartPtr<CLImage>                _image_in_uv;
-    SmartPtr<CLImage>                _image_out_uv;
     SmartPtr<CLRetinexImageHandler>  _retinex;
-    CLRetinexConfig                  _retinex_config;
 };
 
 class CLRetinexImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLRetinexImageHandler (const char *name);
+    explicit CLRetinexImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_retinex_kernel(SmartPtr<CLRetinexImageKernel> &kernel);
     bool set_retinex_scaler_kernel(SmartPtr<CLRetinexScalerImageKernel> &kernel);
     //bool set_retinex_gauss_kernel(SmartPtr<CLRetinexGaussImageKernel> &kernel);
@@ -127,14 +113,15 @@ public:
         return _gaussian_buf[index];
     };
 
-    void pre_stop ();
+    virtual void emit_stop ();
 
 protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+
+private:
     XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info);
 
 private:
-    XCAM_DEAD_COPY (CLRetinexImageHandler);
     SmartPtr<CLRetinexImageKernel>        _retinex_kernel;
     SmartPtr<CLRetinexScalerImageKernel>  _retinex_scaler_kernel;
     //SmartPtr<CLRetinexGaussImageKernel>   _retinex_gauss_kernel;
@@ -147,7 +134,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_cl_retinex_image_handler (SmartPtr<CLContext> &context);
+create_cl_retinex_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

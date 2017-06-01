@@ -34,61 +34,35 @@ static const XCamKernelInfo kernel_geo_map_info = {
 #define GEO_MAP_CHANNEL 4  /* only use channel_0, channel_1 */
 
 CLGeoMapKernel::CLGeoMapKernel (
-    SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler)
+    const SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler)
     : CLImageKernel (context)
     , _handler (handler)
 {
     XCAM_ASSERT (handler.ptr ());
-    xcam_mem_clear (_geo_scale_size);
-    xcam_mem_clear (_out_size);
 }
 
 XCamReturn
-CLGeoMapKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLGeoMapKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
-
     SmartPtr<CLImage> input_y = _handler->get_geo_input_image (CLNV12PlaneY);
     SmartPtr<CLImage> input_uv = _handler->get_geo_input_image (CLNV12PlaneUV);
     SmartPtr<CLImage> output_y = _handler->get_geo_output_image (CLNV12PlaneY);
     SmartPtr<CLImage> output_uv = _handler->get_geo_output_image (CLNV12PlaneUV);
     const CLImageDesc &outuv_desc = output_uv->get_image_desc ();
     SmartPtr<CLImage> geo_image = _handler->get_geo_map_table ();
-    _handler->get_geo_equivalent_out_size (_geo_scale_size[0], _geo_scale_size[1]);
-    _handler->get_geo_pixel_out_size (_out_size[0], _out_size[1]);
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &input_y->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    float geo_scale_size[2]; //width/height
+    float out_size[2];
+    _handler->get_geo_equivalent_out_size (geo_scale_size[0], geo_scale_size[1]);
+    _handler->get_geo_pixel_out_size (out_size[0], out_size[1]);
 
-    args[arg_count].arg_adress = &input_uv->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &geo_image->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_geo_scale_size;
-    args[arg_count].arg_size = sizeof (_geo_scale_size);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &output_y->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &output_uv->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_out_size;
-    args[arg_count].arg_size = sizeof (_out_size);
-    ++arg_count;
+    args.push_back (new CLMemArgument (input_y));
+    args.push_back (new CLMemArgument (input_uv));
+    args.push_back (new CLMemArgument (geo_image));
+    args.push_back (new CLArgumentTArray<float, 2> (geo_scale_size));
+    args.push_back (new CLMemArgument (output_y));
+    args.push_back (new CLMemArgument (output_uv));
+    args.push_back (new CLArgumentTArray<float, 2> (out_size));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 16;
@@ -99,8 +73,8 @@ CLGeoMapKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLGeoMapHandler::CLGeoMapHandler ()
-    : CLImageHandler ("CLGeoMapHandler")
+CLGeoMapHandler::CLGeoMapHandler (const SmartPtr<CLContext> &context)
+    : CLImageHandler (context, "CLGeoMapHandler")
     , _output_width (0)
     , _output_height (0)
     , _map_width (0)
@@ -167,7 +141,7 @@ CLGeoMapHandler::check_geo_map_buf (uint32_t width, uint32_t height)
 
     uint32_t pitch = width * GEO_MAP_CHANNEL * sizeof (float); // 4 channel for CL_RGBA, but only use RG
     uint32_t size = pitch * height;
-    SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
+    SmartPtr<CLContext> context = get_context ();
     XCAM_ASSERT (context.ptr ());
     _geo_map = new CLBuffer (context, size);
 
@@ -245,7 +219,7 @@ CLGeoMapHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmB
 {
     const VideoBufferInfo &in_info = input->get_video_info ();
     const VideoBufferInfo &out_info = output->get_video_info ();
-    SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
+    SmartPtr<CLContext> context = get_context ();
     uint32_t input_image_w = XCAM_ALIGN_DOWN (in_info.width, 2);
     uint32_t input_image_h = XCAM_ALIGN_DOWN (in_info.height, 2);
 
@@ -300,7 +274,7 @@ CLGeoMapHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmB
         _geo_map_normalized = true;
     }
 
-    return CLImageHandler::prepare_parameters (input, output);
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -317,7 +291,7 @@ CLGeoMapHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
 }
 
 SmartPtr<CLImageKernel>
-create_geo_map_kernel (SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb)
+create_geo_map_kernel (const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb)
 {
     SmartPtr<CLImageKernel> kernel;
     kernel = new CLGeoMapKernel (context, param_cb);
@@ -330,12 +304,12 @@ create_geo_map_kernel (SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCall
 }
 
 SmartPtr<CLImageHandler>
-create_geo_map_handler (SmartPtr<CLContext> &context)
+create_geo_map_handler (const SmartPtr<CLContext> &context)
 {
     SmartPtr<CLGeoMapHandler> handler;
     SmartPtr<CLImageKernel> kernel;
 
-    handler = new CLGeoMapHandler ();
+    handler = new CLGeoMapHandler (context);
     XCAM_ASSERT (handler.ptr ());
 
     kernel = create_geo_map_kernel (context, handler);

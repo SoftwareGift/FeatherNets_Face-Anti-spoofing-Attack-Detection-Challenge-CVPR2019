@@ -30,14 +30,17 @@
 
 namespace XCam {
 
-CLBlenderGlobalScaleKernel::CLBlenderGlobalScaleKernel (SmartPtr<CLContext> &context, bool is_uv)
+CLBlenderGlobalScaleKernel::CLBlenderGlobalScaleKernel (
+    const SmartPtr<CLContext> &context, SmartPtr<CLImage360Stitch> &stitch, bool is_uv)
     : CLBlenderScaleKernel (context, is_uv)
+    , _stitch (stitch)
 {
 }
 
 SmartPtr<CLImage>
-CLBlenderGlobalScaleKernel::get_input_image (SmartPtr<DrmBoBuffer> &input) {
+CLBlenderGlobalScaleKernel::get_input_image () {
     SmartPtr<CLContext> context = get_context ();
+    SmartPtr<DrmBoBuffer> input = _stitch->get_global_scale_input ();
 
     CLImageDesc cl_desc;
     SmartPtr<CLImage> cl_image;
@@ -62,8 +65,9 @@ CLBlenderGlobalScaleKernel::get_input_image (SmartPtr<DrmBoBuffer> &input) {
 }
 
 SmartPtr<CLImage>
-CLBlenderGlobalScaleKernel::get_output_image (SmartPtr<DrmBoBuffer> &output) {
+CLBlenderGlobalScaleKernel::get_output_image () {
     SmartPtr<CLContext> context = get_context ();
+    SmartPtr<DrmBoBuffer> output = _stitch->get_global_scale_output ();
 
     CLImageDesc cl_desc;
     SmartPtr<CLImage> cl_image;
@@ -88,9 +92,9 @@ CLBlenderGlobalScaleKernel::get_output_image (SmartPtr<DrmBoBuffer> &output) {
 
 bool
 CLBlenderGlobalScaleKernel::get_output_info (
-    SmartPtr<DrmBoBuffer> &output,
     uint32_t &out_width, uint32_t &out_height, int &out_offset_x)
 {
+    SmartPtr<DrmBoBuffer> output = _stitch->get_global_scale_output ();
     const VideoBufferInfo &output_info = output->get_video_info ();
 
     out_width = output_info.width / 8;
@@ -202,8 +206,8 @@ get_default_stitch_info (CLStitchResMode res_mode)
 }
 
 CLImage360Stitch::CLImage360Stitch (
-    SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode)
-    : CLMultiImageHandler ("CLImage360Stitch")
+    const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode)
+    : CLMultiImageHandler (context, "CLImage360Stitch")
     , _context (context)
     , _output_width (0)
     , _output_height (0)
@@ -367,16 +371,30 @@ CLImage360Stitch::prepare_buffer_pool_video_info (
 }
 
 XCamReturn
-CLImage360Stitch::prepare_fisheye_parameters (
+CLImage360Stitch::ensure_fisheye_parameters (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
-    XCAM_UNUSED (input);
-
     static bool is_fisheye_inited = false;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
     if (!is_fisheye_inited) {
         calc_fisheye_initial_info (output);
         is_fisheye_inited = true;
     }
+
+    if (!_fisheye[0].pool.ptr ())
+        create_buffer_pool (_fisheye[0].pool, _fisheye[0].width, _fisheye[0].height);
+    if (!_fisheye[1].pool.ptr ())
+        create_buffer_pool (_fisheye[1].pool, _fisheye[1].width, _fisheye[1].height);
+
+    _fisheye[0].buf = _fisheye[0].pool->get_buffer (_fisheye[0].pool).dynamic_cast_ptr<DrmBoBuffer> ();
+    _fisheye[1].buf = _fisheye[1].pool->get_buffer (_fisheye[1].pool).dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_ASSERT (_fisheye[0].buf.ptr () && _fisheye[1].buf.ptr ());
+
+    ret = ensure_handler_parameters (_fisheye[0].handler, input, _fisheye[0].buf);
+    STITCH_CHECK (ret, "execute first fisheye prepare_parameters failed");
+    ret = ensure_handler_parameters (_fisheye[1].handler, input, _fisheye[1].buf);
+    STITCH_CHECK (ret, "execute second fisheye prepare_parameters failed");
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -533,34 +551,6 @@ CLImage360Stitch::prepare_local_scale_blender_parameters (
     return ret;
 }
 
-XCamReturn
-CLImage360Stitch::execute_self_prepare_parameters (
-    SmartPtr<CLImageHandler> specified_handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
-{
-    XCAM_ASSERT (specified_handler.ptr ());
-
-    for (HandlerList::iterator i_handler = _handler_list.begin ();
-            i_handler != _handler_list.end (); ++i_handler) {
-        SmartPtr<CLImageHandler> &handler = *i_handler;
-        XCAM_ASSERT (handler.ptr ());
-        if (specified_handler.ptr () != handler.ptr ())
-            continue;
-
-        XCamReturn ret = handler->prepare_parameters (input, output);
-        if (ret == XCAM_RETURN_BYPASS)
-            return ret;
-
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            ret,
-            "CLImage360Stitch(%s) prepare parameters failed on handler(%s)",
-            XCAM_STR (get_name ()), XCAM_STR (handler->get_name ()));
-    }
-
-    return XCAM_RETURN_NO_ERROR;
-}
-
 bool
 CLImage360Stitch::create_buffer_pool (SmartPtr<BufferPool> &buf_pool, uint32_t width, uint32_t height)
 {
@@ -606,22 +596,9 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    ret = prepare_fisheye_parameters (input, output);
-    STITCH_CHECK (ret, "prepare fisheye parameters failed");
+    ret = ensure_fisheye_parameters (input, output);
+    STITCH_CHECK (ret, "ensure fisheye parameters failed");
 
-    if (!_fisheye[0].pool.ptr ())
-        create_buffer_pool (_fisheye[0].pool, _fisheye[0].width, _fisheye[0].height);
-    if (!_fisheye[1].pool.ptr ())
-        create_buffer_pool (_fisheye[1].pool, _fisheye[1].width, _fisheye[1].height);
-
-    _fisheye[0].buf = _fisheye[0].pool->get_buffer (_fisheye[0].pool).dynamic_cast_ptr<DrmBoBuffer> ();
-    _fisheye[1].buf = _fisheye[1].pool->get_buffer (_fisheye[1].pool).dynamic_cast_ptr<DrmBoBuffer> ();
-    XCAM_ASSERT (_fisheye[0].buf.ptr () && _fisheye[1].buf.ptr ());
-
-    ret = execute_self_prepare_parameters (_fisheye[0].handler, input, _fisheye[0].buf);
-    STITCH_CHECK (ret, "execute first fisheye prepare_parameters failed");
-    ret = execute_self_prepare_parameters (_fisheye[1].handler, input, _fisheye[1].buf);
-    STITCH_CHECK (ret, "execute second fisheye prepare_parameters failed");
     _fisheye[0].buf->attach_buffer (_fisheye[1].buf);
     update_image_overlap ();
 
@@ -629,11 +606,11 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
         ret = prepare_local_scale_blender_parameters (_fisheye[0].buf, _fisheye[1].buf, output);
         STITCH_CHECK (ret, "prepare local scale blender parameters failed");
 
-        ret = execute_self_prepare_parameters (_left_blender, _fisheye[0].buf, output);
-        STITCH_CHECK (ret, "left blender: execute prepare_parameters failed");
-        ret = execute_self_prepare_parameters (_right_blender, _fisheye[0].buf, output);
-        STITCH_CHECK (ret, "right blender: execute prepare_parameters failed");
-    } else {
+        ret = ensure_handler_parameters (_left_blender, _fisheye[0].buf, output);
+        STITCH_CHECK (ret, "left blender: execute ensure_parameters failed");
+        ret = ensure_handler_parameters (_right_blender, _fisheye[0].buf, output);
+        STITCH_CHECK (ret, "right blender: execute ensure_parameters failed");
+    } else { //global scale
         const VideoBufferInfo &buf_info = output->get_video_info ();
         if (!_scale_buf_pool.ptr ())
             create_buffer_pool (_scale_buf_pool, buf_info.width + XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH, buf_info.height);
@@ -644,13 +621,14 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
         ret = prepare_global_scale_blender_parameters (_fisheye[0].buf, _fisheye[1].buf, scale_input);
         STITCH_CHECK (ret, "prepare global scale blender parameters failed");
 
-        ret = execute_self_prepare_parameters (_left_blender, _fisheye[0].buf, scale_input);
-        STITCH_CHECK (ret, "left blender: execute prepare_parameters failed");
-        ret = execute_self_prepare_parameters (_right_blender, _fisheye[0].buf, scale_input);
-        STITCH_CHECK (ret, "right blender: execute prepare_parameters failed");
+        ret = ensure_handler_parameters (_left_blender, _fisheye[0].buf, scale_input);
+        STITCH_CHECK (ret, "left blender: execute ensure_parameters failed");
+        ret = ensure_handler_parameters (_right_blender, _fisheye[0].buf, scale_input);
+        STITCH_CHECK (ret, "right blender: execute ensure_parameters failed");
 
-        input = scale_input;
-        reset_buffer_info (input);
+        reset_buffer_info (scale_input);
+        _scale_global_input = scale_input;
+        _scale_global_output = output;
     }
 
     return XCAM_RETURN_NO_ERROR;
@@ -661,8 +639,11 @@ CLImage360Stitch::execute_done (SmartPtr<DrmBoBuffer> &output)
 {
 #if HAVE_OPENCV
     if (!_feature_match->is_ocl_path ())
-        CLDevice::instance()->get_context ()->finish ();
+        get_context ()->finish ();
 #endif
+
+    _scale_global_input.release ();
+    _scale_global_output.release ();
 
     return CLMultiImageHandler::execute_done (output);
 }
@@ -703,11 +684,13 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
 
         convert_to_cv_rect (_img_merge_info[0], img0_crop_left, img0_crop_right);
         convert_to_cv_rect (_img_merge_info[1], img1_crop_left, img1_crop_right);
+        get_context ()->finish ();
 
         _feature_match->optical_flow_feature_match (
             _fisheye[0].width, _fisheye[0].buf, _fisheye[1].buf,
             img0_crop_left, img0_crop_right, img1_crop_left, img1_crop_right);
 
+        //update merge info
         convert_to_xcam_rect (img0_crop_left, img0_crop_right, _img_merge_info[0]);
         convert_to_xcam_rect (img1_crop_left, img1_crop_right, _img_merge_info[1]);
     }
@@ -719,19 +702,22 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
 }
 
 static SmartPtr<CLImageKernel>
-create_blender_global_scale_kernel (SmartPtr<CLContext> &context, bool is_uv)
+create_blender_global_scale_kernel (
+    const SmartPtr<CLContext> &context,
+    SmartPtr<CLImage360Stitch> &stitch,
+    bool is_uv)
 {
     char transform_option[1024];
     snprintf (transform_option, sizeof(transform_option), "-DPYRAMID_UV=%d", is_uv ? 1 : 0);
 
-    const XCamKernelInfo &kernel_info = {
+    static const XCamKernelInfo &kernel_info = {
         "kernel_pyramid_scale",
 #include "kernel_gauss_lap_pyramid.clx"
         , 0
     };
 
     SmartPtr<CLImageKernel> kernel;
-    kernel = new CLBlenderGlobalScaleKernel (context, is_uv);
+    kernel = new CLBlenderGlobalScaleKernel (context, stitch, is_uv);
     XCAM_ASSERT (kernel.ptr ());
     XCAM_FAIL_RETURN (
         ERROR,
@@ -743,7 +729,8 @@ create_blender_global_scale_kernel (SmartPtr<CLContext> &context, bool is_uv)
 }
 
 SmartPtr<CLImageHandler>
-create_image_360_stitch (SmartPtr<CLContext> &context, bool need_seam,
+create_image_360_stitch (
+    const SmartPtr<CLContext> &context, bool need_seam,
     CLBlenderScaleMode scale_mode, bool fisheye_map, CLStitchResMode res_mode)
 {
     const int layer = 2;
@@ -775,7 +762,7 @@ create_image_360_stitch (SmartPtr<CLContext> &context, bool need_seam,
         int max_plane = need_uv ? 2 : 1;
         bool uv_status[2] = {false, true};
         for (int plane = 0; plane < max_plane; ++plane) {
-            SmartPtr<CLImageKernel> kernel = create_blender_global_scale_kernel (context, uv_status[plane]);
+            SmartPtr<CLImageKernel> kernel = create_blender_global_scale_kernel (context, stitch, uv_status[plane]);
             XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "create blender global scaling kernel failed");
             stitch->add_kernel (kernel);
         }

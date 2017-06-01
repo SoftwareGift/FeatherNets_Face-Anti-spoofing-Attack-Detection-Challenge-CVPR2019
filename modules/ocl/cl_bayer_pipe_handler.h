@@ -48,32 +48,10 @@ class CLBayerPipeImageKernel
 {
 public:
     explicit CLBayerPipeImageKernel (
-        SmartPtr<CLContext> &context,
+        const SmartPtr<CLContext> &context,
         SmartPtr<CLBayerPipeImageHandler> &handler);
 
-    bool enable_denoise (bool enable);
-    bool set_ee (const XCam3aResultEdgeEnhancement &ee);
-    bool set_bnr (const XCam3aResultBayerNoiseReduction &bnr);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
-
 private:
-    XCAM_DEAD_COPY (CLBayerPipeImageKernel);
-
-private:
-    uint32_t                  _input_height;
-    uint32_t                  _output_height;
-    uint32_t                  _enable_denoise;
-    float                     _bnr_table[XCAM_BNR_TABLE_SIZE];
-    SmartPtr<CLBuffer>        _bnr_table_buffer;
-    CLEeConfig                _ee_config;
-
     SmartPtr<CLBayerPipeImageHandler>     _handler;
 };
 
@@ -83,18 +61,18 @@ class CLBayerPipeImageHandler
     friend class CLBayerPipeImageKernel;
 
 public:
-    explicit CLBayerPipeImageHandler (const char *name);
+    explicit CLBayerPipeImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_bayer_kernel (SmartPtr<CLBayerPipeImageKernel> &kernel);
     bool set_ee_config (const XCam3aResultEdgeEnhancement &ee);
     bool set_bnr_config (const XCam3aResultBayerNoiseReduction &bnr);
-    ;
     bool set_output_format (uint32_t fourcc);
     bool enable_denoise (bool enable);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
-        const VideoBufferInfo &input,
-        VideoBufferInfo &output);
+        const VideoBufferInfo &input, VideoBufferInfo &output);
+    virtual XCamReturn prepare_parameters (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLBayerPipeImageHandler);
@@ -102,10 +80,14 @@ private:
 private:
     SmartPtr<CLBayerPipeImageKernel>   _bayer_kernel;
     uint32_t                           _output_format;
+
+    uint32_t                           _enable_denoise;
+    float                              _bnr_table[XCAM_BNR_TABLE_SIZE];
+    CLEeConfig                         _ee_config;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_bayer_pipe_image_handler (SmartPtr<CLContext> &context);
+create_cl_bayer_pipe_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

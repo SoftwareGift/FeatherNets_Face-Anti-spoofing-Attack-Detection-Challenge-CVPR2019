@@ -42,92 +42,89 @@ const XCamKernelInfo kernel_bilateral_info[] = {
     },
 };
 
-CLBilateralKernel::CLBilateralKernel (SmartPtr<CLContext> &context, bool is_rgb)
+CLBilateralKernel::CLBilateralKernel (const SmartPtr<CLContext> &context)
     : CLImageKernel (context)
-    , _sigma_r (10.0)
-    , _imw (1920)
-    , _imh (1080)
-    , _vertical_offset (1080)
+{
+}
+
+CLBilateralImageHandler::CLBilateralImageHandler (
+    const SmartPtr<CLContext> &context, const char *name, bool is_rgb)
+    : CLImageHandler (context, name)
     , _is_rgb (is_rgb)
 {
 }
 
+void
+CLBilateralImageHandler::set_bi_kernel (SmartPtr<CLBilateralKernel> &kernel)
+{
+    XCAM_ASSERT (kernel.ptr () && kernel->is_valid ());
+    _kernel = kernel;
+    add_kernel (kernel);
+}
+
 XCamReturn
-CLBilateralKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLBilateralImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info = input->get_video_info ();
+    uint32_t imw = video_info.width;
+    uint32_t imh = video_info.height;
+    uint32_t vertical_offset = video_info.aligned_height;
+    float sigma_r = 10.0;
+    CLArgList args;
+    CLWorkSize work_size;
 
-    _imw = video_info.width;
-    _imh = video_info.height;
-    //sigma_r = 0.1*100
-    _sigma_r = 10.0;
+    XCAM_ASSERT (_kernel.ptr ());
+    SmartPtr<CLImage> image_in = new CLVaImage (context, input);
+    SmartPtr<CLImage> image_out = new CLVaImage (context, output);
 
-    _image_in = new CLVaImage (context, input);
-    _image_out = new CLVaImage (context, output);
-
-    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
         WARNING,
-        _image_in->is_valid () && _image_out->is_valid (),
+        image_in->is_valid () && image_out->is_valid (),
         XCAM_RETURN_ERROR_MEM,
-        "cl image kernel(%s) in/out memory not available", get_kernel_name ());
-
-    _vertical_offset = video_info.aligned_height;
+        "cl image handler(%s) in/out memory not available", XCAM_STR(get_name ()));
 
     //set args;
-    args[0].arg_adress = &_image_in->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_sigma_r;
-    args[2].arg_size = sizeof (_sigma_r);
-    args[3].arg_adress = &_imw;
-    args[3].arg_size = sizeof (_imw);
-    args[4].arg_adress = &_imh;
-    args[4].arg_size = sizeof (_imh);
+    args.push_back (new CLMemArgument (image_in));
+    args.push_back (new CLMemArgument (image_out));
+    args.push_back (new CLArgumentT<float> (sigma_r));
+    args.push_back (new CLArgumentT<uint32_t> (imw));
+    args.push_back (new CLArgumentT<uint32_t> (imh));
 
-    if (_is_rgb)
-        arg_count = 5;
-    else {
-        args[5].arg_adress = &_vertical_offset;
-        args[5].arg_size = sizeof (_vertical_offset);
-        arg_count = 6;
-    }
+    if (!_is_rgb)
+        args.push_back (new CLArgumentT<uint32_t> (vertical_offset));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = _imh;
-    work_size.global[1] = _imw;
-    work_size.local[0] = _imh / 72;
-    work_size.local[1] = _imw / 120;
+    work_size.global[0] = imh;
+    work_size.global[1] = imw;
+    work_size.local[0] = (imh + 71) / 72;
+    work_size.local[1] = (imw + 119) / 120;
 
+    XCAM_ASSERT (_kernel.ptr ());
+    XCamReturn ret = _kernel->set_arguments (args, work_size);
+    XCAM_FAIL_RETURN (
+        WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
+        "bilateral kernel set arguments failed.");
 
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLBilateralImageHandler::CLBilateralImageHandler (const char *name)
-    : CLImageHandler (name)
-{
-}
 
 SmartPtr<CLImageHandler>
-create_cl_bilateral_image_handler (SmartPtr<CLContext> &context, bool is_rgb)
+create_cl_bilateral_image_handler (const SmartPtr<CLContext> &context, bool is_rgb)
 {
     SmartPtr<CLBilateralImageHandler> bilateral_handler;
-    SmartPtr<CLImageKernel> bilateral_kernel;
+    SmartPtr<CLBilateralKernel> bilateral_kernel;
     const char *handler_name = (is_rgb ? "cl_bilateral_rgb" : "cl_bilateral_nv12");
     int kenel_idx = (is_rgb ? KernelBilateralRGB : KernelBilateralNV12);
 
-    bilateral_handler = new CLBilateralImageHandler (handler_name);
-    bilateral_kernel = new CLBilateralKernel (context, is_rgb);
+    bilateral_handler = new CLBilateralImageHandler (context, handler_name, is_rgb);
+    bilateral_kernel = new CLBilateralKernel (context);
     XCAM_ASSERT (bilateral_kernel.ptr ());
     XCAM_FAIL_RETURN (
         ERROR, bilateral_kernel->build_kernel (kernel_bilateral_info[kenel_idx], NULL) == XCAM_RETURN_NO_ERROR,
         NULL, "build bilateral kernel failed");
-    bilateral_handler->add_kernel (bilateral_kernel);
+    bilateral_handler->set_bi_kernel (bilateral_kernel);
 
     XCAM_ASSERT (bilateral_kernel->is_valid ());
 

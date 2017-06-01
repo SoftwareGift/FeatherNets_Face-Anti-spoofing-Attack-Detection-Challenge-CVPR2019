@@ -52,35 +52,31 @@ class CLBlenderScaleKernel
     : public CLImageKernel
 {
 public:
-    explicit CLBlenderScaleKernel (SmartPtr<CLContext> &context, bool is_uv);
+    explicit CLBlenderScaleKernel (const SmartPtr<CLContext> &context, bool is_uv);
 
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+        CLArgList &args, CLWorkSize &work_size);
 
-    virtual SmartPtr<CLImage> get_input_image (SmartPtr<DrmBoBuffer> &input) = 0;
-    virtual SmartPtr<CLImage> get_output_image (SmartPtr<DrmBoBuffer> &output) = 0;
+    virtual SmartPtr<CLImage> get_input_image () = 0;
+    virtual SmartPtr<CLImage> get_output_image () = 0;
 
-    virtual bool get_output_info (
-        SmartPtr<DrmBoBuffer> &output, uint32_t &out_width, uint32_t &out_height, int &out_offset_x) = 0;
+    virtual bool get_output_info (uint32_t &out_width, uint32_t &out_height, int &out_offset_x) = 0;
 
 private:
     XCAM_DEAD_COPY (CLBlenderScaleKernel);
 
 protected:
     bool                               _is_uv;
-    int                                _output_offset_x;
-    uint32_t                           _output_width;
-    uint32_t                           _output_height;
 };
 
 class CLBlender
     : public CLImageHandler
 {
 public:
-    explicit CLBlender (const char *name, bool need_uv, CLBlenderScaleMode scale_mode);
+    explicit CLBlender (
+        const SmartPtr<CLContext> &context, const char *name,
+        bool need_uv, CLBlenderScaleMode scale_mode);
 
     void set_output_size (uint32_t width, uint32_t height) {
         _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
@@ -144,11 +140,11 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_linear_blender (SmartPtr<CLContext> &context, bool need_uv = true);
+create_linear_blender (const SmartPtr<CLContext> &context, bool need_uv = true);
 
 SmartPtr<CLImageHandler>
 create_pyramid_blender (
-    SmartPtr<CLContext> &context, int layer = 1, bool need_uv = true,
+    const SmartPtr<CLContext> &context, int layer = 1, bool need_uv = true,
     bool need_seam = true, CLBlenderScaleMode scale_mode = CLBlenderScaleLocal);
 
 };

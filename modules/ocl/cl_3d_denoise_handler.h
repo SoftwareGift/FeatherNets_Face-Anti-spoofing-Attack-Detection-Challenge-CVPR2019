@@ -38,29 +38,24 @@ class CL3DDenoiseImageKernel
 private:
 
 public:
-    explicit CL3DDenoiseImageKernel (SmartPtr<CLContext> &context,
-                                     const char *name,
-                                     uint32_t channel,
-                                     SmartPtr<CL3DDenoiseImageHandler> &handler);
+    explicit CL3DDenoiseImageKernel (
+        const SmartPtr<CLContext> &context,
+        const char *name,
+        uint32_t channel,
+        SmartPtr<CL3DDenoiseImageHandler> &handler);
 
     virtual ~CL3DDenoiseImageKernel () {
         _image_in_list.clear ();
     }
 
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
     XCAM_DEAD_COPY (CL3DDenoiseImageKernel);
 
     uint32_t                           _channel;
-    float                              _gain;
-    float                              _thr_y;
-    float                              _thr_uv;
     uint8_t                            _ref_count;
     SmartPtr<CL3DDenoiseImageHandler>  _handler;
 
@@ -72,7 +67,8 @@ class CL3DDenoiseImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CL3DDenoiseImageHandler (const char *name);
+    explicit CL3DDenoiseImageHandler (
+        const SmartPtr<CLContext> &context, const char *name);
 
     bool set_ref_framecount (const uint8_t count);
     uint8_t get_ref_framecount () const {
@@ -83,6 +79,15 @@ public:
     XCam3aResultTemporalNoiseReduction& get_denoise_config () {
         return _config;
     };
+    SmartPtr<DrmBoBuffer> get_input_buf () {
+        return _input_buf;
+    }
+    SmartPtr<DrmBoBuffer> get_output_buf () {
+        return _output_buf;
+    }
+
+protected:
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CL3DDenoiseImageHandler);
@@ -90,10 +95,13 @@ private:
 private:
     uint8_t                             _ref_count;
     XCam3aResultTemporalNoiseReduction  _config;
+    SmartPtr<DrmBoBuffer>               _input_buf;
+    SmartPtr<DrmBoBuffer>               _output_buf;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_3d_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel, uint8_t ref_count);
+create_cl_3d_denoise_image_handler (
+    const SmartPtr<CLContext> &context, uint32_t channel, uint8_t ref_count);
 
 };
 

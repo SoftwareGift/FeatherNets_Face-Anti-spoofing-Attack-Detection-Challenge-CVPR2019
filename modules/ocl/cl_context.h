@@ -35,7 +35,7 @@ class CLKernel;
 class CLDevice;
 class CLCommandQueue;
 
-/* correct usage
+/* default context:
  *  SmartPtr<CLContext> context = CLDevice::instance()->get_context();
  */
 
@@ -88,10 +88,15 @@ private:
         const char *build_option);
     void destroy_kernel_id (cl_kernel &kernel_id);
     XCamReturn execute_kernel (
-        CLKernel *kernel,
-        CLCommandQueue *queue = NULL,
+        const SmartPtr<CLKernel> kernel,
+        const SmartPtr<CLCommandQueue> queue,
         CLEventList &events_wait = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
+
+    XCamReturn set_event_callback (
+        SmartPtr<CLEvent> &event, cl_int status,
+        void (*callback) (cl_event, cl_int, void*),
+        void *user_data);
     //bool insert_kernel (SmartPtr<CLKernel> &kernel);
 
     bool init_context ();
@@ -178,7 +183,6 @@ public:
     cl_command_queue get_cmd_queue_id () {
         return _cmd_queue_id;
     }
-    XCamReturn execute_kernel (SmartPtr<CLKernel> &kernel);
 
 private:
     explicit CLCommandQueue (SmartPtr<CLContext> &context, cl_command_queue id);

@@ -28,63 +28,51 @@
 namespace XCam {
 
 enum CLCscType {
-    CL_CSC_TYPE_NONE = 0,
     CL_CSC_TYPE_RGBATONV12,
     CL_CSC_TYPE_RGBATOLAB,
     CL_CSC_TYPE_RGBA64TORGBA,
     CL_CSC_TYPE_YUYVTORGBA,
     CL_CSC_TYPE_NV12TORGBA,
+    CL_CSC_TYPE_MAX,
 };
 
 class CLCscImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLCscImageKernel (SmartPtr<CLContext> &context, const char *name);
-    bool set_matrix (const float *matrix);
-    bool set_csc_kernel_type(CLCscType type);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    explicit CLCscImageKernel (const SmartPtr<CLContext> &context, CLCscType type);
 
 private:
-    XCAM_DEAD_COPY (CLCscImageKernel);
-
-    float                   _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
     CLCscType               _kernel_csc_type;
-    SmartPtr<CLBuffer>      _matrix_buffer;
-    SmartPtr<CLImage>       _image_uv;
 };
 
 class CLCscImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLCscImageHandler (const char *name, CLCscType type);
-    bool set_csc_kernel(SmartPtr<CLCscImageKernel> &kernel);
-    bool set_rgbtoyuv_matrix (const XCam3aResultColorMatrix &matrix);
+    explicit CLCscImageHandler (const SmartPtr<CLContext> &context, const char *name, CLCscType type);
+    bool set_csc_kernel (SmartPtr<CLCscImageKernel> &kernel);
+    bool set_matrix (const XCam3aResultColorMatrix &matrix);
     bool set_output_format (uint32_t fourcc);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input,
         VideoBufferInfo &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLCscImageHandler);
 
 private:
-    uint32_t  _output_format;
-    CLCscType _csc_type;
-    SmartPtr<CLCscImageKernel> _csc_kernel;
+    float                       _rgbtoyuv_matrix[XCAM_COLOR_MATRIX_SIZE];
+    uint32_t                    _output_format;
+    CLCscType                   _csc_type;
+    SmartPtr<CLCscImageKernel>  _csc_kernel;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_csc_image_handler (SmartPtr<CLContext> &context, CLCscType type);
+create_cl_csc_image_handler (const SmartPtr<CLContext> &context, CLCscType type);
 
 };
 

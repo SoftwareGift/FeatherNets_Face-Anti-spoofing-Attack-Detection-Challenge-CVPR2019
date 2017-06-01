@@ -38,41 +38,31 @@ typedef struct {
 class CLRgbPipeImageKernel
     : public CLImageKernel
 {
-    typedef std::list<SmartPtr<CLImage>> CLImagePtrList;
 public:
-    explicit CLRgbPipeImageKernel (SmartPtr<CLContext> &context);
-    virtual ~CLRgbPipeImageKernel () {
-        _image_in_list.clear ();
-    }
-    bool set_tnr_config (const XCam3aResultTemporalNoiseReduction& config);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLRgbPipeImageKernel);
-    CLRgbPipeTnrConfig _tnr_config;
-    CLImagePtrList _image_in_list;
+    explicit CLRgbPipeImageKernel (const SmartPtr<CLContext> &context);
 };
 
 class CLRgbPipeImageHandler
     : public CLImageHandler
 {
+    typedef std::list<SmartPtr<CLImage>> CLImagePtrList;
 public:
-    explicit CLRgbPipeImageHandler (const char *name);
+    explicit CLRgbPipeImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_rgb_pipe_kernel (SmartPtr<CLRgbPipeImageKernel> &kernel);
     bool set_tnr_config (const XCam3aResultTemporalNoiseReduction& config);
 
+protected:
+    virtual XCamReturn prepare_parameters (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+
 private:
-    XCAM_DEAD_COPY (CLRgbPipeImageHandler);
-    SmartPtr<CLRgbPipeImageKernel> _rgb_pipe_kernel;
+    SmartPtr<CLRgbPipeImageKernel>  _rgb_pipe_kernel;
+    CLRgbPipeTnrConfig              _tnr_config;
+    CLImagePtrList                  _image_in_list;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_rgb_pipe_image_handler (SmartPtr<CLContext> &context);
+create_cl_rgb_pipe_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

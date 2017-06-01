@@ -183,7 +183,7 @@ CL3aImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
         SmartPtr<X3aColorMatrixResult> csc_res = result.dynamic_cast_ptr<X3aColorMatrixResult> ();
         XCAM_ASSERT (csc_res.ptr ());
         if (_csc.ptr()) {
-            _csc->set_rgbtoyuv_matrix (csc_res->get_standard_result ());
+            _csc->set_matrix (csc_res->get_standard_result ());
             _csc->set_3a_result (result);
         }
         if (_yuv_pipe.ptr()) {

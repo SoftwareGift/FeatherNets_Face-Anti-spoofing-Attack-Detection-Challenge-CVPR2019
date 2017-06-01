@@ -25,6 +25,11 @@
 
 namespace XCam {
 
+CLMultiImageHandler::CLMultiImageHandler (const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
+{
+}
+
 CLMultiImageHandler::~CLMultiImageHandler ()
 {
     _handler_list.clear ();
@@ -38,38 +43,9 @@ CLMultiImageHandler::add_image_handler (SmartPtr<CLImageHandler> &handler)
 }
 
 XCamReturn
-CLMultiImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLMultiImageHandler::execute_kernels ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    XCAM_FAIL_RETURN (
-        WARNING,
-        !_kernels.empty (),
-        XCAM_RETURN_ERROR_PARAM,
-        "cl_image_handler(%s) no image kernel set", XCAM_STR (_name));
-
-    if (!is_handler_enabled ()) {
-        output = input;
-        return XCAM_RETURN_NO_ERROR;
-    }
-
-    XCAM_FAIL_RETURN (
-        WARNING,
-        (ret = prepare_output_buf (input, output)) == XCAM_RETURN_NO_ERROR,
-        ret,
-        "cl_image_handler (%s) prepare output buf failed", XCAM_STR (_name));
-    XCAM_ASSERT (output.ptr ());
-
-    ret = this->prepare_parameters (input, output);
-    XCAM_FAIL_RETURN (
-        WARNING,
-        (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
-        ret,
-        "cl_image_handler (%s) prepare parameters failed", XCAM_STR (_name));
-    if (ret == XCAM_RETURN_BYPASS)
-        return ret;
-
-    XCAM_OBJ_PROFILING_START;
 
     for (KernelList::iterator i_kernel = _kernels.begin ();
             i_kernel != _kernels.end (); ++i_kernel) {
@@ -79,29 +55,15 @@ CLMultiImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer
         if (!kernel->is_enabled ())
             continue;
 
-        XCAM_FAIL_RETURN (
-            WARNING,
-            (ret = kernel->pre_execute (input, output)) == XCAM_RETURN_NO_ERROR,
-            ret,
-            "cl_image_handler(%s) pre_execute kernel(%s) failed",
-            XCAM_STR (_name), kernel->get_kernel_name ());
+        ret = execute_kernel (kernel);
 
         XCAM_FAIL_RETURN (
             WARNING,
-            (ret = kernel->execute ()) == XCAM_RETURN_NO_ERROR,
-            ret,
-            "cl_image_handler(%s) execute kernel(%s) failed",
+            (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS), ret,
+            "cl_multi_image_handler(%s) execute kernel(%s) failed",
             XCAM_STR (_name), kernel->get_kernel_name ());
 
-        ret = kernel->post_execute (output);
-        XCAM_FAIL_RETURN (
-            WARNING,
-            (ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS),
-            ret,
-            "cl_image_handler(%s) post_execute kernel(%s) failed",
-            XCAM_STR (_name), kernel->get_kernel_name ());
-
-        if (ret == XCAM_RETURN_BYPASS)
+        if (ret != XCAM_RETURN_NO_ERROR)
             break;
 
         for (HandlerList::iterator i_handler = _handler_list.begin ();
@@ -112,23 +74,22 @@ CLMultiImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer
             SmartPtr<CLImageKernel> &sub_handler_last_kernel = *(sub_handler->_kernels.rbegin());
             XCAM_ASSERT (sub_handler_last_kernel.ptr ());
             if (sub_handler_last_kernel.ptr () == kernel.ptr ()) {
-                this->sub_handler_execute_done (sub_handler);
+                sub_handler->reset_buf_cache (NULL, NULL);
+                sub_handler_execute_done (sub_handler);
                 break;
             }
         }
     }
 
-#if ENABLE_PROFILING
-    CLDevice::instance()->get_context ()->finish ();
-#endif
-
-    XCAM_OBJ_PROFILING_END (XCAM_STR (_name), XCAM_OBJ_DUR_FRAME_NUM);
-
-    if (ret != XCAM_RETURN_NO_ERROR)
-        return ret;
-
-    ret = execute_done (output);
     return ret;
+}
+
+XCamReturn
+CLMultiImageHandler::ensure_handler_parameters (
+    const SmartPtr<CLImageHandler> &handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    XCAM_ASSERT (handler.ptr ());
+    return handler->ensure_parameters (input, output);
 }
 
 XCamReturn
@@ -138,10 +99,7 @@ CLMultiImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<
             i_handler != _handler_list.end (); ++i_handler) {
         SmartPtr<CLImageHandler> &handler = *i_handler;
         XCAM_ASSERT (handler.ptr ());
-
-        XCamReturn ret = handler->prepare_parameters (input, output);
-        if (ret == XCAM_RETURN_BYPASS)
-            return ret;
+        XCamReturn ret = ensure_handler_parameters (handler, input, output);
 
         XCAM_FAIL_RETURN (
             WARNING,

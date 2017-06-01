@@ -25,39 +25,60 @@
 #include "cl_device.h"
 #include "cl_image_bo_buffer.h"
 
+namespace XCam {
+
 static uint32_t retinex_gauss_scale [3] = {2, 8, 20}; //{20, 60, 150};
 static float retinex_gauss_sigma [3] = {2.0f, 8.0f, 20.0f}; //{12.0f, 40.0f, 120.0f};
 static float retinex_config_log_min = -0.12f; // -0.18f
 static float retinex_config_log_max = 0.18f;  //0.2f
 
-namespace XCam {
+enum {
+    KernelScaler = 0,
+    KernelGaussian,
+    KernelRetinex,
+};
 
-CLRetinexScalerImageKernel::CLRetinexScalerImageKernel (SmartPtr<CLContext> &context,
-        CLImageScalerMemoryLayout mem_layout,
-        SmartPtr<CLRetinexImageHandler> &retinex)
-    :  CLScalerKernel (context, mem_layout),
-       _retinex(retinex)
+const static XCamKernelInfo kernel_retinex_info [] = {
+    {
+        "kernel_image_scaler",
+#include "kernel_image_scaler.clx"
+        , 0,
+    },
+    {
+        "kernel_gauss",
+#include "kernel_gauss.clx"
+        , 0,
+    },
+    {
+        "kernel_retinex",
+#include "kernel_retinex.clx"
+        , 0,
+    },
+};
+
+CLRetinexScalerImageKernel::CLRetinexScalerImageKernel (
+    const SmartPtr<CLContext> &context,
+    const CLImageScalerMemoryLayout mem_layout,
+    SmartPtr<CLRetinexImageHandler> &retinex)
+    : CLScalerKernel (context, mem_layout)
+    , _retinex(retinex)
 {
 }
 
 SmartPtr<DrmBoBuffer>
-CLRetinexScalerImageKernel::get_output_parameter (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLRetinexScalerImageKernel::get_input_buffer ()
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
+    return _retinex->get_input_buf ();
+}
+
+SmartPtr<DrmBoBuffer>
+CLRetinexScalerImageKernel::get_output_buffer ()
+{
     return _retinex->get_scaler_buf1 ();
 }
 
-void
-CLRetinexScalerImageKernel::pre_stop ()
-{
-    if (_retinex.ptr ())
-        _retinex->pre_stop ();
-}
-
 CLRetinexGaussImageKernel::CLRetinexGaussImageKernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLRetinexImageHandler> &retinex,
     uint32_t index,
     uint32_t radius, float sigma)
@@ -68,23 +89,18 @@ CLRetinexGaussImageKernel::CLRetinexGaussImageKernel (
 }
 
 SmartPtr<DrmBoBuffer>
-CLRetinexGaussImageKernel::get_input_parameter (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLRetinexGaussImageKernel::get_input_buf ()
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     return _retinex->get_scaler_buf1 ();
 }
+
 SmartPtr<DrmBoBuffer>
-CLRetinexGaussImageKernel::get_output_parameter (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLRetinexGaussImageKernel::get_output_buf ()
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
     return _retinex->get_gaussian_buf (_index);
 }
 
-CLRetinexImageKernel::CLRetinexImageKernel (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &retinex)
+CLRetinexImageKernel::CLRetinexImageKernel (const SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> &retinex)
     : CLImageKernel (context, "kernel_retinex"),
       _retinex (retinex)
 {
@@ -92,13 +108,16 @@ CLRetinexImageKernel::CLRetinexImageKernel (SmartPtr<CLContext> &context, SmartP
 
 XCamReturn
 CLRetinexImageKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+    CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
+    SmartPtr<DrmBoBuffer> input = _retinex->get_input_buf ();
+    SmartPtr<DrmBoBuffer> output = _retinex->get_output_buf ();
     const VideoBufferInfo & video_info_in = input->get_video_info ();
     const VideoBufferInfo & video_info_out = output->get_video_info ();
+    SmartPtr<CLImage> image_in, image_in_uv;
+    SmartPtr<CLImage> image_out, image_out_uv;
+    SmartPtr<CLImage> image_in_ga[XCAM_RETINEX_MAX_SCALE];
 
     CLImageDesc cl_desc_in, cl_desc_out, cl_desc_ga;
 
@@ -107,27 +126,27 @@ CLRetinexImageKernel::prepare_arguments (
     cl_desc_in.width = video_info_in.width / 4; // 16;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    _image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
 
     cl_desc_in.height = video_info_in.height / 2;
     cl_desc_in.row_pitch = video_info_in.strides[1];
-    _image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
+    image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
 
     cl_desc_out.format.image_channel_data_type = CL_UNORM_INT8; //CL_UNSIGNED_INT32;
     cl_desc_out.format.image_channel_order = CL_RGBA;
     cl_desc_out.width = video_info_out.width / 4; // 16;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
-    _image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
+    image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
     cl_desc_out.height = video_info_out.height / 2;
     cl_desc_out.row_pitch = video_info_out.strides[1];
-    _image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[1]);
+    image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[1]);
 
     XCAM_FAIL_RETURN (
         WARNING,
-        _image_in->is_valid () && _image_in_uv->is_valid () &&
-        _image_out->is_valid () && _image_out_uv->is_valid(),
+        image_in->is_valid () && image_in_uv->is_valid () &&
+        image_out->is_valid () && image_out_uv->is_valid(),
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
@@ -141,50 +160,30 @@ CLRetinexImageKernel::prepare_arguments (
         cl_desc_ga.width = video_info_gauss.width;
         cl_desc_ga.height = video_info_gauss.height;
         cl_desc_ga.row_pitch = video_info_gauss.strides[0];
-        _image_in_ga[i] = new CLVaImage (context, gaussian_buf, cl_desc_ga, video_info_gauss.offsets[0]);
+        image_in_ga[i] = new CLVaImage (context, gaussian_buf, cl_desc_ga, video_info_gauss.offsets[0]);
 
         XCAM_FAIL_RETURN (
             WARNING,
-            _image_in_ga[i]->is_valid (),
+            image_in_ga[i]->is_valid (),
             XCAM_RETURN_ERROR_MEM,
             "cl image kernel(%s) gauss memory[%d] is invalid", get_kernel_name (), i);
     }
-
-    _retinex_config.log_min = retinex_config_log_min;
-    _retinex_config.log_max = retinex_config_log_max;
-    _retinex_config.gain = 1.0f / (_retinex_config.log_max - _retinex_config.log_min);
-    _retinex_config.width = (float)video_info_in.width;
-    _retinex_config.height = (float)video_info_in.height;
-
+    CLRetinexConfig retinex_config;
+    retinex_config.log_min = retinex_config_log_min;
+    retinex_config.log_max = retinex_config_log_max;
+    retinex_config.gain = 1.0f / (retinex_config.log_max - retinex_config.log_min);
+    retinex_config.width = (float)video_info_in.width;
+    retinex_config.height = (float)video_info_in.height;
 
     //set args;
-    arg_count = 0;
-    args[arg_count].arg_adress = &_image_in->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_image_in_uv->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
+    args.push_back (new CLMemArgument (image_in));
+    args.push_back (new CLMemArgument (image_in_uv));
     for (uint32_t i = 0; i < XCAM_RETINEX_MAX_SCALE; ++i) {
-        args[arg_count].arg_adress = &_image_in_ga[i]->get_mem_id ();
-        args[arg_count].arg_size = sizeof (cl_mem);
-        ++arg_count;
+        args.push_back (new CLMemArgument (image_in_ga[i]));
     }
-
-    args[arg_count].arg_adress = &_image_out->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_image_out_uv->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-
-    args[arg_count].arg_adress = &_retinex_config;
-    args[arg_count].arg_size = sizeof (CLRetinexConfig);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image_out));
+    args.push_back (new CLMemArgument (image_out_uv));
+    args.push_back (new CLArgumentT<CLRetinexConfig> (retinex_config));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = video_info_out.width / 4;
@@ -195,26 +194,14 @@ CLRetinexImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLRetinexImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    for (uint32_t i = 0; i < XCAM_RETINEX_MAX_SCALE; ++i)
-        _image_in_ga[i].release ();
-
-    _image_in_uv.release ();
-    _image_out_uv.release ();
-
-    return CLImageKernel::post_execute (output);
-}
-
-CLRetinexImageHandler::CLRetinexImageHandler (const char *name)
-    : CLImageHandler (name)
+CLRetinexImageHandler::CLRetinexImageHandler (const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
     , _scaler_factor(XCAM_RETINEX_SCALER_FACTOR)
 {
 }
 
 void
-CLRetinexImageHandler::pre_stop ()
+CLRetinexImageHandler::emit_stop ()
 {
     if (_scaler_buf_pool.ptr ())
         _scaler_buf_pool->stop ();
@@ -230,10 +217,9 @@ CLRetinexImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPt
         WARNING,
         ret == XCAM_RETURN_NO_ERROR,
         ret,
-        "CLImageScalerKernel prepare scaled video buf failed");
+        "CLRetinexImageHandler prepare scaled video buf failed");
 
     return XCAM_RETURN_NO_ERROR;
-
 }
 
 XCamReturn
@@ -244,7 +230,7 @@ CLRetinexImageHandler::prepare_scaler_buf (const VideoBufferInfo &video_info)
 
     if (!_scaler_buf_pool.ptr ()) {
         SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-        SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
+        SmartPtr<CLContext> context = get_context ();
         VideoBufferInfo scaler_video_info;
         uint32_t new_width = XCAM_ALIGN_UP ((uint32_t)(video_info.width * _scaler_factor), 8);
         uint32_t new_height = XCAM_ALIGN_UP ((uint32_t)(video_info.height * _scaler_factor), 4);
@@ -287,93 +273,74 @@ CLRetinexImageHandler::set_retinex_scaler_kernel(SmartPtr<CLRetinexScalerImageKe
     return true;
 }
 
-SmartPtr<CLRetinexScalerImageKernel>
-create_kernel_retinex_scaler (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> handler)
+static SmartPtr<CLRetinexScalerImageKernel>
+create_kernel_retinex_scaler (
+    const SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> handler)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLRetinexScalerImageKernel> kernel;
 
     kernel = new CLRetinexScalerImageKernel (context, CL_IMAGE_SCALER_NV12_Y, handler);
     XCAM_ASSERT (kernel.ptr ());
-    {
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_image_scaler)
-#include "kernel_image_scaler.clx"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = kernel->load_from_source (kernel_image_scaler_body, strlen (kernel_image_scaler_body));
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", kernel->get_kernel_name());
-    }
+    XCAM_FAIL_RETURN (
+        ERROR, kernel->build_kernel (kernel_retinex_info[KernelScaler], NULL) == XCAM_RETURN_NO_ERROR, NULL,
+        "build retinex scaler kernel(%s) failed", kernel_retinex_info[KernelScaler].kernel_name);
+
+    XCAM_ASSERT (kernel->is_valid ());
     return kernel;
 }
 
-SmartPtr<CLRetinexGaussImageKernel>
+static SmartPtr<CLRetinexGaussImageKernel>
 create_kernel_retinex_gaussian (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLRetinexImageHandler> handler,
     uint32_t index,
     uint32_t radius, float sigma)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLRetinexGaussImageKernel> kernel;
+    char build_options[1024];
+
+    xcam_mem_clear (build_options);
+    snprintf (build_options, sizeof (build_options), " -DGAUSS_RADIUS=%d ", radius);
 
     kernel = new CLRetinexGaussImageKernel (context, handler, index, radius, sigma);
-    {
-        char build_options[1024];
-        xcam_mem_clear (build_options);
-        snprintf (build_options, sizeof (build_options), " -DGAUSS_RADIUS=%d ", radius);
+    XCAM_ASSERT (kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR, kernel->build_kernel (kernel_retinex_info[KernelGaussian], build_options) == XCAM_RETURN_NO_ERROR, NULL,
+        "build retinex gaussian kernel(%s) failed", kernel_retinex_info[KernelGaussian].kernel_name);
 
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_gauss)
-#include "kernel_gauss.clx"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = kernel->load_from_source (
-                  kernel_gauss_body, strlen (kernel_gauss_body),
-                  NULL, NULL, build_options);
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", kernel->get_kernel_name());
-    }
+    XCAM_ASSERT (kernel->is_valid ());
+
     return kernel;
 }
 
-SmartPtr<CLRetinexImageKernel>
-create_kernel_retinex (SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> handler)
+static SmartPtr<CLRetinexImageKernel>
+create_kernel_retinex (const SmartPtr<CLContext> &context, SmartPtr<CLRetinexImageHandler> handler)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLRetinexImageKernel> kernel;
+    char build_options[1024];
+
+    xcam_mem_clear (build_options);
+    snprintf (build_options, sizeof (build_options), " -DRETINEX_SCALE_SIZE=%d ", XCAM_RETINEX_MAX_SCALE);
 
     kernel = new CLRetinexImageKernel (context, handler);
-    {
-        char build_options[1024];
-        xcam_mem_clear (build_options);
-        snprintf (build_options, sizeof (build_options), " -DRETINEX_SCALE_SIZE=%d ", XCAM_RETINEX_MAX_SCALE);
+    XCAM_ASSERT (kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR, kernel->build_kernel (kernel_retinex_info[KernelRetinex], build_options) == XCAM_RETURN_NO_ERROR, NULL,
+        "build retinex kernel(%s) failed", kernel_retinex_info[KernelRetinex].kernel_name);
 
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_retinex)
-#include "kernel_retinex.clx"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = kernel->load_from_source (kernel_retinex_body, strlen (kernel_retinex_body), NULL, NULL, build_options);
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", kernel->get_kernel_name());
-    }
+    XCAM_ASSERT (kernel->is_valid ());
     return kernel;
 }
 
 SmartPtr<CLImageHandler>
-create_cl_retinex_image_handler (SmartPtr<CLContext> &context)
+create_cl_retinex_image_handler (const SmartPtr<CLContext> &context)
 {
     SmartPtr<CLRetinexImageHandler> retinex_handler;
 
     SmartPtr<CLRetinexScalerImageKernel> retinex_scaler_kernel;
     SmartPtr<CLRetinexImageKernel> retinex_kernel;
 
-    retinex_handler = new CLRetinexImageHandler ("cl_handler_retinex");
+    retinex_handler = new CLRetinexImageHandler (context, "cl_handler_retinex");
     retinex_scaler_kernel = create_kernel_retinex_scaler (context, retinex_handler);
     XCAM_FAIL_RETURN (
         ERROR,

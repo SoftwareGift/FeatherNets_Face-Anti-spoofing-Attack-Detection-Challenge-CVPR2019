@@ -33,6 +33,7 @@
 #define XCAM_DEFOG_DC_REFINED       4
 #define XCAM_DEFOG_DC_MAX_BUF       5
 
+
 #define XCAM_DEFOG_R_CHANNEL    0
 #define XCAM_DEFOG_G_CHANNEL    1
 #define XCAM_DEFOG_B_CHANNEL    2
@@ -46,22 +47,13 @@ class CLDarkChannelKernel
     : public CLImageKernel
 {
 public:
-    explicit CLDarkChannelKernel (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler);
+    explicit CLDarkChannelKernel (
+        const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
-    XCAM_DEAD_COPY (CLDarkChannelKernel);
-
-private:
-    SmartPtr<CLImage>                  _image_in_y;
-    SmartPtr<CLImage>                  _image_in_uv;
     SmartPtr<CLDefogDcpImageHandler>   _defog_handler;
 };
 
@@ -70,16 +62,10 @@ class CLMinFilterKernel
 {
 public:
     explicit CLMinFilterKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler, int index);
+        const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler, int index);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLMinFilterKernel);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
     SmartPtr<CLDefogDcpImageHandler>   _defog_handler;
     uint32_t                           _buf_index;
@@ -90,20 +76,15 @@ class CLBiFilterKernel
 {
 public:
     explicit CLBiFilterKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler);
+        const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     XCAM_DEAD_COPY (CLBiFilterKernel);
 
 private:
-    SmartPtr<CLImage>                  _image_in_y;
     SmartPtr<CLDefogDcpImageHandler>   _defog_handler;
 };
 
@@ -112,14 +93,10 @@ class CLDefogRecoverKernel
 {
 public:
     explicit CLDefogRecoverKernel (
-        SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler);
+        const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     float get_max_value (SmartPtr<DrmBoBuffer> &buf);
@@ -128,8 +105,6 @@ private:
 
 private:
     SmartPtr<CLDefogDcpImageHandler>   _defog_handler;
-    SmartPtr<CLImage>                  _image_out_y;
-    SmartPtr<CLImage>                  _image_out_uv;
     float                              _max_r;
     float                              _max_g;
     float                              _max_b;
@@ -140,7 +115,8 @@ class CLDefogDcpImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLDefogDcpImageHandler (const char *name);
+    explicit CLDefogDcpImageHandler (
+        const SmartPtr<CLContext> &context, const char *name);
 
     SmartPtr<CLImage> &get_dark_map (uint index) {
         XCAM_ASSERT (index < XCAM_DEFOG_DC_MAX_BUF);
@@ -150,8 +126,6 @@ public:
         XCAM_ASSERT (index < XCAM_DEFOG_MAX_CHANNELS);
         return _rgb_buf[index];
     };
-
-    void pre_stop ();
 
 protected:
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
@@ -169,7 +143,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_cl_defog_dcp_image_handler (SmartPtr<CLContext> &context);
+create_cl_defog_dcp_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

@@ -22,11 +22,22 @@
 
 namespace XCam {
 
-CLTonemappingImageKernel::CLTonemappingImageKernel (SmartPtr<CLContext> &context,
-        const char *name)
+static const XCamKernelInfo kernel_tonemapping_info = {
+    "kernel_tonemapping",
+#include "kernel_tonemapping.clx"
+    , 0,
+};
+
+CLTonemappingImageKernel::CLTonemappingImageKernel (
+    const SmartPtr<CLContext> &context, const char *name)
     : CLImageKernel (context, name)
-    , _y_max (0.0)
-    , _y_target (0.0)
+{
+}
+
+CLTonemappingImageHandler::CLTonemappingImageHandler (
+    const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
+    , _output_format (XCAM_PIX_FMT_SGRBG16_planar)
 {
     _wb_config.r_gain = 1.0;
     _wb_config.gr_gain = 1.0;
@@ -35,7 +46,16 @@ CLTonemappingImageKernel::CLTonemappingImageKernel (SmartPtr<CLContext> &context
 }
 
 bool
-CLTonemappingImageKernel::set_wb (const XCam3aResultWhiteBalance &wb)
+CLTonemappingImageHandler::set_tonemapping_kernel(SmartPtr<CLTonemappingImageKernel> &kernel)
+{
+    SmartPtr<CLImageKernel> image_kernel = kernel;
+    add_kernel (image_kernel);
+    _tonemapping_kernel = kernel;
+    return true;
+}
+
+bool
+CLTonemappingImageHandler::set_wb_config (const XCam3aResultWhiteBalance &wb)
 {
     _wb_config.r_gain = (float)wb.r_gain;
     _wb_config.gr_gain = (float)wb.gr_gain;
@@ -44,27 +64,45 @@ CLTonemappingImageKernel::set_wb (const XCam3aResultWhiteBalance &wb)
     return true;
 }
 
-
 XCamReturn
-CLTonemappingImageKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLTonemappingImageHandler::prepare_buffer_pool_video_info (
+    const VideoBufferInfo &input,
+    VideoBufferInfo &output)
 {
-    SmartPtr<CLContext> context = get_context ();
+    bool format_inited = output.init (_output_format, input.width, input.height);
 
-    _image_in = new CLVaImage (context, input);
-    _image_out = new CLVaImage (context, output);
-
-    const VideoBufferInfo & in_video_info = input->get_video_info ();
-    _image_height = in_video_info.aligned_height;
-
-    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
         WARNING,
-        _image_in->is_valid () && _image_out->is_valid (),
+        format_inited,
+        XCAM_RETURN_ERROR_PARAM,
+        "CL image handler(%s) output format(%s) unsupported",
+        XCAM_STR(get_name ()), xcam_fourcc_to_string (_output_format));
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLTonemappingImageHandler::prepare_parameters (
+    SmartPtr<DrmBoBuffer> &input,
+    SmartPtr<DrmBoBuffer> &output)
+{
+    SmartPtr<CLContext> context = get_context ();
+    float y_max = 0.0f, y_target = 0.0f;
+    CLArgList args;
+    CLWorkSize work_size;
+    XCAM_ASSERT (_tonemapping_kernel.ptr ());
+
+    SmartPtr<CLImage> image_in = new CLVaImage (context, input);
+    SmartPtr<CLImage> image_out = new CLVaImage (context, output);
+
+    const VideoBufferInfo & in_video_info = input->get_video_info ();
+    int image_height = in_video_info.aligned_height;
+
+    XCAM_FAIL_RETURN (
+        WARNING,
+        image_in->is_valid () && image_out->is_valid (),
         XCAM_RETURN_ERROR_MEM,
-        "cl image kernel(%s) in/out memory not available", get_kernel_name ());
+        "cl image handler(%s) in/out memory not available", XCAM_STR(get_name ()));
 
     SmartPtr<X3aStats> stats = input->find_3a_stats ();
     XCAM_FAIL_RETURN (
@@ -111,104 +149,58 @@ CLTonemappingImageKernel::prepare_arguments (
         y_saturated = y_saturated + 1;
     }
 
-    _y_target =  (hist_bin_count / y_saturated) * (1.5 * y_medium + 0.5 * y_average) / 2;
+    y_target =  (hist_bin_count / y_saturated) * (1.5 * y_medium + 0.5 * y_average) / 2;
 
-    if (_y_target < 4) {
-        _y_target = 4;
+    if (y_target < 4) {
+        y_target = 4;
     }
-    if ((_y_target > y_saturated) || (y_saturated < 4)) {
-        _y_target = y_saturated / 4;
+    if ((y_target > y_saturated) || (y_saturated < 4)) {
+        y_target = y_saturated / 4;
     }
 
-    _y_max = hist_bin_count * (2 * y_saturated + _y_target) / y_saturated - y_saturated - _y_target;
+    y_max = hist_bin_count * (2 * y_saturated + y_target) / y_saturated - y_saturated - y_target;
 
-    _y_target = _y_target / pow(2, stats_ptr->info.bit_depth - 8);
-    _y_max = _y_max / pow(2, stats_ptr->info.bit_depth - 8);
+    y_target = y_target / pow(2, stats_ptr->info.bit_depth - 8);
+    y_max = y_max / pow(2, stats_ptr->info.bit_depth - 8);
+
     //set args;
-    args[0].arg_adress = &_image_in->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_y_max;
-    args[2].arg_size = sizeof (float);
-    args[3].arg_adress = &_y_target;
-    args[3].arg_size = sizeof (float);
-    args[4].arg_adress = &_image_height;
-    args[4].arg_size = sizeof (int);
+    args.push_back (new CLMemArgument (image_in));
+    args.push_back (new CLMemArgument (image_out));
+    args.push_back (new CLArgumentT<float> (y_max));
+    args.push_back (new CLArgumentT<float> (y_target));
+    args.push_back (new CLArgumentT<int> (image_height));
 
-    arg_count = 5;
-
-    const CLImageDesc out_info = _image_out->get_image_desc ();
+    const CLImageDesc out_info = image_out->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = out_info.width;
     work_size.global[1] = out_info.height / 4;
     work_size.local[0] = 8;
     work_size.local[1] = 8;
 
-    return XCAM_RETURN_NO_ERROR;
-}
-
-CLTonemappingImageHandler::CLTonemappingImageHandler (const char *name)
-    : CLImageHandler (name)
-    , _output_format (XCAM_PIX_FMT_SGRBG16_planar)
-{
-}
-
-bool
-CLTonemappingImageHandler::set_tonemapping_kernel(SmartPtr<CLTonemappingImageKernel> &kernel)
-{
-    SmartPtr<CLImageKernel> image_kernel = kernel;
-    add_kernel (image_kernel);
-    _tonemapping_kernel = kernel;
-    return true;
-}
-
-bool
-CLTonemappingImageHandler::set_wb_config (const XCam3aResultWhiteBalance &wb)
-{
-    return _tonemapping_kernel->set_wb (wb);
-}
-
-
-XCamReturn
-CLTonemappingImageHandler::prepare_buffer_pool_video_info (
-    const VideoBufferInfo &input,
-    VideoBufferInfo &output)
-{
-    bool format_inited = output.init (_output_format, input.width, input.height);
-
+    XCAM_ASSERT (_tonemapping_kernel.ptr ());
+    XCamReturn ret = _tonemapping_kernel->set_arguments (args, work_size);
     XCAM_FAIL_RETURN (
-        WARNING,
-        format_inited,
-        XCAM_RETURN_ERROR_PARAM,
-        "CL image handler(%s) output format(%s) unsupported",
-        get_name (), xcam_fourcc_to_string (_output_format));
+        WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
+        "tone mapping kernel set arguments failed.");
 
     return XCAM_RETURN_NO_ERROR;
 }
 
 
 SmartPtr<CLImageHandler>
-create_cl_tonemapping_image_handler (SmartPtr<CLContext> &context)
+create_cl_tonemapping_image_handler (const SmartPtr<CLContext> &context)
 {
     SmartPtr<CLTonemappingImageHandler> tonemapping_handler;
     SmartPtr<CLTonemappingImageKernel> tonemapping_kernel;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     tonemapping_kernel = new CLTonemappingImageKernel (context, "kernel_tonemapping");
-    {
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_tonemapping)
-#include "kernel_tonemapping.clx"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = tonemapping_kernel->load_from_source (kernel_tonemapping_body, strlen (kernel_tonemapping_body));
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", tonemapping_kernel->get_kernel_name());
-    }
+    XCAM_ASSERT (tonemapping_kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR, tonemapping_kernel->build_kernel (kernel_tonemapping_info, NULL) == XCAM_RETURN_NO_ERROR, NULL,
+        "build tonemapping kernel(%s) failed", kernel_tonemapping_info.kernel_name);
+
     XCAM_ASSERT (tonemapping_kernel->is_valid ());
-    tonemapping_handler = new CLTonemappingImageHandler("cl_handler_tonemapping");
+    tonemapping_handler = new CLTonemappingImageHandler(context, "cl_handler_tonemapping");
     tonemapping_handler->set_tonemapping_kernel(tonemapping_kernel);
 
     return tonemapping_handler;

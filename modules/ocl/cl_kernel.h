@@ -24,6 +24,8 @@
 #include "xcam_utils.h"
 #include "smartptr.h"
 #include "cl_event.h"
+#include "cl_argument.h"
+
 #include <CL/cl.h>
 #include <string>
 
@@ -35,8 +37,6 @@
     const uint8_t func##_body[] =
 
 #define XCAM_CL_KERNEL_FUNC_END
-
-#define XCAM_CL_KERNEL_MAX_WORK_DIM 3
 
 XCAM_BEGIN_DECLARE
 
@@ -65,18 +65,11 @@ class CLKernel;
 class CLKernel {
     friend class CLContext;
 public:
-    explicit CLKernel (SmartPtr<CLContext> &context, const char *name);
+    explicit CLKernel (const SmartPtr<CLContext> &context, const char *name);
     virtual ~CLKernel ();
 
     XCamReturn build_kernel (const XCamKernelInfo& info, const char* options = NULL);
 
-    XCamReturn load_from_source (
-        const char *source, size_t length = 0,
-        uint8_t **gen_binary = NULL,
-        size_t *binary_size = NULL,
-        const char *build_option = NULL);
-    XCamReturn load_from_binary (const uint8_t *binary, size_t length);
-    XCamReturn clone (SmartPtr<CLKernel> kernel);
     cl_kernel get_kernel_id () {
         return _kernel_id;
     }
@@ -90,36 +83,56 @@ public:
         return  _context;
     }
 
-    XCamReturn set_argument (uint32_t arg_i, void *arg_addr, uint32_t arg_size);
-    XCamReturn set_work_size (uint32_t dim, size_t *global, size_t *local);
+    XCamReturn set_arguments (const CLArgList &args, const CLWorkSize &work_size);
+    const CLWorkSize &get_work_size () const {
+        return _work_size;
+    }
 
-    uint32_t get_work_dims () const {
-        return _work_dim;
+    bool is_arguments_set () const {
+        return !_arg_list.empty ();
     }
-    const size_t *get_work_global_size () const {
-        return _global_work_size;
-    }
-    const size_t *get_work_local_size () const {
-        return _local_work_size;
+    const CLArgList &get_args () const {
+        return _arg_list;
     }
 
     XCamReturn execute (
+        const SmartPtr<CLKernel> self,
+        bool block = false,
         CLEventList &events = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
+    XCamReturn load_from_source (
+        const char *source, size_t length = 0,
+        uint8_t **gen_binary = NULL,
+        size_t *binary_size = NULL,
+        const char *build_option = NULL);
+
+    XCamReturn load_from_binary (const uint8_t *binary, size_t length);
+
 private:
+    XCamReturn set_argument (uint32_t arg_i, void *arg_addr, uint32_t arg_size);
+    XCamReturn set_work_size (const CLWorkSize &work_size);
     void set_default_work_size ();
     void destroy ();
+    XCamReturn clone (SmartPtr<CLKernel> kernel);
+
+    static void event_notify (cl_event event, cl_int status, void* data);
     XCAM_DEAD_COPY (CLKernel);
+
+private:
+    typedef std::map<std::string, SmartPtr<CLKernel> > KernelMap;
+
+    static KernelMap      _kernel_map;
+    static Mutex          _kernel_map_mutex;
 
 private:
     char                 *_name;
     cl_kernel             _kernel_id;
     SmartPtr<CLContext>   _context;
     SmartPtr<CLKernel>    _parent_kernel;
-    uint32_t              _work_dim;
-    size_t                _global_work_size [XCAM_CL_KERNEL_MAX_WORK_DIM];
-    size_t                _local_work_size [XCAM_CL_KERNEL_MAX_WORK_DIM];
+    CLArgList             _arg_list;
+    CLWorkSize            _work_size;
+
     XCAM_OBJ_PROFILING_DEFINES;
 };
 

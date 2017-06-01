@@ -58,25 +58,21 @@ class CLImageWarpKernel
     : public CLImageKernel
 {
 public:
-    explicit CLImageWarpKernel (SmartPtr<CLContext> &context,
-                                const char *name,
-                                uint32_t channel,
-                                SmartPtr<CLImageWarpHandler> &handler);
-
-public:
+    explicit CLImageWarpKernel (
+        const SmartPtr<CLContext> &context,
+        const char *name,
+        uint32_t channel,
+        SmartPtr<CLImageWarpHandler> &handler);
 
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
     XCAM_DEAD_COPY (CLImageWarpKernel);
 
-    uint32_t _channel;
+    uint32_t                     _channel;
     SmartPtr<CLImageWarpHandler> _handler;
-    CLWarpConfig _warp_config;
 };
 
 class CLImageWarpHandler
@@ -85,7 +81,7 @@ class CLImageWarpHandler
     typedef std::list<CLWarpConfig> CLWarpConfigList;
 
 public:
-    explicit CLImageWarpHandler ();
+    explicit CLImageWarpHandler (const SmartPtr<CLContext> &context);
     virtual ~CLImageWarpHandler () {
         _warp_config_list.clear ();
     }
@@ -105,7 +101,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_cl_image_warp_handler (SmartPtr<CLContext> &context);
+create_cl_image_warp_handler (const SmartPtr<CLContext> &context);
 
 };
 

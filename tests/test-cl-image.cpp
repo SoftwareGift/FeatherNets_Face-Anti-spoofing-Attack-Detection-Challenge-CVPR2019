@@ -318,7 +318,7 @@ int main (int argc, char *argv[])
         image_handler = create_cl_csc_image_handler (context, csc_type);
         csc_handler = image_handler.dynamic_cast_ptr<CLCscImageHandler> ();
         XCAM_ASSERT (csc_handler.ptr ());
-        csc_handler->set_rgbtoyuv_matrix(color_matrix);
+        csc_handler->set_matrix(color_matrix);
         break;
     }
     case TestHandlerBayerPipe: {
@@ -495,7 +495,7 @@ int main (int argc, char *argv[])
         CHECK_EXP ((ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS), "execute kernels failed");
         if (ret == XCAM_RETURN_BYPASS)
             continue;
-
+        context->finish ();
         XCAM_ASSERT (output_buf.ptr ());
         ret = output_fp.write_buf (output_buf);
         CHECK (ret, "write buffer to %s failed", XCAM_STR (output_file));

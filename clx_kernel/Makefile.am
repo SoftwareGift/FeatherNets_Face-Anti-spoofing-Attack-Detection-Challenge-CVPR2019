@@ -1,15 +1,10 @@
 clx_kernel_sources = \
-	kernel_csc_rgba64torgba.clx   \
-	kernel_csc_rgbatolab.clx      \
-	kernel_csc_rgbatonv12.clx     \
-	kernel_csc_nv12torgba.clx     \
-	kernel_csc_yuyvtorgba.clx     \
+	kernel_csc.clx                \
 	kernel_demo.clx               \
 	kernel_defog_dcp.clx          \
 	kernel_min_filter.clx         \
 	kernel_bi_filter.clx          \
-	kernel_tnr_rgb.clx            \
-	kernel_tnr_yuv.clx            \
+	kernel_tnr.clx                \
 	kernel_bayer_pipe.clx         \
 	kernel_bayer_basic.clx        \
 	kernel_fisheye.clx            \
@@ -17,20 +12,18 @@ clx_kernel_sources = \
 	kernel_yuv_pipe.clx           \
 	kernel_tonemapping.clx        \
 	kernel_newtonemapping.clx     \
-	kernel_bilateral.clx              \
+	kernel_bilateral.clx          \
 	kernel_image_scaler.clx       \
 	kernel_retinex.clx            \
 	kernel_gauss.clx              \
 	kernel_gauss_lap_pyramid.clx  \
 	kernel_geo_map.clx            \
 	kernel_wavelet_denoise.clx    \
-	kernel_wavelet_haar_decomposition.clx       \
-	kernel_wavelet_haar_reconstruction.clx  \
-	kernel_wavelet_coeff_variance.clx \
-	kernel_wavelet_coeff_thresholding.clx \
+	kernel_wavelet_haar.clx       \
+	kernel_wavelet_coeff.clx      \
 	kernel_wire_frame.clx         \
 	kernel_3d_denoise.clx         \
-	kernel_3d_denoise_slm.clx         \
+	kernel_3d_denoise_slm.clx     \
 	kernel_image_warp.clx         \
 	$(NULL)
 

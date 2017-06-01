@@ -59,7 +59,7 @@ struct CVFMConfig {
 class CVFeatureMatch
 {
 public:
-    explicit CVFeatureMatch (SmartPtr<CLContext> &context);
+    explicit CVFeatureMatch (const SmartPtr<CLContext> &context);
 
     void set_ocl (bool use_ocl) {
         _use_ocl = use_ocl;
@@ -79,18 +79,18 @@ protected:
 
     bool convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image);
     bool get_crop_image (SmartPtr<DrmBoBuffer> buffer,
-        cv::Rect img_crop_left, cv::Rect img_crop_right, cv::UMat &img_left, cv::UMat &img_right);
+                         cv::Rect img_crop_left, cv::Rect img_crop_right, cv::UMat &img_left, cv::UMat &img_right);
 
     void add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
     void get_valid_offsets (cv::InputOutputArray out_image, cv::Size img0_size,
-        std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
-        std::vector<uchar> status, std::vector<float> error, std::vector<float> &offsets, float &sum, int &count);
+                            std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
+                            std::vector<uchar> status, std::vector<float> error, std::vector<float> &offsets, float &sum, int &count);
     bool get_mean_offset (std::vector<float> offsets, float sum, int &count, float &mean_offset);
 
     void calc_of_match (cv::InputArray image0, cv::InputArray image1,
-        std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
-        std::vector<uchar> &status, std::vector<float> &error,
-        int &last_count, float &last_mean_offset, float &out_x_offset, int frame_num, int idx);
+                        std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
+                        std::vector<uchar> &status, std::vector<float> &error,
+                        int &last_count, float &last_mean_offset, float &out_x_offset, int frame_num, int idx);
     void adjust_stitch_area (int dst_width, float &x_offset, cv::Rect &stitch0, cv::Rect &stitch1);
     void detect_and_match (
         cv::InputArray img_left, cv::InputArray img_right, cv::Rect &crop_left, cv::Rect &crop_right,

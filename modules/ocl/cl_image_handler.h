@@ -23,34 +23,22 @@
 
 #include "xcam_utils.h"
 #include "cl_kernel.h"
+#include "cl_argument.h"
 #include "drm_bo_buffer.h"
 #include "cl_memory.h"
 #include "x3a_result.h"
 
 namespace XCam {
 
-#define XCAM_DEFAULT_IMAGE_DIM 2
-
-struct CLWorkSize
-{
-    uint32_t dim;
-    size_t global[XCAM_CL_KERNEL_MAX_WORK_DIM];
-    size_t local[XCAM_CL_KERNEL_MAX_WORK_DIM];
-    CLWorkSize();
-};
-
-struct CLArgument
-{
-    void     *arg_adress;
-    uint32_t  arg_size;
-    CLArgument ();
-};
+class CLImageHandler;
 
 class CLImageKernel
     : public CLKernel
 {
+    friend class CLImageHandler;
+
 public:
-    explicit CLImageKernel (SmartPtr<CLContext> &context, const char *name = NULL, bool enable = true);
+    explicit CLImageKernel (const SmartPtr<CLContext> &context, const char *name = NULL, bool enable = true);
     virtual ~CLImageKernel ();
 
     void set_enable (bool enable) {
@@ -60,23 +48,15 @@ public:
     bool is_enabled () const {
         return _enable;
     }
-
-    XCamReturn pre_execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
     virtual void pre_stop () {}
 
 protected:
+    XCamReturn pre_execute ();
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
     XCAM_DEAD_COPY (CLImageKernel);
-
-protected:
-    SmartPtr<CLImage>   _image_in;
-    SmartPtr<CLImage>   _image_out;
 
 private:
     bool                _enable;
@@ -86,7 +66,6 @@ class CLMultiImageHandler;
 class CLImageHandler
 {
     friend class CLMultiImageHandler;
-    friend class CLImage360Stitch;
 
 public:
     typedef std::list<SmartPtr<CLImageKernel>> KernelList;
@@ -96,10 +75,13 @@ public:
     };
 
 public:
-    explicit CLImageHandler (const char *name);
+    explicit CLImageHandler (const SmartPtr<CLContext> &context, const char *name);
     virtual ~CLImageHandler ();
     const char *get_name () const {
         return _name;
+    }
+    SmartPtr<CLContext> &get_context () {
+        return  _context;
     }
 
     void set_3a_result (SmartPtr<X3aResult> &result);
@@ -128,27 +110,39 @@ public:
         uint32_t flags,
         uint32_t init_order = (uint32_t)(SwappedBuffer::OrderY0Y1));
 
-    bool add_kernel (SmartPtr<CLImageKernel> &kernel);
+    bool add_kernel (const SmartPtr<CLImageKernel> &kernel);
     bool enable_handler (bool enable);
     bool is_handler_enabled () const;
 
     virtual bool is_ready ();
-    virtual XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual void emit_stop ();
 
-protected:
+    SmartPtr<DrmBoBuffer> &get_input_buf ();
+    SmartPtr<DrmBoBuffer> &get_output_buf ();
+
+private:
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input,
         VideoBufferInfo &output);
 
     // if derive prepare_output_buf, then prepare_buffer_pool_video_info is not involked
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+
+protected:
+    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+
+    //only for multi-handler
+    virtual XCamReturn execute_kernels ();
+
+    XCamReturn ensure_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn execute_kernel (SmartPtr<CLImageKernel> &kernel);
     XCamReturn create_buffer_pool (const VideoBufferInfo &video_info);
     SmartPtr<BufferPool> &get_buffer_pool () {
         return _buf_pool;
     }
+    void reset_buf_cache (const SmartPtr<DrmBoBuffer>& input, const SmartPtr<DrmBoBuffer>& output);
 
     bool append_kernels (SmartPtr<CLImageHandler> handler);
 
@@ -159,6 +153,7 @@ private:
     char                      *_name;
     bool                       _enable;
     KernelList                 _kernels;
+    SmartPtr<CLContext>        _context;
     SmartPtr<BufferPool>       _buf_pool;
     BufferPoolType             _buf_pool_type;
     bool                       _disable_buf_pool;
@@ -168,6 +163,9 @@ private:
     X3aResultList              _3a_results;
     int64_t                    _result_timestamp;
 
+    SmartPtr<DrmBoBuffer>      _input_buf_cache;
+    SmartPtr<DrmBoBuffer>      _output_buf_cache;
+
     XCAM_OBJ_PROFILING_DEFINES;
 };
 
@@ -176,7 +174,7 @@ class CLCloneImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLCloneImageHandler (const char *name);
+    explicit CLCloneImageHandler (const SmartPtr<CLContext> &context, const char *name);
     void set_clone_flags (uint32_t flags) {
         _clone_flags = flags;
     }

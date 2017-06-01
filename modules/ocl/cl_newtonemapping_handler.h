@@ -25,30 +25,16 @@
 #include "cl_image_handler.h"
 #include "x3a_stats_pool.h"
 
-
 namespace XCam {
 
 class CLNewTonemappingImageKernel
     : public CLImageKernel
 {
 public:
-    explicit CLNewTonemappingImageKernel (SmartPtr<CLContext> &context,
-                                          const char *name);
-
-protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    explicit CLNewTonemappingImageKernel (
+        const SmartPtr<CLContext> &context, const char *name);
 
 private:
-    XCAM_DEAD_COPY (CLNewTonemappingImageKernel);
-    int                     _image_width;
-    int                     _image_height;
-    int                     _block_factor;
-    float                   _map_hist[65536];
-    float                   _y_max[16];
-    float                   _y_avg[16];
     SmartPtr<CLBuffer>      _y_max_buffer;
     SmartPtr<CLBuffer>      _y_avg_buffer;
     SmartPtr<CLBuffer>      _map_hist_buffer;
@@ -58,22 +44,26 @@ class CLNewTonemappingImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLNewTonemappingImageHandler (const char *name);
+    explicit CLNewTonemappingImageHandler (const SmartPtr<CLContext> &context, const char *name);
     bool set_tonemapping_kernel(SmartPtr<CLNewTonemappingImageKernel> &kernel);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
-        const VideoBufferInfo &input,
-        VideoBufferInfo &output);
+        const VideoBufferInfo &input, VideoBufferInfo &output);
+    virtual XCamReturn prepare_parameters (
+        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
-    XCAM_DEAD_COPY (CLNewTonemappingImageHandler);
-    SmartPtr<CLNewTonemappingImageKernel>  _tonemapping_kernel;
-    int32_t  _output_format;
+    SmartPtr<CLNewTonemappingImageKernel>   _tonemapping_kernel;
+    int32_t                                 _output_format;
+    int                                     _block_factor;
+    float                                   _map_hist[65536];
+    float                                   _y_max[16];
+    float                                   _y_avg[16];
 };
 
 SmartPtr<CLImageHandler>
-create_cl_newtonemapping_image_handler (SmartPtr<CLContext> &context);
+create_cl_newtonemapping_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

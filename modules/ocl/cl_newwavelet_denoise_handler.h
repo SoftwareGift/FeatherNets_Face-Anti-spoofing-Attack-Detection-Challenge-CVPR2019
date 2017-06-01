@@ -75,24 +75,20 @@ class CLWaveletNoiseEstimateKernel
 {
 
 public:
-    explicit CLWaveletNoiseEstimateKernel (SmartPtr<CLContext> &context,
-                                           const char *name,
-                                           SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
-                                           uint32_t channel, uint32_t subband, uint32_t layer);
+    explicit CLWaveletNoiseEstimateKernel (
+        const SmartPtr<CLContext> &context,
+        const char *name,
+        SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
+        uint32_t channel, uint32_t subband, uint32_t layer);
 
-    SmartPtr<CLImage> get_input_buffer (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    SmartPtr<CLImage> get_output_buffer (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    SmartPtr<CLImage> get_input_buffer ();
+    SmartPtr<CLImage> get_output_buffer ();
 
     XCamReturn estimate_noise_variance (const VideoBufferInfo & video_info, SmartPtr<CLImage> image, float* noise_var);
 
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLWaveletNoiseEstimateKernel);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
     uint32_t  _decomposition_levels;
@@ -109,29 +105,21 @@ class CLWaveletThresholdingKernel
 {
 
 public:
-    explicit CLWaveletThresholdingKernel (SmartPtr<CLContext> &context,
-                                          const char *name,
-                                          SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
-                                          uint32_t channel, uint32_t layer);
+    explicit CLWaveletThresholdingKernel (
+        const SmartPtr<CLContext> &context,
+        const char *name,
+        SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
+        uint32_t channel, uint32_t layer);
 
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
-
-private:
-    XCAM_DEAD_COPY (CLWaveletThresholdingKernel);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
     uint32_t  _decomposition_levels;
     uint32_t  _channel;
     uint32_t  _current_layer;
-    float     _hard_threshold;
-    float     _soft_threshold;
-    float     _anolog_gain_weight;
     SmartPtr<CLNewWaveletDenoiseImageHandler> _handler;
-    float     _noise_variance[2];
 };
 
 class CLWaveletTransformKernel
@@ -139,35 +127,27 @@ class CLWaveletTransformKernel
 {
 
 public:
-    explicit CLWaveletTransformKernel (SmartPtr<CLContext> &context,
-                                       const char *name,
-                                       SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
-                                       CLWaveletFilterBank fb,
-                                       uint32_t channel,
-                                       uint32_t layer,
-                                       bool bayes_shrink);
+    explicit CLWaveletTransformKernel (
+        const SmartPtr<CLContext> &context,
+        const char *name,
+        SmartPtr<CLNewWaveletDenoiseImageHandler> &handler,
+        CLWaveletFilterBank fb,
+        uint32_t channel,
+        uint32_t layer,
+        bool bayes_shrink);
 
     SmartPtr<CLWaveletDecompBuffer> get_decomp_buffer (uint32_t channel, int layer);
 
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
-    XCAM_DEAD_COPY (CLWaveletTransformKernel);
-
-    SmartPtr<CLImage> _image_in_uv;
-    SmartPtr<CLImage> _image_out_uv;
-
-    CLWaveletFilterBank _filter_bank;
-    uint32_t  _decomposition_levels;
-    uint32_t  _channel;
-    uint32_t  _current_layer;
-    bool      _bayes_shrink;
-    float     _hard_threshold;
-    float     _soft_threshold;
+    CLWaveletFilterBank        _filter_bank;
+    uint32_t                   _decomposition_levels;
+    uint32_t                   _channel;
+    uint32_t                   _current_layer;
+    bool                       _bayes_shrink;
 
     SmartPtr<CLNewWaveletDenoiseImageHandler> _handler;
 };
@@ -178,7 +158,8 @@ class CLNewWaveletDenoiseImageHandler
     typedef std::list<SmartPtr<CLWaveletDecompBuffer>> CLWaveletDecompBufferList;
 
 public:
-    explicit CLNewWaveletDenoiseImageHandler (const char *name, uint32_t channel);
+    explicit CLNewWaveletDenoiseImageHandler (
+        const SmartPtr<CLContext> &context, const char *name, uint32_t channel);
 
     bool set_denoise_config (const XCam3aResultWaveletNoiseReduction& config);
     XCam3aResultWaveletNoiseReduction& get_denoise_config () {
@@ -196,9 +177,6 @@ protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
-    XCAM_DEAD_COPY (CLNewWaveletDenoiseImageHandler);
-
-private:
     uint32_t _channel;
     XCam3aResultWaveletNoiseReduction _config;
     CLWaveletDecompBufferList _decompBufferList;
@@ -206,7 +184,8 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_cl_newwavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel, bool bayes_shrink);
+create_cl_newwavelet_denoise_image_handler (
+    const SmartPtr<CLContext> &context, uint32_t channel, bool bayes_shrink);
 
 };
 

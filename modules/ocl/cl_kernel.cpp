@@ -24,18 +24,17 @@
 
 #define ENABLE_DEBUG_KERNEL 0
 
-#define XCAM_CL_KERNEL_DEFAULT_WORK_DIM 2
 #define XCAM_CL_KERNEL_DEFAULT_LOCAL_WORK_SIZE 0
 
 namespace XCam {
 
-typedef std::map<std::string, SmartPtr<CLKernel> > KernelMap;
+CLKernel::KernelMap CLKernel::_kernel_map;
+Mutex CLKernel::_kernel_map_mutex;
 
-CLKernel::CLKernel (SmartPtr<CLContext> &context, const char *name)
+CLKernel::CLKernel (const SmartPtr<CLContext> &context, const char *name)
     : _name (NULL)
     , _kernel_id (NULL)
     , _context (context)
-    , _work_dim (0)
 {
     XCAM_ASSERT (context.ptr ());
     //XCAM_ASSERT (name);
@@ -91,9 +90,6 @@ get_string_key_id (const char *str, uint32_t len, uint8_t key_id[8])
 XCamReturn
 CLKernel::build_kernel (const XCamKernelInfo& info, const char* options)
 {
-    static KernelMap kernel_map;
-    static Mutex map_mutex;
-
     KernelMap::iterator i_kernel;
     SmartPtr<CLKernel> single_kernel;
     char key_str[1024];
@@ -114,9 +110,9 @@ CLKernel::build_kernel (const XCamKernelInfo& info, const char* options)
     key = key_str;
 
     {
-        SmartLock locker (map_mutex);
-        i_kernel = kernel_map.find (key);
-        if (i_kernel == kernel_map.end ()) {
+        SmartLock locker (_kernel_map_mutex);
+        i_kernel = _kernel_map.find (key);
+        if (i_kernel == _kernel_map.end ()) {
             SmartPtr<CLContext>  context = get_context ();
             single_kernel = new CLKernel (context, info.kernel_name);
             XCAM_ASSERT (single_kernel.ptr ());
@@ -125,7 +121,7 @@ CLKernel::build_kernel (const XCamKernelInfo& info, const char* options)
                 ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
                 "build kernel(%s) from source failed", key_str);
             //kernel_map.insert (std::make_pair (key, single_kernel));
-            kernel_map[key] = single_kernel;
+            _kernel_map[key] = single_kernel;
         } else
             single_kernel = i_kernel->second;
     }
@@ -234,6 +230,43 @@ CLKernel::clone (SmartPtr<CLKernel> kernel)
 }
 
 XCamReturn
+CLKernel::set_arguments (const CLArgList &args, const CLWorkSize &work_size)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    uint32_t i_count = 0;
+
+    XCAM_FAIL_RETURN (
+        ERROR, _arg_list.empty (), XCAM_RETURN_ERROR_PARAM,
+        "cl image kernel(%s) arguments was already set, can NOT be set twice", get_kernel_name ());
+
+    for (CLArgList::const_iterator iter = args.begin (); iter != args.end (); ++iter, ++i_count) {
+        const SmartPtr<CLArgument> &arg = *iter;
+        XCAM_FAIL_RETURN (
+            WARNING, arg.ptr (),
+            XCAM_RETURN_ERROR_PARAM, "cl image kernel(%s) argc(%d) is NULL", get_kernel_name (), i_count);
+
+        void *adress = NULL;
+        uint32_t size = 0;
+        arg->get_value (adress, size);
+        ret = set_argument (i_count, adress, size);
+        XCAM_FAIL_RETURN (
+            WARNING, ret == XCAM_RETURN_NO_ERROR,
+            ret, "cl image kernel(%s) set argc(%d) failed", get_kernel_name (), i_count);
+    }
+
+    ret = set_work_size (work_size);
+    XCAM_FAIL_RETURN (
+        WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
+        "cl image kernel(%s) set worksize(global:%dx%dx%d, local:%dx%dx%d) failed",
+        XCAM_STR(get_kernel_name ()),
+        (int)work_size.global[0], (int)work_size.global[1], (int)work_size.global[2],
+        (int)work_size.local[0], (int)work_size.local[1], (int)work_size.local[2]);
+
+    _arg_list = args;
+    return ret;
+}
+
+XCamReturn
 CLKernel::set_argument (uint32_t arg_i, void *arg_addr, uint32_t arg_size)
 {
     cl_int error_code = clSetKernelArg (_kernel_id, arg_i, arg_size, arg_addr);
@@ -245,7 +278,7 @@ CLKernel::set_argument (uint32_t arg_i, void *arg_addr, uint32_t arg_size)
 }
 
 XCamReturn
-CLKernel::set_work_size (uint32_t dim, size_t *global, size_t *local)
+CLKernel::set_work_size (const CLWorkSize &work_size)
 {
     uint32_t i = 0;
     uint32_t work_group_size = 1;
@@ -253,20 +286,20 @@ CLKernel::set_work_size (uint32_t dim, size_t *global, size_t *local)
 
     XCAM_FAIL_RETURN (
         WARNING,
-        dim <= dev_info.max_work_item_dims,
+        work_size.dim <= dev_info.max_work_item_dims,
         XCAM_RETURN_ERROR_PARAM,
         "kernel(%s) work dims(%d) greater than device max dims(%d)",
-        _name, dim, dev_info.max_work_item_dims);
+        _name, work_size.dim, dev_info.max_work_item_dims);
 
-    for (i = 0; i < dim; ++i) {
-        work_group_size *= local [i];
+    for (i = 0; i < work_size.dim; ++i) {
+        work_group_size *= work_size.local [i];
 
         XCAM_FAIL_RETURN (
             WARNING,
-            local [i] <= dev_info.max_work_item_sizes [i],
+            work_size.local [i] <= dev_info.max_work_item_sizes [i],
             XCAM_RETURN_ERROR_PARAM,
             "kernel(%s) work item(%d) size:%d is greater than device max work item size(%d)",
-            _name, i, (uint32_t)local [i], (uint32_t)dev_info.max_work_item_sizes [i]);
+            _name, i, (uint32_t)work_size.local [i], (uint32_t)dev_info.max_work_item_sizes [i]);
     }
 
     XCAM_FAIL_RETURN (
@@ -276,11 +309,7 @@ CLKernel::set_work_size (uint32_t dim, size_t *global, size_t *local)
         "kernel(%s) work-group-size:%d is greater than device max work-group-size(%d)",
         _name, work_group_size, (uint32_t)dev_info.max_work_group_size);
 
-    _work_dim = dim;
-    for (i = 0; i < dim; ++i) {
-        _global_work_size [i] = global [i];
-        _local_work_size [i] = local [i];
-    }
+    _work_size = work_size;
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -288,24 +317,76 @@ CLKernel::set_work_size (uint32_t dim, size_t *global, size_t *local)
 void
 CLKernel::set_default_work_size ()
 {
-    _work_dim = XCAM_CL_KERNEL_DEFAULT_WORK_DIM;
-    for (uint32_t i = 0; i < _work_dim; ++i) {
+    _work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
+    for (uint32_t i = 0; i < _work_size.dim; ++i) {
         //_global_work_size [i] = XCAM_CL_KERNEL_DEFAULT_GLOBAL_WORK_SIZE;
-        _local_work_size [i] = XCAM_CL_KERNEL_DEFAULT_LOCAL_WORK_SIZE;
+        _work_size.local [i] = XCAM_CL_KERNEL_DEFAULT_LOCAL_WORK_SIZE;
     }
+}
+
+struct KernelUserData {
+    SmartPtr<CLKernel>  kernel;
+    SmartPtr<CLEvent>   event;
+    CLArgList           arg_list;
+
+    KernelUserData (const SmartPtr<CLKernel> &k, SmartPtr<CLEvent> &e)
+        : kernel (k)
+        , event (e)
+    {}
+};
+
+void
+CLKernel::event_notify (cl_event event, cl_int status, void* data)
+{
+    KernelUserData *kernel_data = (KernelUserData *)data;
+    XCAM_ASSERT (event == kernel_data->event->get_event_id ());
+    XCAM_UNUSED (status);
+
+    delete kernel_data;
 }
 
 XCamReturn
 CLKernel::execute (
+    const SmartPtr<CLKernel> self,
+    bool block,
     CLEventList &events,
     SmartPtr<CLEvent> &event_out)
 {
+    XCAM_ASSERT (self.ptr () == this);
     XCAM_ASSERT (_context.ptr ());
+    SmartPtr<CLEvent> kernel_event = event_out;
+
+    if (!block && !kernel_event.ptr ()) {
+        kernel_event = new CLEvent;
+    }
+
 #if ENABLE_DEBUG_KERNEL
     XCAM_OBJ_PROFILING_START;
 #endif
 
-    XCamReturn ret = _context->execute_kernel (this, NULL, events, event_out);
+    XCamReturn ret = _context->execute_kernel (self, NULL, events, kernel_event);
+
+    XCAM_FAIL_RETURN (
+        ERROR,
+        ret == XCAM_RETURN_NO_ERROR,
+        ret,
+        "kernel(%s) execute failed", XCAM_STR(_name));
+
+
+    if (block) {
+        _context->finish ();
+    } else {
+        XCAM_ASSERT (kernel_event.ptr () && kernel_event->get_event_id ());
+        KernelUserData *user_data = new KernelUserData (self, kernel_event);
+        user_data->arg_list.swap (_arg_list);
+        ret = _context->set_event_callback (kernel_event, CL_COMPLETE, event_notify, user_data);
+        if (ret != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_WARNING ("kernel(%s) set event callback failed", XCAM_STR (_name));
+            _context->finish ();
+            delete user_data;
+        }
+    }
+    _arg_list.clear ();
 
 #if ENABLE_DEBUG_KERNEL
     _context->finish ();

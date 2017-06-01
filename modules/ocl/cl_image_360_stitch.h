@@ -78,21 +78,21 @@ typedef struct {
     Rect merge_right;
 } ImageMergeInfo;
 
+class CLImage360Stitch;
 class CLBlenderGlobalScaleKernel
     : public CLBlenderScaleKernel
 {
 public:
-    explicit CLBlenderGlobalScaleKernel (SmartPtr<CLContext> &context, bool is_uv);
+    explicit CLBlenderGlobalScaleKernel (
+        const SmartPtr<CLContext> &context, SmartPtr<CLImage360Stitch> &stitch, bool is_uv);
 
 protected:
-    virtual SmartPtr<CLImage> get_input_image (SmartPtr<DrmBoBuffer> &input);
-    virtual SmartPtr<CLImage> get_output_image (SmartPtr<DrmBoBuffer> &output);
-
-    virtual bool get_output_info (
-        SmartPtr<DrmBoBuffer> &output, uint32_t &out_width, uint32_t &out_height, int &out_offset_x);
+    virtual SmartPtr<CLImage> get_input_image ();
+    virtual SmartPtr<CLImage> get_output_image ();
+    virtual bool get_output_info (uint32_t &out_width, uint32_t &out_height, int &out_offset_x);
 
 private:
-    XCAM_DEAD_COPY (CLBlenderGlobalScaleKernel);
+    SmartPtr<CLImage360Stitch>  _stitch;
 };
 
 class CLImage360Stitch
@@ -100,7 +100,7 @@ class CLImage360Stitch
 {
 public:
     explicit CLImage360Stitch (
-        SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode);
+        const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode);
 
     bool init_stitch_info (CLStitchInfo stitch_info);
     void set_output_size (uint32_t width, uint32_t height) {
@@ -118,16 +118,21 @@ public:
         return _overlaps[image][num];
     }
 
+    SmartPtr<DrmBoBuffer> &get_global_scale_input () {
+        return _scale_global_input;
+    }
+    SmartPtr<DrmBoBuffer> &get_global_scale_output () {
+        return _scale_global_output;
+    }
+
     void set_feature_match_ocl (bool use_ocl);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (const VideoBufferInfo &input, VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
-    XCamReturn execute_self_prepare_parameters (
-        SmartPtr<CLImageHandler> specified_handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
-    XCamReturn prepare_fisheye_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn ensure_fisheye_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     XCamReturn prepare_local_scale_blender_parameters (
         SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
     XCamReturn prepare_global_scale_blender_parameters (
@@ -162,6 +167,8 @@ private:
 
     CLBlenderScaleMode          _scale_mode;
     SmartPtr<BufferPool>        _scale_buf_pool;
+    SmartPtr<DrmBoBuffer>       _scale_global_input;
+    SmartPtr<DrmBoBuffer>       _scale_global_output;
 
     CLStitchResMode             _res_mode;
 
@@ -170,8 +177,11 @@ private:
 
 SmartPtr<CLImageHandler>
 create_image_360_stitch (
-    SmartPtr<CLContext> &context, bool need_seam = false, CLBlenderScaleMode scale_mode = CLBlenderScaleLocal,
-    bool fisheye_map = false, CLStitchResMode res_mode = CLStitchRes1080P);
+    const SmartPtr<CLContext> &context,
+    bool need_seam = false,
+    CLBlenderScaleMode scale_mode = CLBlenderScaleLocal,
+    bool fisheye_map = false,
+    CLStitchResMode res_mode = CLStitchRes1080P);
 
 }
 

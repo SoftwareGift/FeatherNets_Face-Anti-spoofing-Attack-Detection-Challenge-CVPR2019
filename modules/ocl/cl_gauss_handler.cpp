@@ -26,7 +26,50 @@
 
 namespace XCam {
 
-CLGaussImageKernel::CLGaussImageKernel (SmartPtr<CLContext> &context, uint32_t radius, float sigma)
+const static XCamKernelInfo kernel_gauss_info = {
+    "kernel_gauss",
+#include "kernel_gauss.clx"
+    , 0,
+};
+
+class CLGaussImageKernelImpl
+    : public CLGaussImageKernel
+{
+public:
+    CLGaussImageKernelImpl (
+        SmartPtr<CLGaussImageHandler> &handler,
+        const SmartPtr<CLContext> &context, uint32_t radius, float sigma);
+
+    virtual SmartPtr<DrmBoBuffer> get_input_buf ();
+    virtual SmartPtr<DrmBoBuffer> get_output_buf ();
+private:
+    SmartPtr<CLGaussImageHandler> _handler;
+};
+
+CLGaussImageKernelImpl::CLGaussImageKernelImpl (
+    SmartPtr<CLGaussImageHandler> &handler,
+    const SmartPtr<CLContext> &context,
+    uint32_t radius,
+    float sigma
+)
+    : CLGaussImageKernel (context, radius, sigma)
+    , _handler (handler)
+{
+}
+
+SmartPtr<DrmBoBuffer>
+CLGaussImageKernelImpl::get_input_buf ()
+{
+    return _handler->get_input_buf ();
+}
+SmartPtr<DrmBoBuffer>
+CLGaussImageKernelImpl::get_output_buf ()
+{
+    return _handler->get_output_buf ();;
+}
+
+CLGaussImageKernel::CLGaussImageKernel (
+    const SmartPtr<CLContext> &context, uint32_t radius, float sigma)
     : CLImageKernel (context, "kernel_gauss")
     , _g_radius (radius)
     , _g_table (NULL)
@@ -45,11 +88,12 @@ CLGaussImageKernel::set_gaussian (uint32_t radius, float sigma)
     uint32_t i, j;
     uint32_t scale = XCAM_GAUSS_SCALE (radius);
     float dis = 0.0f, sum = 0.0f;
+    uint32_t scale_size = scale * scale * sizeof (_g_table[0]);
 
     xcam_free (_g_table);
     _g_table_buffer.release ();
     _g_radius = radius;
-    _g_table = (float*) xcam_malloc0 (scale * scale * sizeof (_g_table[0]));
+    _g_table = (float*) xcam_malloc0 (scale_size);
     XCAM_ASSERT (_g_table);
 
     for(i = 0; i < scale; i++)  {
@@ -60,36 +104,23 @@ CLGaussImageKernel::set_gaussian (uint32_t radius, float sigma)
         }
     }
 
-    for(i = 0; i < scale * scale; i++)
+    for(i = 0; i < scale * scale; i++) {
         _g_table[i] = _g_table[i] / sum;
+    }
+
+    _g_table_buffer = new CLBuffer(
+        get_context (), scale_size,
+        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR , _g_table);
 
     return true;
 }
 
-SmartPtr<DrmBoBuffer>
-CLGaussImageKernel::get_input_parameter (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
-{
-    XCAM_UNUSED (output);
-    return input;
-}
-SmartPtr<DrmBoBuffer>
-CLGaussImageKernel::get_output_parameter (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
-{
-    XCAM_UNUSED (input);
-    return output;
-}
-
 XCamReturn
-CLGaussImageKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLGaussImageKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer>  input_buf = get_input_parameter (input, output);
-    SmartPtr<DrmBoBuffer>  output_buf = get_output_parameter (input, output);
+    SmartPtr<DrmBoBuffer>  input_buf = get_input_buf ();
+    SmartPtr<DrmBoBuffer>  output_buf = get_output_buf ();
 
     XCAM_FAIL_RETURN (
         WARNING,
@@ -106,36 +137,25 @@ CLGaussImageKernel::prepare_arguments (
     cl_desc_in.width = video_info_in.width;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    _image_in = new CLVaImage (context, input_buf, cl_desc_in, video_info_in.offsets[0]);
+    SmartPtr<CLImage> image_in = new CLVaImage (context, input_buf, cl_desc_in, video_info_in.offsets[0]);
 
     cl_desc_out.format.image_channel_data_type = CL_UNORM_INT8;
     cl_desc_out.format.image_channel_order = CL_RGBA;
     cl_desc_out.width = video_info_out.width / 4;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
-    _image_out = new CLVaImage (context, output_buf, cl_desc_out, video_info_out.offsets[0]);
+    SmartPtr<CLImage> image_out = new CLVaImage (context, output_buf, cl_desc_out, video_info_out.offsets[0]);
 
-    if (!_g_table_buffer.ptr ()) {
-        _g_table_buffer = new CLBuffer(
-            context, sizeof(float) * XCAM_GAUSS_SCALE (_g_radius) * XCAM_GAUSS_SCALE (_g_radius),
-            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR , _g_table);
-    }
-
-    XCAM_ASSERT (_image_in->is_valid () && _image_out->is_valid ());
     XCAM_FAIL_RETURN (
         WARNING,
-        _image_in->is_valid () && _image_out->is_valid (),
+        image_in->is_valid () && image_out->is_valid (),
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     //set args;
-    args[0].arg_adress = &_image_in->get_mem_id ();
-    args[0].arg_size = sizeof (cl_mem);
-    args[1].arg_adress = &_image_out->get_mem_id ();
-    args[1].arg_size = sizeof (cl_mem);
-    args[2].arg_adress = &_g_table_buffer->get_mem_id();
-    args[2].arg_size = sizeof (cl_mem);
-    arg_count = 3;
+    args.push_back (new CLMemArgument (image_in));
+    args.push_back (new CLMemArgument (image_out));
+    args.push_back (new CLMemArgument (_g_table_buffer));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.global[0] = XCAM_ALIGN_UP(cl_desc_out.width, 8);
@@ -146,8 +166,8 @@ CLGaussImageKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLGaussImageHandler::CLGaussImageHandler (const char *name)
-    : CLImageHandler (name)
+CLGaussImageHandler::CLGaussImageHandler (const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
 {
 }
 
@@ -168,32 +188,23 @@ CLGaussImageHandler::set_gauss_kernel(SmartPtr<CLGaussImageKernel> &kernel)
 }
 
 SmartPtr<CLImageHandler>
-create_cl_gauss_image_handler (SmartPtr<CLContext> &context, uint32_t radius, float sigma)
+create_cl_gauss_image_handler (const SmartPtr<CLContext> &context, uint32_t radius, float sigma)
 {
     SmartPtr<CLGaussImageHandler> gauss_handler;
     SmartPtr<CLGaussImageKernel> gauss_kernel;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    char build_options[1024];
 
-    gauss_kernel = new CLGaussImageKernel (context, radius, sigma);
-    {
-        char build_options[1024];
-        xcam_mem_clear (build_options);
-        snprintf (build_options, sizeof (build_options), " -DGAUSS_RADIUS=%d ", radius);
+    xcam_mem_clear (build_options);
+    snprintf (build_options, sizeof (build_options), " -DGAUSS_RADIUS=%d ", radius);
 
-        XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_gauss)
-#include "kernel_gauss.clx"
-        XCAM_CL_KERNEL_FUNC_END;
-        ret = gauss_kernel->load_from_source (
-                  kernel_gauss_body, strlen (kernel_gauss_body),
-                  NULL, NULL, build_options);
-        XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", gauss_kernel->get_kernel_name());
-    }
+    gauss_handler = new CLGaussImageHandler (context, "cl_handler_gauss");
+    gauss_kernel = new CLGaussImageKernelImpl (gauss_handler, context, radius, sigma);
+    XCAM_ASSERT (gauss_kernel.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR, gauss_kernel->build_kernel (kernel_gauss_info, build_options) == XCAM_RETURN_NO_ERROR, NULL,
+        "build gaussian kernel(%s) failed", kernel_gauss_info.kernel_name);
+
     XCAM_ASSERT (gauss_kernel->is_valid ());
-    gauss_handler = new CLGaussImageHandler ("cl_handler_gauss");
     gauss_handler->set_gauss_kernel (gauss_kernel);
 
     return gauss_handler;

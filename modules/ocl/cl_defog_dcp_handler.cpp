@@ -58,7 +58,7 @@ const static XCamKernelInfo kernels_info [] = {
 namespace XCam {
 
 CLDarkChannelKernel::CLDarkChannelKernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLDefogDcpImageHandler> &defog_handler)
     : CLImageKernel (context)
     , _defog_handler (defog_handler)
@@ -66,13 +66,10 @@ CLDarkChannelKernel::CLDarkChannelKernel (
 }
 
 XCamReturn
-CLDarkChannelKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLDarkChannelKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
+    SmartPtr<DrmBoBuffer> &input = _defog_handler->get_input_buf ();
     const VideoBufferInfo & video_info_in = input->get_video_info ();
 
     CLImageDesc cl_desc_in;
@@ -82,32 +79,22 @@ CLDarkChannelKernel::prepare_arguments (
     cl_desc_in.width = video_info_in.width / 8;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    _image_in_y = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    SmartPtr<CLImage> image_in_y = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
 
     cl_desc_in.height = video_info_in.height / 2;
     cl_desc_in.row_pitch = video_info_in.strides[1];
-    _image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
+    SmartPtr<CLImage> image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &_image_in_y->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_image_in_uv->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image_in_y));
+    args.push_back (new CLMemArgument (image_in_uv));
 
     SmartPtr<CLImage> &dark_channel = _defog_handler->get_dark_map (XCAM_DEFOG_DC_ORIGINAL);
-    args[arg_count].arg_adress = &dark_channel->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (dark_channel));
 
     // R, G, B channel
     for (uint32_t i = 0; i < XCAM_DEFOG_MAX_CHANNELS; ++i) {
         SmartPtr<CLImage> &rgb_image = _defog_handler->get_rgb_channel (i);
-        args[arg_count].arg_adress = &rgb_image->get_mem_id ();
-        args[arg_count].arg_size = sizeof (cl_mem);
-        ++arg_count;
+        args.push_back (new CLMemArgument (rgb_image));
     }
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
@@ -119,16 +106,8 @@ CLDarkChannelKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLDarkChannelKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _image_in_y.release ();
-    _image_in_uv.release ();
-    return CLImageKernel::post_execute (output);
-}
-
 CLMinFilterKernel::CLMinFilterKernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLDefogDcpImageHandler> &defog_handler,
     int index)
     : CLImageKernel (context)
@@ -139,25 +118,13 @@ CLMinFilterKernel::CLMinFilterKernel (
 }
 
 XCamReturn
-CLMinFilterKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLMinFilterKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
-    XCAM_UNUSED (output);
-    arg_count = 0;
-
     SmartPtr<CLImage> &dark_channel_in = _defog_handler->get_dark_map (_buf_index - 1);
     SmartPtr<CLImage> &dark_channel_out = _defog_handler->get_dark_map (_buf_index);
 
-    args[arg_count].arg_adress = &dark_channel_in->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &dark_channel_out->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (dark_channel_in));
+    args.push_back (new CLMemArgument (dark_channel_out));
 
     const CLImageDesc &cl_desc = dark_channel_in->get_image_desc ();
 
@@ -178,7 +145,7 @@ CLMinFilterKernel::prepare_arguments (
 }
 
 CLBiFilterKernel::CLBiFilterKernel (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLDefogDcpImageHandler> &defog_handler)
     : CLImageKernel (context)
     , _defog_handler (defog_handler)
@@ -186,13 +153,10 @@ CLBiFilterKernel::CLBiFilterKernel (
 }
 
 XCamReturn
-CLBiFilterKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLBiFilterKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
+    SmartPtr<DrmBoBuffer> &input = _defog_handler->get_input_buf ();
     const VideoBufferInfo & video_info_in = input->get_video_info ();
 
     CLImageDesc cl_desc_in;
@@ -201,23 +165,14 @@ CLBiFilterKernel::prepare_arguments (
     cl_desc_in.width = video_info_in.width / 8;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    _image_in_y = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    SmartPtr<CLImage> image_in_y = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
 
     SmartPtr<CLImage> &dark_channel_in = _defog_handler->get_dark_map (XCAM_DEFOG_DC_ORIGINAL);
     SmartPtr<CLImage> &dark_channel_out = _defog_handler->get_dark_map (XCAM_DEFOG_DC_BI_FILTER);
 
-    arg_count = 0;
-    args[arg_count].arg_adress = &_image_in_y->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &dark_channel_in->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &dark_channel_out->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image_in_y));
+    args.push_back (new CLMemArgument (dark_channel_in));
+    args.push_back (new CLMemArgument (dark_channel_out));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 16;
@@ -228,15 +183,8 @@ CLBiFilterKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLBiFilterKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _image_in_y.release ();
-    return CLImageKernel::post_execute (output);
-}
-
 CLDefogRecoverKernel::CLDefogRecoverKernel (
-    SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler)
+    const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> &defog_handler)
     : CLImageKernel (context)
     , _defog_handler (defog_handler)
     , _max_r (255.0f)
@@ -282,65 +230,41 @@ CLDefogRecoverKernel::get_max_value (SmartPtr<DrmBoBuffer> &buf)
 }
 
 XCamReturn
-CLDefogRecoverKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+CLDefogRecoverKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    XCAM_UNUSED (input);
     SmartPtr<CLContext> context = get_context ();
-
+    SmartPtr<DrmBoBuffer> &input = _defog_handler->get_input_buf ();
+    SmartPtr<DrmBoBuffer> &output = _defog_handler->get_output_buf ();
     SmartPtr<CLImage> &dark_map = _defog_handler->get_dark_map (XCAM_DEFOG_DC_BI_FILTER);
-
-    arg_count = 0;
-    args[arg_count].arg_adress = &dark_map->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
     get_max_value (input);
-    args[arg_count].arg_adress = &_max_i;
-    args[arg_count].arg_size = sizeof (_max_i);
-    ++arg_count;
-    args[arg_count].arg_adress = &_max_r;
-    args[arg_count].arg_size = sizeof (_max_r);
-    ++arg_count;
-    args[arg_count].arg_adress = &_max_g;
-    args[arg_count].arg_size = sizeof (_max_g);
-    ++arg_count;
-    args[arg_count].arg_adress = &_max_b;
-    args[arg_count].arg_size = sizeof (_max_b);
-    ++arg_count;
+
+    args.push_back (new CLMemArgument (dark_map));
+    args.push_back (new CLArgumentT<float> (_max_i));
+    args.push_back (new CLArgumentT<float> (_max_r));
+    args.push_back (new CLArgumentT<float> (_max_g));
+    args.push_back (new CLArgumentT<float> (_max_b));
 
     for (int i = 0; i < XCAM_DEFOG_MAX_CHANNELS; ++i) {
         SmartPtr<CLImage> &input_color = _defog_handler->get_rgb_channel (i);
-
-        args[arg_count].arg_adress = &input_color->get_mem_id ();
-        args[arg_count].arg_size = sizeof (cl_mem);
-        ++arg_count;
+        args.push_back (new CLMemArgument (input_color));
     }
 
     const VideoBufferInfo & video_info_out = output->get_video_info ();
 
     CLImageDesc cl_desc_out;
-
     cl_desc_out.format.image_channel_data_type = CL_UNSIGNED_INT16;
     cl_desc_out.format.image_channel_order = CL_RGBA;
     cl_desc_out.width = video_info_out.width / 8;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
-    _image_out_y = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
+    SmartPtr<CLImage> image_out_y = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
     cl_desc_out.height = video_info_out.height / 2;
     cl_desc_out.row_pitch = video_info_out.strides[1];
-    _image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[1]);
+    SmartPtr<CLImage> image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[1]);
 
-    args[arg_count].arg_adress = &_image_out_y->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
-
-    args[arg_count].arg_adress = &_image_out_uv->get_mem_id ();
-    args[arg_count].arg_size = sizeof (cl_mem);
-    ++arg_count;
+    args.push_back (new CLMemArgument (image_out_y));
+    args.push_back (new CLMemArgument (image_out_uv));
 
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
     work_size.local[0] = 16;
@@ -352,16 +276,9 @@ CLDefogRecoverKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-CLDefogRecoverKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    _image_out_y.release ();
-    _image_out_uv.release ();
-    return CLImageKernel::post_execute (output);
-}
-
-CLDefogDcpImageHandler::CLDefogDcpImageHandler (const char *name)
-    : CLImageHandler (name)
+CLDefogDcpImageHandler::CLDefogDcpImageHandler (
+    const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
 {
 }
 
@@ -382,11 +299,12 @@ CLDefogDcpImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartP
 XCamReturn
 CLDefogDcpImageHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
 {
+    XCAM_UNUSED (output);
 #if 0
     dump_buffer ();
 #endif
 
-    return CLImageHandler::execute_done (output);
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -394,7 +312,7 @@ CLDefogDcpImageHandler::allocate_transmit_bufs (const VideoBufferInfo &video_inf
 {
     int i;
     CLImageDesc cl_rgb_desc, cl_dark_desc;
-    SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
+    SmartPtr<CLContext> context = get_context ();
 
     cl_rgb_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
     cl_rgb_desc.format.image_channel_order = CL_RGBA;
@@ -445,8 +363,8 @@ CLDefogDcpImageHandler::dump_buffer ()
     write_image (image, file_name);
 }
 
-SmartPtr<CLDarkChannelKernel>
-create_kernel_dark_channel (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
+static SmartPtr<CLDarkChannelKernel>
+create_kernel_dark_channel (const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
 {
     SmartPtr<CLDarkChannelKernel> kernel;
 
@@ -459,9 +377,9 @@ create_kernel_dark_channel (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpIma
     return kernel;
 }
 
-SmartPtr<CLMinFilterKernel>
+static SmartPtr<CLMinFilterKernel>
 create_kernel_min_filter (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<CLDefogDcpImageHandler> handler,
     int index)
 {
@@ -483,8 +401,9 @@ create_kernel_min_filter (
     return kernel;
 }
 
-SmartPtr<CLBiFilterKernel>
-create_kernel_bi_filter (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
+static SmartPtr<CLBiFilterKernel>
+create_kernel_bi_filter (
+    const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
 {
     SmartPtr<CLBiFilterKernel> kernel;
 
@@ -498,8 +417,9 @@ create_kernel_bi_filter (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageH
     return kernel;
 }
 
-SmartPtr<CLDefogRecoverKernel>
-create_kernel_defog_recover (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
+static SmartPtr<CLDefogRecoverKernel>
+create_kernel_defog_recover (
+    const SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpImageHandler> handler)
 {
     SmartPtr<CLDefogRecoverKernel> kernel;
 
@@ -513,13 +433,13 @@ create_kernel_defog_recover (SmartPtr<CLContext> &context, SmartPtr<CLDefogDcpIm
 }
 
 SmartPtr<CLImageHandler>
-create_cl_defog_dcp_image_handler (SmartPtr<CLContext> &context)
+create_cl_defog_dcp_image_handler (const SmartPtr<CLContext> &context)
 {
     SmartPtr<CLDefogDcpImageHandler> defog_handler;
 
     SmartPtr<CLImageKernel> kernel;
 
-    defog_handler = new CLDefogDcpImageHandler ("cl_handler_defog_dcp");
+    defog_handler = new CLDefogDcpImageHandler (context, "cl_handler_defog_dcp");
     kernel = create_kernel_dark_channel (context, defog_handler);
     XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "defog handler create dark channel kernel failed");
     defog_handler->add_kernel (kernel);

@@ -59,18 +59,13 @@ class CLGeoMapKernel
 {
 public:
     explicit CLGeoMapKernel (
-        SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler);
+        const SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler);
 
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<GeoKernelParamCallback>   _handler;
-    float                              _geo_scale_size[2]; //width/height
-    float                              _out_size[2]; //width/height
 };
 
 class CLGeoMapHandler
@@ -78,7 +73,7 @@ class CLGeoMapHandler
     , public GeoKernelParamCallback
 {
 public:
-    explicit CLGeoMapHandler ();
+    explicit CLGeoMapHandler (const SmartPtr<CLContext> &context);
     void set_output_size (uint32_t width, uint32_t height) {
         _output_width = width;
         _output_height = height;
@@ -138,10 +133,10 @@ private:
 };
 
 SmartPtr<CLImageKernel>
-create_geo_map_kernel (SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb);
+create_geo_map_kernel (const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb);
 
 SmartPtr<CLImageHandler>
-create_geo_map_handler (SmartPtr<CLContext> &context);
+create_geo_map_handler (const SmartPtr<CLContext> &context);
 
 }
 

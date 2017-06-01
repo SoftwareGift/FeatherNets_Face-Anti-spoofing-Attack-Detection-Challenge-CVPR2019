@@ -36,48 +36,32 @@ class CLWaveletDenoiseImageKernel
 private:
 
 public:
-    explicit CLWaveletDenoiseImageKernel (SmartPtr<CLContext> &context,
-                                          const char *name,
-                                          SmartPtr<CLWaveletDenoiseImageHandler> &handler,
-                                          uint32_t channel,
-                                          uint32_t layer);
+    explicit CLWaveletDenoiseImageKernel (
+        const SmartPtr<CLContext> &context,
+        const char *name,
+        SmartPtr<CLWaveletDenoiseImageHandler> &handler,
+        uint32_t channel,
+        uint32_t layer);
 
     virtual ~CLWaveletDenoiseImageKernel () {
     }
 
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 protected:
     virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+        CLArgList &args, CLWorkSize &work_size);
 
 private:
-    XCAM_DEAD_COPY (CLWaveletDenoiseImageKernel);
-
-    float     _hard_threshold;
-    float     _soft_threshold;
-    uint32_t  _decomposition_levels;
     uint32_t  _channel;
     uint32_t  _current_layer;
-    uint32_t  _input_y_offset;
-    uint32_t  _output_y_offset;
-    uint32_t  _input_uv_offset;
-    uint32_t  _output_uv_offset;
 
     SmartPtr<CLWaveletDenoiseImageHandler> _handler;
-
-    SmartPtr<CLMemory>  _input_image;
-    SmartPtr<CLMemory>  _approx_image;
-    SmartPtr<CLMemory>  _details_image;
-    SmartPtr<CLMemory>  _reconstruct_image;
 };
 
 class CLWaveletDenoiseImageHandler
     : public CLImageHandler
 {
 public:
-    explicit CLWaveletDenoiseImageHandler (const char *name);
+    explicit CLWaveletDenoiseImageHandler (const SmartPtr<CLContext> &context, const char *name);
 
     bool set_denoise_config (const XCam3aResultWaveletNoiseReduction& config);
     XCam3aResultWaveletNoiseReduction& get_denoise_config () {
@@ -96,16 +80,13 @@ protected:
     virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
-    XCAM_DEAD_COPY (CLWaveletDenoiseImageHandler);
-
-private:
     XCam3aResultWaveletNoiseReduction _config;
     SmartPtr<CLMemory> _details_image;
     SmartPtr<CLMemory> _approx_image;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel);
+create_cl_wavelet_denoise_image_handler (const SmartPtr<CLContext> &context, uint32_t channel);
 
 };
 

@@ -50,7 +50,7 @@ CLImageDesc::operator == (const CLImageDesc& desc) const
     return false;
 }
 
-CLMemory::CLMemory (SmartPtr<CLContext> &context)
+CLMemory::CLMemory (const SmartPtr<CLContext> &context)
     : _context (context)
     , _mem_id (NULL)
     , _mem_fd (-1)
@@ -130,13 +130,13 @@ bool CLMemory::get_cl_mem_info (
     return true;
 }
 
-CLBuffer::CLBuffer (SmartPtr<CLContext> &context)
+CLBuffer::CLBuffer (const SmartPtr<CLContext> &context)
     : CLMemory (context)
 {
 }
 
 CLBuffer::CLBuffer (
-    SmartPtr<CLContext> &context, uint32_t size,
+    const SmartPtr<CLContext> &context, uint32_t size,
     cl_mem_flags  flags, void *host_ptr)
     : CLMemory (context)
     , _flags (flags)
@@ -147,7 +147,7 @@ CLBuffer::CLBuffer (
 
 bool
 CLBuffer::init_buffer (
-    SmartPtr<CLContext> &context, uint32_t size,
+    const SmartPtr<CLContext> &context, uint32_t size,
     cl_mem_flags  flags, void *host_ptr)
 {
     cl_mem mem_id = NULL;
@@ -221,7 +221,7 @@ CLBuffer::enqueue_map (
 }
 
 CLVaBuffer::CLVaBuffer (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<DrmBoBuffer> &bo)
     : CLBuffer (context)
     , _bo (bo)
@@ -230,7 +230,7 @@ CLVaBuffer::CLVaBuffer (
 }
 
 bool
-CLVaBuffer::init_va_buffer (SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo)
+CLVaBuffer::init_va_buffer (const SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo)
 {
     cl_mem mem_id = NULL;
     uint32_t bo_name = 0;
@@ -256,7 +256,7 @@ CLVaBuffer::init_va_buffer (SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> 
     return true;
 }
 
-CLImage::CLImage (SmartPtr<CLContext> &context)
+CLImage::CLImage (const SmartPtr<CLContext> &context)
     : CLMemory (context)
 {
 }
@@ -528,7 +528,7 @@ CLImage::enqueue_map (
 }
 
 CLVaImage::CLVaImage (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<DrmBoBuffer> &bo,
     uint32_t offset,
     bool single_plane)
@@ -554,7 +554,7 @@ CLVaImage::CLVaImage (
 }
 
 CLVaImage::CLVaImage (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     SmartPtr<DrmBoBuffer> &bo,
     const CLImageDesc &image_info,
     uint32_t offset)
@@ -598,7 +598,7 @@ CLVaImage::merge_multi_plane (
 
 bool
 CLVaImage::init_va_image (
-    SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo,
+    const SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo,
     const CLImageDesc &cl_desc, uint32_t offset)
 {
 
@@ -658,7 +658,7 @@ CLVaImage::init_va_image (
 
 
 CLImage2D::CLImage2D (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     const VideoBufferInfo &video_info,
     cl_mem_flags  flags)
     : CLImage (context)
@@ -674,7 +674,7 @@ CLImage2D::CLImage2D (
 }
 
 CLImage2D::CLImage2D (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     const CLImageDesc &cl_desc,
     cl_mem_flags  flags,
     SmartPtr<CLBuffer> bind_buf)
@@ -685,7 +685,7 @@ CLImage2D::CLImage2D (
 }
 
 bool CLImage2D::init_image_2d (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     const CLImageDesc &desc,
     cl_mem_flags  flags)
 {
@@ -725,7 +725,7 @@ bool CLImage2D::init_image_2d (
 }
 
 CLImage2DArray::CLImage2DArray (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     const VideoBufferInfo &video_info,
     cl_mem_flags  flags,
     uint32_t extra_array_size)
@@ -751,7 +751,7 @@ CLImage2DArray::CLImage2DArray (
 }
 
 bool CLImage2DArray::init_image_2d_array (
-    SmartPtr<CLContext> &context,
+    const SmartPtr<CLContext> &context,
     const CLImageDesc &desc,
     cl_mem_flags  flags)
 {

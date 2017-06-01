@@ -34,37 +34,50 @@ enum CLTnrType {
     CL_TNR_TYPE_RGB = 1 << 1,
 };
 
-enum CLTnrHistogramType {
-    CL_TNR_HIST_BRIGHTNESS   = 0,
-    CL_TNR_HIST_HOR_PROJECTION = 1,
-    CL_TNR_HIST_VER_PROJECTION = 2,
-};
-
-enum CLTnrAnalyzeDateType {
-    CL_TNR_ANALYZE_STATS = 0,
-    CL_TNR_ANALYZE_RGB   = 1,
-};
-
-typedef struct _CLTnrMotionInfo {
-    int32_t hor_shift; /*!< pixel count of horizontal direction (X) shift  */
-    int32_t ver_shift; /*!< pixel count of vertical direction (Y) shift  */
-    float hor_corr;   /*!< horizontal direction (X) correlation */
-    float ver_corr;   /*!< vertical direction (Y) correlation */
-} CLTnrMotionInfo;
-
-#define TNR_PROCESSING_FRAME_COUNT  4
-#define TNR_LIST_FRAME_COUNT  4
 #define TNR_GRID_HOR_COUNT          8
 #define TNR_GRID_VER_COUNT          8
-#define TNR_MOTION_THRESHOLD        2
 
 class CLTnrImageKernel
     : public CLImageKernel
 {
-    typedef std::list<SmartPtr<CLImage>> CLImagePtrList;
-    typedef std::list<CLTnrMotionInfo> CLTnrMotionInfoList;
+public:
+    explicit CLTnrImageKernel (
+        const SmartPtr<CLContext> &context, CLTnrType type);
+
+    virtual ~CLTnrImageKernel () {
+    }
 
 private:
+    CLTnrType          _type;
+};
+
+class CLTnrImageHandler
+    : public CLImageHandler
+{
+private:
+    typedef std::list<SmartPtr<CLImage>> CLImagePtrList;
+
+    enum CLTnrHistogramType {
+        CL_TNR_HIST_BRIGHTNESS   = 0,
+        CL_TNR_HIST_HOR_PROJECTION = 1,
+        CL_TNR_HIST_VER_PROJECTION = 2,
+    };
+
+    enum CLTnrAnalyzeDateType {
+        CL_TNR_ANALYZE_STATS = 0,
+        CL_TNR_ANALYZE_RGB   = 1,
+    };
+
+    struct CLTnrMotionInfo {
+        int32_t hor_shift; /*!< pixel count of horizontal direction (X) shift  */
+        int32_t ver_shift; /*!< pixel count of vertical direction (Y) shift  */
+        float hor_corr;   /*!< horizontal direction (X) correlation */
+        float ver_corr;   /*!< vertical direction (Y) correlation */
+        CLTnrMotionInfo ();
+    };
+
+    typedef std::list<CLTnrMotionInfo> CLTnrMotionInfoList;
+
     struct CLTnrHistogram {
         CLTnrHistogram ();
         CLTnrHistogram (uint32_t width, uint32_t height);
@@ -81,80 +94,48 @@ private:
     };
 
 public:
-    explicit CLTnrImageKernel (SmartPtr<CLContext> &context,
-                               const char *name,
-                               CLTnrType type);
-
-    virtual ~CLTnrImageKernel () {
-        _image_in_list.clear ();
-    }
-
-    CLTnrType get_type () {
-        return _type;
-    }
-
-    uint32_t get_frameCount () {
+    explicit CLTnrImageHandler (const SmartPtr<CLContext> &context, CLTnrType type, const char *name);
+    bool set_tnr_kernel (SmartPtr<CLTnrImageKernel> &kernel);
+    bool set_framecount (uint8_t count) ;
+    bool set_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
+    bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
+    uint32_t get_frame_count () {
         return _frame_count;
     }
 
-    bool set_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
-    bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
-    bool set_framecount (uint8_t count) ;
-
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
-    XCAM_DEAD_COPY (CLTnrImageKernel);
+    XCAM_DEAD_COPY (CLTnrImageHandler);
 
     bool calculate_image_histogram (XCam3AStats *stats, CLTnrHistogramType type, float* histogram);
     bool calculate_image_histogram (SmartPtr<DrmBoBuffer> &input, CLTnrHistogramType type, float* histogram);
     void print_image_histogram ();
 
-    CLTnrType _type;
-    float    _gain_yuv;
-    float    _thr_y;
-    float    _thr_uv;
-    float    _gain_rgb;
-    float    _thr_r;
-    float    _thr_g;
-    float    _thr_b;
-    uint8_t  _frame_count;
-    uint8_t  _stable_frame_count;
-
-    CLTnrHistogram _image_histogram;
-    CLTnrMotionInfo _motion_info[TNR_GRID_HOR_COUNT * TNR_GRID_VER_COUNT];
-
-    uint32_t _vertical_offset;
-    CLImagePtrList _image_in_list;
-    SmartPtr<CLImage> _image_out_prev;
-};
-
-class CLTnrImageHandler
-    : public CLImageHandler
-{
-public:
-    explicit CLTnrImageHandler (const char *name);
-    bool set_tnr_kernel (SmartPtr<CLTnrImageKernel> &kernel);
-    bool set_mode (uint32_t mode);
-    bool set_framecount (uint8_t count) ;
-    bool set_rgb_config (const XCam3aResultTemporalNoiseReduction& config);
-    bool set_yuv_config (const XCam3aResultTemporalNoiseReduction& config);
-
-private:
-    XCAM_DEAD_COPY (CLTnrImageHandler);
-
 private:
     SmartPtr<CLTnrImageKernel>  _tnr_kernel;
-    CLTnrType _mode;
+    CLTnrType                   _type;
+
+    float                       _gain_yuv;
+    float                       _thr_y;
+    float                       _thr_uv;
+
+    float                       _gain_rgb;
+    float                       _thr_r;
+    float                       _thr_g;
+    float                       _thr_b;
+
+    CLTnrMotionInfo             _motion_info[TNR_GRID_HOR_COUNT * TNR_GRID_VER_COUNT];
+    CLImagePtrList              _image_in_list;
+    CLTnrHistogram              _image_histogram;
+    SmartPtr<CLImage>           _image_out_prev;
+
+    uint8_t                     _frame_count;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_tnr_image_handler (SmartPtr<CLContext> &context, CLTnrType type);
+create_cl_tnr_image_handler (const SmartPtr<CLContext> &context, CLTnrType type);
 
 };
 

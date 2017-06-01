@@ -131,10 +131,11 @@ private:
 private:
     typedef std::map<const VideoBuffer *, FB> FBMap;
 
+    static bool    _preview_flag;
+
     char *_module;
     int _fd;
     drm_intel_bufmgr *_buf_manager;
-    static bool    _preview_flag;
     DrmDisplayMode _display_mode;
     int _crtc_index;
     unsigned int _crtc_id;

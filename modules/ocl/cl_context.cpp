@@ -217,45 +217,46 @@ CLContext::destroy_context ()
 
 XCamReturn
 CLContext::execute_kernel (
-    CLKernel *kernel,
-    CLCommandQueue *queue,
+    const SmartPtr<CLKernel> kernel,
+    const SmartPtr<CLCommandQueue> queue,
     CLEventList &events_wait,
     SmartPtr<CLEvent> &event_out)
 {
+    XCAM_ASSERT (kernel.ptr ());
+
     cl_int error_code = CL_SUCCESS;
     cl_command_queue cmd_queue_id = NULL;
-    cl_kernel kernel_id = kernel->get_kernel_id ();
-    uint32_t work_dims = kernel->get_work_dims ();
-    const size_t *global_sizes = kernel->get_work_global_size ();
-    const size_t *local_sizes = kernel->get_work_local_size ();
     cl_event *event_out_id = NULL;
     cl_event events_id_wait[XCAM_CL_MAX_EVENT_SIZE];
     uint32_t num_of_events_wait = 0;
     uint32_t work_group_size = 1;
+    const size_t *local_sizes = NULL;
+    cl_kernel kernel_id = kernel->get_kernel_id ();
+    CLWorkSize work_size = kernel->get_work_size ();
+    SmartPtr<CLCommandQueue> cmd_queue = queue;
 
-    XCAM_ASSERT (kernel);
-
-    if (queue == NULL) {
-        SmartPtr<CLCommandQueue> cmd_queue = get_default_cmd_queue ();
-        queue = cmd_queue.ptr ();
+    if (!cmd_queue.ptr ()) {
+        cmd_queue = get_default_cmd_queue ();
     }
-    XCAM_ASSERT (queue);
+    XCAM_ASSERT (cmd_queue.ptr ());
 
-    cmd_queue_id = queue->get_cmd_queue_id ();
+    cmd_queue_id = cmd_queue->get_cmd_queue_id ();
     num_of_events_wait = event_list_2_id_array (events_wait, events_id_wait, XCAM_CL_MAX_EVENT_SIZE);
     if (event_out.ptr ())
         event_out_id = &event_out->get_event_id ();
 
-    for (uint32_t i = 0; i < work_dims; ++i) {
-        work_group_size *= local_sizes[i];
+    for (uint32_t i = 0; i < work_size.dim; ++i) {
+        work_group_size *= work_size.local[i];
     }
-    if (!work_group_size)
+    if (work_group_size)
+        local_sizes = work_size.local;
+    else
         local_sizes = NULL;
 
     error_code =
         clEnqueueNDRangeKernel (
             cmd_queue_id, kernel_id,
-            work_dims, NULL, global_sizes, local_sizes,
+            work_size.dim, NULL, work_size.global, local_sizes,
             num_of_events_wait, (num_of_events_wait ? events_id_wait : NULL),
             event_out_id);
 
@@ -267,6 +268,17 @@ CLContext::execute_kernel (
         kernel->get_kernel_name (), error_code);
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CLContext::set_event_callback (
+    SmartPtr<CLEvent> &event, cl_int status,
+    void (*callback) (cl_event, cl_int, void*),
+    void *user_data)
+{
+    XCAM_ASSERT (event.ptr () && event->get_event_id ());
+    cl_int error_code = clSetEventCallback (event->get_event_id (), status, callback, user_data);
+    return (error_code == CL_SUCCESS ? XCAM_RETURN_NO_ERROR : XCAM_RETURN_ERROR_CL);
 }
 
 SmartPtr<CLCommandQueue>

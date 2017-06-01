@@ -26,28 +26,28 @@
 
 namespace XCam {
 
-class CLDemoImageKernel
-    : public CLImageKernel
+class CLDemoImageHandler
+    : public CLImageHandler
 {
 public:
-    explicit CLDemoImageKernel (SmartPtr<CLContext> &context);
+    explicit CLDemoImageHandler (const SmartPtr<CLContext> &context);
+    void set_copy_kernel (SmartPtr<CLImageKernel> &kernel) {
+        _copy_kernel = kernel;
+        add_kernel (kernel);
+    }
 
-    virtual XCamReturn post_execute (SmartPtr<DrmBoBuffer> &output);
 protected:
-    virtual XCamReturn prepare_arguments (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-        CLArgument args[], uint32_t &arg_count,
-        CLWorkSize &work_size);
+    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
 
 private:
-    XCAM_DEAD_COPY (CLDemoImageKernel);
+    SmartPtr<CLImageKernel>   _copy_kernel;
 };
 
 SmartPtr<CLImageHandler>
-create_cl_demo_image_handler (SmartPtr<CLContext> &context);
+create_cl_demo_image_handler (const SmartPtr<CLContext> &context);
 
 SmartPtr<CLImageHandler>
-create_cl_binary_demo_image_handler (SmartPtr<CLContext> &context);
+create_cl_binary_demo_image_handler (const SmartPtr<CLContext> &context);
 
 };
 

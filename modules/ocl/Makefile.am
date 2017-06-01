@@ -28,6 +28,7 @@ XCAMOCL_LIBS += $(OPENCV_LIBS)
 endif
 
 xcam_ocl_sources = \
+    cl_argument.cpp                    \
     cl_context.cpp                     \
     cl_device.cpp                      \
     cl_kernel.cpp                      \
@@ -96,6 +97,7 @@ libxcam_ocl_la_LDFLAGS = \
 libxcam_oclincludedir = $(includedir)/xcam/ocl
 
 nobase_libxcam_oclinclude_HEADERS = \
+    cl_argument.h                   \
     cl_context.h                    \
     cl_event.h                      \
     cl_device.h                     \

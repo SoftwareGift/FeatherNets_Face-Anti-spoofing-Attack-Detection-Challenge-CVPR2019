@@ -27,58 +27,57 @@
 
 namespace XCam {
 
-CLWaveletDenoiseImageKernel::CLWaveletDenoiseImageKernel (SmartPtr<CLContext> &context,
-        const char *name,
-        SmartPtr<CLWaveletDenoiseImageHandler> &handler,
-        uint32_t channel,
-        uint32_t layer)
+static const XCamKernelInfo kernel_wavelet_denoise_info = {
+    "kernel_wavelet_denoise",
+#include "kernel_wavelet_denoise.clx"
+    , 0,
+};
+
+CLWaveletDenoiseImageKernel::CLWaveletDenoiseImageKernel (
+    const SmartPtr<CLContext> &context,
+    const char *name,
+    SmartPtr<CLWaveletDenoiseImageHandler> &handler,
+    uint32_t channel,
+    uint32_t layer)
     : CLImageKernel (context, name)
-    , _hard_threshold (0.1)
-    , _soft_threshold (0.5)
-    , _decomposition_levels (WAVELET_DECOMPOSITION_LEVELS)
     , _channel (channel)
     , _current_layer (layer)
-    , _input_y_offset (0)
-    , _output_y_offset (0)
-    , _input_uv_offset (0)
-    , _output_uv_offset (0)
     , _handler (handler)
 {
 }
 
 XCamReturn
 CLWaveletDenoiseImageKernel::prepare_arguments (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output,
-    CLArgument args[], uint32_t &arg_count,
-    CLWorkSize &work_size)
+    CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
+    SmartPtr<DrmBoBuffer> input = _handler->get_input_buf ();
+    SmartPtr<DrmBoBuffer> output = _handler->get_output_buf ();
 
     const VideoBufferInfo & video_info_in = input->get_video_info ();
     const VideoBufferInfo & video_info_out = output->get_video_info ();
 
-    _input_image = new CLVaBuffer (context, input);
-    _reconstruct_image = new CLVaBuffer (context, output);
+    SmartPtr<CLMemory> input_image = new CLVaBuffer (context, input);
+    SmartPtr<CLMemory> reconstruct_image = new CLVaBuffer (context, output);
 
-    _details_image = _handler->get_details_image ();
-    _approx_image = _handler->get_approx_image ();
+    SmartPtr<CLMemory> details_image = _handler->get_details_image ();
+    SmartPtr<CLMemory> approx_image = _handler->get_approx_image ();
 
-    _decomposition_levels = WAVELET_DECOMPOSITION_LEVELS;
-    _soft_threshold = _handler->get_denoise_config ().threshold[0];
-    _hard_threshold = _handler->get_denoise_config ().threshold[1];
+    uint32_t decomposition_levels = WAVELET_DECOMPOSITION_LEVELS;
+    float soft_threshold = _handler->get_denoise_config ().threshold[0];
+    float hard_threshold = _handler->get_denoise_config ().threshold[1];
 
-    _input_y_offset = video_info_in.offsets[0] / 4;
-    _output_y_offset = video_info_out.offsets[0] / 4;
+    uint32_t input_y_offset = video_info_in.offsets[0] / 4;
+    uint32_t output_y_offset = video_info_out.offsets[0] / 4;
 
-    _input_uv_offset = video_info_in.aligned_height;
-    _output_uv_offset = video_info_out.aligned_height;
+    uint32_t input_uv_offset = video_info_in.aligned_height;
+    uint32_t output_uv_offset = video_info_out.aligned_height;
 
-    XCAM_ASSERT (_input_image->is_valid () && _reconstruct_image->is_valid ());
     XCAM_FAIL_RETURN (
         WARNING,
-        _input_image->is_valid () && _reconstruct_image->is_valid (),
+        input_image->is_valid () && reconstruct_image->is_valid (),
         XCAM_RETURN_ERROR_MEM,
-        "cl image kernel(%s) in/out memory not available", get_kernel_name ());
+        "cl image kernel(%s) in/out memory not available", XCAM_STR(get_kernel_name ()));
 
     //set args;
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
@@ -86,45 +85,22 @@ CLWaveletDenoiseImageKernel::prepare_arguments (
     work_size.local[1] = 4;
 
     if (_current_layer % 2) {
-        args[0].arg_adress = &_input_image->get_mem_id ();
-        args[0].arg_size = sizeof (cl_mem);
-        args[1].arg_adress = &_approx_image->get_mem_id ();
-        args[1].arg_size = sizeof (cl_mem);
+        args.push_back (new CLMemArgument (input_image));
+        args.push_back (new CLMemArgument (approx_image));
     } else {
-        args[0].arg_adress = &_approx_image->get_mem_id ();
-        args[0].arg_size = sizeof (cl_mem);
-        args[1].arg_adress = &_input_image->get_mem_id ();
-        args[1].arg_size = sizeof (cl_mem);
+        args.push_back (new CLMemArgument (approx_image));
+        args.push_back (new CLMemArgument (input_image));
     }
-    args[2].arg_adress = &_details_image->get_mem_id ();
-    args[2].arg_size = sizeof (cl_mem);
-
-    args[3].arg_adress = &_reconstruct_image->get_mem_id ();
-    args[3].arg_size = sizeof (cl_mem);
-
-    args[4].arg_adress = &_input_y_offset;
-    args[4].arg_size = sizeof (_input_y_offset);
-
-    args[5].arg_adress = &_output_y_offset;
-    args[5].arg_size = sizeof (_output_y_offset);
-
-    args[6].arg_adress = &_input_uv_offset;
-    args[6].arg_size = sizeof (_input_uv_offset);
-
-    args[7].arg_adress = &_output_uv_offset;
-    args[7].arg_size = sizeof (_output_uv_offset);
-
-    args[8].arg_adress = &_current_layer;
-    args[8].arg_size = sizeof (_current_layer);
-
-    args[9].arg_adress = &_decomposition_levels;
-    args[9].arg_size = sizeof (_decomposition_levels);
-
-    args[10].arg_adress = &_hard_threshold;
-    args[10].arg_size = sizeof (_hard_threshold);
-
-    args[11].arg_adress = &_soft_threshold;
-    args[11].arg_size = sizeof (_soft_threshold);
+    args.push_back (new CLMemArgument (details_image));
+    args.push_back (new CLMemArgument (reconstruct_image));
+    args.push_back (new CLArgumentT<uint32_t> (input_y_offset));
+    args.push_back (new CLArgumentT<uint32_t> (output_y_offset));
+    args.push_back (new CLArgumentT<uint32_t> (input_uv_offset));
+    args.push_back (new CLArgumentT<uint32_t> (output_uv_offset));
+    args.push_back (new CLArgumentT<uint32_t> (_current_layer));
+    args.push_back (new CLArgumentT<uint32_t> (decomposition_levels));
+    args.push_back (new CLArgumentT<float> (hard_threshold));
+    args.push_back (new CLArgumentT<float> (soft_threshold));
 
     if (_channel & CL_IMAGE_CHANNEL_UV) {
         work_size.global[0] = video_info_in.width / 16;
@@ -133,20 +109,13 @@ CLWaveletDenoiseImageKernel::prepare_arguments (
         work_size.global[0] = video_info_in.width / 16;
         work_size.global[1] = video_info_in.height;
     }
-    arg_count = 12;
 
     return XCAM_RETURN_NO_ERROR;
 }
 
-
-XCamReturn
-CLWaveletDenoiseImageKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
-{
-    return CLImageKernel::post_execute (output);
-}
-
-CLWaveletDenoiseImageHandler::CLWaveletDenoiseImageHandler (const char *name)
-    : CLImageHandler (name)
+CLWaveletDenoiseImageHandler::CLWaveletDenoiseImageHandler (
+    const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
 {
     _config.decomposition_levels = 5;
     _config.threshold[0] = 0.5;
@@ -163,8 +132,7 @@ CLWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, 
         const VideoBufferInfo & video_info = input->get_video_info ();
         uint32_t buffer_size = video_info.width * video_info.aligned_height;
 
-        SmartPtr<CLContext>  context = CLDevice::instance ()->get_context ();
-        _approx_image = new CLBuffer (context, buffer_size,
+        _approx_image = new CLBuffer (get_context (), buffer_size,
                                       CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, NULL);
     }
 
@@ -172,8 +140,7 @@ CLWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, 
         const VideoBufferInfo & video_info = input->get_video_info ();
         uint32_t buffer_size = sizeof(float) * video_info.width * video_info.height;
 
-        SmartPtr<CLContext>  context = CLDevice::instance ()->get_context ();
-        _details_image = new CLBuffer (context, buffer_size,
+        _details_image = new CLBuffer (get_context (), buffer_size,
                                        CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, NULL);
     }
     return ret;
@@ -189,36 +156,25 @@ CLWaveletDenoiseImageHandler::set_denoise_config (const XCam3aResultWaveletNoise
 }
 
 SmartPtr<CLImageHandler>
-create_cl_wavelet_denoise_image_handler (SmartPtr<CLContext> &context, uint32_t channel)
+create_cl_wavelet_denoise_image_handler (const SmartPtr<CLContext> &context, uint32_t channel)
 {
     SmartPtr<CLWaveletDenoiseImageHandler> wavelet_handler;
     SmartPtr<CLWaveletDenoiseImageKernel> wavelet_kernel;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(kernel_wavelet_denoise)
-#include "kernel_wavelet_denoise.clx"
-    XCAM_CL_KERNEL_FUNC_END;
-
-    wavelet_handler = new CLWaveletDenoiseImageHandler ("cl_handler_wavelet_denoise");
+    wavelet_handler = new CLWaveletDenoiseImageHandler (context, "cl_handler_wavelet_denoise");
     XCAM_ASSERT (wavelet_handler.ptr ());
 
     for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
-        wavelet_kernel = new CLWaveletDenoiseImageKernel (context, "kernel_wavelet_denoise", wavelet_handler, channel, layer);
+        wavelet_kernel = new CLWaveletDenoiseImageKernel (
+            context, "kernel_wavelet_denoise", wavelet_handler, channel, layer);
 
-        ret = wavelet_kernel->load_from_source (
-                  kernel_wavelet_denoise_body, strlen (kernel_wavelet_denoise_body),
-                  NULL, NULL,
-                  (channel & CL_IMAGE_CHANNEL_UV) ? "-DWAVELET_DENOISE_UV=1" : "-DWAVELET_DENOISE_UV=0");
+        XCAM_ASSERT (wavelet_kernel.ptr ());
         XCAM_FAIL_RETURN (
-            WARNING,
-            ret == XCAM_RETURN_NO_ERROR,
-            NULL,
-            "CL image handler(%s) load source failed", wavelet_kernel->get_kernel_name());
-
+            ERROR, wavelet_kernel->build_kernel (kernel_wavelet_denoise_info, NULL) == XCAM_RETURN_NO_ERROR, NULL,
+            "build wavelet denoise kernel(%s) failed", kernel_wavelet_denoise_info.kernel_name);
         XCAM_ASSERT (wavelet_kernel->is_valid ());
 
-        SmartPtr<CLImageKernel> image_kernel = wavelet_kernel;
-        wavelet_handler->add_kernel (image_kernel);
+        wavelet_handler->add_kernel (wavelet_kernel);
     }
     return wavelet_handler;
 }

@@ -52,7 +52,7 @@ dump_buffer (SmartPtr<DrmBoBuffer> buffer, char *dump_name)
 }
 #endif
 
-CVFeatureMatch::CVFeatureMatch (SmartPtr<CLContext> &context)
+CVFeatureMatch::CVFeatureMatch (const SmartPtr<CLContext> &context)
     : _context (context)
     , _use_ocl (false)
     , _is_ocl_inited (false)
@@ -369,6 +369,8 @@ CVFeatureMatch::detect_and_match (
     cv::calcOpticalFlowPyrLK (
         img_left, img_right, corner_left, corner_right, status, err, win_size, 3,
         cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 10, 0.01f));
+    cv::ocl::finish();
+
     calc_of_match (img_left, img_right, corner_left, corner_right,
                    status, err, valid_count, mean_offset, x_offset, frame_num, idx);
     adjust_stitch_area (dst_width, x_offset, crop_left, crop_right);
