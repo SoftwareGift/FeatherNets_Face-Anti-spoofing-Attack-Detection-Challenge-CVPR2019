@@ -291,7 +291,11 @@ CLContext::create_cmd_queue (SmartPtr<CLContext> &self)
 
     XCAM_ASSERT (self.ptr() == this);
 
+#if defined (CL_VERSION_2_0) && (CL_VERSION_2_0 == 1)
+    cmd_queue_id = clCreateCommandQueueWithProperties (_context_id, device_id, 0, &err_code);
+#else
     cmd_queue_id = clCreateCommandQueue (_context_id, device_id, 0, &err_code);
+#endif
     if (err_code != CL_SUCCESS) {
         XCAM_LOG_WARNING ("create CL command queue failed.");
         return NULL;
