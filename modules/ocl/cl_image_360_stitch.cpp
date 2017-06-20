@@ -212,18 +212,44 @@ CLImage360Stitch::CLImage360Stitch (
     , _output_width (0)
     , _output_height (0)
     , _scale_mode (scale_mode)
+    , _res_mode (res_mode)
     , _is_stitch_inited (false)
 {
-    xcam_mem_clear (_merge_width);
-
 #if HAVE_OPENCV
     _feature_match = new CVFeatureMatch (context);
     XCAM_ASSERT (_feature_match.ptr ());
 
     _feature_match->set_config (get_fm_default_config (res_mode));
-#else
-    XCAM_UNUSED (res_mode);
 #endif
+}
+
+bool
+CLImage360Stitch::set_stitch_info (CLStitchInfo stitch_info)
+{
+    if (_is_stitch_inited) {
+        XCAM_LOG_WARNING ("stitching info was initialized and can't be set twice");
+        return false;
+    }
+
+    for (int index = 0; index < ImageIdxCount; ++index) {
+        _fisheye[index].handler->set_fisheye_info (stitch_info.fisheye_info[index]);
+    }
+
+    _stitch_info = stitch_info;
+    _is_stitch_inited = true;
+
+    return true;
+}
+
+CLStitchInfo
+CLImage360Stitch::get_stitch_info ()
+{
+    if (!_is_stitch_inited) {
+        XCAM_LOG_WARNING ("stitch-info was not initialized, return default parameters");
+        return get_default_stitch_info (_res_mode);
+    }
+
+    return _stitch_info;
 }
 
 bool
@@ -255,25 +281,6 @@ CLImage360Stitch::set_right_blender (SmartPtr<CLBlender> blender)
 }
 
 bool
-CLImage360Stitch::init_stitch_info (CLStitchInfo stitch_info)
-{
-    if (_is_stitch_inited) {
-        XCAM_LOG_WARNING ("stitching info was initialized and can't be set twice");
-        return false;
-    }
-
-    for (int index = 0; index < ImageIdxCount; ++index) {
-        _merge_width[index] = stitch_info.merge_width[index];
-        _fisheye[index].handler->set_fisheye_info (stitch_info.fisheye_info[index]);
-        _crop_info[index] = stitch_info.crop[index];
-    }
-
-    _is_stitch_inited = true;
-
-    return true;
-}
-
-bool
 CLImage360Stitch::set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1)
 {
     XCAM_ASSERT (idx < ImageIdxCount);
@@ -293,15 +300,29 @@ CLImage360Stitch::set_feature_match_ocl (bool fm_ocl)
 #endif
 }
 
+#if HAVE_OPENCV
+void
+CLImage360Stitch::set_feature_match_config (CVFMConfig config)
+{
+    _feature_match->set_config (config);
+}
+
+CVFMConfig
+CLImage360Stitch::get_feature_match_config ()
+{
+    return _feature_match->get_config ();
+}
+#endif
+
 void
 CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<DrmBoBuffer> &output)
 {
     const VideoBufferInfo &out_info = output->get_video_info ();
-    _fisheye[0].width = (out_info.width + _merge_width[0] + _merge_width[1]
-                         + _crop_info[0].left + _crop_info[0].right
-                         + _crop_info[1].left + _crop_info[1].right) / 2;
+    _fisheye[0].width = (out_info.width + _stitch_info.merge_width[0] + _stitch_info.merge_width[1]
+                         + _stitch_info.crop[0].left + _stitch_info.crop[0].right
+                         + _stitch_info.crop[1].left + _stitch_info.crop[1].right) / 2;
     _fisheye[0].width = XCAM_ALIGN_UP (_fisheye[0].width, 16);
-    _fisheye[0].height = out_info.height + _crop_info[0].top + _crop_info[0].bottom;
+    _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
     XCAM_LOG_INFO (
         "fisheye correction output size width:%d height:%d",
         _fisheye[0].width, _fisheye[0].height);
@@ -319,31 +340,32 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<DrmBoBuffer> &output)
 void
 CLImage360Stitch::update_image_overlap ()
 {
-    static bool is_stitch_info_inited = false;
-    if (!is_stitch_info_inited) {
-        _img_merge_info[0].merge_left.pos_x = _crop_info[0].left;
-        _img_merge_info[0].merge_left.pos_y = _crop_info[0].top;
-        _img_merge_info[0].merge_left.width = _merge_width[0];
-        _img_merge_info[0].merge_left.height = _fisheye[0].height - _crop_info[0].top - _crop_info[0].bottom;
-        _img_merge_info[0].merge_right.pos_x = _fisheye[0].width - _crop_info[0].right - _merge_width[1];
-        _img_merge_info[0].merge_right.pos_y = _crop_info[0].top;
-        _img_merge_info[0].merge_right.width = _merge_width[1];
-        _img_merge_info[0].merge_right.height = _fisheye[0].height - _crop_info[0].top - _crop_info[0].bottom;
+    static bool is_merge_info_inited = false;
+    if (!is_merge_info_inited) {
+        _img_merge_info[0].left.pos_x = _stitch_info.crop[0].left;
+        _img_merge_info[0].left.pos_y = _stitch_info.crop[0].top;
+        _img_merge_info[0].left.width = _stitch_info.merge_width[0];
+        _img_merge_info[0].left.height = _fisheye[0].height - _stitch_info.crop[0].top - _stitch_info.crop[0].bottom;
 
-        _img_merge_info[1].merge_left.pos_x = _crop_info[1].left;
-        _img_merge_info[1].merge_left.pos_y = _crop_info[1].top;
-        _img_merge_info[1].merge_left.width = _merge_width[1];
-        _img_merge_info[1].merge_left.height = _fisheye[1].height - _crop_info[1].top - _crop_info[1].bottom;
-        _img_merge_info[1].merge_right.pos_x = _fisheye[1].width - _crop_info[1].right - _merge_width[0];
-        _img_merge_info[1].merge_right.pos_y = _crop_info[1].top;
-        _img_merge_info[1].merge_right.width = _merge_width[0];
-        _img_merge_info[1].merge_right.height = _fisheye[0].height - _crop_info[1].top - _crop_info[1].bottom;
+        _img_merge_info[0].right.pos_x = _fisheye[0].width - _stitch_info.crop[0].right - _stitch_info.merge_width[1];
+        _img_merge_info[0].right.pos_y = _stitch_info.crop[0].top;
+        _img_merge_info[0].right.width = _stitch_info.merge_width[1];
+        _img_merge_info[0].right.height = _fisheye[0].height - _stitch_info.crop[0].top - _stitch_info.crop[0].bottom;
 
-        is_stitch_info_inited = true;
+        _img_merge_info[1].left.pos_x = _stitch_info.crop[1].left;
+        _img_merge_info[1].left.pos_y = _stitch_info.crop[1].top;
+        _img_merge_info[1].left.width = _stitch_info.merge_width[1];
+        _img_merge_info[1].left.height = _fisheye[1].height - _stitch_info.crop[1].top - _stitch_info.crop[1].bottom;
+        _img_merge_info[1].right.pos_x = _fisheye[1].width - _stitch_info.crop[1].right - _stitch_info.merge_width[0];
+        _img_merge_info[1].right.pos_y = _stitch_info.crop[1].top;
+        _img_merge_info[1].right.width = _stitch_info.merge_width[0];
+        _img_merge_info[1].right.height = _fisheye[0].height - _stitch_info.crop[1].top - _stitch_info.crop[1].bottom;
+
+        is_merge_info_inited = true;
     }
 
-    set_image_overlap (0, _img_merge_info[0].merge_left, _img_merge_info[0].merge_right);
-    set_image_overlap (1, _img_merge_info[1].merge_left, _img_merge_info[1].merge_right);
+    set_image_overlap (0, _img_merge_info[0].left, _img_merge_info[0].right);
+    set_image_overlap (1, _img_merge_info[1].left, _img_merge_info[1].right);
 }
 
 XCamReturn
@@ -595,13 +617,15 @@ XCamReturn
 CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    if (!_is_stitch_inited)
+        set_stitch_info (get_default_stitch_info (_res_mode));
 
     ret = ensure_fisheye_parameters (input, output);
     STITCH_CHECK (ret, "ensure fisheye parameters failed");
 
     _fisheye[0].buf->attach_buffer (_fisheye[1].buf);
-    update_image_overlap ();
 
+    update_image_overlap ();
     if (_scale_mode == CLBlenderScaleLocal) {
         ret = prepare_local_scale_blender_parameters (_fisheye[0].buf, _fisheye[1].buf, output);
         STITCH_CHECK (ret, "prepare local scale blender parameters failed");
@@ -652,24 +676,24 @@ CLImage360Stitch::execute_done (SmartPtr<DrmBoBuffer> &output)
 static void
 convert_to_cv_rect (ImageMergeInfo merge_info, cv::Rect &crop_left, cv::Rect &crop_right)
 {
-    crop_left.x = merge_info.merge_left.pos_x;
-    crop_left.y = merge_info.merge_left.pos_y + merge_info.merge_left.height / 3;
-    crop_left.width = merge_info.merge_left.width;
-    crop_left.height = merge_info.merge_left.height / 3;
+    crop_left.x = merge_info.left.pos_x;
+    crop_left.y = merge_info.left.pos_y + merge_info.left.height / 3;
+    crop_left.width = merge_info.left.width;
+    crop_left.height = merge_info.left.height / 3;
 
-    crop_right.x = merge_info.merge_right.pos_x;
-    crop_right.y = merge_info.merge_right.pos_y + merge_info.merge_right.height / 3;
-    crop_right.width = merge_info.merge_right.width;
-    crop_right.height = merge_info.merge_right.height / 3;
+    crop_right.x = merge_info.right.pos_x;
+    crop_right.y = merge_info.right.pos_y + merge_info.right.height / 3;
+    crop_right.width = merge_info.right.width;
+    crop_right.height = merge_info.right.height / 3;
 }
 
 static void
 convert_to_xcam_rect (cv::Rect crop_left, cv::Rect crop_right, ImageMergeInfo &merge_info)
 {
-    merge_info.merge_left.pos_x = crop_left.x;
-    merge_info.merge_left.width = crop_left.width;
-    merge_info.merge_right.pos_x = crop_right.x;
-    merge_info.merge_right.width = crop_right.width;
+    merge_info.left.pos_x = crop_left.x;
+    merge_info.left.width = crop_left.width;
+    merge_info.right.pos_x = crop_right.x;
+    merge_info.right.width = crop_right.width;
 }
 #endif
 
@@ -768,7 +792,6 @@ create_image_360_stitch (
         }
     }
 
-    stitch->init_stitch_info (get_default_stitch_info (res_mode));
     return stitch;
 }
 

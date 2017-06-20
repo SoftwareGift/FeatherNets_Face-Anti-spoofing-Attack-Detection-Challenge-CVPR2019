@@ -74,8 +74,8 @@ struct CLStitchInfo {
 };
 
 typedef struct {
-    Rect merge_left;
-    Rect merge_right;
+    Rect left;
+    Rect right;
 } ImageMergeInfo;
 
 class CLImage360Stitch;
@@ -102,7 +102,8 @@ public:
     explicit CLImage360Stitch (
         const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode);
 
-    bool init_stitch_info (CLStitchInfo stitch_info);
+    bool set_stitch_info (CLStitchInfo stitch_info);
+    CLStitchInfo get_stitch_info ();
     void set_output_size (uint32_t width, uint32_t height) {
         _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
         _output_height = height;
@@ -126,6 +127,10 @@ public:
     }
 
     void set_feature_match_ocl (bool use_ocl);
+#if HAVE_OPENCV
+    void set_feature_match_config (CVFMConfig config);
+    CVFMConfig get_feature_match_config ();
+#endif
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (const VideoBufferInfo &input, VideoBufferInfo &output);
@@ -160,8 +165,6 @@ private:
 
     uint32_t                    _output_width;
     uint32_t                    _output_height;
-    uint32_t                    _merge_width[ImageIdxCount];
-    ImageCropInfo               _crop_info[ImageIdxCount];
     ImageMergeInfo              _img_merge_info[ImageIdxCount];
     Rect                        _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
 
@@ -173,6 +176,7 @@ private:
     CLStitchResMode             _res_mode;
 
     bool                        _is_stitch_inited;
+    CLStitchInfo                _stitch_info;
 };
 
 SmartPtr<CLImageHandler>

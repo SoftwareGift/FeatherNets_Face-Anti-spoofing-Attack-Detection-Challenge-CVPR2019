@@ -68,7 +68,8 @@ public:
         return _use_ocl;
     }
 
-    void set_config (const CVFMConfig config);
+    void set_config (CVFMConfig config);
+    CVFMConfig get_config ();
 
     void optical_flow_feature_match (
         int output_width, SmartPtr<DrmBoBuffer> buf0, SmartPtr<DrmBoBuffer> buf1,

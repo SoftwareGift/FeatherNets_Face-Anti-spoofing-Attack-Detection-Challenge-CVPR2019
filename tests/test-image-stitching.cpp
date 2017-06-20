@@ -352,6 +352,8 @@ int main (int argc, char *argv[])
                 cv::Mat out_mat;
                 convert_to_mat (context, output_buf, out_mat);
 #if XCAM_TEST_STITCH_DEBUG
+                CLStitchInfo stitch_info = image_360->get_stitch_info ();
+
                 static int frame = 0;
                 char file_name [1024];
                 std::snprintf (file_name, 1023, "orig_fisheye_%d.jpg", frame);

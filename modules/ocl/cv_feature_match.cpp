@@ -63,9 +63,15 @@ CVFeatureMatch::CVFeatureMatch (const SmartPtr<CLContext> &context)
 }
 
 void
-CVFeatureMatch::set_config (const CVFMConfig config)
+CVFeatureMatch::set_config (CVFMConfig config)
 {
     _config = config;
+}
+
+CVFMConfig
+CVFeatureMatch::get_config ()
+{
+    return _config;
 }
 
 void
