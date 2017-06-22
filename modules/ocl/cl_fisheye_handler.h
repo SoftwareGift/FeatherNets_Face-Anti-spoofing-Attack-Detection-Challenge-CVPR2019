@@ -58,7 +58,9 @@ class CLFisheyeHandler
 {
     friend class CLFisheye2GPSKernel;
 public:
-    explicit CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use_map);
+    explicit CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use_map, bool need_lsc);
+    virtual ~CLFisheyeHandler();
+
     void set_output_size (uint32_t width, uint32_t height);
     void get_output_size (uint32_t &width, uint32_t &height) const;
 
@@ -68,6 +70,9 @@ public:
     const CLFisheyeInfo &get_fisheye_info () const {
         return _fisheye_info;
     }
+
+    void set_lsc_table (float *table, uint32_t table_size);
+    void set_lsc_gray_threshold (float min_threshold, float max_threshold);
 
 protected:
     // derived from CLImageHandler
@@ -85,6 +90,12 @@ protected:
     virtual void get_geo_equivalent_out_size (float &width, float &height);
     virtual void get_geo_pixel_out_size (float &width, float &height);
 
+    virtual uint32_t need_lsc () {
+        return _need_lsc;
+    }
+    virtual SmartPtr<CLImage> get_lsc_table ();
+    virtual float* get_lsc_gray_threshold ();
+
 private:
     SmartPtr<CLImage> &get_input_image (CLNV12PlaneIdx index) {
         XCAM_ASSERT (index < CLNV12PlaneMax);
@@ -95,9 +106,15 @@ private:
         return _output [index];
     }
 
-    SmartPtr<CLImage> create_geo_table (uint32_t width, uint32_t height);
+    SmartPtr<CLImage> create_cl_image (
+        uint32_t width, uint32_t height, cl_channel_order order, cl_channel_type type);
     XCamReturn generate_fisheye_table (
         uint32_t fisheye_width, uint32_t fisheye_height, const CLFisheyeInfo &fisheye_info);
+
+    void ensure_lsc_params ();
+    XCamReturn generate_lsc_table (
+        uint32_t fisheye_width, uint32_t fisheye_height, CLFisheyeInfo &fisheye_info);
+
 
     XCAM_DEAD_COPY (CLFisheyeHandler);
 
@@ -109,13 +126,18 @@ private:
     CLFisheyeInfo                    _fisheye_info;
     float                            _map_factor;
     bool                             _use_map;
+    uint32_t                         _need_lsc;
+    uint32_t                         _lsc_array_size;
+    float                            _gray_threshold[2];  // [min_gray_threshold, max_gray_threshold]
+    float                            *_lsc_array;
     SmartPtr<CLImage>                _geo_table;
+    SmartPtr<CLImage>                _lsc_table;
     SmartPtr<CLImage>                _input[CLNV12PlaneMax];
     SmartPtr<CLImage>                _output[CLNV12PlaneMax];
 };
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map = false);
+create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map = false, bool need_lsc = false);
 
 }
 

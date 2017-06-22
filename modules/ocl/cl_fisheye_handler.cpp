@@ -22,6 +22,22 @@
 #include "cl_fisheye_handler.h"
 #include "cl_device.h"
 
+#define XCAM_LSC_ARRAY_SIZE 64
+
+static const float max_gray_threshold = 220.0f;
+static const float min_gray_threshold = 80.0f;
+
+static const float lsc_array[XCAM_LSC_ARRAY_SIZE] = {
+    1.000000f, 1.000150f, 1.000334f, 1.000523f, 1.000761f, 1.001317f, 1.002109f, 1.003472f,
+    1.004502f, 1.008459f, 1.011816f, 1.014686f, 1.016767f, 1.018425f, 1.020455f, 1.022125f,
+    1.023080f, 1.025468f, 1.029810f, 1.035422f, 1.041943f, 1.047689f, 1.054206f, 1.059395f,
+    1.063541f, 1.068729f, 1.074158f, 1.082766f, 1.088606f, 1.095224f, 1.102773f, 1.112865f,
+    1.117108f, 1.132849f, 1.140659f, 1.147847f, 1.157544f, 1.165002f, 1.175248f, 1.181730f,
+    1.196203f, 1.205452f, 1.216974f, 1.236338f, 1.251963f, 1.269212f, 1.293479f, 1.311051f,
+    1.336007f, 1.357711f, 1.385124f, 1.409937f, 1.448611f, 1.473716f, 1.501837f, 1.525721f,
+    1.555186f, 1.602372f, 1.632105f, 1.698443f, 1.759641f, 1.836303f, 1.939085f, 2.066358f
+};
+
 namespace XCam {
 
 #define DEFAULT_FISHEYE_TABLE_SCALE 8.0f
@@ -29,6 +45,7 @@ namespace XCam {
 enum {
     KernelFisheye2GPS,
     KernelFisheyeTable,
+    KernelLSCTable
 };
 
 const XCamKernelInfo kernel_fisheye_info[] = {
@@ -39,6 +56,11 @@ const XCamKernelInfo kernel_fisheye_info[] = {
     },
     {
         "kernel_fisheye_table",
+#include "kernel_fisheye.clx"
+        , 0,
+    },
+    {
+        "kernel_lsc_table",
 #include "kernel_fisheye.clx"
         , 0,
     },
@@ -121,7 +143,7 @@ CLFisheye2GPSKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use_map)
+CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use_map, bool need_lsc)
     : CLImageHandler (context, "CLFisheyeHandler")
     , _output_width (0)
     , _output_height (0)
@@ -129,7 +151,17 @@ CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use
     , _range_latitude (180.0f)
     , _map_factor (DEFAULT_FISHEYE_TABLE_SCALE)
     , _use_map (use_map)
+    , _need_lsc (need_lsc ? 1 : 0)
+    , _lsc_array_size (0)
+    , _lsc_array (NULL)
 {
+    xcam_mem_clear (_gray_threshold);
+}
+
+CLFisheyeHandler::~CLFisheyeHandler()
+{
+    if (_lsc_array)
+       xcam_free (_lsc_array);
 }
 
 void
@@ -164,6 +196,25 @@ void
 CLFisheyeHandler::set_fisheye_info (const CLFisheyeInfo &info)
 {
     _fisheye_info = info;
+}
+
+void
+CLFisheyeHandler::set_lsc_table (float *table, uint32_t table_size)
+{
+    if (_lsc_array)
+        xcam_free (_lsc_array);
+
+    _lsc_array_size = table_size;
+    _lsc_array = (float *) xcam_malloc0 (_lsc_array_size * sizeof (float));
+    XCAM_ASSERT (_lsc_array);
+    memcpy (_lsc_array, table, _lsc_array_size * sizeof (float));
+}
+
+void
+CLFisheyeHandler::set_lsc_gray_threshold (float min_threshold, float max_threshold)
+{
+    _gray_threshold[0] = min_threshold;
+    _gray_threshold[1] = max_threshold;
 }
 
 XCamReturn
@@ -250,24 +301,28 @@ CLFisheyeHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
         generate_fisheye_table (input_image_w, input_image_h, _fisheye_info);
     }
 
+    if (!_lsc_table.ptr ())
+        generate_lsc_table (input_image_w, input_image_h, _fisheye_info);
+
     return XCAM_RETURN_NO_ERROR;
 }
 
 SmartPtr<CLImage>
-CLFisheyeHandler::create_geo_table (uint32_t width, uint32_t height)
+CLFisheyeHandler::create_cl_image (
+    uint32_t width, uint32_t height, cl_channel_order order, cl_channel_type type)
 {
-    CLImageDesc cl_geo_desc;
-    cl_geo_desc.format.image_channel_data_type = CL_FLOAT;
-    cl_geo_desc.format.image_channel_order = CL_RGBA; // CL_FLOAT need co-work with CL_RGBA
-    cl_geo_desc.width = width;
-    cl_geo_desc.height = height;
+    CLImageDesc cl_desc;
+    cl_desc.format.image_channel_data_type = type;
+    cl_desc.format.image_channel_order = order;
+    cl_desc.width = width;
+    cl_desc.height = height;
 
     SmartPtr<CLContext> context = get_context ();
     XCAM_ASSERT (context.ptr ());
-    SmartPtr<CLImage> image = new CLImage2D (context, cl_geo_desc);
+    SmartPtr<CLImage> image = new CLImage2D (context, cl_desc);
     XCAM_FAIL_RETURN (
         ERROR, image.ptr () && image->is_valid (),
-        NULL, "[%s] create geo table failed", get_name ());
+        NULL, "[%s] create cl image failed", get_name ());
     return image;
 }
 
@@ -329,7 +384,7 @@ CLFisheyeHandler::generate_fisheye_table (
     table_width = XCAM_ALIGN_UP (table_width, 4);
     table_height = output_height / _map_factor;
     table_height = XCAM_ALIGN_UP (table_height, 2);
-    _geo_table = create_geo_table (table_width, table_height);
+    _geo_table = create_cl_image (table_width, table_height, CL_RGBA, CL_FLOAT);
     XCAM_FAIL_RETURN (
         ERROR, _geo_table.ptr () && _geo_table->is_valid (),
         XCAM_RETURN_ERROR_MEM, "[%s] check geo map buffer failed", get_name ());
@@ -377,6 +432,86 @@ CLFisheyeHandler::generate_fisheye_table (
     return XCAM_RETURN_NO_ERROR;
 }
 
+void
+CLFisheyeHandler::ensure_lsc_params ()
+{
+    if (_lsc_array)
+        return;
+
+    _lsc_array_size = XCAM_LSC_ARRAY_SIZE;
+    _lsc_array = (float *) xcam_malloc0 (_lsc_array_size * sizeof (float));
+    XCAM_ASSERT (_lsc_array);
+    memcpy (_lsc_array, lsc_array, _lsc_array_size * sizeof (float));
+
+    _gray_threshold[1] = max_gray_threshold;
+    _gray_threshold[0] = min_gray_threshold;
+}
+
+XCamReturn
+CLFisheyeHandler::generate_lsc_table (
+    uint32_t fisheye_width, uint32_t fisheye_height, CLFisheyeInfo &fisheye_info)
+{
+    if (!_need_lsc) {
+        _lsc_table = create_cl_image (1, 1, CL_R, CL_FLOAT);
+        if (_lsc_array)
+            xcam_free (_lsc_array);
+        return XCAM_RETURN_NO_ERROR;
+    }
+
+    if (!_geo_table.ptr ()) {
+        XCAM_LOG_ERROR ("generate lsc table failed, need generate fisheye table first");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
+    ensure_lsc_params ();
+
+    SmartPtr<CLContext> context = get_context ();
+    XCAM_ASSERT (context.ptr ());
+    SmartPtr<CLKernel> table_kernel = new CLKernel (context, "lsc_table");
+    XCAM_FAIL_RETURN (
+        ERROR, table_kernel->build_kernel (kernel_fisheye_info[KernelLSCTable], NULL) == XCAM_RETURN_NO_ERROR,
+        XCAM_RETURN_ERROR_CL, "[%s] build lsc table kernel failed", get_name ());
+
+    SmartPtr<CLBuffer> array_buf = new CLBuffer (
+        context, _lsc_array_size * sizeof (float),
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, _lsc_array);
+    xcam_free (_lsc_array);
+
+    CLImageDesc desc = _geo_table->get_image_desc ();
+    _lsc_table = create_cl_image (desc.width, desc.height, CL_R, CL_FLOAT);
+    XCAM_FAIL_RETURN (
+        ERROR, _lsc_table.ptr () && _lsc_table->is_valid (),
+        XCAM_RETURN_ERROR_MEM, "[%s] create lsc image failed", get_name ());
+
+    CLArgList args;
+    args.push_back (new CLMemArgument (_geo_table));
+    args.push_back (new CLMemArgument (_lsc_table));
+    args.push_back (new CLMemArgument (array_buf));
+    args.push_back (new CLArgumentT<uint32_t> (_lsc_array_size));
+    args.push_back (new CLArgumentT<CLFisheyeInfo> (fisheye_info));
+
+    float fisheye_image_size[2];
+    fisheye_image_size[0] = fisheye_width;
+    fisheye_image_size[1] = fisheye_height;
+    args.push_back (new CLArgumentTArray<float, 2> (fisheye_image_size));
+
+    CLWorkSize work_size;
+    work_size.dim = 2;
+    work_size.local[0] = 8;
+    work_size.local[1] = 4;
+    work_size.global[0] = XCAM_ALIGN_UP (desc.width, work_size.local[0]);
+    work_size.global[1] = XCAM_ALIGN_UP (desc.height, work_size.local[1]);
+
+    XCAM_FAIL_RETURN (
+        ERROR, table_kernel->set_arguments (args, work_size) == XCAM_RETURN_NO_ERROR,
+        XCAM_RETURN_ERROR_CL, "kernel_lsc_table set arguments failed");
+
+    XCAM_FAIL_RETURN (
+        ERROR, table_kernel->execute (table_kernel, true) == XCAM_RETURN_NO_ERROR,
+        XCAM_RETURN_ERROR_CL, "[%s] execute kernel_lsc_table failed", get_name ());
+
+    return XCAM_RETURN_NO_ERROR;
+}
 
 XCamReturn
 CLFisheyeHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
@@ -387,6 +522,7 @@ CLFisheyeHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
         _input[i].release ();
         _output[i].release ();
     }
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -414,6 +550,17 @@ CLFisheyeHandler::get_geo_pixel_out_size (float &width, float &height)
     height = _output_height;
 }
 
+SmartPtr<CLImage>
+CLFisheyeHandler::get_lsc_table () {
+    XCAM_ASSERT (_lsc_table.ptr ());
+    return _lsc_table;
+}
+
+float*
+CLFisheyeHandler::get_lsc_gray_threshold () {
+    return _gray_threshold;
+}
+
 static SmartPtr<CLImageKernel>
 create_fishey_gps_kernel (const SmartPtr<CLContext> &context, SmartPtr<CLFisheyeHandler> handler)
 {
@@ -426,12 +573,12 @@ create_fishey_gps_kernel (const SmartPtr<CLContext> &context, SmartPtr<CLFisheye
 }
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map)
+create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map, bool need_lsc)
 {
     SmartPtr<CLFisheyeHandler> handler;
     SmartPtr<CLImageKernel> kernel;
 
-    handler = new CLFisheyeHandler (context, use_map);
+    handler = new CLFisheyeHandler (context, use_map, need_lsc);
     XCAM_ASSERT (handler.ptr ());
 
     if (use_map) {

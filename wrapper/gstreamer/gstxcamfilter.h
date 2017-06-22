@@ -91,6 +91,7 @@ struct _GstXCamFilter
     gboolean                     stitch_enable_seam;
     gboolean                     stitch_fisheye_map;
     gboolean                     stitch_fm_ocl;
+    gboolean                     stitch_lsc;
     CLBlenderScaleMode           stitch_scale_mode;
     StitchResMode                stitch_res_mode;
 

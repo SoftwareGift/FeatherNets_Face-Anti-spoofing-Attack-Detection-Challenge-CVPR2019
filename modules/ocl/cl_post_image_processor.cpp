@@ -57,6 +57,7 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _enable_stitch (false)
     , _stitch_enable_seam (false)
     , _stitch_fisheye_map (false)
+    , _stitch_lsc (false)
     , _stitch_fm_ocl (false)
     , _stitch_scale_mode (CLBlenderScaleLocal)
     , _stitch_width (0)
@@ -386,8 +387,8 @@ CLPostImageProcessor::create_handlers ()
 
     /* image stitch */
     image_handler =
-        create_image_360_stitch (context, _stitch_enable_seam,
-                                 _stitch_scale_mode, _stitch_fisheye_map, (CLStitchResMode) _stitch_res_mode);
+        create_image_360_stitch (context, _stitch_enable_seam, _stitch_scale_mode,
+            _stitch_fisheye_map, _stitch_lsc, (CLStitchResMode) _stitch_res_mode);
     _stitch = image_handler.dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_FAIL_RETURN (
         WARNING,
@@ -496,7 +497,7 @@ CLPostImageProcessor::set_image_warp (bool enable)
 bool
 CLPostImageProcessor::set_image_stitch (
     bool enable_stitch, bool enable_seam, CLBlenderScaleMode scale_mode, bool enable_fisheye_map,
-    bool fm_ocl, uint32_t stitch_width, uint32_t stitch_height, uint32_t res_mode)
+    bool lsc, bool fm_ocl, uint32_t stitch_width, uint32_t stitch_height, uint32_t res_mode)
 {
     XCAM_ASSERT (scale_mode < CLBlenderScaleMax);
 
@@ -508,6 +509,7 @@ CLPostImageProcessor::set_image_stitch (
 
     _stitch_scale_mode = scale_mode;
     _stitch_fisheye_map = enable_fisheye_map;
+    _stitch_lsc = lsc;
     _stitch_width = stitch_width;
     _stitch_height = stitch_height;
     _stitch_res_mode = res_mode;

@@ -49,6 +49,10 @@ protected:
     virtual void get_geo_equivalent_out_size (float &width, float &height) = 0;
     virtual void get_geo_pixel_out_size (float &width, float &height) = 0;
 
+    virtual uint32_t need_lsc () = 0;
+    virtual SmartPtr<CLImage> get_lsc_table () = 0;
+    virtual float* get_lsc_gray_threshold() = 0;
+
 private:
     XCAM_DEAD_COPY (GeoKernelParamCallback);
 };
@@ -106,6 +110,18 @@ protected:
     }
     virtual void get_geo_equivalent_out_size (float &width, float &height);
     virtual void get_geo_pixel_out_size (float &width, float &height);
+
+    virtual uint32_t need_lsc () {
+        return 0;
+    }
+    virtual SmartPtr<CLImage> get_lsc_table () {
+        XCAM_ASSERT (false && "CLGeoMapHandler::lsc table is not supported");
+        return NULL;
+    }
+    virtual float* get_lsc_gray_threshold () {
+        XCAM_ASSERT (false && "CLGeoMapHandler::lsc gray threshold is not supported");
+        return NULL;
+    }
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (

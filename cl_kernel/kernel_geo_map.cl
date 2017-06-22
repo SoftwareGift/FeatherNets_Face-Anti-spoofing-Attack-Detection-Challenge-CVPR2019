@@ -36,10 +36,29 @@ void get_geo_mapped_y (
     }
 }
 
+void get_lsc_data (
+    image2d_t lsc_table, int2 g_pos, float step_x,
+    float2 gray_threshold, float8 output, float8 *lsc_data)
+{
+    sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
+    float *lsc_ptr = (float *)(lsc_data);
+
+    float2 pos = convert_float2((int2)(g_pos.x * PIXEL_RES_STEP_X, g_pos.y)) * step_x;
+    for (int i = 0; i < PIXEL_RES_STEP_X; ++i) {
+        lsc_ptr[i] = read_imagef (lsc_table, sampler, pos).x;
+        pos.x += step_x;
+    }
+
+    float8 diff_ratio = (gray_threshold.y - output * 255.0f) / (gray_threshold.y - gray_threshold.x);
+    diff_ratio = clamp (diff_ratio, 0.0f, 1.0f);
+    (*lsc_data) = diff_ratio * diff_ratio * ((*lsc_data) - 1.0f) + 1.0f;
+}
+
 __kernel void
 kernel_geo_map (
     __read_only image2d_t input_y, __read_only image2d_t input_uv,
     __read_only image2d_t geo_table, float2 table_scale_size,
+    uint need_lsc, __read_only image2d_t lsc_table, float2 gray_threshold,
     __write_only image2d_t output_y, __write_only image2d_t output_uv, float2 out_size)
 {
     const int g_x = get_global_id (0);
@@ -57,6 +76,11 @@ kernel_geo_map (
     out_map_pos = (convert_float2((int2)(g_x * PIXEL_RES_STEP_X, g_y)) - out_size / 2.0f) * table_scale_step + 0.5f;
 
     get_geo_mapped_y (input_y, geo_table, out_map_pos, table_scale_step.x, out_of_bound, input_pos, &output_data);
+    if (need_lsc) {
+        float8 lsc_data;
+        get_lsc_data (lsc_table, (int2)(g_x, g_y), table_scale_step.x, gray_threshold, output_data, &lsc_data);
+        output_data = clamp (output_data * lsc_data, 0.0f, 1.0f);
+    }
     write_imageui (output_y, (int2)(g_x, g_y), convert_uint4(as_ushort4(convert_uchar8(output_data * 255.0f))));
 
     output_data.s01 = out_of_bound[0] ? CONST_DATA_UV : read_imagef (input_uv, sampler, input_pos[0]).xy;
@@ -67,5 +91,10 @@ kernel_geo_map (
 
     out_map_pos.y += table_scale_step.y;
     get_geo_mapped_y (input_y, geo_table, out_map_pos, table_scale_step.x, out_of_bound, input_pos, &output_data);
+    if (need_lsc) {
+        float8 lsc_data;
+        get_lsc_data (lsc_table, (int2)(g_x, g_y + 1), table_scale_step.x, gray_threshold, output_data, &lsc_data);
+        output_data = clamp (output_data * lsc_data, 0.0f, 1.0f);
+    }
     write_imageui (output_y, (int2)(g_x, g_y + 1), convert_uint4(as_ushort4(convert_uchar8(output_data * 255.0f))));
 }

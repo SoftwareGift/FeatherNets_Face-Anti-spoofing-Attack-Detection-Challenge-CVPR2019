@@ -86,6 +86,7 @@ void usage(const char* arg0)
             "\t--scale-mode        optional, image scaling mode, select from [local/global], default: local\n"
             "\t--enable-seam       optional, enable seam finder in blending area, default: no\n"
             "\t--enable-fisheyemap optional, enable fisheye map, default: no\n"
+            "\t--enable-lsc        optional, enable lens shading correction, default: no\n"
 #if HAVE_OPENCV
             "\t--fm-ocl            optional, enable ocl for feature match, select from [true/false], default: false\n"
 #endif
@@ -139,6 +140,7 @@ int main (int argc, char *argv[])
     int loop = 1;
     bool enable_seam = false;
     bool enable_fisheye_map = false;
+    bool enable_lsc = false;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
     CLStitchResMode res_mode = CLStitchRes1080P;
 
@@ -162,6 +164,7 @@ int main (int argc, char *argv[])
         {"scale-mode", required_argument, NULL, 'c'},
         {"enable-seam", no_argument, NULL, 'S'},
         {"enable-fisheyemap", no_argument, NULL, 'F'},
+        {"enable-lsc", no_argument, NULL, 'L'},
 #if HAVE_OPENCV
         {"fm-ocl", required_argument, NULL, 'O'},
 #endif
@@ -220,6 +223,9 @@ int main (int argc, char *argv[])
             break;
         case 'F':
             enable_fisheye_map = true;
+            break;
+        case 'L':
+            enable_lsc = true;
             break;
 #if HAVE_OPENCV
         case 'O':
@@ -281,6 +287,7 @@ int main (int argc, char *argv[])
     printf ("scale mode:\t\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
     printf ("seam mask:\t\t%s\n", enable_seam ? "true" : "false");
     printf ("fisheye map:\t\t%s\n", enable_fisheye_map ? "true" : "false");
+    printf ("shading correction:\t%s\n", enable_lsc ? "true" : "false");
 #if HAVE_OPENCV
     printf ("feature match ocl:\t%s\n", fm_ocl ? "true" : "false");
 #endif
@@ -291,8 +298,8 @@ int main (int argc, char *argv[])
 
     context = CLDevice::instance ()->get_context ();
     image_360 =
-        create_image_360_stitch (context, enable_seam,
-            scale_mode, enable_fisheye_map, res_mode).dynamic_cast_ptr<CLImage360Stitch> ();
+        create_image_360_stitch (context, enable_seam, scale_mode,
+            enable_fisheye_map, enable_lsc, res_mode).dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_ASSERT (image_360.ptr ());
     image_360->set_output_size (output_width, output_height);
 #if HAVE_OPENCV

@@ -56,10 +56,17 @@ CLGeoMapKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     _handler->get_geo_equivalent_out_size (geo_scale_size[0], geo_scale_size[1]);
     _handler->get_geo_pixel_out_size (out_size[0], out_size[1]);
 
+    uint32_t need_lsc = _handler->need_lsc ();
+    SmartPtr<CLImage> lsc_image = _handler->get_lsc_table ();
+    float *gray_threshold = _handler->get_lsc_gray_threshold ();
+
     args.push_back (new CLMemArgument (input_y));
     args.push_back (new CLMemArgument (input_uv));
     args.push_back (new CLMemArgument (geo_image));
     args.push_back (new CLArgumentTArray<float, 2> (geo_scale_size));
+    args.push_back (new CLArgumentT<uint32_t> (need_lsc));
+    args.push_back (new CLMemArgument (lsc_image));
+    args.push_back (new CLArgumentTArray<float, 2> (gray_threshold));
     args.push_back (new CLMemArgument (output_y));
     args.push_back (new CLMemArgument (output_uv));
     args.push_back (new CLArgumentTArray<float, 2> (out_size));

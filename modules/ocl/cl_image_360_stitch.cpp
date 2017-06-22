@@ -755,7 +755,7 @@ create_blender_global_scale_kernel (
 SmartPtr<CLImageHandler>
 create_image_360_stitch (
     const SmartPtr<CLContext> &context, bool need_seam,
-    CLBlenderScaleMode scale_mode, bool fisheye_map, CLStitchResMode res_mode)
+    CLBlenderScaleMode scale_mode, bool fisheye_map, bool need_lsc, CLStitchResMode res_mode)
 {
     const int layer = 2;
     const bool need_uv = true;
@@ -765,7 +765,7 @@ create_image_360_stitch (
     XCAM_ASSERT (stitch.ptr ());
 
     for (int index = 0; index < ImageIdxCount; ++index) {
-        fisheye = create_fisheye_handler (context, fisheye_map).dynamic_cast_ptr<CLFisheyeHandler> ();
+        fisheye = create_fisheye_handler (context, fisheye_map, need_lsc).dynamic_cast_ptr<CLFisheyeHandler> ();
         XCAM_FAIL_RETURN (ERROR, fisheye.ptr (), NULL, "image_360_stitch create fisheye handler failed");
         fisheye->disable_buf_pool (true);
         stitch->set_fisheye_handler (fisheye, index);

@@ -55,6 +55,27 @@ kernel_fisheye_table (
 }
 
 __kernel void
+kernel_lsc_table (
+    __read_only image2d_t geo_table, __write_only image2d_t lsc_table,
+    __global float *lsc_array, int array_size, const FisheyeInfo info, const float2 fisheye_image_size)
+{
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+    int2 pos = (int2) (get_global_id (0), get_global_id (1));
+
+    float2 geo_data = read_imagef (geo_table, sampler, pos).xy * fisheye_image_size;
+    float2 dist = geo_data - (float2)(info.center_x, info.center_y);
+    float r = sqrt (dist.x * dist.x + dist.y * dist.y);
+    r /= (1.0f * info.radius / array_size);
+
+    int min_idx = r;
+    int max_idx = r + 1.0f;
+    float lsc_data = max_idx > (array_size - 1) ? lsc_array[array_size - 1] :
+                     (r - min_idx) * (lsc_array[max_idx] - lsc_array[min_idx]) + lsc_array[min_idx];
+
+    write_imagef (lsc_table, pos, (float4)(lsc_data, 0.0f, 0.0f, 1.0f));
+}
+
+__kernel void
 kernel_fisheye_2_gps (
     __read_only image2d_t input_y, __read_only image2d_t input_uv,
     const float2 input_y_size, const FisheyeInfo info,

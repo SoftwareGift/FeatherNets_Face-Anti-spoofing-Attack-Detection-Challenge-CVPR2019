@@ -185,6 +185,7 @@ create_image_360_stitch (
     bool need_seam = false,
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal,
     bool fisheye_map = false,
+    bool need_lsc = false,
     CLStitchResMode res_mode = CLStitchRes1080P);
 
 }
