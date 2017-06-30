@@ -216,7 +216,7 @@ inline void weighted_average (__read_only image2d_t input,
 
 __kernel void kernel_3d_denoise ( float gain,
                                   float threshold,
-                                  __write_only image2d_t restoredPrev,
+                                  __read_only image2d_t restoredPrev,
                                   __write_only image2d_t output,
                                   __read_only image2d_t input,
                                   __read_only image2d_t inputPrev1,
