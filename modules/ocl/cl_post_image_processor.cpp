@@ -33,6 +33,7 @@
 #include "cl_csc_handler.h"
 #include "cl_image_warp_handler.h"
 #include "cl_image_360_stitch.h"
+#include "cl_video_stabilizer.h"
 
 #define XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE 6
 #define XCAM_CL_POST_IMAGE_MAX_POOL_SIZE 12
@@ -381,6 +382,19 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create image warp handler failed");
     _image_warp->enable_handler (_enable_image_warp);
+    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
+    add_handler (image_handler);
+
+    /* video stabilization */
+    image_handler = create_cl_video_stab_handler (context);
+    _video_stab = image_handler.dynamic_cast_ptr<CLVideoStabilizer> ();
+    XCAM_FAIL_RETURN (
+        WARNING,
+        _video_stab.ptr (),
+        XCAM_RETURN_ERROR_CL,
+        "CLPostImageProcessor create video stabilizer failed");
+    _video_stab->enable_handler (false);
     image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);

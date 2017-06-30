@@ -25,6 +25,7 @@
 #include "smartptr.h"
 #include "safe_list.h"
 #include "video_buffer.h"
+#include "meta_data.h"
 
 namespace XCam {
 
@@ -73,6 +74,13 @@ public:
     template <typename BufType>
     SmartPtr<BufType> find_typed_attach ();
 
+    bool attach_metadata (const SmartPtr<MetaData>& data);
+    bool detach_metadata (const SmartPtr<MetaData>& data);
+    void clear_attached_metadatas ();
+
+    template <typename DataType>
+    SmartPtr<DataType> find_data_attach ();
+
 protected:
     SmartPtr<BufferData> &get_buffer_data () {
         return _data;
@@ -83,6 +91,7 @@ private:
 
 protected:
     VideoBufferList            _attached_bufs;
+    MetaDataList               _attached_metadatas;
 
 private:
     SmartPtr<BufferData>       _data;
@@ -96,6 +105,19 @@ SmartPtr<BufType> BufferProxy::find_typed_attach ()
     for (VideoBufferList::iterator iter = _attached_bufs.begin ();
             iter != _attached_bufs.end (); ++iter) {
         SmartPtr<BufType> buf = (*iter).dynamic_cast_ptr<BufType> ();
+        if (buf.ptr ())
+            return buf;
+    }
+
+    return NULL;
+}
+
+template <typename DataType>
+SmartPtr<DataType> BufferProxy::find_data_attach ()
+{
+    for (MetaDataList::iterator iter = _attached_metadatas.begin ();
+            iter != _attached_metadatas.end (); ++iter) {
+        SmartPtr<DataType> buf = (*iter).dynamic_cast_ptr<DataType> ();
         if (buf.ptr ())
             return buf;
     }

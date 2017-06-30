@@ -21,6 +21,7 @@ xcam_sources = \
     fake_poll_thread.cpp                \
     handler_interface.cpp               \
     image_processor.cpp                 \
+    image_projector.cpp                 \
     image_file_handle.cpp               \
     poll_thread.cpp                     \
     swapped_buffer.cpp                  \
@@ -95,6 +96,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     pipe_manager.h                 \
     handler_interface.h            \
     image_processor.h              \
+    image_projector.h              \
     image_file_handle.h            \
     safe_list.h                    \
     smartptr.h                     \
@@ -114,6 +116,8 @@ nobase_libxcam_coreinclude_HEADERS = \
     xcam_obj_debug.h               \
     buffer_pool.h                  \
     drm_bo_buffer.h                \
+    meta_data.h                    \
+    quaternion.h                   \
     $(NULL)
 
 if HAVE_LIBDRM

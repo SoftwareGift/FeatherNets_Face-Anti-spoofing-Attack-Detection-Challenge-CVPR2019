@@ -27,6 +27,16 @@
 
 namespace XCam {
 
+#define CL_IMAGE_WARP_WRITE_UINT 1
+
+enum {
+#if CL_IMAGE_WARP_WRITE_UINT
+    KernelImageWarp   = 0,
+#else
+    KernelImageWarp   = 1,
+#endif
+};
+
 struct CLWarpConfig {
     int frame_id;
     int width;
@@ -62,7 +72,9 @@ public:
         const SmartPtr<CLContext> &context,
         const char *name,
         uint32_t channel,
-        SmartPtr<CLImageWarpHandler> &handler);
+        SmartPtr<CLImageHandler> &handler);
+
+    virtual ~CLImageWarpKernel () {};
 
 protected:
     virtual XCamReturn prepare_arguments (
@@ -81,10 +93,12 @@ class CLImageWarpHandler
     typedef std::list<CLWarpConfig> CLWarpConfigList;
 
 public:
-    explicit CLImageWarpHandler (const SmartPtr<CLContext> &context);
+    explicit CLImageWarpHandler (const SmartPtr<CLContext> &context, const char *name = "CLImageWarpHandler");
     virtual ~CLImageWarpHandler () {
         _warp_config_list.clear ();
     }
+
+    virtual SmartPtr<DrmBoBuffer> &get_warp_input_buf ();
 
     bool set_warp_config (const XCamDVSResult& config);
     CLWarpConfig get_warp_config ();
@@ -98,6 +112,7 @@ private:
     XCAM_DEAD_COPY (CLImageWarpHandler);
 
     CLWarpConfigList _warp_config_list;
+
 };
 
 SmartPtr<CLImageHandler>

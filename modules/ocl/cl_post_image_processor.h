@@ -41,6 +41,7 @@ class CLImageScaler;
 class CLWireFrameImageHandler;
 class CLImageWarpHandler;
 class CLImage360Stitch;
+class CLVideoStabilizer;
 
 class CLPostImageProcessor
     : public CLImageProcessor
@@ -121,6 +122,7 @@ private:
     SmartPtr<CLCscImageHandler>               _csc;
     SmartPtr<CLImageWarpHandler>              _image_warp;
     SmartPtr<CLImage360Stitch>                _stitch;
+    SmartPtr<CLVideoStabilizer>               _video_stab;
 
     double                                    _scaler_factor;
 

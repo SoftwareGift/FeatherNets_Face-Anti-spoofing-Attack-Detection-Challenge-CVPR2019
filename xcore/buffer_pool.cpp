@@ -105,6 +105,35 @@ BufferProxy::clear_attached_buffers ()
     _attached_bufs.clear ();
 }
 
+bool
+BufferProxy::attach_metadata (const SmartPtr<MetaData>& data)
+{
+    _attached_metadatas.push_back (data);
+    return true;
+}
+
+bool
+BufferProxy::detach_metadata (const SmartPtr<MetaData>& data)
+{
+    for (MetaDataList::iterator iter = _attached_metadatas.begin ();
+            iter != _attached_metadatas.end (); ++iter) {
+        SmartPtr<MetaData>& current = *iter;
+        if (current.ptr () == data.ptr ()) {
+            _attached_metadatas.erase (iter);
+            return true;
+        }
+    }
+
+    //not found
+    return false;
+}
+
+void
+BufferProxy::clear_attached_metadatas ()
+{
+    _attached_metadatas.clear ();
+}
+
 BufferPool::BufferPool ()
     : _allocated_num (0)
     , _max_count (0)

@@ -26,18 +26,8 @@ namespace XCam {
 #define CL_IMAGE_WARP_WG_WIDTH   8
 #define CL_IMAGE_WARP_WG_HEIGHT  4
 
-#define CL_BUFFER_POOL_SIZE      30
-#define CL_IMAGE_WARP_WRITE_UINT 1
 
-enum {
-#if CL_IMAGE_WARP_WRITE_UINT
-    KernelImageWarp   = 0,
-#else
-    KernelImageWarp   = 1,
-#endif
-};
-
-const XCamKernelInfo kernel_image_warp_info [] = {
+static const XCamKernelInfo kernel_image_warp_info [] = {
     {
         "kernel_image_warp_8_pixel",
 #include "kernel_image_warp.clx"
@@ -54,11 +44,11 @@ CLImageWarpKernel::CLImageWarpKernel (
     const SmartPtr<CLContext> &context,
     const char *name,
     uint32_t channel,
-    SmartPtr<CLImageWarpHandler> &handler)
+    SmartPtr<CLImageHandler> &handler)
     : CLImageKernel (context, name)
     , _channel (channel)
-    , _handler (handler)
 {
+    _handler = handler.dynamic_cast_ptr<CLImageWarpHandler> ();
 }
 
 XCamReturn
@@ -66,7 +56,7 @@ CLImageWarpKernel::prepare_arguments (
     CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> input = _handler->get_input_buf ();
+    SmartPtr<DrmBoBuffer> input = _handler->get_warp_input_buf ();
     SmartPtr<DrmBoBuffer> output = _handler->get_output_buf ();
 
     const VideoBufferInfo & video_info_in = input->get_video_info ();
@@ -178,8 +168,8 @@ CLImageWarpKernel::prepare_arguments (
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLImageWarpHandler::CLImageWarpHandler (const SmartPtr<CLContext> &context)
-    : CLImageHandler (context, "CLImageWarpHandler")
+CLImageWarpHandler::CLImageWarpHandler (const SmartPtr<CLContext> &context, const char *name)
+    : CLImageHandler (context, name)
 {
 }
 
@@ -201,6 +191,12 @@ CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
     return XCAM_RETURN_NO_ERROR;
 }
 
+SmartPtr<DrmBoBuffer> &
+CLImageWarpHandler::get_warp_input_buf ()
+{
+    return CLImageHandler::get_input_buf ();
+}
+
 bool
 CLImageWarpHandler::set_warp_config (const XCamDVSResult& config)
 {
@@ -211,8 +207,7 @@ CLImageWarpHandler::set_warp_config (const XCamDVSResult& config)
     for( int i = 0; i < 9; i++ ) {
         warp_config.proj_mat[i] = config.proj_mat[i];
     }
-    XCAM_LOG_DEBUG ("set_warp_config frame id(%d)", warp_config.frame_id);
-    XCAM_LOG_DEBUG ("projection matrix=(%f, %f, %f, %f, %f, %f, %f, %f, %f)",
+    XCAM_LOG_DEBUG ("warp_mat(%d, :)={%f, %f, %f, %f, %f, %f, %f, %f, %f}", warp_config.frame_id + 1,
                     warp_config.proj_mat[0], warp_config.proj_mat[1], warp_config.proj_mat[2],
                     warp_config.proj_mat[3], warp_config.proj_mat[4], warp_config.proj_mat[5],
                     warp_config.proj_mat[6], warp_config.proj_mat[7], warp_config.proj_mat[8]);
@@ -248,7 +243,7 @@ static SmartPtr<CLImageWarpKernel>
 create_kernel_image_warp (
     const SmartPtr<CLContext> &context,
     uint32_t channel,
-    SmartPtr<CLImageWarpHandler> handler)
+    SmartPtr<CLImageHandler> handler)
 {
     SmartPtr<CLImageWarpKernel> warp_kernel;
 
@@ -275,7 +270,6 @@ create_cl_image_warp_handler (const SmartPtr<CLContext> &context)
 {
     SmartPtr<CLImageWarpHandler> warp_handler;
     SmartPtr<CLImageKernel> warp_kernel;
-    SmartPtr<CLImageKernel> trim_kernel;
 
     warp_handler = new CLImageWarpHandler (context);
     XCAM_ASSERT (warp_handler.ptr ());
