@@ -35,15 +35,6 @@ G_BEGIN_DECLS
   (gst_xcam_buffer_pool_get_type())
 #define GST_XCAM_BUFFER_POOL(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_XCAM_BUFFER_POOL,GstXCamBufferPool))
-#define GST_XCAM_BUFFER_POOL_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_XCAM_BUFFER_POOL,GstXCamBufferPoolClass))
-#define GST_IS_XCAM_BUFFER_POOL(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_XCAM_BUFFER_POOL))
-#define GST_IS_XCAM_BUFFER_POOL_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_XCAM_BUFFER_POOL))
-#define GST_XCAM_BUFFER_POOL_CAST(obj)            ((GstXCamBufferPool *)(obj))
-#define GST_XCAM_BUFFER_POOL_GET_CLASS (obj)  \
-    (G_TYPE_INSTANCE_GET_CLASS ((obj), GST_TYPE_XCAM_BUFFER_POOL, GstXCamBufferPoolClass))
 
 typedef struct _GstXCamBufferPool      GstXCamBufferPool;
 typedef struct _GstXCamBufferPoolClass GstXCamBufferPoolClass;

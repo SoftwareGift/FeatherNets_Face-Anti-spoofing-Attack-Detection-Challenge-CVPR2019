@@ -34,9 +34,6 @@ XCAM_BEGIN_DECLARE
 
 #define GST_TYPE_XCAM_FILTER             (gst_xcam_filter_get_type())
 #define GST_XCAM_FILTER(obj)             (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_XCAM_FILTER,GstXCamFilter))
-#define GST_XCAM_FILTER_CLASS(klass)     (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_XCAM_FILTER,GstXCamFilterClass))
-#define GST_IS_XCAM_FILTER(obj)          (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_XCAM_FILTER))
-#define GST_IS_XCAM_FILTER_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_XCAM_FILTER))
 #define GST_XCAM_FILTER_CAST(obj)        ((GstXCamFilter *) obj)
 
 
@@ -68,8 +65,8 @@ typedef enum {
 } Denoise3DModeType;
 
 enum StitchResMode {
-	StitchRes1080P = 0,
-	StitchRes4K
+    StitchRes1080P = 0,
+    StitchRes4K
 };
 
 typedef struct _GstXCamFilter      GstXCamFilter;

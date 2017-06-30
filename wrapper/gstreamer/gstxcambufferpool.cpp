@@ -75,13 +75,13 @@ gst_xcam_buffer_pool_release_buffer (GstBufferPool *bpool, GstBuffer *buffer);
 XCAM_END_DECLARE
 
 static void
-gst_xcam_buffer_pool_class_init (GstXCamBufferPoolClass * klass)
+gst_xcam_buffer_pool_class_init (GstXCamBufferPoolClass * class_self)
 {
     GObjectClass *object_class;
     GstBufferPoolClass *bufferpool_class;
 
-    object_class = G_OBJECT_CLASS (klass);
-    bufferpool_class = GST_BUFFER_POOL_CLASS (klass);
+    object_class = G_OBJECT_CLASS (class_self);
+    bufferpool_class = GST_BUFFER_POOL_CLASS (class_self);
 
     object_class->finalize = gst_xcam_buffer_pool_finalize;
 

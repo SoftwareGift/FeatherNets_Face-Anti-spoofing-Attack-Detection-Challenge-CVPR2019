@@ -225,15 +225,15 @@ static GstFlowReturn gst_xcam_filter_transform (GstBaseTransform *trans, GstBuff
 XCAM_END_DECLARE
 
 static void
-gst_xcam_filter_class_init (GstXCamFilterClass *klass)
+gst_xcam_filter_class_init (GstXCamFilterClass *class_self)
 {
     GObjectClass *gobject_class;
     GstElementClass *element_class;
     GstBaseTransformClass *basetrans_class;
 
-    gobject_class = (GObjectClass *) klass;
-    element_class = (GstElementClass *) klass;
-    basetrans_class = (GstBaseTransformClass *) klass;
+    gobject_class = (GObjectClass *) class_self;
+    element_class = (GstElementClass *) class_self;
+    basetrans_class = (GstBaseTransformClass *) class_self;
 
     GST_DEBUG_CATEGORY_INIT (gst_xcam_filter_debug, "xcamfilter", 0, "LibXCam filter plugin");
 

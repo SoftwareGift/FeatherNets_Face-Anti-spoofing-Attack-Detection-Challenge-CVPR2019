@@ -34,12 +34,6 @@ XCAM_BEGIN_DECLARE
   (gst_xcam_src_get_type ())
 #define GST_XCAM_SRC(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_XCAM_SRC,GstXCamSrc))
-#define GST_XCAM_SRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_XCAM_SRC,GstXCamSrcClass))
-#define GST_IS_XCAM_SRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_XCAM_SRC))
-#define GST_IS_XCAM_SRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_XCAM_SRC))
 #define GST_XCAM_SRC_CAST(obj)   ((GstXCamSrc *) obj)
 
 #define GST_XCAM_SRC_MEM_MODE(src) ((GST_XCAM_SRC_CAST(src))->mem_type)

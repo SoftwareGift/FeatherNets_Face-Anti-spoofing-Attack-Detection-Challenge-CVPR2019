@@ -420,17 +420,17 @@ static gboolean gst_xcam_src_plugin_init (GstPlugin * xcamsrc);
 XCAM_END_DECLARE
 
 static void
-gst_xcam_src_class_init (GstXCamSrcClass * klass)
+gst_xcam_src_class_init (GstXCamSrcClass * class_self)
 {
     GObjectClass *gobject_class;
     GstElementClass *element_class;
     GstBaseSrcClass *basesrc_class;
     GstPushSrcClass *pushsrc_class;
 
-    gobject_class = (GObjectClass *) klass;
-    element_class = (GstElementClass *) klass;
-    basesrc_class = GST_BASE_SRC_CLASS (klass);
-    pushsrc_class = GST_PUSH_SRC_CLASS (klass);
+    gobject_class = (GObjectClass *) class_self;
+    element_class = (GstElementClass *) class_self;
+    basesrc_class = GST_BASE_SRC_CLASS (class_self);
+    pushsrc_class = GST_PUSH_SRC_CLASS (class_self);
 
     GST_DEBUG_CATEGORY_INIT (gst_xcam_src_debug, "xcamsrc", 0, "libXCam source plugin");
 
