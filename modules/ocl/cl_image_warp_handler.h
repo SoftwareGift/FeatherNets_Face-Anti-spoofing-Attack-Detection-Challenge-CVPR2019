@@ -22,8 +22,8 @@
 #define XCAM_CL_IMAGE_WARP_H
 
 #include "xcam_utils.h"
-#include "cl_image_handler.h"
-#include "cl_memory.h"
+#include "ocl/cl_image_handler.h"
+#include "ocl/cl_memory.h"
 
 namespace XCam {
 

@@ -6,6 +6,8 @@ XCAMOCL_LIBS = -ldl  \
 
 XCAMOCL_CXXFLAGS += \
     $(LIBCL_CFLAGS)             \
+    -I$(top_srcdir)/xcore       \
+    -I$(top_srcdir)/modules     \
     -I$(top_srcdir)/clx_kernel  \
     -I$(top_srcdir)/clx_bin     \
     $(NULL)

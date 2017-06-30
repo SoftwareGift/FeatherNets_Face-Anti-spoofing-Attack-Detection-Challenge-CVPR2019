@@ -23,8 +23,8 @@
 
 #include "xcam_utils.h"
 #include "drm_bo_buffer.h"
-#include "cl_memory.h"
-#include "cl_context.h"
+#include "ocl/cl_memory.h"
+#include "ocl/cl_context.h"
 
 namespace XCam {
 

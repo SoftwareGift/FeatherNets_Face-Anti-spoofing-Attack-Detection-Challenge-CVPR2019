@@ -19,9 +19,9 @@
  */
 
 #include "test_common.h"
-#include "cl_device.h"
-#include "cl_context.h"
-#include "cl_kernel.h"
+#include "ocl/cl_device.h"
+#include "ocl/cl_context.h"
+#include "ocl/cl_kernel.h"
 #include <unistd.h>
 #include <libgen.h>
 

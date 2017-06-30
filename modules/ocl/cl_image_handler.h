@@ -22,10 +22,10 @@
 #define XCAM_CL_IMAGE_HANDLER_H
 
 #include "xcam_utils.h"
-#include "cl_kernel.h"
-#include "cl_argument.h"
 #include "drm_bo_buffer.h"
-#include "cl_memory.h"
+#include "ocl/cl_kernel.h"
+#include "ocl/cl_argument.h"
+#include "ocl/cl_memory.h"
 #include "x3a_result.h"
 
 namespace XCam {

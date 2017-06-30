@@ -22,11 +22,11 @@
 #define XCAM_CL_IMAGE_360_STITCH_H
 
 #include "xcam_utils.h"
-#include "cl_multi_image_handler.h"
-#include "cl_fisheye_handler.h"
-#include "cl_blender.h"
+#include "ocl/cl_multi_image_handler.h"
+#include "ocl/cl_fisheye_handler.h"
+#include "ocl/cl_blender.h"
 #if HAVE_OPENCV
-#include "cv_feature_match.h"
+#include "ocl/cv_feature_match.h"
 #endif
 
 namespace XCam {

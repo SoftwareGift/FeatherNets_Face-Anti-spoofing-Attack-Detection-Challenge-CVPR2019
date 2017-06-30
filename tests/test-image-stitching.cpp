@@ -22,13 +22,13 @@
 #include "test_common.h"
 #include <unistd.h>
 #include <getopt.h>
-#include "cl_device.h"
-#include "cl_context.h"
+#include "ocl/cl_device.h"
+#include "ocl/cl_context.h"
 #include "drm_display.h"
 #include "image_file_handle.h"
 
-#include "cl_fisheye_handler.h"
-#include "cl_image_360_stitch.h"
+#include "ocl/cl_fisheye_handler.h"
+#include "ocl/cl_image_360_stitch.h"
 
 #define XCAM_TEST_STITCH_DEBUG 0
 #define XCAM_ALIGNED_WIDTH 16

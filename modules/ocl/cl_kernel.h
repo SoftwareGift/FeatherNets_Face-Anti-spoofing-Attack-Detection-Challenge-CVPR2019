@@ -23,8 +23,8 @@
 
 #include "xcam_utils.h"
 #include "smartptr.h"
-#include "cl_event.h"
-#include "cl_argument.h"
+#include "ocl/cl_event.h"
+#include "ocl/cl_argument.h"
 
 #include <CL/cl.h>
 #include <string>

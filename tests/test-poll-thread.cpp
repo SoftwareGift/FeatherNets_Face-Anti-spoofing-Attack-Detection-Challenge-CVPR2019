@@ -20,10 +20,10 @@
  */
 
 #include "device_manager.h"
-#include "atomisp_device.h"
-#include "x3a_analyzer_aiq.h"
-#include "isp_controller.h"
-#include "isp_image_processor.h"
+#include "isp/atomisp_device.h"
+#include "isp/x3a_analyzer_aiq.h"
+#include "isp/isp_controller.h"
+#include "isp/isp_image_processor.h"
 #include <unistd.h>
 #include <signal.h>
 #include "test_common.h"

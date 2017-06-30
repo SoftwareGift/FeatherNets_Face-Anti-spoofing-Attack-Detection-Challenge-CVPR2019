@@ -22,7 +22,7 @@
 #define XCAM_CL_BILATERAL_HANLDER_H
 
 #include "xcam_utils.h"
-#include "cl_image_handler.h"
+#include "ocl/cl_image_handler.h"
 
 namespace XCam {
 

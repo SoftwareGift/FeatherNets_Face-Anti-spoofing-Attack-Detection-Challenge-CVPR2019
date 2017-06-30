@@ -21,11 +21,11 @@
 #include "test_common.h"
 #include <unistd.h>
 #include <getopt.h>
-#include "cl_device.h"
-#include "cl_context.h"
-#include "cl_blender.h"
+#include "ocl/cl_device.h"
+#include "ocl/cl_context.h"
+#include "ocl/cl_blender.h"
 #include "image_file_handle.h"
-#include "cl_geo_map_handler.h"
+#include "ocl/cl_geo_map_handler.h"
 #include "drm_display.h"
 #include "dma_video_buffer.h"
 

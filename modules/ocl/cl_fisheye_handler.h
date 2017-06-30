@@ -22,8 +22,8 @@
 #define XCAM_CL_FISHEYE_HANDLER_H
 
 #include "xcam_utils.h"
-#include "cl_image_handler.h"
-#include "cl_geo_map_handler.h"
+#include "ocl/cl_image_handler.h"
+#include "ocl/cl_geo_map_handler.h"
 
 namespace XCam {
 

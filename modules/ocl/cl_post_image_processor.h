@@ -24,9 +24,9 @@
 
 #include "xcam_utils.h"
 #include <base/xcam_3a_types.h>
-#include "cl_image_processor.h"
+#include "ocl/cl_image_processor.h"
 #include "stats_callback_interface.h"
-#include "cl_blender.h"
+#include "ocl/cl_blender.h"
 
 namespace XCam {
 

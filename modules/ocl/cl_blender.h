@@ -22,7 +22,7 @@
 #define XCAM_CL_BLENDER_H
 
 #include "xcam_utils.h"
-#include "cl_image_handler.h"
+#include "ocl/cl_image_handler.h"
 
 #define XCAM_CL_BLENDER_IMAGE_NUM  2
 #define XCAM_BLENDER_ALIGNED_WIDTH 8

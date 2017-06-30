@@ -21,7 +21,7 @@
 #ifndef XCAM_CL_WIRE_FRAME_H
 #define XCAM_CL_WIRE_FRAME_H
 
-#include "cl_image_handler.h"
+#include "ocl/cl_image_handler.h"
 
 #define XCAM_WIRE_FRAME_MAX_COUNT 160
 

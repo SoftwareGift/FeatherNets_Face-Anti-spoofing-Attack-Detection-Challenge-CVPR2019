@@ -40,9 +40,9 @@
 #if HAVE_IA_AIQ
 #include "gstxcaminterface.h"
 #include "dynamic_analyzer_loader.h"
-#include "hybrid_analyzer_loader.h"
+#include "isp/hybrid_analyzer_loader.h"
 #include "x3a_analyze_tuner.h"
-#include "isp_poll_thread.h"
+#include "isp/isp_poll_thread.h"
 #endif
 #if HAVE_LIBCL
 #include "smart_analyzer_loader.h"

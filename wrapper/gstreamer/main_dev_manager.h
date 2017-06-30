@@ -41,14 +41,14 @@
 #include <v4l2_device.h>
 #include <device_manager.h>
 #if HAVE_IA_AIQ
-#include <atomisp_device.h>
-#include <isp_controller.h>
-#include <isp_image_processor.h>
-#include <x3a_analyzer_aiq.h>
+#include <isp/atomisp_device.h>
+#include <isp/isp_controller.h>
+#include <isp/isp_image_processor.h>
+#include <isp/x3a_analyzer_aiq.h>
 #endif
 #if HAVE_LIBCL
-#include <cl_3a_image_processor.h>
-#include <cl_post_image_processor.h>
+#include <ocl/cl_3a_image_processor.h>
+#include <ocl/cl_post_image_processor.h>
 #endif
 #include <x3a_analyzer_simple.h>
 

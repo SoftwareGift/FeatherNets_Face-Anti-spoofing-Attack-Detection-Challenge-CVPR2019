@@ -23,7 +23,7 @@
 
 #include "xcam_utils.h"
 #include "smartptr.h"
-#include "cl_event.h"
+#include "ocl/cl_event.h"
 #include <map>
 #include <list>
 #include <CL/cl.h>

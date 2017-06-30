@@ -29,9 +29,9 @@
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
 
-#include <cl_context.h>
-#include <cl_device.h>
-#include <cl_memory.h>
+#include <ocl/cl_context.h>
+#include <ocl/cl_device.h>
+#include <ocl/cl_memory.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>

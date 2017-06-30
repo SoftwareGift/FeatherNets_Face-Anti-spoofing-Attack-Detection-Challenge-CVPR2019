@@ -22,7 +22,7 @@
 #define XCAM_CL_PYRAMID_BLENDER_H
 
 #include "xcam_utils.h"
-#include "cl_blender.h"
+#include "ocl/cl_blender.h"
 
 #define CL_PYRAMID_ENABLE_DUMP 0
 

@@ -27,20 +27,20 @@
 #include "analyzer_loader.h"
 #include "smart_analyzer_loader.h"
 #if HAVE_IA_AIQ
-#include "atomisp_device.h"
-#include "isp_controller.h"
-#include "isp_image_processor.h"
-#include "isp_poll_thread.h"
-#include "x3a_analyzer_aiq.h"
+#include "isp/atomisp_device.h"
+#include "isp/isp_controller.h"
+#include "isp/isp_image_processor.h"
+#include "isp/isp_poll_thread.h"
+#include "isp/x3a_analyzer_aiq.h"
 #include "x3a_analyze_tuner.h"
 #include "dynamic_analyzer_loader.h"
-#include "hybrid_analyzer_loader.h"
+#include "isp/hybrid_analyzer_loader.h"
 #endif
 #if HAVE_LIBCL
-#include "cl_3a_image_processor.h"
-#include "cl_post_image_processor.h"
-#include "cl_csc_image_processor.h"
-#include "cl_tnr_handler.h"
+#include "ocl/cl_3a_image_processor.h"
+#include "ocl/cl_post_image_processor.h"
+#include "ocl/cl_csc_image_processor.h"
+#include "ocl/cl_tnr_handler.h"
 #endif
 #if HAVE_LIBDRM
 #include "drm_display.h"

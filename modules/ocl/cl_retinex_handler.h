@@ -23,11 +23,11 @@
 #define XCAM_CL_RETINEX_HANLDER_H
 
 #include "xcam_utils.h"
-#include "cl_image_handler.h"
 #include "base/xcam_3a_result.h"
 #include "x3a_stats_pool.h"
-#include "cl_image_scaler.h"
-#include "cl_gauss_handler.h"
+#include "ocl/cl_image_handler.h"
+#include "ocl/cl_image_scaler.h"
+#include "ocl/cl_gauss_handler.h"
 
 #define XCAM_RETINEX_MAX_SCALE 2
 #define XCAM_RETINEX_SCALER_FACTOR 0.5

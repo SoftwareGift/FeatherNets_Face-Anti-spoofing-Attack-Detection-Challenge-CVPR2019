@@ -22,8 +22,8 @@
 #define XCAM_CL_MEMORY_H
 
 #include "xcam_utils.h"
-#include "cl_context.h"
-#include "cl_event.h"
+#include "ocl/cl_context.h"
+#include "ocl/cl_event.h"
 #include "drm_bo_buffer.h"
 
 namespace XCam {

@@ -13,13 +13,9 @@ plugin_LTLIBRARIES += \
 endif
 
 XCORE_DIR = $(top_builddir)/xcore
+MODULES_DIR = $(top_builddir)/modules
+
 XCORE_LA = $(top_builddir)/xcore/libxcam_core.la
-
-ISP_DIR = $(top_builddir)/modules/isp
-ISP_LA = $(top_builddir)/modules/isp/libxcam_isp.la
-
-OCL_DIR = $(top_builddir)/modules/ocl
-OCL_LA = $(top_builddir)/modules/ocl/libxcam_ocl.la
 
 if ENABLE_IA_AIQ
 XCAM_INTERFACE_DIR = -I$(top_builddir)/wrapper/gstreamer/interface
@@ -39,10 +35,13 @@ XCAMGST_LIBS += $(LIBDRM_LIBS)
 endif
 
 if USE_LOCAL_ATOMISP
-XCAMGST_CXXFLAGS += \
-    -I$(top_srcdir)/ext/atomisp \
-    $(NULL)
+XCAMGST_CXXFLAGS += -I$(top_srcdir)/ext/atomisp
 endif
+
+XCAMGST_CXXFLAGS += \
+    -I$(XCORE_DIR)   \
+    -I$(MODULES_DIR) \
+    $(NULL)
 
 # Note: plugindir is set in configure
 plugindir="$(libdir)/gstreamer-1.0"
@@ -57,9 +56,9 @@ libgstxcamsrc_la_SOURCES = \
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
 libgstxcamsrc_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS) -I$(XCORE_DIR) \
-    -I$(top_builddir)/wrapper/gstreamer              \
-    $(XCAM_INTERFACE_DIR)                            \
+    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)    \
+    -I$(top_builddir)/wrapper/gstreamer  \
+    $(XCAM_INTERFACE_DIR)                \
     $(NULL)
 
 libgstxcamsrc_la_LIBADD = $(XCAMGST_LIBS) \
@@ -76,13 +75,14 @@ libgstxcamsrc_la_LDFLAGS = \
 libgstxcamsrc_la_LIBTOOLFLAGS = --tag=disable-static
 
 if ENABLE_IA_AIQ
-libgstxcamsrc_la_CXXFLAGS += -I$(ISP_DIR)
+ISP_LA = $(top_builddir)/modules/isp/libxcam_isp.la
 libgstxcamsrc_la_LIBADD += $(ISP_LA)
 libgstxcamsrc_la_LDFLAGS += $(ISP_LA)
 endif
 
 if HAVE_LIBCL
-libgstxcamsrc_la_CXXFLAGS += -I$(OCL_DIR)
+OCL_LA = $(top_builddir)/modules/ocl/libxcam_ocl.la
+
 libgstxcamsrc_la_LIBADD += $(OCL_LA)
 libgstxcamsrc_la_LDFLAGS += $(OCL_LA)
 
@@ -94,7 +94,6 @@ libgstxcamfilter_la_SOURCES = \
 
 libgstxcamfilter_la_CXXFLAGS = \
     $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)   \
-    -I$(XCORE_DIR) -I$(OCL_DIR)         \
     -I$(top_builddir)/wrapper/gstreamer \
     $(NULL)
 

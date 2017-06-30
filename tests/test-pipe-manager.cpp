@@ -20,7 +20,7 @@
 
 #include "pipe_manager.h"
 #include "smart_analyzer_loader.h"
-#include "cl_post_image_processor.h"
+#include "ocl/cl_post_image_processor.h"
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #endif

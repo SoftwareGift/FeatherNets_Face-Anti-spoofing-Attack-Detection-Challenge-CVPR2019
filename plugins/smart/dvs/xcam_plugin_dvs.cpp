@@ -28,9 +28,9 @@
 #include <drm_display.h>
 #include <dma_video_buffer.h>
 
-#include <cl_context.h>
-#include <cl_device.h>
-#include <cl_memory.h>
+#include <ocl/cl_context.h>
+#include <ocl/cl_device.h>
+#include <ocl/cl_memory.h>
 
 #include <opencv2/core/ocl.hpp>
 

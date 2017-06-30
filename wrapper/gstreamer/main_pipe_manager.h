@@ -28,7 +28,7 @@
 #include <pipe_manager.h>
 #include <video_buffer.h>
 #include <smart_analyzer_loader.h>
-#include <cl_post_image_processor.h>
+#include <ocl/cl_post_image_processor.h>
 
 namespace GstXCam {
 

@@ -3,6 +3,7 @@ SUBDIRS = libdvs
 noinst_LTLIBRARIES = libxcam_plugin_dvs.la
 
 XCAM_PLUGIN_DVS_CXXFLAGS = $(XCAM_CXXFLAGS)    \
+	-I$(top_builddir)/modules                  \
 	-I$(top_builddir)/plugins/smart/dvs/libdvs \
 	$(NULL)
 
