@@ -60,6 +60,10 @@ ImageProjector::interp_orientation (
     }
 
     int count = orient_ts.size ();
+    if (count == 1) {
+        return Quaternd(orientation[0]);
+    }
+
     int i = index;
     XCAM_ASSERT(0 <= i && i < count);
 
@@ -268,7 +272,7 @@ ImageProjector::calc_camera_extrinsics (
 Mat3d
 ImageProjector::calc_camera_extrinsics (
     const int64_t frame_ts,
-    MetaDataList &pose_list)
+    DevicePoseList &pose_list)
 {
     if (pose_list.empty ()) {
         return Mat3d ();
@@ -280,9 +284,9 @@ ImageProjector::calc_camera_extrinsics (
     std::vector<int64_t> orient_ts;
     std::vector<Vec3d> translation;
 
-    for (MetaDataList::iterator iter = pose_list.begin (); iter != pose_list.end (); ++iter)
+    for (DevicePoseList::iterator iter = pose_list.begin (); iter != pose_list.end (); ++iter)
     {
-        SmartPtr<DevicePose> pose = (*iter).dynamic_cast_ptr<DevicePose> ();
+        SmartPtr<DevicePose> pose = *iter;
 
         orientation.push_back (Vec4d (pose->orientation[0],
                                       pose->orientation[1],

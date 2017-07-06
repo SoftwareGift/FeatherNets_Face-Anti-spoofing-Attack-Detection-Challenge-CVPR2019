@@ -36,8 +36,6 @@
 
 using namespace XCam;
 
-typedef std::list<SmartPtr<DevicePose>> DevicePoseList;
-
 static int read_device_pose (const char *file, DevicePoseList &pose, uint32_t pose_size);
 
 #if HAVE_OPENCV
@@ -84,6 +82,7 @@ usage(const char* arg0)
             "%s --input file --output file"
             " [--input-w width] [--input-h height] \n"
             "\t--input, input image(NV12)\n"
+            "\t--gyro, input gyro pose data;\n"
             "\t--output, output image(NV12) PREFIX\n"
             "\t--input-w, optional, input width; default:1920\n"
             "\t--input-h,  optional, input height; default:1080\n"
@@ -149,6 +148,7 @@ int main (int argc, char *argv[])
 
     const struct option long_opts[] = {
         {"input", required_argument, NULL, 'i'},
+        {"gyro", required_argument, NULL, 'g'},
         {"output", required_argument, NULL, 'o'},
         {"input-w", required_argument, NULL, 'w'},
         {"input-h", required_argument, NULL, 'h'},
@@ -163,6 +163,9 @@ int main (int argc, char *argv[])
         switch (opt) {
         case 'i':
             file_in_name = optarg;
+            break;
+        case 'g':
+            gyro_data = optarg;
             break;
         case 'o':
             file_out_name = optarg;
@@ -303,9 +306,15 @@ int main (int argc, char *argv[])
             SmartPtr<MetaData> pose_data  = *(pose_iterator);
             SmartPtr<DevicePose> data = *(pose_iterator);
             input_buf->attach_metadata (pose_data);
+            input_buf->set_timestamp (pose_data->timestamp);
 
             ret = video_stab->execute (input_buf, output_buf);
-            CHECK (ret, "video_stab execute failed");
+            if (++pose_iterator == device_pose.end ()) {
+                break;
+            }
+            if (ret == XCAM_RETURN_BYPASS) {
+                continue;
+            }
 
 #if HAVE_OPENCV
             if (need_save_output) {
@@ -319,9 +328,6 @@ int main (int argc, char *argv[])
             FPS_CALCULATION (video_stabilizer, XCAM_OBJ_DUR_FRAME_NUM);
             ++i;
 
-            if (++pose_iterator == device_pose.end ()) {
-                break;
-            }
         } while (true);
     }
 
@@ -346,6 +352,7 @@ int read_device_pose (const char* file, DevicePoseList &pose_list, uint32_t memb
     fseek(p_f, 0L, SEEK_SET);
 
     ptr = (char*)malloc(size + 1);
+    CHECK_EXP (ptr, "malloc memory failed");
 
     if (fread(ptr, 1, size, p_f) != size) {
         printf("read pose file(%s)failed", file);
@@ -374,11 +381,17 @@ int read_device_pose (const char* file, DevicePoseList &pose_list, uint32_t memb
             data = new DevicePose ();
         }
 
+        if (!data.ptr ()) {
+            return -1;
+        }
         if (x < orient_size) {
+            CHECK_EXP (data.ptr (), "invalid buffer pointer");
             data->orientation[x] = num;
         } else if (x < orient_size + trans_size) {
+            CHECK_EXP (data.ptr (), "invalid buffer pointer");
             data->translation[x - orient_size] = num;
         } else if (x == orient_size + trans_size) {
+            CHECK_EXP (data.ptr (), "invalid buffer pointer");
             data->timestamp = num * 1000000;
 
             pose_list.push_back (data);

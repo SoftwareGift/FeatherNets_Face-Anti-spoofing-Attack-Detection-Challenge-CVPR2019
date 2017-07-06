@@ -63,18 +63,31 @@ CLVideoStabilizer::CLVideoStabilizer (const SmartPtr<CLContext> &context, const 
     _stabilized_frame_id = -1;
 }
 
-SmartPtr<DrmBoBuffer> &
+SmartPtr<DrmBoBuffer>
 CLVideoStabilizer::get_warp_input_buf ()
 {
-    CLImageBufferList::iterator it = _input_buf_list.begin ();
+    XCAM_ASSERT (_input_buf_list.size () >= 1);
 
-    return *it;
+    SmartPtr<DrmBoBuffer> buf = (*_input_buf_list.begin ());
+    return buf;
 }
 
 bool
 CLVideoStabilizer::is_ready ()
 {
     return CLImageHandler::is_ready ();
+}
+
+XCamReturn
+CLVideoStabilizer::execute_done (SmartPtr<DrmBoBuffer> &output)
+{
+    if (!_input_buf_list.empty ()) {
+        _input_buf_list.pop_front ();
+    }
+
+	CLImageWarpHandler::execute_done (output);
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -87,10 +100,10 @@ CLVideoStabilizer::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
         _input_buf_list.pop_front ();
     }
     _input_buf_list.push_back (input);
+    _input_frame_id++;
 
     const VideoBufferInfo & video_info_in = input->get_video_info ();
 
-    _input_frame_id++;
     _frame_ts[_input_frame_id % 2] = input->get_timestamp ();
 
     SmartPtr<DevicePose> data = input->find_data_attach<DevicePose> ();
@@ -105,25 +118,25 @@ CLVideoStabilizer::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
     Mat3d homography;
     if (_input_frame_id > 0) {
         homography = analyze_motion (
-                         _frame_ts[0],
-                         _device_pose[0],
-                         _frame_ts[1],
-                         _device_pose[1]);
+                         _frame_ts[(_input_frame_id - 1) % 2],
+                         _device_pose[(_input_frame_id - 1) % 2],
+                         _frame_ts[_input_frame_id % 2],
+                         _device_pose[_input_frame_id % 2]);
 
-        if (_motions.size () < 2 * _filter_radius + 1) {
-            _motions.push_back (homography);
-        } else {
+        if (_motions.size () >= 2 * _filter_radius + 1) {
             _motions.pop_front ();
-            _motions.push_back (homography);
         }
+        _motions.push_back (homography);
+
+        _device_pose[(_input_frame_id - 1) % 2].clear ();
     }
 
     Mat3d proj_mat;
     XCamDVSResult warp_config;
-    if (_input_frame_id > _filter_radius)
+    if (_input_frame_id >= _filter_radius)
     {
         _stabilized_frame_id = _input_frame_id - _filter_radius;
-        int32_t cur_stabilized_pos = (_stabilized_frame_id - 1) % (2 * _filter_radius + 1);
+        int32_t cur_stabilized_pos = XCAM_MIN (_stabilized_frame_id, _filter_radius + 1);
 
         XCAM_LOG_DEBUG ("input id(%ld), stab id(%ld), cur stab pos(%d), filter r(%d)",
                         _input_frame_id,
@@ -144,6 +157,8 @@ CLVideoStabilizer::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
         }
 
         set_warp_config (warp_config);
+    } else {
+        ret = XCAM_RETURN_BYPASS;
     }
 
     return ret;
@@ -205,6 +220,8 @@ CLVideoStabilizer::set_motion_filter (uint32_t radius, float stdev)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
+    _filter_radius = radius;
+
     if (_motion_filter.ptr ()) {
         _motion_filter->set_filters (radius, stdev);
     } else {
@@ -217,13 +234,14 @@ CLVideoStabilizer::set_motion_filter (uint32_t radius, float stdev)
 Mat3d
 CLVideoStabilizer::analyze_motion (
     int64_t frame0_ts,
-    MetaDataList pose0_list,
+    DevicePoseList pose0_list,
     int64_t frame1_ts,
-    MetaDataList pose1_list)
+    DevicePoseList pose1_list)
 {
     if (pose0_list.empty () || pose1_list.empty () || !_projector.ptr ()) {
         return Mat3d ();
     }
+    XCAM_ASSERT (frame0_ts < frame1_ts);
 
     Mat3d ext0 = _projector->calc_camera_extrinsics (frame0_ts, pose0_list);
 
@@ -243,10 +261,10 @@ CLVideoStabilizer::analyze_motion (
 }
 
 Mat3d
-CLVideoStabilizer::stabilize_motion (int32_t cur_frame_id, std::list<Mat3d> &motions)
+CLVideoStabilizer::stabilize_motion (int32_t stab_frame_id, std::list<Mat3d> &motions)
 {
     if (_motion_filter.ptr ()) {
-        return _motion_filter->stabilize (cur_frame_id, motions, _input_frame_id);
+        return _motion_filter->stabilize (stab_frame_id, motions, _input_frame_id);
     } else {
         return Mat3d ();
     }
@@ -335,33 +353,34 @@ MotionFilter::set_filters (uint32_t radius, float stdev)
 }
 
 Mat3d
-MotionFilter::get_motion (uint32_t from, uint32_t to, std::list<Mat3d> &motions)
+MotionFilter::cumulate_motion (uint32_t index, uint32_t from, std::list<Mat3d> &motions)
 {
-    Mat3d M;
-    M.eye ();
-    uint32_t index = 0;
+    Mat3d motion;
+    motion.eye ();
+
+    uint32_t id = 0;
     std::list<Mat3d>::iterator it;
 
-    if (to > from)
-    {
-        for (index = 0, it = motions.begin (); it != motions.end (); index++, ++it) {
-            if (from <= index && index < to) {
-                M = (*it) * M;
+    if (from < index) {
+        for (id = 0, it = motions.begin (); it != motions.end (); id++, ++it) {
+            if (from <= id && id < index) {
+                motion = (*it) * motion;
             }
         }
-    } else if (from > to) {
-        for (index = 0, it = motions.begin (); it != motions.end (); index++, ++it) {
-            if (to <= index && index < from) {
-                M = (*it) * M;
+        motion = motion.inverse ();
+    } else if (from > index) {
+        for (id = 0, it = motions.begin (); it != motions.end (); id++, ++it) {
+            if (index <= id && id < from) {
+                motion = (*it) * motion;
             }
         }
-        M = M.inverse ();
     }
-    return M;
+
+    return motion;
 }
 
 Mat3d
-MotionFilter::stabilize (int32_t idx,
+MotionFilter::stabilize (int32_t index,
                          std::list<Mat3d> &motions,
                          int32_t max)
 {
@@ -369,13 +388,13 @@ MotionFilter::stabilize (int32_t idx,
     res.zeros ();
 
     double sum = 0.0f;
-    int32_t iMin = (idx - _radius) > 0 ? (idx - _radius) : 0;
-    int32_t iMax = (idx + _radius) < max ? (idx + _radius) : max;
+    int32_t idx_min = XCAM_MAX ((index - _radius), 0);
+    int32_t idx_max = XCAM_MIN ((index + _radius), max);
 
-    for (int32_t i = iMin; i <= iMax; ++i)
+    for (int32_t i = idx_min; i <= idx_max; ++i)
     {
-        res = res + get_motion (idx, i, motions) * _weight[_radius + i - idx];
-        sum += _weight[_radius + i - idx];
+        res = res + cumulate_motion (index, i, motions) * _weight[i];
+        sum += _weight[i];
     }
     if (sum > 0.0f) {
         return res * (1 / sum);

@@ -98,7 +98,7 @@ public:
         _warp_config_list.clear ();
     }
 
-    virtual SmartPtr<DrmBoBuffer> &get_warp_input_buf ();
+    virtual SmartPtr<DrmBoBuffer> get_warp_input_buf ();
 
     bool set_warp_config (const XCamDVSResult& config);
     CLWarpConfig get_warp_config ();

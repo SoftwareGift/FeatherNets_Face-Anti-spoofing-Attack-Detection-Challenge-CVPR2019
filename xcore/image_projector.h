@@ -118,7 +118,7 @@ public:
 
     Mat3d calc_camera_extrinsics (
         const int64_t frame_ts,
-        MetaDataList &pose_list);
+        DevicePoseList &pose_list);
 
     Mat3d calc_projective (
         Mat3d &extrinsic0,

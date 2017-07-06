@@ -53,6 +53,7 @@ struct DevicePose
 };
 
 typedef std::list<SmartPtr<MetaData>>  MetaDataList;
+typedef std::list<SmartPtr<DevicePose>>  DevicePoseList;
 
 };
 

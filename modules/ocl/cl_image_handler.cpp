@@ -224,7 +224,7 @@ CLImageHandler::ensure_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoB
 {
     XCamReturn ret = prepare_parameters (input, output);
     XCAM_FAIL_RETURN(
-        WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
+        WARNING, ret == XCAM_RETURN_NO_ERROR || ret == XCAM_RETURN_BYPASS, ret,
         "CLImageHandler(%s) failed to prepare_parameters", XCAM_STR (_name));
 
     reset_buf_cache (input, output);

@@ -142,7 +142,7 @@ CLImageWarpKernel::prepare_arguments (
     warp_config.proj_mat[5] = scale_y * warp_config.proj_mat[5] + shift_y * warp_config.proj_mat[8];
 
     XCAM_LOG_DEBUG ("warp config image size(%dx%d)", warp_config.width, warp_config.height);
-    XCAM_LOG_DEBUG ("proj_mat[%d]=(%f, %f, %f, %f, %f, %f, %f, %f, %f)", warp_config.frame_id,
+    XCAM_LOG_DEBUG ("proj_mat[%d]=(%f, %f, %f, %f, %f, %f, %f, %f, %f);", warp_config.frame_id,
                     warp_config.proj_mat[0], warp_config.proj_mat[1], warp_config.proj_mat[2],
                     warp_config.proj_mat[3], warp_config.proj_mat[4], warp_config.proj_mat[5],
                     warp_config.proj_mat[6], warp_config.proj_mat[7], warp_config.proj_mat[8]);
@@ -191,7 +191,7 @@ CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
     return XCAM_RETURN_NO_ERROR;
 }
 
-SmartPtr<DrmBoBuffer> &
+SmartPtr<DrmBoBuffer>
 CLImageWarpHandler::get_warp_input_buf ()
 {
     return CLImageHandler::get_input_buf ();
@@ -207,12 +207,18 @@ CLImageWarpHandler::set_warp_config (const XCamDVSResult& config)
     for( int i = 0; i < 9; i++ ) {
         warp_config.proj_mat[i] = config.proj_mat[i];
     }
-    XCAM_LOG_DEBUG ("warp_mat(%d, :)={%f, %f, %f, %f, %f, %f, %f, %f, %f}", warp_config.frame_id + 1,
+    XCAM_LOG_DEBUG ("warp_mat{%d}=[%f, %f, %f; %f, %f, %f; %f, %f, %f]", warp_config.frame_id + 1,
                     warp_config.proj_mat[0], warp_config.proj_mat[1], warp_config.proj_mat[2],
                     warp_config.proj_mat[3], warp_config.proj_mat[4], warp_config.proj_mat[5],
                     warp_config.proj_mat[6], warp_config.proj_mat[7], warp_config.proj_mat[8]);
-
+#if 0
+    printf ("warp_mat{%d}=[%f, %f, %f; %f, %f, %f; %f, %f, %f]; \n", warp_config.frame_id + 1,
+            warp_config.proj_mat[0], warp_config.proj_mat[1], warp_config.proj_mat[2],
+            warp_config.proj_mat[3], warp_config.proj_mat[4], warp_config.proj_mat[5],
+            warp_config.proj_mat[6], warp_config.proj_mat[7], warp_config.proj_mat[8]);
+#endif
     _warp_config_list.push_back (warp_config);
+
     return true;
 }
 

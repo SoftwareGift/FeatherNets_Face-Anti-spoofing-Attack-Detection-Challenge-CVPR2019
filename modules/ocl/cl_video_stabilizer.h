@@ -65,7 +65,7 @@ public:
         _input_buf_list.clear ();
     }
 
-    virtual SmartPtr<DrmBoBuffer> &get_warp_input_buf ();
+    virtual SmartPtr<DrmBoBuffer> get_warp_input_buf ();
 
     virtual bool is_ready ();
 
@@ -88,14 +88,15 @@ public:
 
     Mat3d analyze_motion (
         int64_t frame0_ts,
-        MetaDataList pose0_list,
+        DevicePoseList pose0_list,
         int64_t frame1_ts,
-        MetaDataList pose1_list);
+        DevicePoseList pose1_list);
 
-    Mat3d stabilize_motion (int32_t cur_frame_id, std::list<Mat3d> &motions);
+    Mat3d stabilize_motion (int32_t stab_frame_id, std::list<Mat3d> &motions);
 
 protected:
     virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLVideoStabilizer);
@@ -110,7 +111,7 @@ private:
     int64_t                  _input_frame_id;
     int64_t                  _frame_ts[2];
     int64_t                  _stabilized_frame_id;
-    MetaDataList             _device_pose[2];
+    DevicePoseList           _device_pose[2];
     std::list<Mat3d>         _motions; //motions[i] calculated from frame i to i+1
     uint32_t                 _filter_radius;
     CLImageBufferList        _input_buf_list;
@@ -135,12 +136,12 @@ public:
         return _stdev;
     };
 
-    Mat3d stabilize (int32_t idx,
+    Mat3d stabilize (int32_t index,
                      std::list<Mat3d> &motions,
                      int32_t max);
 
 protected:
-    Mat3d get_motion (uint32_t from, uint32_t to, std::list<Mat3d> &motions);
+    Mat3d cumulate_motion (uint32_t index, uint32_t from, std::list<Mat3d> &motions);
 
 private:
     XCAM_DEAD_COPY (MotionFilter);
