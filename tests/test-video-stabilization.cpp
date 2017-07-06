@@ -19,6 +19,7 @@
  */
 
 #include "test_common.h"
+#include "test_inline.h"
 #include <unistd.h>
 #include <getopt.h>
 #include "ocl/cl_device.h"
@@ -90,28 +91,6 @@ usage(const char* arg0)
             "\t--loop      optional, how many loops need to run for performance test, default: 1\n"
             "\t--help,     usage\n",
             arg0);
-}
-
-static void
-ensure_gpu_buffer_done (SmartPtr<BufferProxy> buf)
-{
-    const VideoBufferInfo info = buf->get_video_info ();
-    VideoBufferPlanarInfo planar;
-    uint8_t *memory = NULL;
-
-    memory = buf->map ();
-    for (uint32_t index = 0; index < info.components; index++) {
-        info.get_planar_info (planar, index);
-        uint32_t line_bytes = planar.width * planar.pixel_bytes;
-
-        for (uint32_t i = 0; i < planar.height; i++) {
-            int mem_idx = info.offsets [index] + i * info.strides [index] + line_bytes - 1;
-            if (memory[mem_idx] == 1) {
-                memory[mem_idx] = 1;
-            }
-        }
-    }
-    buf->unmap ();
 }
 
 int main (int argc, char *argv[])
