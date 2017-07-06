@@ -49,7 +49,6 @@ protected:
     virtual void get_geo_equivalent_out_size (float &width, float &height) = 0;
     virtual void get_geo_pixel_out_size (float &width, float &height) = 0;
 
-    virtual uint32_t need_lsc () = 0;
     virtual SmartPtr<CLImage> get_lsc_table () = 0;
     virtual float* get_lsc_gray_threshold() = 0;
 
@@ -63,13 +62,16 @@ class CLGeoMapKernel
 {
 public:
     explicit CLGeoMapKernel (
-        const SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler);
+        const SmartPtr<CLContext> &context,
+        const SmartPtr<GeoKernelParamCallback> handler,
+        bool need_lsc);
 
 protected:
     virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
     SmartPtr<GeoKernelParamCallback>   _handler;
+    bool                               _need_lsc;
 };
 
 class CLGeoMapHandler
@@ -111,9 +113,6 @@ protected:
     virtual void get_geo_equivalent_out_size (float &width, float &height);
     virtual void get_geo_pixel_out_size (float &width, float &height);
 
-    virtual uint32_t need_lsc () {
-        return 0;
-    }
     virtual SmartPtr<CLImage> get_lsc_table () {
         XCAM_ASSERT (false && "CLGeoMapHandler::lsc table is not supported");
         return NULL;
@@ -149,10 +148,11 @@ private:
 };
 
 SmartPtr<CLImageKernel>
-create_geo_map_kernel (const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb);
+create_geo_map_kernel (
+    const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb, bool need_lsc);
 
 SmartPtr<CLImageHandler>
-create_geo_map_handler (const SmartPtr<CLContext> &context);
+create_geo_map_handler (const SmartPtr<CLContext> &context, bool need_lsc = false);
 
 }
 

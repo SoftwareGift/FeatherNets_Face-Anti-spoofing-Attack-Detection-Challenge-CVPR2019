@@ -161,7 +161,7 @@ CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use
 CLFisheyeHandler::~CLFisheyeHandler()
 {
     if (_lsc_array)
-       xcam_free (_lsc_array);
+        xcam_free (_lsc_array);
 }
 
 void
@@ -301,7 +301,7 @@ CLFisheyeHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
         generate_fisheye_table (input_image_w, input_image_h, _fisheye_info);
     }
 
-    if (!_lsc_table.ptr ())
+    if (!_lsc_table.ptr () && _need_lsc)
         generate_lsc_table (input_image_w, input_image_h, _fisheye_info);
 
     return XCAM_RETURN_NO_ERROR;
@@ -452,9 +452,7 @@ CLFisheyeHandler::generate_lsc_table (
     uint32_t fisheye_width, uint32_t fisheye_height, CLFisheyeInfo &fisheye_info)
 {
     if (!_need_lsc) {
-        _lsc_table = create_cl_image (1, 1, CL_R, CL_FLOAT);
-        if (_lsc_array)
-            xcam_free (_lsc_array);
+        XCAM_LOG_WARNING ("lsc is not needed, don't generate lsc table");
         return XCAM_RETURN_NO_ERROR;
     }
 
@@ -582,7 +580,7 @@ create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map, bool n
     XCAM_ASSERT (handler.ptr ());
 
     if (use_map) {
-        kernel = create_geo_map_kernel (context, handler);
+        kernel = create_geo_map_kernel (context, handler, need_lsc);
     } else {
         kernel = create_fishey_gps_kernel (context, handler);
     }

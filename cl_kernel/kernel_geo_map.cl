@@ -10,6 +10,10 @@
  * the center of geo_table and output positons are both mapped to (0, 0)
  */
 
+#ifndef ENABLE_LSC
+#define ENABLE_LSC 0
+#endif
+
 #define CONST_DATA_Y 0.0f
 #define CONST_DATA_UV (float2)(0.5f, 0.5f)
 
@@ -58,7 +62,9 @@ __kernel void
 kernel_geo_map (
     __read_only image2d_t input_y, __read_only image2d_t input_uv,
     __read_only image2d_t geo_table, float2 table_scale_size,
-    uint need_lsc, __read_only image2d_t lsc_table, float2 gray_threshold,
+#if ENABLE_LSC
+    __read_only image2d_t lsc_table, float2 gray_threshold,
+#endif
     __write_only image2d_t output_y, __write_only image2d_t output_uv, float2 out_size)
 {
     const int g_x = get_global_id (0);
@@ -76,11 +82,12 @@ kernel_geo_map (
     out_map_pos = (convert_float2((int2)(g_x * PIXEL_RES_STEP_X, g_y)) - out_size / 2.0f) * table_scale_step + 0.5f;
 
     get_geo_mapped_y (input_y, geo_table, out_map_pos, table_scale_step.x, out_of_bound, input_pos, &output_data);
-    if (need_lsc) {
-        float8 lsc_data;
-        get_lsc_data (lsc_table, (int2)(g_x, g_y), table_scale_step.x, gray_threshold, output_data, &lsc_data);
-        output_data = clamp (output_data * lsc_data, 0.0f, 1.0f);
-    }
+
+#if ENABLE_LSC
+    float8 lsc_data;
+    get_lsc_data (lsc_table, (int2)(g_x, g_y), table_scale_step.x, gray_threshold, output_data, &lsc_data);
+    output_data = clamp (output_data * lsc_data, 0.0f, 1.0f);
+#endif
     write_imageui (output_y, (int2)(g_x, g_y), convert_uint4(as_ushort4(convert_uchar8(output_data * 255.0f))));
 
     output_data.s01 = out_of_bound[0] ? CONST_DATA_UV : read_imagef (input_uv, sampler, input_pos[0]).xy;
@@ -91,10 +98,10 @@ kernel_geo_map (
 
     out_map_pos.y += table_scale_step.y;
     get_geo_mapped_y (input_y, geo_table, out_map_pos, table_scale_step.x, out_of_bound, input_pos, &output_data);
-    if (need_lsc) {
-        float8 lsc_data;
-        get_lsc_data (lsc_table, (int2)(g_x, g_y + 1), table_scale_step.x, gray_threshold, output_data, &lsc_data);
-        output_data = clamp (output_data * lsc_data, 0.0f, 1.0f);
-    }
+
+#if ENABLE_LSC
+    get_lsc_data (lsc_table, (int2)(g_x, g_y + 1), table_scale_step.x, gray_threshold, output_data, &lsc_data);
+    output_data = clamp (output_data * lsc_data, 0.0f, 1.0f);
+#endif
     write_imageui (output_y, (int2)(g_x, g_y + 1), convert_uint4(as_ushort4(convert_uchar8(output_data * 255.0f))));
 }

@@ -90,9 +90,6 @@ protected:
     virtual void get_geo_equivalent_out_size (float &width, float &height);
     virtual void get_geo_pixel_out_size (float &width, float &height);
 
-    virtual uint32_t need_lsc () {
-        return _need_lsc;
-    }
     virtual SmartPtr<CLImage> get_lsc_table ();
     virtual float* get_lsc_gray_threshold ();
 

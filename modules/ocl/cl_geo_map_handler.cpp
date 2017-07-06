@@ -34,9 +34,10 @@ static const XCamKernelInfo kernel_geo_map_info = {
 #define GEO_MAP_CHANNEL 4  /* only use channel_0, channel_1 */
 
 CLGeoMapKernel::CLGeoMapKernel (
-    const SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler)
+    const SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler, bool need_lsc)
     : CLImageKernel (context)
     , _handler (handler)
+    , _need_lsc (need_lsc)
 {
     XCAM_ASSERT (handler.ptr ());
 }
@@ -56,17 +57,22 @@ CLGeoMapKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     _handler->get_geo_equivalent_out_size (geo_scale_size[0], geo_scale_size[1]);
     _handler->get_geo_pixel_out_size (out_size[0], out_size[1]);
 
-    uint32_t need_lsc = _handler->need_lsc ();
-    SmartPtr<CLImage> lsc_image = _handler->get_lsc_table ();
-    float *gray_threshold = _handler->get_lsc_gray_threshold ();
-
     args.push_back (new CLMemArgument (input_y));
     args.push_back (new CLMemArgument (input_uv));
     args.push_back (new CLMemArgument (geo_image));
     args.push_back (new CLArgumentTArray<float, 2> (geo_scale_size));
-    args.push_back (new CLArgumentT<uint32_t> (need_lsc));
-    args.push_back (new CLMemArgument (lsc_image));
-    args.push_back (new CLArgumentTArray<float, 2> (gray_threshold));
+
+    if (_need_lsc) {
+        SmartPtr<CLImage> lsc_image = _handler->get_lsc_table ();
+        float *gray_threshold = _handler->get_lsc_gray_threshold ();
+        XCAM_FAIL_RETURN (
+            ERROR,
+            lsc_image.ptr() && lsc_image->is_valid () && gray_threshold,
+            XCAM_RETURN_ERROR_PARAM,
+            "CLGeoMapHandler::lsc table or gray threshold was not found");
+        args.push_back (new CLMemArgument (lsc_image));
+        args.push_back (new CLArgumentTArray<float, 2> (gray_threshold));
+    }
     args.push_back (new CLMemArgument (output_y));
     args.push_back (new CLMemArgument (output_uv));
     args.push_back (new CLArgumentTArray<float, 2> (out_size));
@@ -298,20 +304,24 @@ CLGeoMapHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
 }
 
 SmartPtr<CLImageKernel>
-create_geo_map_kernel (const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb)
+create_geo_map_kernel (
+    const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb, bool need_lsc)
 {
     SmartPtr<CLImageKernel> kernel;
-    kernel = new CLGeoMapKernel (context, param_cb);
+    kernel = new CLGeoMapKernel (context, param_cb, need_lsc);
     XCAM_ASSERT (kernel.ptr ());
+
+    char build_options[1024];
+    snprintf (build_options, sizeof(build_options), "-DENABLE_LSC=%d", need_lsc ? 1 : 0);
     XCAM_FAIL_RETURN (
-        ERROR, kernel->build_kernel (kernel_geo_map_info, NULL) == XCAM_RETURN_NO_ERROR,
+        ERROR, kernel->build_kernel (kernel_geo_map_info, build_options) == XCAM_RETURN_NO_ERROR,
         NULL, "build geo map kernel failed");
 
     return kernel;
 }
 
 SmartPtr<CLImageHandler>
-create_geo_map_handler (const SmartPtr<CLContext> &context)
+create_geo_map_handler (const SmartPtr<CLContext> &context, bool need_lsc)
 {
     SmartPtr<CLGeoMapHandler> handler;
     SmartPtr<CLImageKernel> kernel;
@@ -319,7 +329,7 @@ create_geo_map_handler (const SmartPtr<CLContext> &context)
     handler = new CLGeoMapHandler (context);
     XCAM_ASSERT (handler.ptr ());
 
-    kernel = create_geo_map_kernel (context, handler);
+    kernel = create_geo_map_kernel (context, handler, need_lsc);
     XCAM_FAIL_RETURN (
         ERROR, kernel.ptr (), NULL, "CLMapHandler build geo map kernel failed");
     handler->add_kernel (kernel);
