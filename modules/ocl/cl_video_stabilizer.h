@@ -69,7 +69,7 @@ public:
 
     virtual bool is_ready ();
 
-    XCamReturn reset_counter ();
+    void reset_counter ();
 
     XCamReturn set_sensor_calibration (CalibrationParams &params);
     XCamReturn set_camera_intrinsics (

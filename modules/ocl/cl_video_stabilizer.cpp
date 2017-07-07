@@ -78,7 +78,7 @@ CLVideoStabilizer::is_ready ()
     return CLImageHandler::is_ready ();
 }
 
-XCamReturn
+void
 CLVideoStabilizer::reset_counter ()
 {
     XCAM_LOG_DEBUG ("reset video stabilizer counter");
