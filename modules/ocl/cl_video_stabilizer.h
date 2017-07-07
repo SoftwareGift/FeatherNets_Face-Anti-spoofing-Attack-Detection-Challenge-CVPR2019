@@ -69,6 +69,8 @@ public:
 
     virtual bool is_ready ();
 
+    XCamReturn reset_counter ();
+
     XCamReturn set_sensor_calibration (CalibrationParams &params);
     XCamReturn set_camera_intrinsics (
         double focal_x,

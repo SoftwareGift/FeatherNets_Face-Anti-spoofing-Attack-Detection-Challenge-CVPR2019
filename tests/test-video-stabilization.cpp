@@ -269,6 +269,8 @@ int main (int argc, char *argv[])
         ret = file_in.rewind ();
         CHECK (ret, "video stabilization stitch rewind file(%s) failed", file_in_name);
 
+        video_stab->reset_counter ();
+
         DevicePoseList::iterator pose_iterator = device_pose.begin ();
         do {
             input_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();

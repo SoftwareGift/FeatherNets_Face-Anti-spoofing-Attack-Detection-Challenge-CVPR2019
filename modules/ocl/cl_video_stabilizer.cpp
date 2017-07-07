@@ -79,13 +79,26 @@ CLVideoStabilizer::is_ready ()
 }
 
 XCamReturn
+CLVideoStabilizer::reset_counter ()
+{
+    XCAM_LOG_DEBUG ("reset video stabilizer counter");
+
+    _input_frame_id = -1;
+    _stabilized_frame_id = -1;
+    xcam_mem_clear (_frame_ts);
+    _device_pose[0].clear ();
+    _device_pose[1].clear ();
+    _input_buf_list.clear ();
+}
+
+XCamReturn
 CLVideoStabilizer::execute_done (SmartPtr<DrmBoBuffer> &output)
 {
     if (!_input_buf_list.empty ()) {
         _input_buf_list.pop_front ();
     }
 
-	CLImageWarpHandler::execute_done (output);
+    CLImageWarpHandler::execute_done (output);
 
     return XCAM_RETURN_NO_ERROR;
 }
