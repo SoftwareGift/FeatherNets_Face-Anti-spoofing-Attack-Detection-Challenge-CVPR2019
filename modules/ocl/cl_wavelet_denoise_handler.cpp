@@ -167,10 +167,12 @@ create_cl_wavelet_denoise_image_handler (const SmartPtr<CLContext> &context, uin
     for (int layer = 1; layer <= WAVELET_DECOMPOSITION_LEVELS; layer++) {
         wavelet_kernel = new CLWaveletDenoiseImageKernel (
             context, "kernel_wavelet_denoise", wavelet_handler, channel, layer);
+        const char *build_options =
+            (channel & CL_IMAGE_CHANNEL_UV) ? "-DWAVELET_DENOISE_UV=1" : "-DWAVELET_DENOISE_UV=0";
 
         XCAM_ASSERT (wavelet_kernel.ptr ());
         XCAM_FAIL_RETURN (
-            ERROR, wavelet_kernel->build_kernel (kernel_wavelet_denoise_info, NULL) == XCAM_RETURN_NO_ERROR, NULL,
+            ERROR, wavelet_kernel->build_kernel (kernel_wavelet_denoise_info, build_options) == XCAM_RETURN_NO_ERROR, NULL,
             "build wavelet denoise kernel(%s) failed", kernel_wavelet_denoise_info.kernel_name);
         XCAM_ASSERT (wavelet_kernel->is_valid ());
 
