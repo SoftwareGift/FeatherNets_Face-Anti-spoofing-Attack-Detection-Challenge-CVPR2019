@@ -90,7 +90,7 @@ create_cl_binary_demo_image_handler (const SmartPtr<CLContext> &context)
     SmartPtr<CLImageKernel> demo_kernel;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    demo_kernel = new CLImageKernel (context);
+    demo_kernel = new CLImageKernel (context, "kernel_demo");
     {
         XCAM_CL_KERNEL_FUNC_BINARY_BEGIN(kernel_demo)
 #include "kernel_demo.clx.bin"
