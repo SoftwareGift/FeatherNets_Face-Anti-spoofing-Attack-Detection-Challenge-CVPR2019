@@ -84,7 +84,7 @@ create_cl_demo_image_handler (const SmartPtr<CLContext> &context)
 }
 
 SmartPtr<CLImageHandler>
-create_cl_binary_demo_image_handler (const SmartPtr<CLContext> &context)
+create_cl_binary_demo_image_handler (const SmartPtr<CLContext> &context, const uint8_t *binary, size_t size)
 {
     SmartPtr<CLDemoImageHandler> demo_handler;
     SmartPtr<CLImageKernel> demo_kernel;
@@ -92,10 +92,13 @@ create_cl_binary_demo_image_handler (const SmartPtr<CLContext> &context)
 
     demo_kernel = new CLImageKernel (context, "kernel_demo");
     {
+#if 0
         XCAM_CL_KERNEL_FUNC_BINARY_BEGIN(kernel_demo)
 #include "kernel_demo.clx.bin"
         XCAM_CL_KERNEL_FUNC_END;
         ret = demo_kernel->load_from_binary (kernel_demo_body, sizeof (kernel_demo_body));
+#endif
+        ret = demo_kernel->load_from_binary (binary, size);
         XCAM_FAIL_RETURN (
             WARNING,
             ret == XCAM_RETURN_NO_ERROR,

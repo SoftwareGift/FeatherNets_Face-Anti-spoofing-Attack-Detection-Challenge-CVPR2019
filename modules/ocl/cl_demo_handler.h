@@ -47,7 +47,7 @@ SmartPtr<CLImageHandler>
 create_cl_demo_image_handler (const SmartPtr<CLContext> &context);
 
 SmartPtr<CLImageHandler>
-create_cl_binary_demo_image_handler (const SmartPtr<CLContext> &context);
+create_cl_binary_demo_image_handler (const SmartPtr<CLContext> &context, const uint8_t *binary, size_t size);
 
 };
 

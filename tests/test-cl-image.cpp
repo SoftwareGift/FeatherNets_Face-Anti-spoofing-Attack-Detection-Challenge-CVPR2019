@@ -21,6 +21,7 @@
  */
 
 #include "test_common.h"
+#include "test_inline.h"
 #include "image_file_handle.h"
 #include "drm_bo_buffer.h"
 #include "ocl/cl_device.h"
@@ -128,24 +129,33 @@ static void
 print_help (const char *bin_name)
 {
     printf ("Usage: %s [-f format] -i input -o output\n"
-            "\t -t type      specify image handler type\n"
-            "\t              select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise,"
+            "\t -t type           specify image handler type\n"
+            "\t                   select from [demo, blacklevel, defect, demosaic, tonemapping, csc, hdr, wb, denoise,"
             " gamma, snr, bnr, macc, ee, bayerpipe, yuvpipe, retinex, gauss, wavelet-hat, wavelet-haar, dcp, fisheye]\n"
-            "\t -f input_format    specify a input format\n"
-            "\t -W image width     specify input image width\n"
-            "\t -H image height    specify input image height\n"
-            "\t -g output_format   specify a output format\n"
-            "\t              select from [NV12, BA10, RGBA, RGBA64]\n"
-            "\t -i input     specify input file path\n"
-            "\t -o output    specify output file path\n"
-            "\t -r refer     specify reference file path\n"
-            "\t -p count     specify cl kernel loop count\n"
-            "\t -c csc_type  specify csc type, default:rgba2nv12\n"
-            "\t              select from [rgbatonv12, rgbatolab, rgba64torgba, yuyvtorgba, nv12torgba]\n"
-            "\t -b           enable bayer-nr, default: disable\n"
-            "\t -P           enable psnr calculation, default: disable\n"
-            "\t -h           help\n"
+            "\t -f input_format   specify a input format\n"
+            "\t -W image_width    specify input image width\n"
+            "\t -H image_height   specify input image height\n"
+            "\t -g output_format  specify a output format\n"
+            "\t                   select from [NV12, BA10, RGBA, RGBA64]\n"
+            "\t -i input          specify input file path\n"
+            "\t -o output         specify output file path\n"
+            "\t -r refer          specify reference file path\n"
+            "\t -k binary_kernel  specify binary kernel path\n"
+            "\t -p count          specify cl kernel loop count\n"
+            "\t -c csc_type       specify csc type, default:rgba2nv12\n"
+            "\t                   select from [rgbatonv12, rgbatolab, rgba64torgba, yuyvtorgba, nv12torgba]\n"
+            "\t -b                enable bayer-nr, default: disable\n"
+            "\t -P                enable psnr calculation, default: disable\n"
+            "\t -h                help\n"
             , bin_name);
+
+    printf ("Note:\n"
+            "Usage of binary kernel:\n"
+            "1. generate binary kernel:\n"
+            "   $ test-binary-kernel --src-kernel kernel_demo.cl --bin-kernel kernel_demo.cl.bin"
+            " --kernel-name kernel_demo\n"
+            "2. execute binary kernel:\n"
+            "   $ test-cl-image -t demo -f BA10 -i input.raw -o output.raw -k kernel_demo.cl.bin\n");
 }
 
 int main (int argc, char *argv[])
@@ -157,6 +167,7 @@ int main (int argc, char *argv[])
     uint32_t buf_count = 0;
     int32_t kernel_loop_count = 0;
     const char *input_file = NULL, *output_file = NULL, *refer_file = NULL;
+    const char *bin_kernel_path = NULL;
     ImageFileHandle input_fp, output_fp, refer_fp;
     const char *bin_name = argv[0];
     TestHandlerType handler_type = TestHandlerUnknown;
@@ -171,7 +182,7 @@ int main (int argc, char *argv[])
     bool enable_bnr = false;
     bool enable_psnr = false;
 
-    while ((opt =  getopt(argc, argv, "f:W:H:i:o:r:t:p:c:g:bPh")) != -1) {
+    while ((opt =  getopt(argc, argv, "f:W:H:i:o:r:t:k:p:c:g:bPh")) != -1) {
         switch (opt) {
         case 'i':
             input_file = optarg;
@@ -251,6 +262,9 @@ int main (int argc, char *argv[])
                 print_help (bin_name);
             break;
         }
+        case 'k':
+            bin_kernel_path = optarg;
+            break;
         case 'p':
             kernel_loop_count = atoi (optarg);
             XCAM_ASSERT (kernel_loop_count >= 0 && kernel_loop_count < INT32_MAX);
@@ -306,8 +320,31 @@ int main (int argc, char *argv[])
 
     switch (handler_type) {
     case TestHandlerDemo:
-        image_handler = create_cl_demo_image_handler (context);
-        // image_handler = create_cl_binary_demo_image_handler (context);
+        if (!bin_kernel_path)
+            image_handler = create_cl_demo_image_handler (context);
+        else {
+            FileHandle file;
+            if (file.open (bin_kernel_path, "r") != XCAM_RETURN_NO_ERROR) {
+                XCAM_LOG_ERROR ("open binary kernel failed");
+                return -1;
+            }
+
+            size_t size;
+            if (file.get_file_size (size) != XCAM_RETURN_NO_ERROR) {
+                XCAM_LOG_ERROR ("get binary kernel size failed");
+                return -1;
+            }
+
+            uint8_t *binary = (uint8_t *) xcam_malloc0 (sizeof (uint8_t) * (size + 1));
+            XCAM_ASSERT (binary);
+
+            if (file.read_file (binary, size) != XCAM_RETURN_NO_ERROR) {
+                XCAM_LOG_ERROR ("read binary kernel failed");
+                return -1;
+            }
+
+            image_handler = create_cl_binary_demo_image_handler (context, binary, size + 1);
+        }
         break;
     case TestHandlerColorConversion: {
         SmartPtr<CLCscImageHandler> csc_handler;

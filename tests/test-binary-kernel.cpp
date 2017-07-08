@@ -19,97 +19,23 @@
  */
 
 #include "test_common.h"
+#include "test_inline.h"
 #include "ocl/cl_device.h"
 #include "ocl/cl_context.h"
 #include "ocl/cl_kernel.h"
-#include <unistd.h>
-#include <libgen.h>
+#include <getopt.h>
 
 using namespace XCam;
 
-struct TestFileHandle {
-    FILE *fp;
-    TestFileHandle ()
-        : fp (NULL)
-    {}
-    ~TestFileHandle ()
-    {
-        if (fp)
-            fclose (fp);
-    }
-};
-
-static XCamReturn
-get_kernel_name(char *input_file, char **kernel_name)
-{
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    char *base_name = basename (input_file);
-    size_t kernel_name_length = strlen (base_name) - 3;
-
-    *kernel_name = (char *) xcam_malloc0 (sizeof (char) * (kernel_name_length + 1));
-    XCAM_ASSERT(*kernel_name);
-
-    strncpy (*kernel_name, base_name, kernel_name_length);
-
-    return ret;
-}
-
-static XCamReturn
-get_source_sizes (TestFileHandle &file, size_t *source_sizes)
-{
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    if (fseek (file.fp, 0 , SEEK_END) != 0)
-        goto read_error;
-
-    if ((*source_sizes = ftell (file.fp)) <= 0)
-        goto read_error;
-
-    rewind(file.fp);
-
-    return ret;
-
-read_error:
-    XCAM_LOG_ERROR ("get source sizes failed");
-    return XCAM_RETURN_ERROR_FILE;
-}
-
-static XCamReturn
-read_source (TestFileHandle &file, char *source, size_t source_sizes)
-{
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    if (fread (source, sizeof (char), source_sizes, file.fp) != source_sizes) {
-        XCAM_LOG_ERROR ("read source failed, size doesn't match");
-        ret = XCAM_RETURN_ERROR_FILE;
-    }
-
-    return ret;
-}
-
-static XCamReturn
-write_binary (TestFileHandle &file, uint8_t *binaries, const size_t binary_sizes)
-{
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
-
-    if (fwrite (binaries, sizeof (uint8_t), binary_sizes, file.fp) != binary_sizes) {
-        XCAM_LOG_ERROR ("write binary failed, size doesn't match");
-        ret = XCAM_RETURN_ERROR_FILE;
-    }
-
-    return ret;
-}
-
 static void
-print_help (const char *bin_name)
+print_help (const char *arg0)
 {
-    printf ("Usage: %s -i <source-file> -o <binary-file>\n"
-            "\t -i input-file     specify source file path\n"
-            "\t -o output-file    specify binary file path\n"
-            "\t -k kernel-name    optional, default is filename perfix\n"
-            "\t -h                help\n"
-            , bin_name);
+    printf ("Usage: %s --src-kernel <source-kernel> --bin-kernel <binary-kernel> --kernel-name <kernel-name>\n"
+            "\t --src-kernel   specify source kernel path\n"
+            "\t --bin-kernel   specify binary kernel path\n"
+            "\t --kernel-name  specify kernel name\n"
+            "\t --help         help\n"
+            , arg0);
 }
 
 #define FAILED_STATEMENT {                         \
@@ -120,73 +46,77 @@ print_help (const char *bin_name)
 
 int main (int argc, char *argv[])
 {
-    int opt = 0;
-    const char *bin_name = argv[0];
-    char *source_file = NULL, *binary_file = NULL;
-    size_t source_sizes = 0;
-    size_t binary_sizes = 0;
+    char *src_path = NULL, *bin_path = NULL;
+    size_t src_size = 0;
+    size_t bin_size = 0;
     char *kernel_name = NULL;
     char *kernel_body = NULL;
     uint8_t *program_binaries = NULL;
-    TestFileHandle source_fp, binary_fp;
+    FileHandle src_file, bin_file;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    while ((opt = getopt (argc, argv, "i:o:k:h")) != -1) {
+    const struct option long_opts [] = {
+        {"src-kernel", required_argument, NULL, 's'},
+        {"bin-kernel", required_argument, NULL, 'b'},
+        {"kernel-name", required_argument, NULL, 'n'},
+        {"help", no_argument, NULL, 'h'},
+        {NULL, 0, NULL, 0}
+    };
+
+    int opt = 0;
+    while ((opt = getopt_long (argc, argv, "", long_opts, NULL)) != -1) {
         switch (opt) {
-        case 'i':
-            source_file = optarg;
+        case 's':
+            src_path = optarg;
             break;
-        case 'o':
-            binary_file = optarg;
+        case 'b':
+            bin_path = optarg;
             break;
-        case 'k':
-            kernel_name = strndup(optarg, 1024);
+        case 'n':
+            kernel_name = strndup (optarg, 1024);
             break;
         case 'h':
-            print_help (bin_name);
+            print_help (argv[0]);
             return 0;
 
         default:
-            print_help (bin_name);
+            print_help (argv[0]);
             return -1;
         }
     }
 
-    if (!source_file || !binary_file) {
-        print_help (bin_name);
+    if (!src_path || !bin_path) {
+        XCAM_LOG_ERROR ("path of source/binary kernel is null");
+        return -1;
+    }
+    if (!kernel_name) {
+        XCAM_LOG_ERROR ("kernel name is null");
         return -1;
     }
 
-    source_fp.fp = fopen (source_file, "r");
-    binary_fp.fp = fopen (binary_file, "wb");
-    if (!source_fp.fp || !binary_fp.fp) {
-        XCAM_LOG_ERROR ("open source/binary file failed");
+    if (src_file.open (src_path, "r") != XCAM_RETURN_NO_ERROR ||
+            bin_file.open (bin_path, "wb")  != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("open source/binary kernel failed");
         return -1;
     }
 
-    ret = get_source_sizes (source_fp, &source_sizes);
-    CHECK_STATEMENT (ret, FAILED_STATEMENT, "get source sizes from %s failed", source_file);
+    ret = src_file.get_file_size (src_size);
+    CHECK_STATEMENT (ret, FAILED_STATEMENT, "get source sizes from %s failed", src_path);
 
-    kernel_body = (char *) xcam_malloc0 (sizeof (char) * (source_sizes + 1));
+    kernel_body = (char *) xcam_malloc0 (sizeof (char) * (src_size + 1));
     XCAM_ASSERT(kernel_body);
 
-    ret = read_source (source_fp, kernel_body, source_sizes);
-    CHECK_STATEMENT (ret, FAILED_STATEMENT, "read source from %s failed", source_file);
-    kernel_body[source_sizes] = '\0';
+    src_file.read_file (kernel_body, src_size);
+    CHECK_STATEMENT (ret, FAILED_STATEMENT, "read source from %s failed", src_path);
+    kernel_body[src_size] = '\0';
 
     SmartPtr<CLContext> context;
     context = CLDevice::instance ()->get_context ();
-
-    if (!kernel_name) {
-        ret = get_kernel_name (source_file, &kernel_name);
-        CHECK_STATEMENT (ret, FAILED_STATEMENT, "get kernel name failed");
-    }
-
     SmartPtr<CLKernel> kernel = new CLKernel (context, kernel_name);
-    kernel->load_from_source (kernel_body, strlen (kernel_body), &program_binaries, &binary_sizes);
+    kernel->load_from_source (kernel_body, strlen (kernel_body), &program_binaries, &bin_size);
 
-    ret = write_binary (binary_fp, program_binaries, binary_sizes);
-    CHECK_STATEMENT (ret, FAILED_STATEMENT, "write binary to %s failed", binary_file);
+    ret = bin_file.write_file (program_binaries, bin_size);
+    CHECK_STATEMENT (ret, FAILED_STATEMENT, "write binary to %s failed", bin_path);
 
     xcam_free (kernel_name);
     xcam_free (kernel_body);
