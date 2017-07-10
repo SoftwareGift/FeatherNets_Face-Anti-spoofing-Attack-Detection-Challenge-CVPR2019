@@ -202,6 +202,7 @@ int main (int argc, char *argv[])
 
     const int count = read_device_pose (gyro_data, device_pose, pose_size);
     if (count <= 0 || device_pose.size () <= 0) {
+        XCAM_LOG_ERROR ("read gyro file(%s) failed.", gyro_data);
         return -1;
     }
 
@@ -316,42 +317,52 @@ int main (int argc, char *argv[])
 }
 
 //return count
+
+#define RELEASE_FILE_MEM {      \
+        xcam_free (ptr);        \
+        if (p_f) fclose (p_f);  \
+        return -1;              \
+    }
+
 int read_device_pose (const char* file, DevicePoseList &pose_list, uint32_t members)
 {
     char *ptr = NULL;
     SmartPtr<DevicePose> data;
 
-    FILE *p_f = fopen(file, "rb");
+    FILE *p_f = fopen (file, "rb");
     CHECK_EXP (p_f, "open gyro pos data(%s) failed", file);
 
-    if (fseek(p_f, 0L, SEEK_END) != 0) {
-        printf("seek to file(%s) end failed", file);
-    }
+    CHECK_DECLARE (
+        ERROR,
+        !fseek (p_f, 0L, SEEK_END),
+        RELEASE_FILE_MEM, "seek to file(%s) end failed", file);
+
     size_t size = ftell(p_f);
     int entries = size / members;
 
-    fseek(p_f, 0L, SEEK_SET);
+    fseek (p_f, 0L, SEEK_SET);
 
-    ptr = (char*)malloc(size + 1);
-    CHECK_EXP (ptr, "malloc memory failed");
+    ptr = (char*) xcam_malloc0 (size + 1);
+    CHECK_DECLARE (ERROR, ptr, RELEASE_FILE_MEM, "malloc file buffer failed");
 
-    if (fread(ptr, 1, size, p_f) != size) {
-        printf("read pose file(%s)failed", file);
-    }
+    CHECK_DECLARE (
+        ERROR,
+        fread (ptr, 1, size, p_f) == size,
+        RELEASE_FILE_MEM, "read pose file(%s)failed", file);
     ptr[size] = 0;
-    fclose(p_f);
+    fclose (p_f);
     p_f = NULL;
 
     char *str_num = NULL;
     char tokens[] = "\t ,\r\n";
-    str_num = strtok(ptr, tokens);
+    str_num = strtok (ptr, tokens);
     int count = 0;
     int x = 0, y = 0;
     const int orient_size = sizeof(DevicePose::orientation) / sizeof(double);
     const int trans_size = sizeof(DevicePose::translation) / sizeof(double);
 
     while (str_num != NULL) {
-        float num = strtof(str_num, NULL);
+        float num = strtof (str_num, NULL);
 
         x = count % members;
         y = count / members;
@@ -362,26 +373,22 @@ int read_device_pose (const char* file, DevicePoseList &pose_list, uint32_t memb
             data = new DevicePose ();
         }
 
-        if (!data.ptr ()) {
-            return -1;
-        }
+        CHECK_DECLARE (ERROR, data.ptr (), RELEASE_FILE_MEM, "invalid buffer pointer(device pose is null)");
         if (x < orient_size) {
-            CHECK_EXP (data.ptr (), "invalid buffer pointer");
             data->orientation[x] = num;
         } else if (x < orient_size + trans_size) {
-            CHECK_EXP (data.ptr (), "invalid buffer pointer");
             data->translation[x - orient_size] = num;
         } else if (x == orient_size + trans_size) {
-            CHECK_EXP (data.ptr (), "invalid buffer pointer");
             data->timestamp = num * 1000000;
-
             pose_list.push_back (data);
+        } else {
+            CHECK_DECLARE (ERROR, false, RELEASE_FILE_MEM, "unknow branch");
         }
 
         ++count;
-        str_num = strtok(NULL, tokens);
+        str_num = strtok (NULL, tokens);
     }
-    free(ptr);
+    free (ptr);
     ptr = NULL;
 
     return count / members;

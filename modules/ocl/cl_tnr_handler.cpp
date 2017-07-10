@@ -270,7 +270,6 @@ CLTnrImageHandler::CLTnrImageHandler (const SmartPtr<CLContext> &context, CLTnrT
     , _thr_b (0.073)
     , _frame_count (TNR_PROCESSING_FRAME_COUNT)
 {
-    xcam_mem_clear (_motion_info);
 }
 
 bool

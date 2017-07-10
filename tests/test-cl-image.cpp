@@ -335,15 +335,17 @@ int main (int argc, char *argv[])
                 return -1;
             }
 
-            uint8_t *binary = (uint8_t *) xcam_malloc0 (sizeof (uint8_t) * (size + 1));
+            uint8_t *binary = (uint8_t *) xcam_malloc0 (sizeof (uint8_t) * (size));
             XCAM_ASSERT (binary);
 
             if (file.read_file (binary, size) != XCAM_RETURN_NO_ERROR) {
                 XCAM_LOG_ERROR ("read binary kernel failed");
+                xcam_free (binary);
                 return -1;
             }
 
-            image_handler = create_cl_binary_demo_image_handler (context, binary, size + 1);
+            image_handler = create_cl_binary_demo_image_handler (context, binary, size);
+            xcam_free (binary);
         }
         break;
     case TestHandlerColorConversion: {
