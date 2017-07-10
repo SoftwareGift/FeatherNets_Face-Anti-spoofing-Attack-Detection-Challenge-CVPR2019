@@ -13,30 +13,35 @@ OpenCL is used to improve performance in different platforms.
 
 #### Features:
   * Image processing features.
-   - Basic features
-       Gamma correction, MACC, color space, demosaicing, noise reduction,
-       edge enhancement.
     - Advanced features
-       - Noise reduction: simple bilateral NR, temporal NR, wavelet NR,
-         adaptive NR with Bayesian shrinkage, 3D-NR.
-       - WDR: gaussian-based tone-mapping, histogram adjustment tone-mapping
-       - Fog removal: retinex and dark channel prior algorithm.
-       - Blender: multi-band blender and fisheye geometry map correction.
-       - Image stiching: feature detect and match to generate 360 degree
-         panorama photography by stitching multiple neighbor images
-       - DVS: digital video stabilization based on feature detect, optical flow
-         and motion model estimation.
-     - 3A features
-       Auto whitebalance, auto exposure, auto focus, black level correction,
-       color correction, 3a-statistics calculation.
-  * Capture features support memory type of mmap and dma buffer.
+      - 360 Image stiching: generate 360 degree panorama photography by
+        stitching multiple neighbor fisheye images.
+      - Digital Video Stabilization:
+        - OpenCV feature-matched based video stabilization.
+        - gyroscope 3-DoF (orientation) based video stabilization.
+      - Blender: multi-band blender.
+      - Noise reduction.
+        - adaptive NR based on wavelet-haar and Bayersian shrinkage.
+        - 3D-NR with inter-block and intra-block reference.
+        - wavelet-hat NR (obsolete).
+      - Wide dynamic range (WDR).
+        - histogram adjustment tone-mapping.
+        - gaussian-based tone-mapping (obsolete).
+      - Fog removal: retinex and dark channel prior algorithm.
+        - dark channel prior algorithm based defog.
+        - multi-scale retinex based defog (obsolete).
+    - Basic pipeline from bayer to YUV/RGB format.
+      - Gamma correction, MACC, color space, demosaicing, simple bilateral
+        noise reduction, edge enhancement and temporal noise reduction.
+    - 3A features.
+      - Auto whitebalance, auto exposure, auto focus, black level correction,
+        color correction, 3a-statistics calculation.
   * Support 3rd party 3A lib which can be loaded dynamically.
-       - hybrid 3a plugin
-  * Image processing based on both ISP and Open CL.
-  * Support 3a analysis tuning framework for different features
-  * Support smart analysis framework
-       - Face detection interface/plugin
-  * Support as gstreamer plugin
+       - hybrid 3a plugin.
+  * Support 3a analysis tuning framework for different features.
+  * Support smart analysis framework.
+       - Face detection interface/plugin.
+  * Enable gstreamer plugin.
        - xcamsrc, capture from usb/isp camera, process 3a/basic/advanced features.
        - xcamfilter, improve image quality by advanced features and smart analysis.
 

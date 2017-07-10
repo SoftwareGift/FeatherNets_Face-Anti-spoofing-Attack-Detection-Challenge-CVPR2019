@@ -1,3 +1,22 @@
+2017/07/10: release libxcam version 1.0.0
+ * 360 video stitching performance and quality improvement.
+   - enable geometry map to improve performance.
+   - quality tuned on different resolutions (1080P and 4K).
+   - support CPU and OpenCL path in feature match.
+   - enable lens shading correction based on fisheye image.
+
+ * gyroscope-based video stabilization enabling.
+   - enable gyroscope 3-DoF (orientation) assist video stabilization.
+   - orientation (gyro) data should be measured by quaternion as the pose
+     of target frame reference to base frame
+
+ * CL framework refine.
+   - enable CL argument template instead of member variables in kernel.
+   - CL kernel support async mode.
+   - image handler take over input/output buffer management from image kernel.
+
+ * prepare libxcam debian package and fix most warnings.
+
 2017/04/01: release libxcam version 0.9.0
  * 360 video stitching improvement.
    - remove sharp boundary in sphere mode by local/global area resize.
