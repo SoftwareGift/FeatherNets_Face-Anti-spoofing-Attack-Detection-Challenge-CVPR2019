@@ -75,6 +75,7 @@ xcam_ocl_sources = \
 
 if HAVE_OPENCV
 xcam_ocl_sources += cv_feature_match.cpp
+xcam_ocl_sources += cv_image_deblurring.cpp
 endif
 
 libxcam_ocl_la_SOURCES = \
@@ -143,6 +144,7 @@ nobase_libxcam_oclinclude_HEADERS = \
 
 if HAVE_OPENCV
 nobase_libxcam_oclinclude_HEADERS += cv_feature_match.h
+nobase_libxcam_oclinclude_HEADERS += cv_image_deblurring.h
 endif
 
 libxcam_ocl_la_LIBTOOLFLAGS = --tag=disable-static
