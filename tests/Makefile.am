@@ -17,6 +17,12 @@ noinst_PROGRAMS += \
 	test-image-stitching \
 	test-video-stabilization \
 	$(NULL)
+
+if HAVE_OPENCV
+noinst_PROGRAMS += \
+	test-image-deblurring \
+	$(NULL)
+endif
 endif
 
 XCORE_DIR = $(top_builddir)/xcore
@@ -98,9 +104,19 @@ test_video_stabilization_LDADD = \
 	$(NULL)
 
 if HAVE_OPENCV
+test_image_deblurring_SOURCES = test-image-deblurring.cpp
+test_image_deblurring_CXXFLAGS = \
+	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR) \
+	$(NULL)
+test_image_deblurring_LDADD = \
+	$(XCORE_LA) $(OCL_LA)  \
+	$(NULL)
+
 test_image_stitching_CXXFLAGS += $(OPENCV_CFLAGS)
 test_image_stitching_LDADD += $(OPENCV_LIBS)
 test_video_stabilization_CXXFLAGS += $(OPENCV_CFLAGS)
 test_video_stabilization_LDADD += $(OPENCV_LIBS)
+test_image_deblurring_CXXFLAGS += $(OPENCV_CFLAGS)
+test_image_deblurring_LDADD += $(OPENCV_LIBS)
 endif
 endif
