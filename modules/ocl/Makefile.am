@@ -134,6 +134,7 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_image_scaler.h               \
     cl_image_warp_handler.h         \
     cl_image_360_stitch.h           \
+    cl_blender.h                    \
     cl_pyramid_blender.h            \
     cl_retinex_handler.h            \
     cl_wavelet_denoise_handler.h    \
