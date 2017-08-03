@@ -24,10 +24,8 @@
 namespace XCam {
 
 
-CVImageDeblurring::CVImageDeblurring (const SmartPtr<CLContext> &context)
-    : _context (context)
-    , _use_ocl (false)
-    , _is_ocl_inited (false)
+CVImageDeblurring::CVImageDeblurring ()
+    : CVBaseClass()
 {
 
 }
@@ -42,58 +40,6 @@ CVIDConfig
 CVImageDeblurring::get_config ()
 {
     return _config;
-}
-
-void
-CVImageDeblurring::init_opencv_ocl ()
-{
-    if (_is_ocl_inited)
-        return;
-
-    cl_platform_id platform_id = CLDevice::instance()->get_platform_id ();
-    char *platform_name = CLDevice::instance()->get_platform_name ();
-    cl_device_id device_id = CLDevice::instance()->get_device_id ();
-    cl_context context_id = _context->get_context_id ();
-    cv::ocl::attachContext (platform_name, platform_id, context_id, device_id);
-    _is_ocl_inited = true;
-
-    if (!cv::ocl::useOpenCL ()) {
-        cv::ocl::setUseOpenCL (false);
-
-        if (_use_ocl) {
-            XCAM_LOG_WARNING ("feature match: change to non-ocl mode");
-            _use_ocl = false;
-        }
-
-        return;
-    }
-
-    cv::ocl::setUseOpenCL (_use_ocl);
-}
-
-bool
-CVImageDeblurring::convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image)
-{
-    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (context, buffer);
-    VideoBufferInfo info = buffer->get_video_info ();
-    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
-
-    cv::UMat umat;
-    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
-    if (umat.empty ()) {
-        XCAM_LOG_ERROR ("convert buffer to UMat failed");
-        return false;
-    }
-
-    cv::Mat mat;
-    umat.copyTo (mat);
-    if (mat.empty ()) {
-        XCAM_LOG_ERROR ("copy UMat to Mat failed");
-        return false;
-    }
-
-    cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);
-    return true;
 }
 
 void
@@ -444,7 +390,6 @@ CVImageDeblurring::normalize_psf (cv::Mat &psf)
 void
 CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel)
 {
-    init_opencv_ocl ();
     cv::Mat gray_blurred;
     cv::cvtColor (blurred, gray_blurred, CV_BGR2GRAY);
     float noise_power = get_inv_snr (gray_blurred);

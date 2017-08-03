@@ -52,10 +52,8 @@ dump_buffer (SmartPtr<DrmBoBuffer> buffer, char *dump_name)
 }
 #endif
 
-CVFeatureMatch::CVFeatureMatch (const SmartPtr<CLContext> &context)
-    : _context (context)
-    , _use_ocl (false)
-    , _is_ocl_inited (false)
+CVFeatureMatch::CVFeatureMatch ()
+    : CVBaseClass()
 {
     xcam_mem_clear (_x_offset);
     xcam_mem_clear (_mean_offset);
@@ -72,58 +70,6 @@ CVFMConfig
 CVFeatureMatch::get_config ()
 {
     return _config;
-}
-
-void
-CVFeatureMatch::init_opencv_ocl ()
-{
-    if (_is_ocl_inited)
-        return;
-
-    cl_platform_id platform_id = CLDevice::instance()->get_platform_id ();
-    char *platform_name = CLDevice::instance()->get_platform_name ();
-    cl_device_id device_id = CLDevice::instance()->get_device_id ();
-    cl_context context_id = _context->get_context_id ();
-    cv::ocl::attachContext (platform_name, platform_id, context_id, device_id);
-    _is_ocl_inited = true;
-
-    if (!cv::ocl::useOpenCL ()) {
-        cv::ocl::setUseOpenCL (false);
-
-        if (_use_ocl) {
-            XCAM_LOG_WARNING ("feature match: change to non-ocl mode");
-            _use_ocl = false;
-        }
-
-        return;
-    }
-
-    cv::ocl::setUseOpenCL (_use_ocl);
-}
-
-bool
-CVFeatureMatch::convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image)
-{
-    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (context, buffer);
-    VideoBufferInfo info = buffer->get_video_info ();
-    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
-
-    cv::UMat umat;
-    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
-    if (umat.empty ()) {
-        XCAM_LOG_ERROR ("convert bo buffer to UMat failed");
-        return false;
-    }
-
-    cv::Mat mat;
-    umat.copyTo (mat);
-    if (mat.empty ()) {
-        XCAM_LOG_ERROR ("copy UMat to Mat failed");
-        return false;
-    }
-
-    cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);
-    return true;
 }
 
 bool
@@ -401,7 +347,6 @@ CVFeatureMatch::optical_flow_feature_match (
     cv::Mat mat0_left, mat0_right, mat1_left, mat1_right;
     cv::_InputArray img0_left, img0_right, img1_left, img1_right;
 
-    init_opencv_ocl ();
     if (!get_crop_image (buf0, img0_crop_left, img0_crop_right, umat0_left, umat0_right)
             || !get_crop_image (buf1, img1_crop_left, img1_crop_right, umat1_left, umat1_right))
         return;
@@ -440,7 +385,7 @@ CVFeatureMatch::optical_flow_feature_match (
 
     cv::Mat in_mat;
     std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_0.jpg", frame);
-    convert_to_mat (_context, buf0, in_mat);
+    convert_to_mat (buf0, in_mat);
     cv::line (in_mat, cv::Point(img0_crop_left.x, 0), cv::Point(img0_crop_left.x, dst_width), cv::Scalar(0, 0, 255), 2);
     cv::line (in_mat, cv::Point(img0_crop_left.x + img0_crop_left.width, 0),
               cv::Point(img0_crop_left.x + img0_crop_left.width, dst_width), cv::Scalar(0, 0, 255), 2);
@@ -450,7 +395,7 @@ CVFeatureMatch::optical_flow_feature_match (
     cv::imwrite (file_name, in_mat);
 
     std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_1.jpg", frame);
-    convert_to_mat (_context, buf1, in_mat);
+    convert_to_mat (buf1, in_mat);
     cv::line (in_mat, cv::Point(img1_crop_left.x, 0), cv::Point(img1_crop_left.x, dst_width), cv::Scalar(0, 0, 255), 2);
     cv::line (in_mat, cv::Point(img1_crop_left.x + img1_crop_left.width, 0),
               cv::Point(img1_crop_left.x + img1_crop_left.width, dst_width), cv::Scalar(0, 0, 255), 2);

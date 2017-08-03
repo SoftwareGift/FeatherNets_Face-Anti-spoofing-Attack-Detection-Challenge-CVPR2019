@@ -216,7 +216,7 @@ CLImage360Stitch::CLImage360Stitch (
     , _is_stitch_inited (false)
 {
 #if HAVE_OPENCV
-    _feature_match = new CVFeatureMatch (context);
+    _feature_match = new CVFeatureMatch ();
     XCAM_ASSERT (_feature_match.ptr ());
 
     _feature_match->set_config (get_fm_default_config (res_mode));

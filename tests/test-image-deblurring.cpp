@@ -33,16 +33,6 @@
 
 using namespace XCam;
 
-void
-init_opencv_ocl (SmartPtr<CLContext> context)
-{
-    cl_platform_id platform_id = CLDevice::instance()->get_platform_id ();
-    char *platform_name = CLDevice::instance()->get_platform_name ();
-    cl_device_id device_id = CLDevice::instance()->get_device_id ();
-    cl_context context_id = context->get_context_id ();
-    cv::ocl::attachContext (platform_name, platform_id, context_id, device_id);
-}
-
 static void
 usage(const char* arg0)
 {
@@ -56,8 +46,6 @@ usage(const char* arg0)
 
 int main (int argc, char *argv[])
 {
-    SmartPtr<CLContext> context;
-
     const char *file_in_name = NULL;
     const char *file_out_name = NULL;
 
@@ -110,11 +98,7 @@ int main (int argc, char *argv[])
     printf ("need save file:%s\n", need_save_output ? "true" : "false");
     printf ("----------------------\n");
 
-    context = CLDevice::instance()->get_context();
-
-    init_opencv_ocl (context);
-
-    CVImageDeblurring *imageDeblurring = new CVImageDeblurring(context);
+    CVImageDeblurring *imageDeblurring = new CVImageDeblurring();
     cv::Mat blurred = cv::imread(file_in_name, CV_LOAD_IMAGE_COLOR);
     if (blurred.empty()) {
         XCAM_LOG_ERROR ("input file read error");

@@ -29,6 +29,7 @@
 #include <smartptr.h>
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
+#include "cv_base_class.h"
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
@@ -48,24 +49,15 @@ struct CVIDConfig {
     }
 };
 
-class CVImageDeblurring
+class CVImageDeblurring : public CVBaseClass
 {
 
 public:
-    explicit CVImageDeblurring (const SmartPtr<CLContext> &context);
-
-    void set_ocl (bool use_ocl) {
-        _use_ocl = use_ocl;
-    }
-    bool is_ocl_path () {
-        return _use_ocl;
-    }
+    explicit CVImageDeblurring ();
 
     void set_config (CVIDConfig config);
     CVIDConfig get_config ();
 
-    bool convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image);
-    void init_opencv_ocl ();
     void blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel);
     float measure_sharp (const cv::Mat &gray_blurred);
 
@@ -89,11 +81,7 @@ private:
 
     XCAM_DEAD_COPY (CVImageDeblurring);
 
-    SmartPtr<CLContext>  _context;
     CVIDConfig           _config;
-
-    bool                 _use_ocl;
-    bool                 _is_ocl_inited;
 };
 
 }

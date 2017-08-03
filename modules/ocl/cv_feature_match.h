@@ -28,6 +28,7 @@
 #include <smartptr.h>
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
+#include "cv_base_class.h"
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
@@ -56,17 +57,10 @@ struct CVFMConfig {
     {}
 };
 
-class CVFeatureMatch
+class CVFeatureMatch : public CVBaseClass
 {
 public:
-    explicit CVFeatureMatch (const SmartPtr<CLContext> &context);
-
-    void set_ocl (bool use_ocl) {
-        _use_ocl = use_ocl;
-    }
-    bool is_ocl_path () {
-        return _use_ocl;
-    }
+    explicit CVFeatureMatch ();
 
     void set_config (CVFMConfig config);
     CVFMConfig get_config ();
@@ -76,9 +70,6 @@ public:
         cv::Rect &img0_crop_left, cv::Rect &img0_crop_right, cv::Rect &img1_crop_left, cv::Rect &img1_crop_right);
 
 protected:
-    void init_opencv_ocl ();
-
-    bool convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image);
     bool get_crop_image (SmartPtr<DrmBoBuffer> buffer,
                          cv::Rect img_crop_left, cv::Rect img_crop_right, cv::UMat &img_left, cv::UMat &img_right);
 
@@ -101,15 +92,11 @@ private:
     XCAM_DEAD_COPY (CVFeatureMatch);
 
 private:
-    SmartPtr<CLContext>  _context;
     CVFMConfig           _config;
 
     float                _x_offset[XCAM_CV_FM_MATCH_NUM];
     float                _mean_offset[XCAM_CV_FM_MATCH_NUM];
     int                  _valid_count[XCAM_CV_FM_MATCH_NUM];
-
-    bool                 _use_ocl;
-    bool                 _is_ocl_inited;
 };
 
 }
