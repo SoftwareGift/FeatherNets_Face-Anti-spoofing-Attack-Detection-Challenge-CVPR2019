@@ -30,6 +30,7 @@
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
 #include "cv_base_class.h"
+#include "cv_image_process_helper.h"
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
@@ -62,26 +63,20 @@ public:
     float measure_sharp (const cv::Mat &gray_blurred);
 
 private:
-    void compute_dft (const cv::Mat &image, cv::Mat *result);
-    void compute_idft (cv::Mat *input, cv::Mat &result);
     void wiener_filter (const cv::Mat &blurred_image, const cv::Mat &known, cv::Mat &unknown, float noise_power);
-    void rotate (cv::Mat &src, cv::Mat &dst);
     void blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat &kernel, int kernelSize, float noise_power);
-    void apply_constraints (cv::Mat &image, float threshold_value);
-    cv::Mat get_auto_correlation (const cv::Mat &blurred);
     int estimate_kernel_size (const cv::Mat &blurred);
     void crop_border (cv::Mat &image);
-    float get_inv_snr (const cv::Mat &gray_blurred);
-    cv::Mat erosion (const cv::Mat &gray_blurred, int erosion_size);
-    cv::Mat sharp_image (const cv::Mat &gray_blurred, float sigmar);
-    cv::Mat edgetaper (const cv::Mat &image, const cv::Mat &psf);
     void normalized_autocorrelation (const cv::Mat &psf, cv::Mat &auto_correlation_psf);
+    cv::Mat edgetaper (const cv::Mat &image, const cv::Mat &psf);
     void create_weights (cv::Mat &coefficients, const cv::Mat &psf);
-    void normalize_psf (cv::Mat &psf);
+    void rotate (cv::Mat &src, cv::Mat &dst);
+    cv::Mat sharp_image (const cv::Mat &gray_blurred, float sigmar);
 
     XCAM_DEAD_COPY (CVImageDeblurring);
 
-    CVIDConfig           _config;
+    CVIDConfig                          _config;
+    SmartPtr<CVImageProcessHelper>       _helper;
 };
 
 }

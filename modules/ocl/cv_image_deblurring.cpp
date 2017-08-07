@@ -27,7 +27,7 @@ namespace XCam {
 CVImageDeblurring::CVImageDeblurring ()
     : CVBaseClass()
 {
-
+    _helper = new CVImageProcessHelper();
 }
 
 void
@@ -99,7 +99,7 @@ cv::Mat
 CVImageDeblurring::edgetaper (const cv::Mat &img, const cv::Mat &psf)
 {
     cv::Mat blurred = cv::Mat::zeros (img.rows, img.cols, CV_32FC1);
-    cv::filter2D(img, blurred, CV_32F, psf, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
+    cv::filter2D (img, blurred, CV_32F, psf, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
 
     cv::Mat coefficients = cv::Mat::zeros (img.rows, img.cols, CV_32FC1);
     create_weights (coefficients, psf);
@@ -117,18 +117,6 @@ CVImageDeblurring::edgetaper (const cv::Mat &img, const cv::Mat &psf)
         }
     }
     return result;
-}
-
-cv::Mat
-CVImageDeblurring::erosion (const cv::Mat &gray_blurred, int erosion_size)
-{
-    int erosionType = 0;
-    cv::Mat element = cv::getStructuringElement (erosionType,
-                      cv::Size(2 * erosion_size + 1, 2 * erosion_size + 1 ),
-                      cv::Point(erosion_size, erosion_size));
-    cv::Mat eroded;
-    cv::erode (gray_blurred, eroded, element);
-    return eroded.clone();
 }
 
 cv::Mat
@@ -154,26 +142,6 @@ CVImageDeblurring::sharp_image (const cv::Mat &gray_blurred, float sigmar)
     return sharpened.clone ();
 }
 
-float
-CVImageDeblurring::get_inv_snr (const cv::Mat &gray_blurred)
-{
-    cv::Mat median;
-    medianBlur (gray_blurred, median, 3);
-    float numerator = 0;
-    float denominator = 0;
-    float res = 0;
-    for (int i = 0; i < gray_blurred.rows; i++)
-    {
-        for (int j = 0; j < gray_blurred.cols; j++)
-        {
-            numerator += ((gray_blurred.at<unsigned char>(i, j) - median.at<unsigned char>(i, j))
-                          * (gray_blurred.at<unsigned char>(i, j) - median.at<unsigned char>(i, j)));
-            denominator += (gray_blurred.at<unsigned char>(i, j) * gray_blurred.at<unsigned char>(i, j));
-        }
-    }
-    res = sqrt (numerator / denominator);
-    return res;
-}
 
 float
 CVImageDeblurring::measure_sharp (const cv::Mat &gray_blurred)
@@ -191,17 +159,6 @@ CVImageDeblurring::measure_sharp (const cv::Mat &gray_blurred)
     }
     sum /= (gray_blurred.rows * gray_blurred.cols);
     return sum;
-}
-
-cv::Mat
-CVImageDeblurring::get_auto_correlation (const cv::Mat &blurred)
-{
-    cv::Mat dst;
-    cv::Laplacian (blurred, dst, -1, 3, 1, 0, cv::BORDER_CONSTANT);
-    dst.convertTo (dst, CV_32FC1);
-    cv::Mat correlation;
-    cv::filter2D (dst, correlation, -1, dst, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
-    return correlation.clone ();
 }
 
 void
@@ -266,74 +223,48 @@ CVImageDeblurring::crop_border (cv::Mat &thresholded)
         if (right)
             break;
     }
-    thresholded = thresholded(cv::Rect(left, top, right - left, bottom - top));
+    thresholded = thresholded (cv::Rect(left, top, right - left, bottom - top));
 }
 
 int
-CVImageDeblurring::estimate_kernel_size (const cv::Mat &gray_blurred)
+CVImageDeblurring::estimate_kernel_size (const cv::Mat &image)
 {
     int kernel_size = 0;
-    cv::Mat correlation = get_auto_correlation (gray_blurred);
-    cv::Mat thresholded = correlation.clone ();
+    cv::Mat thresholded;
+    cv::Mat dst;
+    cv::Laplacian (image, dst, -1, 3, 1, 0, cv::BORDER_CONSTANT);
+    dst.convertTo (dst, CV_32FC1);
+    cv::filter2D (dst, thresholded, -1, dst, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
+
     for (int i = 0; i < 10; i++)
     {
-        cv::Mat thresholdedNEW;
-        double minVal;
-        double maxVal;
-        cv::minMaxLoc (thresholded, &minVal, &maxVal);
-        cv::threshold (thresholded, thresholded, round(maxVal / 3.5), 255, cv::THRESH_BINARY);
+        cv::Mat thresholded_new;
+        double min_val;
+        double max_val;
+        cv::minMaxLoc (thresholded, &min_val, &max_val);
+        cv::threshold (thresholded, thresholded, round(max_val / 3.5), 255, cv::THRESH_BINARY);
         thresholded.convertTo (thresholded, CV_8UC1);
         crop_border (thresholded);
         if (thresholded.rows < 3)
         {
             break;
         }
-        int filterSize = (int)(std::max(3, ((thresholded.rows + thresholded.cols) / 2) / 10));
-        if (!(filterSize & 1))
+        int filter_size = (int)(std::max(3, ((thresholded.rows + thresholded.cols) / 2) / 10));
+        if (!(filter_size & 1))
         {
-            filterSize++;
+            filter_size++;
         }
-        cv::Mat filter = cv::Mat::ones (filterSize, filterSize, CV_32FC1) / (float)(filterSize * filterSize - 1);
-        filter.at<float> (filterSize / 2, filterSize / 2) = 0;
-        cv::filter2D (thresholded, thresholdedNEW, -1, filter, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
-        kernel_size = (thresholdedNEW.rows + thresholdedNEW.cols) / 2;
+        cv::Mat filter = cv::Mat::ones (filter_size, filter_size, CV_32FC1) / (float)(filter_size * filter_size - 1);
+        filter.at<float> (filter_size / 2, filter_size / 2) = 0;
+        cv::filter2D (thresholded, thresholded_new, -1, filter, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
+        kernel_size = (thresholded_new.rows + thresholded_new.cols) / 2;
         if (!(kernel_size & 1))
         {
             kernel_size++;
         }
-        thresholded = thresholdedNEW.clone();
+        thresholded = thresholded_new.clone();
     }
     return kernel_size;
-}
-
-void
-CVImageDeblurring::compute_dft (const cv::Mat &image, cv::Mat *result)
-{
-    cv::Mat padded;
-    int m = cv::getOptimalDFTSize (image.rows);
-    int n = cv::getOptimalDFTSize (image.cols);
-    cv::copyMakeBorder (image, padded, 0, m - image.rows, 0, n - image.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
-    cv::Mat planes[] = {cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32FC1)};
-    cv::UMat fimg;
-    cv::merge (planes, 2, fimg);
-    cv::dft (fimg, fimg);
-    cv::Mat res;
-    fimg.copyTo (res);
-    cv::split (res, planes);
-    planes[0] = planes[0] (cv::Rect(0, 0, image.cols, image.rows));
-    planes[1] = planes[1] (cv::Rect(0, 0, image.cols, image.rows));
-    result[0] = planes[0].clone ();
-    result[1] = planes[1].clone ();
-}
-
-void
-CVImageDeblurring::compute_idft (cv::Mat *input, cv::Mat &result)
-{
-    cv::UMat fimg;
-    cv::merge (input, 2, fimg);
-    cv::UMat inverse;
-    cv::idft (fimg, inverse, cv::DFT_REAL_OUTPUT + cv::DFT_SCALE);
-    inverse.copyTo (result);
 }
 
 void
@@ -351,48 +282,13 @@ CVImageDeblurring::rotate (cv::Mat &src, cv::Mat &dst)
 }
 
 void
-CVImageDeblurring::apply_constraints (cv::Mat &image, float thresholdValue)
-{
-    for (int i = 0; i < image.rows; i++) {
-        for (int j = 0; j < image.cols; j++) {
-            if (image.at<float>(i, j) < thresholdValue)
-            {
-                image.at<float>(i, j) = 0;
-            }
-            if (image.at<float>(i, j) > 255)
-            {
-                image.at<float>(i, j) = 255.0;
-            }
-        }
-    }
-}
-
-void
-CVImageDeblurring::normalize_psf (cv::Mat &psf)
-{
-    float sum = 0;
-    for (int i = 0; i < psf.rows; i++)
-    {
-        for (int j = 0; j <= i; j++)
-        {
-
-            psf.at<float>(i, j) = (psf.at<float>(i, j) + psf.at<float>(j, i)) / 2;
-            psf.at<float>(j, i) = psf.at<float>(i, j);
-            if (j == i)
-                sum += psf.at<float>(i, j);
-            else
-                sum += (2 * psf.at<float>(i, j));
-        }
-    }
-    psf /= sum;
-}
-
-void
 CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel)
 {
     cv::Mat gray_blurred;
     cv::cvtColor (blurred, gray_blurred, CV_BGR2GRAY);
-    float noise_power = get_inv_snr (gray_blurred);
+    cv::Mat median_blurred;
+    medianBlur (gray_blurred, median_blurred, 3);
+    float noise_power = 1.0f / _helper->get_snr (gray_blurred, median_blurred);
     XCAM_LOG_DEBUG("estimated inv snr %f", noise_power);
     std::vector<cv::Mat> blurred_rgb(3);
     cv::split(blurred, blurred_rgb);
@@ -415,7 +311,7 @@ void
 CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat &kernel, int kernel_size, float noise_power)
 {
     cv::Mat kernel_current = cv::Mat::zeros (kernel_size, kernel_size, CV_32FC1);
-    cv::Mat deblurred_current = erosion (blurred, 2);
+    cv::Mat deblurred_current = _helper->erosion (blurred, 2, 0);
     float sigmar = 20;
     cv::Mat enhanced_blurred = blurred.clone ();
     for (int i = 0; i < _config.iterations; i++)
@@ -423,14 +319,14 @@ CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat
         cv::Mat sharpened = sharp_image (deblurred_current, sigmar);
         wiener_filter(blurred, sharpened.clone (), kernel_current, noise_power);
         kernel_current = kernel_current (cv::Rect((blurred.cols - kernel_size) / 2 , (blurred.rows - kernel_size) / 2, kernel_size, kernel_size));
-        double minVal;
-        double maxVal;
-        cv::minMaxLoc (kernel_current, &minVal, &maxVal);
-        apply_constraints (kernel_current, (float)maxVal / 15);
-        normalize_psf (kernel_current);
+        double min_val;
+        double max_val;
+        cv::minMaxLoc (kernel_current, &min_val, &max_val);
+        _helper->apply_constraints (kernel_current, (float)max_val / 15);
+        _helper->normalize_weights (kernel_current);
         enhanced_blurred = edgetaper (blurred, kernel_current);
         wiener_filter (enhanced_blurred, kernel_current.clone(), deblurred_current, noise_power);
-        apply_constraints (deblurred_current, 0);
+        _helper->apply_constraints (deblurred_current, 0);
         sigmar *= 0.9;
     }
     kernel = kernel_current.clone ();
@@ -442,14 +338,14 @@ CVImageDeblurring::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &k
     int image_w = blurred_image.size().width;
     int image_h = blurred_image.size().height;
     cv::Mat yFT[2];
-    compute_dft (blurred_image, yFT);
+    _helper->compute_dft (blurred_image, yFT);
 
     cv::Mat padded = cv::Mat::zeros(image_h, image_w, CV_32FC1);
     int padx = padded.cols - known.cols;
     int pady = padded.rows - known.rows;
     cv::copyMakeBorder (known, padded, pady / 2, pady - pady / 2, padx / 2, padx - padx / 2, cv::BORDER_CONSTANT, cv::Scalar::all(0));
     cv::Mat padded_ft[2];
-    compute_dft (padded, padded_ft);
+    _helper->compute_dft (padded, padded_ft);
 
     cv::Mat temp_unknown;
     cv::Mat unknown_ft[2];
@@ -475,7 +371,7 @@ CVImageDeblurring::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &k
             unknown_ft[1].at<float>(i, j) = numerator.imag() / denominator;
         }
     }
-    compute_idft (unknown_ft, temp_unknown);
+    _helper->compute_idft (unknown_ft, temp_unknown);
     rotate (temp_unknown, temp_unknown);
     unknown = temp_unknown.clone();
 }
