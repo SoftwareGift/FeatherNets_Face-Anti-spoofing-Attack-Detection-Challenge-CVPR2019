@@ -33,6 +33,7 @@
 #include "cv_image_process_helper.h"
 #include "cv_image_sharp.h"
 #include "cv_edgetaper.h"
+#include "cv_wiener_filter.h"
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
@@ -64,11 +65,9 @@ public:
     void blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel);
 
 private:
-    void wiener_filter (const cv::Mat &blurred_image, const cv::Mat &known, cv::Mat &unknown, float noise_power);
     void blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat &kernel, int kernelSize, float noise_power);
     int estimate_kernel_size (const cv::Mat &blurred);
     void crop_border (cv::Mat &image);
-    void rotate (cv::Mat &src, cv::Mat &dst);
 
     XCAM_DEAD_COPY (CVImageDeblurring);
 
@@ -76,6 +75,7 @@ private:
     SmartPtr<CVImageProcessHelper>      _helper;
     SmartPtr<CVImageSharp>              _sharp;
     SmartPtr<CVEdgetaper>               _edgetaper;
+    SmartPtr<CVWienerFilter>            _wiener;
 };
 
 }

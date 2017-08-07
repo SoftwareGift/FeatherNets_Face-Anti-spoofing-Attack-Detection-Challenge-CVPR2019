@@ -30,6 +30,7 @@ CVImageDeblurring::CVImageDeblurring ()
     _helper = new CVImageProcessHelper();
     _sharp = new CVImageSharp();
     _edgetaper = new CVEdgetaper();
+    _wiener = new CVWienerFilter();
 }
 
 void
@@ -151,20 +152,6 @@ CVImageDeblurring::estimate_kernel_size (const cv::Mat &image)
 }
 
 void
-CVImageDeblurring::rotate (cv::Mat &src, cv::Mat &dst)
-{
-    int cx = src.cols >> 1;
-    int cy = src.rows >> 1;
-    cv::Mat tmp;
-    tmp.create(src.size (), src.type ());
-    src(cv::Rect(0, 0, cx, cy)).copyTo(tmp(cv::Rect(cx, cy, cx, cy)));
-    src(cv::Rect(cx, cy, cx, cy)).copyTo(tmp(cv::Rect(0, 0, cx, cy)));
-    src(cv::Rect(cx, 0, cx, cy)).copyTo(tmp(cv::Rect(0, cy, cx, cy)));
-    src(cv::Rect(0, cy, cx, cy)).copyTo(tmp(cv::Rect(cx, 0, cx, cy)));
-    dst = tmp.clone();
-}
-
-void
 CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel)
 {
     cv::Mat gray_blurred;
@@ -183,7 +170,7 @@ CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred,
     blind_deblurring_one_channel (gray_blurred, result_kernel, kernel_size, noise_power);
     for (int i = 0; i < 3; i++)
     {
-        wiener_filter (_edgetaper->edgetaper(blurred_rgb[i], result_kernel), result_kernel, deblurred_rgb[i], noise_power);
+        _wiener->wiener_filter (_edgetaper->edgetaper(blurred_rgb[i], result_kernel), result_kernel, deblurred_rgb[i], noise_power);
     }
     cv::merge (deblurred_rgb, result_deblurred);
     deblurred = result_deblurred.clone();
@@ -200,7 +187,7 @@ CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat
     for (int i = 0; i < _config.iterations; i++)
     {
         cv::Mat sharpened = _sharp->sharp_image (deblurred_current, sigmar);
-        wiener_filter(blurred, sharpened.clone (), kernel_current, noise_power);
+        _wiener->wiener_filter(blurred, sharpened.clone (), kernel_current, noise_power);
         kernel_current = kernel_current (cv::Rect((blurred.cols - kernel_size) / 2 , (blurred.rows - kernel_size) / 2, kernel_size, kernel_size));
         double min_val;
         double max_val;
@@ -208,55 +195,11 @@ CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat
         _helper->apply_constraints (kernel_current, (float)max_val / 15);
         _helper->normalize_weights (kernel_current);
         enhanced_blurred = _edgetaper->edgetaper (blurred, kernel_current);
-        wiener_filter (enhanced_blurred, kernel_current.clone(), deblurred_current, noise_power);
+        _wiener->wiener_filter (enhanced_blurred, kernel_current.clone(), deblurred_current, noise_power);
         _helper->apply_constraints (deblurred_current, 0);
         sigmar *= 0.9;
     }
     kernel = kernel_current.clone ();
-}
-
-void
-CVImageDeblurring::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &known, cv::Mat &unknown, float noise_power)
-{
-    int image_w = blurred_image.size().width;
-    int image_h = blurred_image.size().height;
-    cv::Mat yFT[2];
-    _helper->compute_dft (blurred_image, yFT);
-
-    cv::Mat padded = cv::Mat::zeros(image_h, image_w, CV_32FC1);
-    int padx = padded.cols - known.cols;
-    int pady = padded.rows - known.rows;
-    cv::copyMakeBorder (known, padded, pady / 2, pady - pady / 2, padx / 2, padx - padx / 2, cv::BORDER_CONSTANT, cv::Scalar::all(0));
-    cv::Mat padded_ft[2];
-    _helper->compute_dft (padded, padded_ft);
-
-    cv::Mat temp_unknown;
-    cv::Mat unknown_ft[2];
-    unknown_ft[0] = cv::Mat::zeros(image_h, image_w, CV_32FC1);
-    unknown_ft[1] = cv::Mat::zeros(image_h, image_w, CV_32FC1);
-
-    float padded_re;
-    float padded_im;
-    float padded_abs;
-    float denominator;
-    std::complex<float> numerator;
-
-    for (int i = 0; i < padded.rows; i++)
-    {
-        for (int j = 0; j < padded.cols; j++)
-        {
-            padded_re = padded_ft[0].at<float>(i, j);
-            padded_im = padded_ft[1].at<float>(i, j);
-            padded_abs = padded_re * padded_re + padded_im * padded_im;
-            denominator = noise_power + padded_abs;
-            numerator = std::complex<float>(padded_re, -padded_im) * std::complex<float>(yFT[0].at<float>(i, j), yFT[1].at<float>(i, j));
-            unknown_ft[0].at<float>(i, j) = numerator.real() / denominator;
-            unknown_ft[1].at<float>(i, j) = numerator.imag() / denominator;
-        }
-    }
-    _helper->compute_idft (unknown_ft, temp_unknown);
-    rotate (temp_unknown, temp_unknown);
-    unknown = temp_unknown.clone();
 }
 
 }
