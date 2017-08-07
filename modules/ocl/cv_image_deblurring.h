@@ -32,6 +32,7 @@
 #include "cv_base_class.h"
 #include "cv_image_process_helper.h"
 #include "cv_image_sharp.h"
+#include "cv_edgetaper.h"
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
@@ -67,9 +68,6 @@ private:
     void blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat &kernel, int kernelSize, float noise_power);
     int estimate_kernel_size (const cv::Mat &blurred);
     void crop_border (cv::Mat &image);
-    void normalized_autocorrelation (const cv::Mat &psf, cv::Mat &auto_correlation_psf);
-    cv::Mat edgetaper (const cv::Mat &image, const cv::Mat &psf);
-    void create_weights (cv::Mat &coefficients, const cv::Mat &psf);
     void rotate (cv::Mat &src, cv::Mat &dst);
 
     XCAM_DEAD_COPY (CVImageDeblurring);
@@ -77,6 +75,7 @@ private:
     CVIDConfig                          _config;
     SmartPtr<CVImageProcessHelper>      _helper;
     SmartPtr<CVImageSharp>              _sharp;
+    SmartPtr<CVEdgetaper>               _edgetaper;
 };
 
 }
