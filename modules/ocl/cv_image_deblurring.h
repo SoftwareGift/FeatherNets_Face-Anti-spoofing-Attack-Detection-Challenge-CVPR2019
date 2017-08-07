@@ -31,6 +31,7 @@
 #include "image_file_handle.h"
 #include "cv_base_class.h"
 #include "cv_image_process_helper.h"
+#include "cv_image_sharp.h"
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
@@ -60,7 +61,6 @@ public:
     CVIDConfig get_config ();
 
     void blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel);
-    float measure_sharp (const cv::Mat &gray_blurred);
 
 private:
     void wiener_filter (const cv::Mat &blurred_image, const cv::Mat &known, cv::Mat &unknown, float noise_power);
@@ -71,12 +71,12 @@ private:
     cv::Mat edgetaper (const cv::Mat &image, const cv::Mat &psf);
     void create_weights (cv::Mat &coefficients, const cv::Mat &psf);
     void rotate (cv::Mat &src, cv::Mat &dst);
-    cv::Mat sharp_image (const cv::Mat &gray_blurred, float sigmar);
 
     XCAM_DEAD_COPY (CVImageDeblurring);
 
     CVIDConfig                          _config;
-    SmartPtr<CVImageProcessHelper>       _helper;
+    SmartPtr<CVImageProcessHelper>      _helper;
+    SmartPtr<CVImageSharp>              _sharp;
 };
 
 }

@@ -98,7 +98,8 @@ int main (int argc, char *argv[])
     printf ("need save file:%s\n", need_save_output ? "true" : "false");
     printf ("----------------------\n");
 
-    CVImageDeblurring *imageDeblurring = new CVImageDeblurring();
+    SmartPtr<CVImageDeblurring> imageDeblurring = new CVImageDeblurring();
+    SmartPtr<CVImageSharp> sharp = new CVImageSharp();
     cv::Mat blurred = cv::imread(file_in_name, CV_LOAD_IMAGE_COLOR);
     if (blurred.empty()) {
         XCAM_LOG_ERROR ("input file read error");
@@ -107,8 +108,8 @@ int main (int argc, char *argv[])
     cv::Mat deblurred;
     cv::Mat kernel;
     imageDeblurring->blind_deblurring(blurred, deblurred, kernel);
-    float input_sharp = imageDeblurring->measure_sharp(blurred);
-    float output_sharp = imageDeblurring->measure_sharp(deblurred);
+    float input_sharp = sharp->measure_sharp(blurred);
+    float output_sharp = sharp->measure_sharp(deblurred);
     assert(output_sharp > input_sharp);
     if (need_save_output) {
         cv::imwrite(file_out_name, deblurred);

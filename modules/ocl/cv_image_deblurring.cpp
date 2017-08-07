@@ -28,6 +28,7 @@ CVImageDeblurring::CVImageDeblurring ()
     : CVBaseClass()
 {
     _helper = new CVImageProcessHelper();
+    _sharp = new CVImageSharp();
 }
 
 void
@@ -117,48 +118,6 @@ CVImageDeblurring::edgetaper (const cv::Mat &img, const cv::Mat &psf)
         }
     }
     return result;
-}
-
-cv::Mat
-CVImageDeblurring::sharp_image (const cv::Mat &gray_blurred, float sigmar)
-{
-    cv::Mat image;
-    gray_blurred.convertTo (image, CV_32FC1);
-    cv::Mat bilateral_image;
-    cv::bilateralFilter (gray_blurred, bilateral_image, 5, sigmar, 2);
-
-    cv::Mat sharpFilter = (cv::Mat_<float>(3, 3) << -1, -1, -1, -1, 8, -1, -1, -1, -1);
-    cv::Mat filtered_image;
-    cv::filter2D (bilateral_image, filtered_image, -1, sharpFilter);
-    filtered_image.convertTo (filtered_image, CV_32FC1);
-    double minVal;
-    double maxVal;
-    cv::minMaxLoc (filtered_image, &minVal, &maxVal);
-    filtered_image -= (float)minVal;
-    filtered_image *= (255.0f / maxVal);
-    cv::Mat sharpened = image + filtered_image;
-    cv::minMaxLoc(sharpened, &minVal, &maxVal);
-    sharpened *= (255.0 / maxVal);
-    return sharpened.clone ();
-}
-
-
-float
-CVImageDeblurring::measure_sharp (const cv::Mat &gray_blurred)
-{
-    cv::Mat dst;
-    cv::Laplacian (gray_blurred, dst, -1, 3, 1, 0, cv::BORDER_CONSTANT);
-    dst.convertTo (dst, CV_8UC1);
-    float sum = 0;
-    for (int i = 0; i < gray_blurred.rows; i++)
-    {
-        for (int j = 0; j < gray_blurred.cols; j++)
-        {
-            sum += dst.at<unsigned char>(i, j);
-        }
-    }
-    sum /= (gray_blurred.rows * gray_blurred.cols);
-    return sum;
 }
 
 void
@@ -316,7 +275,7 @@ CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat
     cv::Mat enhanced_blurred = blurred.clone ();
     for (int i = 0; i < _config.iterations; i++)
     {
-        cv::Mat sharpened = sharp_image (deblurred_current, sigmar);
+        cv::Mat sharpened = _sharp->sharp_image (deblurred_current, sigmar);
         wiener_filter(blurred, sharpened.clone (), kernel_current, noise_power);
         kernel_current = kernel_current (cv::Rect((blurred.cols - kernel_size) / 2 , (blurred.rows - kernel_size) / 2, kernel_size, kernel_size));
         double min_val;
