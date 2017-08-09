@@ -126,6 +126,18 @@ if test "$HAVE_LIBCL" -eq 1; then
     if test "x$GAWK" = "xno"; then
         AC_MSG_ERROR([gawk not found])
     fi
+
+    HAVE_CL_INTEL_H=1
+    AC_CHECK_HEADERS([CL/cl_intel.h], [HAVE_CL_INTEL_H=1], [HAVE_CL_INTEL_H=0])
+    if test "$HAVE_CL_INTEL_H" -eq 0; then
+        # https://raw.githubusercontent.com/intel/beignet/Release_v1.3/include/CL/cl_intel.h
+        XCAM_WGET(
+            [https://cgit.freedesktop.org/beignet/plain/include/CL/cl_intel.h?h=Release_v1.3],
+            [./ext/beignet/include/CL/cl_intel.h],
+            [6a6619073cb35e6987b7379a5a1a1497])
+
+        CPPFLAGS="$CPPFLAGS -I\$(top_srcdir)/ext/beignet/include"
+    fi
 fi
 
 # check opencv

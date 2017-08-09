@@ -15,7 +15,6 @@ config.*
 /missing
 /stamp-h1
 /pkgconfig/*.pc
-/m4
 .deps
 .libs
 
