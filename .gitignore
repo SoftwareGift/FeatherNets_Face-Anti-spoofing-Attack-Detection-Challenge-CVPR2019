@@ -6,6 +6,8 @@ Makefile
 # http://www.gnu.org/software/autoconf
 
 config.*
+/libtool
+/ltmain.sh
 /autom4te.cache
 /aclocal.m4
 /compile

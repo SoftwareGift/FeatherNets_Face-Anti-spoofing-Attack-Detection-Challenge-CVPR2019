@@ -1,0 +1,8 @@
+test-binary-kernel
+test-cl-image
+test-device-manager
+test-image-blend
+test-image-deblurring
+test-image-stitching
+test-pipe-manager
+test-video-stabilization
