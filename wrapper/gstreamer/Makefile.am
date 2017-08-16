@@ -12,13 +12,13 @@ plugin_LTLIBRARIES += \
     $(NULL)
 endif
 
-XCORE_DIR = $(top_builddir)/xcore
-MODULES_DIR = $(top_builddir)/modules
+XCORE_DIR = $(top_srcdir)/xcore
+MODULES_DIR = $(top_srcdir)/modules
 
 XCORE_LA = $(top_builddir)/xcore/libxcam_core.la
 
 if ENABLE_IA_AIQ
-XCAM_INTERFACE_DIR = -I$(top_builddir)/wrapper/gstreamer/interface
+XCAM_INTERFACE_DIR = -I$(top_srcdir)/wrapper/gstreamer/interface
 XCAM_INTERFACE_LA = $(top_builddir)/wrapper/gstreamer/interface/libgstxcaminterface.la
 else
 XCAM_INTERFACE_DIR =
@@ -56,9 +56,9 @@ libgstxcamsrc_la_SOURCES = \
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
 libgstxcamsrc_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)    \
-    -I$(top_builddir)/wrapper/gstreamer  \
-    $(XCAM_INTERFACE_DIR)                \
+    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)  \
+    -I$(top_srcdir)/wrapper/gstreamer  \
+    $(XCAM_INTERFACE_DIR)              \
     $(NULL)
 
 libgstxcamsrc_la_LIBADD = $(XCAMGST_LIBS) \
@@ -93,8 +93,8 @@ libgstxcamfilter_la_SOURCES = \
     $(NULL)
 
 libgstxcamfilter_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS)   \
-    -I$(top_builddir)/wrapper/gstreamer \
+    $(GST_CFLAGS) $(XCAMGST_CXXFLAGS) \
+    -I$(top_srcdir)/wrapper/gstreamer \
     $(NULL)
 
 libgstxcamfilter_la_LIBADD = \

@@ -5,11 +5,10 @@ XCAMOCL_LIBS = -ldl  \
     $(NULL)
 
 XCAMOCL_CXXFLAGS += \
-    $(LIBCL_CFLAGS)             \
-    -I$(top_srcdir)/xcore       \
-    -I$(top_srcdir)/modules     \
-    -I$(top_srcdir)/clx_kernel  \
-    -I$(top_srcdir)/clx_bin     \
+    $(LIBCL_CFLAGS)               \
+    -I$(top_srcdir)/xcore         \
+    -I$(top_srcdir)/modules       \
+    -I$(top_builddir)/clx_kernel  \
     $(NULL)
 
 XCAMOCL_LIBS += \
@@ -89,9 +88,7 @@ libxcam_ocl_la_SOURCES = \
     $(NULL)
 
 libxcam_ocl_la_CXXFLAGS = \
-    $(XCAMOCL_CXXFLAGS)            \
-    -I$(top_builddir)/xcore        \
-    -I$(top_builddir)/modules/ocl  \
+    $(XCAMOCL_CXXFLAGS)   \
     $(NULL)
 
 libxcam_ocl_la_LIBADD = \

@@ -56,9 +56,9 @@ libxcam_isp_la_SOURCES = \
     $(NULL)
 
 libxcam_isp_la_CXXFLAGS = \
-    $(XCAMISP_CXXFLAGS)            \
-    -I$(top_builddir)/xcore        \
-    -I$(top_builddir)/modules/isp  \
+    $(XCAMISP_CXXFLAGS)          \
+    -I$(top_srcdir)/xcore        \
+    -I$(top_srcdir)/modules/isp  \
     $(NULL)
 
 libxcam_isp_la_CFLAGS = $(libxcam_isp_la_CXXFLAGS)

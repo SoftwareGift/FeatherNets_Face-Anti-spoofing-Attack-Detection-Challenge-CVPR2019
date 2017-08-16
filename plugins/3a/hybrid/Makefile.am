@@ -11,9 +11,9 @@ libxcam_3a_hybrid_la_SOURCES = \
     $(NULL)
 
 libxcam_3a_hybrid_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMSRC_CXXFLAGS)      \
-    -I$(top_builddir)/xcore                \
-    -I$(top_builddir)/plugins/3a/hybrid    \
+    $(GST_CFLAGS) $(XCAMSRC_CXXFLAGS)  \
+    -I$(top_srcdir)/xcore              \
+    -I$(top_srcdir)/plugins/3a/hybrid  \
     $(NULL)
 
 libxcam_3a_hybrid_la_LIBADD = \

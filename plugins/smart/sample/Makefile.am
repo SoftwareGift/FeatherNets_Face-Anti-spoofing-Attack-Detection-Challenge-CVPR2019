@@ -25,10 +25,10 @@ libxcam_sample_smart_la_SOURCES = \
     $(NULL)
 
 libxcam_sample_smart_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMSMART_CXXFLAGS)   \
-    -I$(top_builddir)/xcore               \
-    -I$(top_builddir)/modules/isp         \
-    -I$(top_builddir)/plugins/smart       \
+    $(GST_CFLAGS) $(XCAMSMART_CXXFLAGS)  \
+    -I$(top_srcdir)/xcore                \
+    -I$(top_srcdir)/modules/isp          \
+    -I$(top_srcdir)/plugins/smart        \
     $(NULL)
 
 libxcam_sample_smart_la_LIBADD = \

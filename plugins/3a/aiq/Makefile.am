@@ -22,10 +22,10 @@ libxcam_3a_aiq_la_SOURCES = \
     $(NULL)
 
 libxcam_3a_aiq_la_CXXFLAGS = \
-    $(GST_CFLAGS) $(XCAMAIQ_CXXFLAGS)      \
-    -I$(top_builddir)/xcore                \
-    -I$(top_builddir)/modules/isp          \
-    -I$(top_builddir)/plugins/3a/aiq       \
+    $(GST_CFLAGS) $(XCAMAIQ_CXXFLAGS)  \
+    -I$(top_srcdir)/xcore              \
+    -I$(top_srcdir)/modules/isp        \
+    -I$(top_srcdir)/plugins/3a/aiq     \
     $(NULL)
 
 libxcam_3a_aiq_la_LIBADD = \

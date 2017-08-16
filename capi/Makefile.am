@@ -29,10 +29,8 @@ libxcam_capi_la_SOURCES =          \
     $(xcam_ocl_sources)            \
     $(NULL)
 
-libxcam_capi_la_CXXFLAGS =         \
-    $(XCAMCAPI_CXXFLAGS)           \
-    -I$(top_builddir)/xcore        \
-    -I$(top_builddir)/modules/ocl  \
+libxcam_capi_la_CXXFLAGS =       \
+    $(XCAMCAPI_CXXFLAGS)         \
     $(NULL)
 
 libxcam_capi_la_LIBADD =           \

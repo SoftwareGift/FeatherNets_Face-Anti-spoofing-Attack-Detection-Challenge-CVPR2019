@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string>
-#include "plugins/smart/dvs/libdvs/stabilizer.h"
+#include "stabilizer.h"
 
 using namespace std;
 using namespace cv;

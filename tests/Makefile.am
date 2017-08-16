@@ -25,8 +25,8 @@ noinst_PROGRAMS += \
 endif
 endif
 
-XCORE_DIR = $(top_builddir)/xcore
-MODULES_DIR = $(top_builddir)/modules
+XCORE_DIR = $(top_srcdir)/xcore
+MODULES_DIR = $(top_srcdir)/modules
 
 XCORE_LA = $(top_builddir)/xcore/libxcam_core.la
 
@@ -96,17 +96,14 @@ test_image_stitching_LDADD = \
 	$(NULL)
 
 test_video_stabilization_SOURCES = test-video-stabilization.cpp
-test_video_stabilization_CXXFLAGS = \
-	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR) \
-	$(NULL)
+test_video_stabilization_CXXFLAGS = $(tests_cxxflags)
 test_video_stabilization_LDADD = \
 	$(XCORE_LA) $(OCL_LA)  \
 	$(NULL)
 
 if HAVE_OPENCV
 test_image_deblurring_SOURCES = test-image-deblurring.cpp
-test_image_deblurring_CXXFLAGS = \
-	$(tests_cxxflags) -I$(XCORE_DIR) -I$(OCL_DIR) \
+test_image_deblurring_CXXFLAGS = $(tests_cxxflags)
 	$(NULL)
 test_image_deblurring_LDADD = \
 	$(XCORE_LA) $(OCL_LA)  \

@@ -2,11 +2,11 @@ lib_LTLIBRARIES = libgstxcaminterface.la
 
 libgstxcaminterface_la_SOURCES = gstxcaminterface.c
 
-libgstxcaminterface_la_CFLAGS =                \
-				 $(GST_CFLAGS)                 \
-				 -I$(top_builddir)/xcore       \
-				 -I$(top_builddir)/xcore/base  \
-				 $(XCAM_CFLAGS)                \
+libgstxcaminterface_la_CFLAGS =              \
+				 $(GST_CFLAGS)               \
+				 -I$(top_srcdir)/xcore       \
+				 -I$(top_srcdir)/xcore/base  \
+				 $(XCAM_CFLAGS)              \
 				 $(NULL)
 
 libgstxcaminterface_la_LIBADD = \
