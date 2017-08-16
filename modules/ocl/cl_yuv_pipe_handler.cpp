@@ -36,7 +36,7 @@ float default_matrix[XCAM_COLOR_MATRIX_SIZE] = {
     -0.14713f, -0.28886f, 0.436f,
     0.615f, -0.51499f, -0.10001f,
 };
-float default_macc[XCAM_CHROMA_AXIS_SIZE*XCAM_CHROMA_MATRIX_SIZE] = {
+float default_macc[XCAM_CHROMA_AXIS_SIZE * XCAM_CHROMA_MATRIX_SIZE] = {
     1.000000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f, 0.000000f, 0.000000f, 1.000000f,
     1.000000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f, 0.000000f, 0.000000f, 1.000000f,
     1.000000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f, 0.000000f, 0.000000f, 1.000000f,
@@ -246,8 +246,9 @@ create_cl_yuv_pipe_image_handler (const SmartPtr<CLContext> &context)
 
     yuv_pipe_kernel = new CLYuvPipeImageKernel (context);
     XCAM_ASSERT (yuv_pipe_kernel.ptr ());
+    const char * options = USE_BUFFER_OBJECT ? "-DUSE_BUFFER_OBJECT=1" : "-DUSE_BUFFER_OBJECT=0";
     XCAM_FAIL_RETURN (
-        ERROR, yuv_pipe_kernel->build_kernel (kernel_yuv_pipe_info, NULL) == XCAM_RETURN_NO_ERROR, NULL,
+        ERROR, yuv_pipe_kernel->build_kernel (kernel_yuv_pipe_info, options) == XCAM_RETURN_NO_ERROR, NULL,
         "build yuv-pipe kernel(%s) failed", kernel_yuv_pipe_info.kernel_name);
 
     XCAM_ASSERT (yuv_pipe_kernel->is_valid ());
