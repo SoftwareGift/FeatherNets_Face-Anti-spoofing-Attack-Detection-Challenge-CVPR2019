@@ -22,7 +22,7 @@
 #define XCAM_IMAGE_FILE_HANDLE_H
 
 #include "xcam_utils.h"
-#include "buffer_pool.h"
+#include "video_buffer.h"
 
 namespace XCam {
 
@@ -41,8 +41,8 @@ public:
     XCamReturn open (const char *name, const char *option);
     XCamReturn close ();
     XCamReturn rewind ();
-    XCamReturn read_buf (const SmartPtr<BufferProxy> &buf);
-    XCamReturn write_buf (const SmartPtr<BufferProxy> buf);
+    XCamReturn read_buf (const SmartPtr<VideoBuffer> &buf);
+    XCamReturn write_buf (const SmartPtr<VideoBuffer> &buf);
 
 private:
     XCAM_DEAD_COPY (ImageFileHandle);

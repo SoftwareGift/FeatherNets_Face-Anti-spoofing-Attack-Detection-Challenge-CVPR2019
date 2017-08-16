@@ -294,7 +294,7 @@ DeviceManager::dvs_stats_ready ()
 }
 
 XCamReturn
-DeviceManager::scaled_image_ready (const SmartPtr<BufferProxy> &buffer)
+DeviceManager::scaled_image_ready (const SmartPtr<VideoBuffer> &buffer)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_smart_analyzer.ptr()) {
@@ -302,10 +302,9 @@ DeviceManager::scaled_image_ready (const SmartPtr<BufferProxy> &buffer)
     }
 
     ret = _smart_analyzer->push_buffer (buffer);
-    XCAM_FAIL_RETURN (ERROR,
-                      ret == XCAM_RETURN_NO_ERROR,
-                      ret,
-                      "push frame buffer failed");
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+        "push frame buffer failed");
 
     return XCAM_RETURN_NO_ERROR;
 }

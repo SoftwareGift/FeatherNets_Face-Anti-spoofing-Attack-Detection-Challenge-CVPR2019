@@ -22,8 +22,7 @@
 #include "smart_analysis_handler.h"
 #include "smart_analyzer_loader.h"
 #include "smart_analyzer.h"
-#include "drm_bo_buffer.h"
-#include "buffer_pool.h"
+#include "video_buffer.h"
 
 namespace XCam {
 
@@ -151,7 +150,7 @@ SmartAnalysisHandler::update_params (XCamSmartAnalysisParam &params)
 }
 
 XCamReturn
-SmartAnalysisHandler::analyze (SmartPtr<BufferProxy> &buffer, X3aResultList &results)
+SmartAnalysisHandler::analyze (const SmartPtr<VideoBuffer> &buffer, X3aResultList &results)
 {
     XCAM_LOG_DEBUG ("smart handler(%s) analyze", XCAM_STR(get_name()));
     XCamReturn ret = XCAM_RETURN_NO_ERROR;

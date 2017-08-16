@@ -210,7 +210,7 @@ CLImageScaler::execute_done (SmartPtr<DrmBoBuffer> &output)
 XCamReturn
 CLImageScaler::prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<DrmBoBuffer> &output)
 {
-    SmartPtr<BufferProxy> buffer;
+    SmartPtr<VideoBuffer> buffer;
     SmartPtr<DrmDisplay> display;
 
     if (!_scaler_buf_pool.ptr ()) {

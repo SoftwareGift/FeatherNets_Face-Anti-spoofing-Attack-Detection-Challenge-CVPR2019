@@ -126,7 +126,7 @@ PipeManager::push_buffer (SmartPtr<VideoBuffer> &buf)
 }
 
 XCamReturn
-PipeManager::scaled_image_ready (const SmartPtr<BufferProxy> &buffer)
+PipeManager::scaled_image_ready (const SmartPtr<VideoBuffer> &buffer)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_smart_analyzer.ptr ()) {
@@ -134,10 +134,9 @@ PipeManager::scaled_image_ready (const SmartPtr<BufferProxy> &buffer)
     }
 
     ret = _smart_analyzer->push_buffer (buffer);
-    XCAM_FAIL_RETURN (ERROR,
-                      ret == XCAM_RETURN_NO_ERROR,
-                      ret,
-                      "push scaled buffer failed");
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR,
+        ret, "push scaled buffer failed");
 
     return XCAM_RETURN_NO_ERROR;
 }

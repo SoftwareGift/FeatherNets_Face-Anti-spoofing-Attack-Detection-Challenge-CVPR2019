@@ -145,6 +145,11 @@ MainDeviceManager::handle_message (const SmartPtr<XCamMessage> &msg)
 void
 MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
 {
+    if (!buf.ptr ()) {
+        XCAM_LOG_WARNING ("video buffer is null, handle buffer failed.");
+        return;
+    }
+
     FPS_CALCULATION (fps_buf, 30);
     XCAM_OBJ_PROFILING_START;
 
@@ -165,11 +170,6 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
         g_cond.broadcast ();
         return;
     }
-    SmartPtr<BufferProxy> buf_proxy = buf.dynamic_cast_ptr<BufferProxy> ();
-    if (!buf_proxy.ptr ()) {
-        XCAM_LOG_WARNING ("video buffer dynamic cast failed.");
-        return;
-    }
 
     open_file ();
 
@@ -177,7 +177,7 @@ MainDeviceManager::handle_buffer (const SmartPtr<VideoBuffer> &buf)
         XCAM_LOG_ERROR ("open file failed");
         return;
     }
-    _file_handle.write_buf (buf_proxy);
+    _file_handle.write_buf (buf);
 }
 
 int

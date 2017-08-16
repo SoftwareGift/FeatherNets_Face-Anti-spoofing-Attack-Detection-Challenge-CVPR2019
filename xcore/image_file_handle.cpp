@@ -78,7 +78,7 @@ ImageFileHandle::end_of_file()
 }
 
 XCamReturn
-ImageFileHandle::read_buf (const SmartPtr<BufferProxy> &buf)
+ImageFileHandle::read_buf (const SmartPtr<VideoBuffer> &buf)
 {
     const VideoBufferInfo info = buf->get_video_info ();
     VideoBufferPlanarInfo planar;
@@ -108,7 +108,7 @@ ImageFileHandle::read_buf (const SmartPtr<BufferProxy> &buf)
 }
 
 XCamReturn
-ImageFileHandle::write_buf (const SmartPtr<BufferProxy> buf)
+ImageFileHandle::write_buf (const SmartPtr<VideoBuffer> &buf)
 {
     const VideoBufferInfo info = buf->get_video_info ();
     VideoBufferPlanarInfo planar;

@@ -86,7 +86,7 @@ X3aAnalyzer::configure ()
 }
 
 XCamReturn
-X3aAnalyzer::analyze (SmartPtr<BufferProxy> &buffer)
+X3aAnalyzer::analyze (const SmartPtr<VideoBuffer> &buffer)
 {
     SmartPtr<X3aStats> stats = buffer.dynamic_cast_ptr<X3aStats> ();
 

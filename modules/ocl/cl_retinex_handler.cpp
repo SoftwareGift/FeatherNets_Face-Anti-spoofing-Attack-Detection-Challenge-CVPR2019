@@ -225,9 +225,6 @@ CLRetinexImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPt
 XCamReturn
 CLRetinexImageHandler::prepare_scaler_buf (const VideoBufferInfo &video_info)
 {
-    SmartPtr<BufferProxy> buffer;
-
-
     if (!_scaler_buf_pool.ptr ()) {
         SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
         SmartPtr<CLContext> context = get_context ();

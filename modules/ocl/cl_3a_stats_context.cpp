@@ -186,7 +186,7 @@ void debug_print_histogram (XCam3AStats *stats_ptr)
 SmartPtr<X3aStats>
 CL3AStatsCalculatorContext::copy_stats_out (const SmartPtr<CLBuffer> &stats_cl_buf)
 {
-    SmartPtr<BufferProxy> buffer;
+    SmartPtr<VideoBuffer> buffer;
     SmartPtr<X3aStats> stats;
     SmartPtr<CLEvent>  event = new CLEvent;
     XCam3AStats *stats_ptr = NULL;

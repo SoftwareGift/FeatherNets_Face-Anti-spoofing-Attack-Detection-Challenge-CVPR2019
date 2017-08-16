@@ -119,13 +119,13 @@ CLVideoStabilizer::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
 
     _frame_ts[_input_frame_id % 2] = input->get_timestamp ();
 
-    SmartPtr<DevicePose> data = input->find_data_attach<DevicePose> ();
+    SmartPtr<DevicePose> data = input->find_typed_metadata<DevicePose> ();
     while (data.ptr ()) {
         _device_pose[_input_frame_id % 2].push_back (data);
 
-        input->detach_metadata (data);
+        input->remove_metadata (data);
 
-        data = input->find_data_attach<DevicePose> ();
+        data = input->find_typed_metadata<DevicePose> ();
     }
 
     Mat3d homography;

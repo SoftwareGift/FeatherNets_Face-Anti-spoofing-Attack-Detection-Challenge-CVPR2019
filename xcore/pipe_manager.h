@@ -55,7 +55,7 @@ protected:
     virtual void post_buffer (const SmartPtr<VideoBuffer> &buf) = 0;
 
     // virtual functions derived from PollCallback
-    virtual XCamReturn scaled_image_ready (const SmartPtr<BufferProxy> &buffer);
+    virtual XCamReturn scaled_image_ready (const SmartPtr<VideoBuffer> &buffer);
 
     // virtual functions derived from AnalyzerCallback
     virtual void x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results);

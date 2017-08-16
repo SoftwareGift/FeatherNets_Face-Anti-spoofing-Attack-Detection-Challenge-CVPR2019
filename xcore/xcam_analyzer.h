@@ -25,7 +25,8 @@
 #include "xcam_utils.h"
 #include "handler_interface.h"
 #include "xcam_thread.h"
-#include "buffer_pool.h"
+#include "video_buffer.h"
+#include "safe_list.h"
 
 namespace XCam {
 
@@ -41,7 +42,7 @@ public:
     void triger_stop() {
         _stats_queue.pause_pop ();
     }
-    bool push_stats (const SmartPtr<BufferProxy> &buffer);
+    bool push_stats (const SmartPtr<VideoBuffer> &buffer);
 
 protected:
     virtual bool started ();
@@ -52,7 +53,7 @@ protected:
 
 private:
     XAnalyzer              *_analyzer;
-    SafeList<BufferProxy>   _stats_queue;
+    SafeList<VideoBuffer>   _stats_queue;
 };
 
 class AnalyzerCallback {
@@ -87,7 +88,7 @@ public:
     };
     XCamReturn start ();
     XCamReturn stop ();
-    XCamReturn push_buffer (const SmartPtr<BufferProxy> &buffer);
+    XCamReturn push_buffer (const SmartPtr<VideoBuffer> &buffer);
 
     uint32_t get_width () const {
         return _width;
@@ -112,7 +113,7 @@ protected:
 
     // in analyzer thread
     virtual XCamReturn configure () = 0;
-    virtual XCamReturn analyze (SmartPtr<BufferProxy> &buffer) = 0;
+    virtual XCamReturn analyze (const SmartPtr<VideoBuffer> &buffer) = 0;
 
 protected:
     void notify_calculation_done (X3aResultList &results);

@@ -29,7 +29,7 @@ class SmartBufferPriv
     : public XCamVideoBufferIntel
 {
 public:
-    SmartBufferPriv (SmartPtr<BufferProxy> buf);
+    SmartBufferPriv (const SmartPtr<VideoBuffer> &buf);
     ~SmartBufferPriv ();
 
     bool is_valid () const {
@@ -51,7 +51,7 @@ private:
     SmartPtr<DrmBoBuffer>   _buf_ptr;
 };
 
-SmartBufferPriv::SmartBufferPriv (SmartPtr<BufferProxy> buf)
+SmartBufferPriv::SmartBufferPriv (const SmartPtr<VideoBuffer> &buf)
     : _ref (NULL)
 {
     XCAM_ASSERT (buf.ptr ());
@@ -137,7 +137,7 @@ SmartBufferPriv::buf_get_bo (XCamVideoBufferIntel *data)
 }
 
 XCamVideoBuffer *
-convert_to_external_buffer (SmartPtr<BufferProxy> &buf)
+convert_to_external_buffer (const SmartPtr<VideoBuffer> &buf)
 {
     SmartBufferPriv *priv_buf = new SmartBufferPriv (buf);
     XCAM_ASSERT (priv_buf);

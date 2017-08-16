@@ -108,7 +108,7 @@ protected:
     virtual XCamReturn poll_buffer_failed (int64_t timestamp, const char *msg);
     virtual XCamReturn x3a_stats_ready (const SmartPtr<X3aStats> &stats);
     virtual XCamReturn dvs_stats_ready ();
-    virtual XCamReturn scaled_image_ready (const SmartPtr<BufferProxy> &buffer);
+    virtual XCamReturn scaled_image_ready (const SmartPtr<VideoBuffer> &buffer);
 
     //virtual functions derived from AnalyzerCallback
     virtual void x3a_calculation_done (XAnalyzer *analyzer, X3aResultList &results);

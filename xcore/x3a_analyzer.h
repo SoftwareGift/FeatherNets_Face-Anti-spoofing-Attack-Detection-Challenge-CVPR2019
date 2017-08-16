@@ -29,7 +29,7 @@ namespace XCam {
 
 class X3aStats;
 class AnalyzerThread;
-class BufferProxy;
+class VideoBuffer;
 
 class X3aAnalyzer
     : public XAnalyzer
@@ -109,7 +109,7 @@ protected:
     virtual XCamReturn create_handlers ();
     virtual XCamReturn release_handlers ();
     virtual XCamReturn configure ();
-    virtual XCamReturn analyze (SmartPtr<BufferProxy> &buffer);
+    virtual XCamReturn analyze (const SmartPtr<VideoBuffer> &buffer);
 
     virtual SmartPtr<AeHandler> create_ae_handler () = 0;
     virtual SmartPtr<AwbHandler> create_awb_handler () = 0;

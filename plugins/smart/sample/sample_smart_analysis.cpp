@@ -22,7 +22,7 @@
 #include <base/xcam_buffer.h>
 #include "xcam_utils.h"
 #include "aiq3a_utils.h"
-#include "buffer_pool.h"
+#include "video_buffer.h"
 #include "x3a_result_factory.h"
 #include "smart_analyzer.h"
 

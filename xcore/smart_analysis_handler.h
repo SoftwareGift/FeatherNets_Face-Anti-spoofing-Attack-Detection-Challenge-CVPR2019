@@ -27,7 +27,7 @@
 
 namespace XCam {
 
-class BufferProxy;
+class VideoBuffer;
 class SmartAnalysisHandler;
 class SmartAnalyzerLoader;
 class SmartAnalyzer;
@@ -52,7 +52,7 @@ public:
     }
 
     XCamReturn update_params (XCamSmartAnalysisParam &params);
-    XCamReturn analyze (SmartPtr<BufferProxy> &buffer, X3aResultList &results);
+    XCamReturn analyze (const SmartPtr<VideoBuffer> &buffer, X3aResultList &results);
     const char * get_name () const {
         return _name;
     }

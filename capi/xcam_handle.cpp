@@ -181,7 +181,7 @@ copy_external_buf_to_drm_buf (XCamHandle *handle, XCamVideoBuffer *buf)
     SmartPtr<DrmBoBufferPool> buf_pool = context->get_input_buffer_pool();
     XCAM_ASSERT (buf_pool.ptr ());
 
-    SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
+    SmartPtr<VideoBuffer> tmp_buf = buf_pool->get_buffer (buf_pool);
     XCAM_ASSERT (tmp_buf.ptr ());
     SmartPtr<DrmBoBuffer> drm_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
     SmartPtr<VideoBuffer> video_buf = drm_buf;
@@ -252,8 +252,7 @@ xcam_handle_execute (XCamHandle *handle, XCamVideoBuffer *buf_in, XCamVideoBuffe
         "context (%s) failed, handler execute failed", context->get_type_name ());
 
     if (*buf_out == NULL && output.ptr ()) {
-        SmartPtr<BufferProxy> tmp_buf = output;
-        XCamVideoBuffer *new_buf = convert_to_external_buffer (tmp_buf);
+        XCamVideoBuffer *new_buf = convert_to_external_buffer (output);
         XCAM_FAIL_RETURN (
             ERROR, new_buf, XCAM_RETURN_ERROR_MEM,
             "xcam_handle(%s) execute failed, out buffer can't convert to external buffer.",

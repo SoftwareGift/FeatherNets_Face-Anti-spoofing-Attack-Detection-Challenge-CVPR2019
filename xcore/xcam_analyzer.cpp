@@ -36,7 +36,7 @@ AnalyzerThread::~AnalyzerThread ()
 }
 
 bool
-AnalyzerThread::push_stats (const SmartPtr<BufferProxy> &buffer)
+AnalyzerThread::push_stats (const SmartPtr<VideoBuffer> &buffer)
 {
     _stats_queue.push (buffer);
     return true;
@@ -62,8 +62,8 @@ bool
 AnalyzerThread::loop ()
 {
     const static int32_t timeout = -1;
-    SmartPtr<BufferProxy> latest_stats;
-    SmartPtr<BufferProxy> stats = _stats_queue.pop (timeout);
+    SmartPtr<VideoBuffer> latest_stats;
+    SmartPtr<VideoBuffer> stats = _stats_queue.pop (timeout);
     if (!stats.ptr()) {
         XCAM_LOG_DEBUG ("analyzer thread got empty stats, stop thread");
         return false;
@@ -228,13 +228,12 @@ XAnalyzer::stop ()
 }
 
 XCamReturn
-XAnalyzer::push_buffer (const SmartPtr<BufferProxy> &buffer)
+XAnalyzer::push_buffer (const SmartPtr<VideoBuffer> &buffer)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if (get_sync_mode ()) {
-        SmartPtr<BufferProxy> data = buffer;
-        ret = analyze (data);
+        ret = analyze (buffer);
     }
     else {
         if (!_analyzer_thread->is_running())

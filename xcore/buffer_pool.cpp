@@ -38,13 +38,10 @@ BufferProxy::BufferProxy (const SmartPtr<BufferData> &data)
 
 BufferProxy::~BufferProxy ()
 {
-    clear_attached_buffers ();
-
     if (_pool.ptr ()) {
         _pool->release (_data);
     }
     _data.release ();
-    _parent.release ();
 }
 
 uint8_t *
@@ -66,72 +63,6 @@ BufferProxy::get_fd ()
 {
     XCAM_ASSERT (_data.ptr ());
     return _data->get_fd ();
-}
-
-bool
-BufferProxy::attach_buffer (const SmartPtr<VideoBuffer>& buf)
-{
-    _attached_bufs.push_back (buf);
-    return true;
-}
-
-bool
-BufferProxy::detach_buffer (const SmartPtr<VideoBuffer>& buf)
-{
-    for (VideoBufferList::iterator iter = _attached_bufs.begin ();
-            iter != _attached_bufs.end (); ++iter) {
-        SmartPtr<VideoBuffer>& current = *iter;
-        if (current.ptr () == buf.ptr ()) {
-            _attached_bufs.erase (iter);
-            return true;
-        }
-    }
-
-    //not found
-    return false;
-}
-
-bool
-BufferProxy::copy_attaches (const SmartPtr<BufferProxy>& buf)
-{
-    _attached_bufs.insert (
-        _attached_bufs.end (), buf->_attached_bufs.begin (), buf->_attached_bufs.end ());
-    return true;
-}
-
-void
-BufferProxy::clear_attached_buffers ()
-{
-    _attached_bufs.clear ();
-}
-
-bool
-BufferProxy::attach_metadata (const SmartPtr<MetaData>& data)
-{
-    _attached_metadatas.push_back (data);
-    return true;
-}
-
-bool
-BufferProxy::detach_metadata (const SmartPtr<MetaData>& data)
-{
-    for (MetaDataList::iterator iter = _attached_metadatas.begin ();
-            iter != _attached_metadatas.end (); ++iter) {
-        SmartPtr<MetaData>& current = *iter;
-        if (current.ptr () == data.ptr ()) {
-            _attached_metadatas.erase (iter);
-            return true;
-        }
-    }
-
-    //not found
-    return false;
-}
-
-void
-BufferProxy::clear_attached_metadatas ()
-{
-    _attached_metadatas.clear ();
 }
 
 BufferPool::BufferPool ()
@@ -199,7 +130,7 @@ BufferPool::reserve (uint32_t max_count)
 }
 
 bool
-BufferPool::add_data_unsafe (SmartPtr<BufferData> data)
+BufferPool::add_data_unsafe (const SmartPtr<BufferData> &data)
 {
     if (!data.ptr ())
         return false;
@@ -211,7 +142,7 @@ BufferPool::add_data_unsafe (SmartPtr<BufferData> data)
     return true;
 }
 
-SmartPtr<BufferProxy>
+SmartPtr<VideoBuffer>
 BufferPool::get_buffer (const SmartPtr<BufferPool> &self)
 {
     SmartPtr<BufferProxy> ret_buf;

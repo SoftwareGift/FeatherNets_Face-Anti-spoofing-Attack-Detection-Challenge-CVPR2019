@@ -104,7 +104,7 @@ int main (int argc, char *argv[])
     SmartPtr<CLContext> context;
     SmartPtr<DrmDisplay> display;
     SmartPtr<BufferPool> buf_pool;
-    SmartPtr<BufferProxy> read_buf;
+    SmartPtr<VideoBuffer> read_buf;
     ImageFileHandle file_in, file_out;
     SmartPtr<DrmBoBuffer> input_buf, output_buf;
     VideoBufferInfo input_buf_info, output_buf_info;

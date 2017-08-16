@@ -22,12 +22,12 @@
 #ifndef XCAM_TEST_INLINE_H
 #define XCAM_TEST_INLINE_H
 
-#include "buffer_pool.h"
+#include "video_buffer.h"
 
 using namespace XCam;
 
 inline static void
-ensure_gpu_buffer_done (SmartPtr<BufferProxy> buf)
+ensure_gpu_buffer_done (SmartPtr<VideoBuffer> buf)
 {
     const VideoBufferInfo info = buf->get_video_info ();
     VideoBufferPlanarInfo planar;

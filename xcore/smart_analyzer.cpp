@@ -130,7 +130,7 @@ SmartAnalyzer::update_params (XCamSmartAnalysisParam &params)
 }
 
 XCamReturn
-SmartAnalyzer::analyze (SmartPtr<BufferProxy> &buffer)
+SmartAnalyzer::analyze (const SmartPtr<VideoBuffer> &buffer)
 {
     XCAM_OBJ_PROFILING_START;
 

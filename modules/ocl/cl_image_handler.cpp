@@ -241,7 +241,7 @@ CLImageHandler::reset_buf_cache (const SmartPtr<DrmBoBuffer>& input, const Smart
 XCamReturn
 CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
-    SmartPtr<BufferProxy> new_buf;
+    SmartPtr<VideoBuffer> new_buf;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if (_disable_buf_pool)

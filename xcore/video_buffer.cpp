@@ -67,4 +67,77 @@ VideoBufferInfo::get_planar_info (
     return (xcam_video_buffer_get_planar_info (info, planar_info, index) == XCAM_RETURN_NO_ERROR);
 }
 
+VideoBuffer::~VideoBuffer ()
+{
+    clear_attached_buffers ();
+    clear_all_metadata ();
+    _parent.release ();
+}
+
+bool
+VideoBuffer::attach_buffer (const SmartPtr<VideoBuffer>& buf)
+{
+    _attached_bufs.push_back (buf);
+    return true;
+}
+
+bool
+VideoBuffer::detach_buffer (const SmartPtr<VideoBuffer>& buf)
+{
+    for (VideoBufferList::iterator iter = _attached_bufs.begin ();
+            iter != _attached_bufs.end (); ++iter) {
+        SmartPtr<VideoBuffer>& current = *iter;
+        if (current.ptr () == buf.ptr ()) {
+            _attached_bufs.erase (iter);
+            return true;
+        }
+    }
+
+    //not found
+    return false;
+}
+
+bool
+VideoBuffer::copy_attaches (const SmartPtr<VideoBuffer>& buf)
+{
+    _attached_bufs.insert (
+        _attached_bufs.end (), buf->_attached_bufs.begin (), buf->_attached_bufs.end ());
+    return true;
+}
+
+void
+VideoBuffer::clear_attached_buffers ()
+{
+    _attached_bufs.clear ();
+}
+
+bool
+VideoBuffer::add_metadata (const SmartPtr<MetaData>& data)
+{
+    _metadata_list.push_back (data);
+    return true;
+}
+
+bool
+VideoBuffer::remove_metadata (const SmartPtr<MetaData>& data)
+{
+    for (MetaDataList::iterator iter = _metadata_list.begin ();
+            iter != _metadata_list.end (); ++iter) {
+        SmartPtr<MetaData>& current = *iter;
+        if (current.ptr () == data.ptr ()) {
+            _metadata_list.erase (iter);
+            return true;
+        }
+    }
+
+    //not found
+    return false;
+}
+
+void
+VideoBuffer::clear_all_metadata ()
+{
+    _metadata_list.clear ();
+}
+
 };

@@ -26,7 +26,7 @@
 
 namespace XCam {
 
-class BufferProxy;
+class VideoBuffer;
 
 class SmartAnalyzer
     : public XAnalyzer
@@ -45,7 +45,7 @@ protected:
     virtual XCamReturn internal_init (uint32_t width, uint32_t height, double framerate);
     virtual XCamReturn internal_deinit ();
     virtual XCamReturn configure ();
-    virtual XCamReturn analyze (SmartPtr<BufferProxy> &buffer);
+    virtual XCamReturn analyze (const SmartPtr<VideoBuffer> &buffer);
 
 private:
     XCAM_DEAD_COPY (SmartAnalyzer);

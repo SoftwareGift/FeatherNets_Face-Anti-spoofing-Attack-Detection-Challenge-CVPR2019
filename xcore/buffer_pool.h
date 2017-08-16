@@ -25,7 +25,6 @@
 #include "smartptr.h"
 #include "safe_list.h"
 #include "video_buffer.h"
-#include "meta_data.h"
 
 namespace XCam {
 
@@ -54,9 +53,6 @@ public:
     explicit BufferProxy (const SmartPtr<BufferData> &data);
     virtual ~BufferProxy ();
 
-    void set_parent (const SmartPtr<VideoBuffer> &parent) {
-        _parent = parent;
-    }
     void set_buf_pool (const SmartPtr<BufferPool> &pool) {
         _pool = pool;
     }
@@ -66,21 +62,6 @@ public:
     virtual bool unmap ();
     virtual int get_fd();
 
-    bool attach_buffer (const SmartPtr<VideoBuffer>& buf);
-    bool detach_buffer (const SmartPtr<VideoBuffer>& buf);
-    bool copy_attaches (const SmartPtr<BufferProxy>& buf);
-    void clear_attached_buffers ();
-
-    template <typename BufType>
-    SmartPtr<BufType> find_typed_attach ();
-
-    bool attach_metadata (const SmartPtr<MetaData>& data);
-    bool detach_metadata (const SmartPtr<MetaData>& data);
-    void clear_attached_metadatas ();
-
-    template <typename DataType>
-    SmartPtr<DataType> find_data_attach ();
-
 protected:
     SmartPtr<BufferData> &get_buffer_data () {
         return _data;
@@ -89,41 +70,10 @@ protected:
 private:
     XCAM_DEAD_COPY (BufferProxy);
 
-protected:
-    VideoBufferList            _attached_bufs;
-    MetaDataList               _attached_metadatas;
-
 private:
     SmartPtr<BufferData>       _data;
     SmartPtr<BufferPool>       _pool;
-    SmartPtr<VideoBuffer>      _parent;
 };
-
-template <typename BufType>
-SmartPtr<BufType> BufferProxy::find_typed_attach ()
-{
-    for (VideoBufferList::iterator iter = _attached_bufs.begin ();
-            iter != _attached_bufs.end (); ++iter) {
-        SmartPtr<BufType> buf = (*iter).dynamic_cast_ptr<BufType> ();
-        if (buf.ptr ())
-            return buf;
-    }
-
-    return NULL;
-}
-
-template <typename DataType>
-SmartPtr<DataType> BufferProxy::find_data_attach ()
-{
-    for (MetaDataList::iterator iter = _attached_metadatas.begin ();
-            iter != _attached_metadatas.end (); ++iter) {
-        SmartPtr<DataType> buf = (*iter).dynamic_cast_ptr<DataType> ();
-        if (buf.ptr ())
-            return buf;
-    }
-
-    return NULL;
-}
 
 class BufferPool {
     friend class BufferProxy;
@@ -134,7 +84,7 @@ public:
 
     bool set_video_info (const VideoBufferInfo &info);
     bool reserve (uint32_t max_count = 4);
-    SmartPtr<BufferProxy> get_buffer (const SmartPtr<BufferPool> &self);
+    SmartPtr<VideoBuffer> get_buffer (const SmartPtr<BufferPool> &self);
 
     void stop ();
 
@@ -155,7 +105,7 @@ protected:
     virtual SmartPtr<BufferData> allocate_data (const VideoBufferInfo &buffer_info) = 0;
     virtual SmartPtr<BufferProxy> create_buffer_from_data (SmartPtr<BufferData> &data);
 
-    bool add_data_unsafe (SmartPtr<BufferData> data);
+    bool add_data_unsafe (const SmartPtr<BufferData> &data);
 
     void update_video_info_unsafe (const VideoBufferInfo &info);
 
@@ -171,8 +121,6 @@ private:
     uint32_t                 _max_count;
     bool                     _started;
 };
-
-XCamVideoBuffer *convert_to_external_buffer (SmartPtr<BufferProxy> &buf);
 
 };
 

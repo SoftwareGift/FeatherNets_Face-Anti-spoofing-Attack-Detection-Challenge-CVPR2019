@@ -35,6 +35,8 @@ struct MetaData
         timestamp = 0;
     };
     virtual ~MetaData () {};
+private:
+    XCAM_DEAD_COPY (MetaData);
 };
 
 struct DevicePose

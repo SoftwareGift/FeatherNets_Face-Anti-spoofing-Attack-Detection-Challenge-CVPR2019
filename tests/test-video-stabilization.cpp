@@ -107,7 +107,7 @@ int main (int argc, char *argv[])
     VideoBufferInfo output_buf_info;
     SmartPtr<DrmBoBuffer> input_buf;
     SmartPtr<DrmBoBuffer> output_buf;
-    SmartPtr<BufferProxy> read_buf;
+    SmartPtr<VideoBuffer> read_buf;
 
     uint32_t input_format = V4L2_PIX_FMT_NV12;
     uint32_t input_width = 1920;
@@ -287,7 +287,7 @@ int main (int argc, char *argv[])
 
             SmartPtr<MetaData> pose_data  = *(pose_iterator);
             SmartPtr<DevicePose> data = *(pose_iterator);
-            input_buf->attach_metadata (pose_data);
+            input_buf->add_metadata (pose_data);
             input_buf->set_timestamp (pose_data->timestamp);
 
             ret = video_stab->execute (input_buf, output_buf);

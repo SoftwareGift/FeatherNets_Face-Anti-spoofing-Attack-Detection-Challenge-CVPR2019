@@ -166,7 +166,7 @@ int main (int argc, char *argv[])
     ImageFileHandle file_in0, file_in1, file_out;
     SmartPtr<DrmBoBuffer> input0, input1;
     SmartPtr<DrmBoBuffer> output_buf;
-    SmartPtr<BufferProxy> read_buf;
+    SmartPtr<VideoBuffer> read_buf;
 
 #define FAILED_GEO_FREE  { delete [] geo_map0; delete [] geo_map1; return -1; }
 

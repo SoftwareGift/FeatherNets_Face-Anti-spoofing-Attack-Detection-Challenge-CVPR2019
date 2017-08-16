@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "smartptr.h"
+#include "meta_data.h"
 #include "base/xcam_buffer.h"
 #include <list>
 
@@ -32,13 +33,13 @@ class VideoBuffer;
 typedef std::list<SmartPtr<VideoBuffer>>  VideoBufferList;
 
 struct VideoBufferPlanarInfo
-        : XCamVideoBufferPlanarInfo
+    : XCamVideoBufferPlanarInfo
 {
     VideoBufferPlanarInfo ();
 };
 
 struct VideoBufferInfo
-        : XCamVideoBufferInfo
+    : XCamVideoBufferInfo
 {
     VideoBufferInfo ();
     bool init (
@@ -59,7 +60,11 @@ public:
         : _videoinfo (info)
         , _timestamp (timestamp)
     {}
-    virtual ~VideoBuffer () {}
+    virtual ~VideoBuffer ();
+
+    void set_parent (const SmartPtr<VideoBuffer> &parent) {
+        _parent = parent;
+    }
 
     virtual uint8_t *map () = 0;
     virtual bool unmap () = 0;
@@ -83,11 +88,64 @@ public:
     uint32_t get_size () const {
         return _videoinfo.size;
     }
+
+    bool attach_buffer (const SmartPtr<VideoBuffer>& buf);
+    bool detach_buffer (const SmartPtr<VideoBuffer>& buf);
+    bool copy_attaches (const SmartPtr<VideoBuffer>& buf);
+    void clear_attached_buffers ();
+
+    template <typename BufType>
+    SmartPtr<BufType> find_typed_attach ();
+
+    bool add_metadata (const SmartPtr<MetaData>& data);
+    bool remove_metadata (const SmartPtr<MetaData>& data);
+    void clear_all_metadata ();
+
+    template <typename MetaType>
+    SmartPtr<MetaType> find_typed_metadata ();
+
 private:
-    VideoBufferInfo _videoinfo;
-    int64_t         _timestamp; // in microseconds
+    XCAM_DEAD_COPY (VideoBuffer);
+
+protected:
+    VideoBufferList           _attached_bufs;
+    MetaDataList              _metadata_list;
+
+private:
+    VideoBufferInfo           _videoinfo;
+    int64_t                   _timestamp; // in microseconds
+
+    SmartPtr<VideoBuffer>     _parent;
 };
+
+template <typename BufType>
+SmartPtr<BufType> VideoBuffer::find_typed_attach ()
+{
+    for (VideoBufferList::iterator iter = _attached_bufs.begin ();
+            iter != _attached_bufs.end (); ++iter) {
+        SmartPtr<BufType> buf = (*iter).dynamic_cast_ptr<BufType> ();
+        if (buf.ptr ())
+            return buf;
+    }
+
+    return NULL;
+}
+
+template <typename MetaType>
+SmartPtr<MetaType> VideoBuffer::find_typed_metadata ()
+{
+    for (MetaDataList::iterator iter = _metadata_list.begin ();
+            iter != _metadata_list.end (); ++iter) {
+        SmartPtr<MetaType> buf = (*iter).dynamic_cast_ptr<MetaType> ();
+        if (buf.ptr ())
+            return buf;
+    }
+
+    return NULL;
+}
+
+XCamVideoBuffer *convert_to_external_buffer (const SmartPtr<VideoBuffer> &buf);
 
 };
 
-#endif //XCAM_BUFFER_PROXY_H
+#endif //XCAM_VIDEO_BUFFER_H

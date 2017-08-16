@@ -76,7 +76,7 @@ CL3AStatsCalculatorKernel::post_execute (SmartPtr<DrmBoBuffer> &output)
 {
     XCAM_UNUSED (output);
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<BufferProxy> buffer;
+    SmartPtr<VideoBuffer> buffer;
     SmartPtr<X3aStats> stats;
     SmartPtr<CLEvent>  event = new CLEvent;
     XCam3AStats *stats_ptr = NULL;

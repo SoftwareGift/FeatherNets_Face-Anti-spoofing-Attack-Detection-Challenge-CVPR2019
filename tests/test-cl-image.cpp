@@ -511,7 +511,7 @@ int main (int argc, char *argv[])
     SmartPtr<DrmBoBuffer> psnr_cur, psnr_ref;
     while (true) {
         SmartPtr<DrmBoBuffer> input_buf, output_buf;
-        SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
+        SmartPtr<VideoBuffer> tmp_buf = buf_pool->get_buffer (buf_pool);
         input_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
 
         XCAM_ASSERT (input_buf.ptr ());
@@ -554,7 +554,7 @@ int main (int argc, char *argv[])
             return -1;
         }
 
-        SmartPtr<BufferProxy> tmp_buf = buf_pool->get_buffer (buf_pool);
+        SmartPtr<VideoBuffer> tmp_buf = buf_pool->get_buffer (buf_pool);
         psnr_ref = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
         XCAM_ASSERT (psnr_ref.ptr ());
 
