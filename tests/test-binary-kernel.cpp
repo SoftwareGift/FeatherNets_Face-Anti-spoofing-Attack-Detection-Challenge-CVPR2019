@@ -20,6 +20,7 @@
 
 #include "test_common.h"
 #include "test_inline.h"
+#include "file_handle.h"
 #include "ocl/cl_device.h"
 #include "ocl/cl_context.h"
 #include "ocl/cl_kernel.h"

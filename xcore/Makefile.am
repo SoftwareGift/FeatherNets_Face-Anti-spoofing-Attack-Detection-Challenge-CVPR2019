@@ -19,6 +19,7 @@ xcam_sources = \
     smart_analysis_handler.cpp          \
     smart_buffer_priv.cpp               \
     fake_poll_thread.cpp                \
+    file_handle.cpp                     \
     handler_interface.cpp               \
     image_processor.cpp                 \
     image_projector.cpp                 \
@@ -93,6 +94,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     base/xcam_smart_result.h       \
     device_manager.h               \
     dma_video_buffer.h             \
+    file_handle.h                  \
     pipe_manager.h                 \
     handler_interface.h            \
     image_processor.h              \

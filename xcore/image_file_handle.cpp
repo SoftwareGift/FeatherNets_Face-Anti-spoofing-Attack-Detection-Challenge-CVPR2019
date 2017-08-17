@@ -23,58 +23,13 @@
 
 namespace XCam {
 
+ImageFileHandle::ImageFileHandle ()
+{
+}
+
 ImageFileHandle::~ImageFileHandle ()
 {
     close ();
-}
-
-XCamReturn
-ImageFileHandle::open (const char *name, const char *option)
-{
-    XCAM_ASSERT (name);
-    if (!name)
-        return XCAM_RETURN_ERROR_FILE;
-
-    close ();
-    XCAM_ASSERT (!_file_name && !_fp);
-    _fp = fopen (name, option);
-
-    if (!_fp)
-        return XCAM_RETURN_ERROR_FILE;
-    _file_name = strndup (name, 512);
-    return XCAM_RETURN_NO_ERROR;
-}
-
-XCamReturn
-ImageFileHandle::close ()
-{
-    if (_fp) {
-        fclose (_fp);
-        _fp = NULL;
-    }
-    if (_file_name) {
-        xcam_free (_file_name);
-        _file_name = NULL;
-    }
-    return XCAM_RETURN_NO_ERROR;
-}
-
-XCamReturn
-ImageFileHandle::rewind ()
-{
-    if (!is_valid ())
-        return XCAM_RETURN_ERROR_FILE;
-    return (fseek(_fp, 0L, SEEK_SET) == 0) ? XCAM_RETURN_NO_ERROR : XCAM_RETURN_ERROR_FILE;
-}
-
-
-bool
-ImageFileHandle::end_of_file()
-{
-    if (!is_valid ())
-        return true; // maybe false?
-
-    return feof (_fp);
 }
 
 XCamReturn
@@ -132,6 +87,5 @@ ImageFileHandle::write_buf (const SmartPtr<VideoBuffer> &buf)
     buf->unmap ();
     return ret;
 }
-
 
 }

@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <assert.h>
 #include <pthread.h>
 #include <math.h>
