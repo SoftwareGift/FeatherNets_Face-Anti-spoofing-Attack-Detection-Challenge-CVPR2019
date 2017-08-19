@@ -48,7 +48,7 @@ public:
     explicit CVImageSharp ();
 
     float measure_sharp (const cv::Mat &image);
-    cv::Mat sharp_image (const cv::Mat &image, float sigmar);
+    cv::Mat sharp_image_gray (const cv::Mat &image, float sigmar);
 
     XCAM_DEAD_COPY (CVImageSharp);
 };

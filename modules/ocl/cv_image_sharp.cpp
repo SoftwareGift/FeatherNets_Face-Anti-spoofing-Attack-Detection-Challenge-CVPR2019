@@ -31,7 +31,7 @@ CVImageSharp::CVImageSharp ()
 }
 
 cv::Mat
-CVImageSharp::sharp_image (const cv::Mat &image, float sigmar)
+CVImageSharp::sharp_image_gray (const cv::Mat &image, float sigmar)
 {
     cv::Mat temp_image;
     image.convertTo (temp_image, CV_32FC1);
@@ -42,14 +42,10 @@ CVImageSharp::sharp_image (const cv::Mat &image, float sigmar)
     cv::Mat filtered_image;
     cv::filter2D (bilateral_image, filtered_image, -1, sharp_filter);
     filtered_image.convertTo (filtered_image, CV_32FC1);
-    double min_val;
-    double max_val;
-    cv::minMaxLoc (filtered_image, &min_val, &max_val);
-    filtered_image -= (float)min_val;
-    filtered_image *= (255.0f / max_val);
+    cv::normalize (filtered_image, filtered_image, 0, 255.0f, cv::NORM_MINMAX);
+
     cv::Mat sharpened = temp_image + filtered_image;
-    cv::minMaxLoc(sharpened, &min_val, &max_val);
-    sharpened *= (255.0 / max_val);
+    cv::normalize (sharpened, sharpened, 0, 255.0f, cv::NORM_MINMAX);
     return sharpened.clone ();
 }
 

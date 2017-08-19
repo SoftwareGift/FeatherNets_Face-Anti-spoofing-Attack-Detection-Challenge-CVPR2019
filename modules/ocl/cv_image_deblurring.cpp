@@ -171,9 +171,11 @@ CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred,
     for (int i = 0; i < 3; i++)
     {
         _wiener->wiener_filter (_edgetaper->edgetaper(blurred_rgb[i], result_kernel), result_kernel, deblurred_rgb[i], noise_power);
+        _helper->apply_constraints (deblurred_rgb[i], 0);
     }
     cv::merge (deblurred_rgb, result_deblurred);
-    deblurred = result_deblurred.clone();
+    result_deblurred.convertTo (result_deblurred, CV_8UC3);
+    fastNlMeansDenoisingColored (result_deblurred, deblurred, 3, 3, 7, 21);
     kernel = result_kernel.clone();
 }
 
@@ -186,7 +188,7 @@ CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat
     cv::Mat enhanced_blurred = blurred.clone ();
     for (int i = 0; i < _config.iterations; i++)
     {
-        cv::Mat sharpened = _sharp->sharp_image (deblurred_current, sigmar);
+        cv::Mat sharpened = _sharp->sharp_image_gray (deblurred_current, sigmar);
         _wiener->wiener_filter(blurred, sharpened.clone (), kernel_current, noise_power);
         kernel_current = kernel_current (cv::Rect((blurred.cols - kernel_size) / 2 , (blurred.rows - kernel_size) / 2, kernel_size, kernel_size));
         double min_val;
