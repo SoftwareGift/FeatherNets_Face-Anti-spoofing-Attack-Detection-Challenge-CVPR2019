@@ -107,12 +107,12 @@ int main (int argc, char *argv[])
     }
     cv::Mat deblurred;
     cv::Mat kernel;
-    imageDeblurring->blind_deblurring(blurred, deblurred, kernel);
-    float input_sharp = sharp->measure_sharp(blurred);
-    float output_sharp = sharp->measure_sharp(deblurred);
-    assert(output_sharp > input_sharp);
+    imageDeblurring->blind_deblurring (blurred, deblurred, kernel);
+    float input_sharp = sharp->measure_sharp (blurred);
+    float output_sharp = sharp->measure_sharp (deblurred);
     if (need_save_output) {
         cv::imwrite(file_out_name, deblurred);
     }
+    assert(output_sharp > input_sharp);
 }
 
