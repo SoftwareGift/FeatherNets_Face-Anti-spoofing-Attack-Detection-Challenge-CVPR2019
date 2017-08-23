@@ -22,6 +22,7 @@
 #define XCAM_CL_BLENDER_H
 
 #include "xcam_utils.h"
+#include "interface/data_types.h"
 #include "ocl/cl_image_handler.h"
 
 #define XCAM_CL_BLENDER_IMAGE_NUM  2
@@ -39,13 +40,6 @@ enum {
     CLBlenderPlaneY = 0,
     CLBlenderPlaneUV,
     CLBlenderPlaneMax,
-};
-
-struct Rect {
-    int32_t pos_x, pos_y;
-    int32_t width, height;
-
-    Rect () : pos_x (0), pos_y (0), width (0), height (0) {}
 };
 
 class CLBlenderScaleKernel

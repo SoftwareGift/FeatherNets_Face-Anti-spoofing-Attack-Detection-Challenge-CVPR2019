@@ -106,12 +106,12 @@ CLBlenderGlobalScaleKernel::get_output_info (
 
 #if HAVE_OPENCV
 static CVFMConfig
-get_fm_default_config (CLStitchResMode res_mode)
+get_fm_default_config (StitchResMode res_mode)
 {
     CVFMConfig config;
 
     switch (res_mode) {
-    case CLStitchRes1080P: {
+    case StitchRes1080P: {
         config.sitch_min_width = 56;
         config.min_corners = 8;
         config.offset_factor = 0.8f;
@@ -120,7 +120,7 @@ get_fm_default_config (CLStitchResMode res_mode)
 
         break;
     }
-    case CLStitchRes4K: {
+    case StitchRes4K: {
         config.sitch_min_width = 160;
         config.min_corners = 8;
         config.offset_factor = 0.8f;
@@ -138,13 +138,13 @@ get_fm_default_config (CLStitchResMode res_mode)
 }
 #endif
 
-static CLStitchInfo
-get_default_stitch_info (CLStitchResMode res_mode)
+static StitchInfo
+get_default_stitch_info (StitchResMode res_mode)
 {
-    CLStitchInfo stitch_info;
+    StitchInfo stitch_info;
 
     switch (res_mode) {
-    case CLStitchRes1080P: {
+    case StitchRes1080P: {
         stitch_info.merge_width[0] = 56;
         stitch_info.merge_width[1] = 56;
 
@@ -170,7 +170,7 @@ get_default_stitch_info (CLStitchResMode res_mode)
 
         break;
     }
-    case CLStitchRes4K: {
+    case StitchRes4K: {
         stitch_info.merge_width[0] = 160;
         stitch_info.merge_width[1] = 160;
 
@@ -206,7 +206,7 @@ get_default_stitch_info (CLStitchResMode res_mode)
 }
 
 CLImage360Stitch::CLImage360Stitch (
-    const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode)
+    const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode)
     : CLMultiImageHandler (context, "CLImage360Stitch")
     , _context (context)
     , _output_width (0)
@@ -224,7 +224,7 @@ CLImage360Stitch::CLImage360Stitch (
 }
 
 bool
-CLImage360Stitch::set_stitch_info (CLStitchInfo stitch_info)
+CLImage360Stitch::set_stitch_info (StitchInfo stitch_info)
 {
     if (_is_stitch_inited) {
         XCAM_LOG_WARNING ("stitching info was initialized and can't be set twice");
@@ -241,7 +241,7 @@ CLImage360Stitch::set_stitch_info (CLStitchInfo stitch_info)
     return true;
 }
 
-CLStitchInfo
+StitchInfo
 CLImage360Stitch::get_stitch_info ()
 {
     if (!_is_stitch_inited) {
@@ -755,7 +755,7 @@ create_blender_global_scale_kernel (
 SmartPtr<CLImageHandler>
 create_image_360_stitch (
     const SmartPtr<CLContext> &context, bool need_seam,
-    CLBlenderScaleMode scale_mode, bool fisheye_map, bool need_lsc, CLStitchResMode res_mode)
+    CLBlenderScaleMode scale_mode, bool fisheye_map, bool need_lsc, StitchResMode res_mode)
 {
     const int layer = 2;
     const bool need_uv = true;

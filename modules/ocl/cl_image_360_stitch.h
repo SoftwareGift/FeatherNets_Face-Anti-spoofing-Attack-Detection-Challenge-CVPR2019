@@ -22,6 +22,7 @@
 #define XCAM_CL_IMAGE_360_STITCH_H
 
 #include "xcam_utils.h"
+#include "interface/stitcher.h"
 #include "ocl/cl_multi_image_handler.h"
 #include "ocl/cl_fisheye_handler.h"
 #include "ocl/cl_blender.h"
@@ -30,17 +31,6 @@
 #endif
 
 namespace XCam {
-
-enum CLStitchResMode {
-    CLStitchRes1080P,
-    CLStitchRes4K
-};
-
-enum ImageIdx {
-    ImageIdxMain,
-    ImageIdxSecondary,
-    ImageIdxCount,
-};
 
 struct CLFisheyeParams {
     SmartPtr<CLFisheyeHandler>  handler;
@@ -52,31 +42,6 @@ struct CLFisheyeParams {
 
     CLFisheyeParams () : width (0), height (0) {}
 };
-
-struct ImageCropInfo {
-    uint32_t left;
-    uint32_t right;
-    uint32_t top;
-    uint32_t bottom;
-
-    ImageCropInfo () : left (0), right (0), top (0), bottom (0) {}
-};
-
-struct CLStitchInfo {
-    uint32_t merge_width[ImageIdxCount];
-
-    ImageCropInfo crop[ImageIdxCount];
-    CLFisheyeInfo fisheye_info[ImageIdxCount];
-
-    CLStitchInfo () {
-        xcam_mem_clear (merge_width);
-    }
-};
-
-typedef struct {
-    Rect left;
-    Rect right;
-} ImageMergeInfo;
 
 class CLImage360Stitch;
 class CLBlenderGlobalScaleKernel
@@ -100,10 +65,10 @@ class CLImage360Stitch
 {
 public:
     explicit CLImage360Stitch (
-        const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, CLStitchResMode res_mode);
+        const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode);
 
-    bool set_stitch_info (CLStitchInfo stitch_info);
-    CLStitchInfo get_stitch_info ();
+    bool set_stitch_info (StitchInfo stitch_info);
+    StitchInfo get_stitch_info ();
     void set_output_size (uint32_t width, uint32_t height) {
         _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
         _output_height = height;
@@ -173,10 +138,10 @@ private:
     SmartPtr<DrmBoBuffer>       _scale_global_input;
     SmartPtr<DrmBoBuffer>       _scale_global_output;
 
-    CLStitchResMode             _res_mode;
+    StitchResMode               _res_mode;
 
     bool                        _is_stitch_inited;
-    CLStitchInfo                _stitch_info;
+    StitchInfo                  _stitch_info;
 };
 
 SmartPtr<CLImageHandler>
@@ -186,7 +151,7 @@ create_image_360_stitch (
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal,
     bool fisheye_map = false,
     bool need_lsc = false,
-    CLStitchResMode res_mode = CLStitchRes1080P);
+    StitchResMode res_mode = StitchRes1080P);
 
 }
 

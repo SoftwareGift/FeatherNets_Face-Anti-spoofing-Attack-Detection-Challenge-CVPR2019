@@ -22,21 +22,11 @@
 #define XCAM_CL_FISHEYE_HANDLER_H
 
 #include "xcam_utils.h"
+#include "interface/data_types.h"
 #include "ocl/cl_image_handler.h"
 #include "ocl/cl_geo_map_handler.h"
 
 namespace XCam {
-
-struct CLFisheyeInfo {
-    float    center_x;
-    float    center_y;
-    float    wide_angle;
-    float    radius;
-    float    rotate_angle; // clockwise
-
-    CLFisheyeInfo ();
-    bool is_valid () const;
-};
 
 class CLFisheyeHandler;
 class CLFisheye2GPSKernel
@@ -66,8 +56,8 @@ public:
 
     void set_dst_range (float longitude, float latitude);
     void get_dst_range (float &longitude, float &latitude) const;
-    void set_fisheye_info (const CLFisheyeInfo &info);
-    const CLFisheyeInfo &get_fisheye_info () const {
+    void set_fisheye_info (const FisheyeInfo &info);
+    const FisheyeInfo &get_fisheye_info () const {
         return _fisheye_info;
     }
 
@@ -106,11 +96,11 @@ private:
     SmartPtr<CLImage> create_cl_image (
         uint32_t width, uint32_t height, cl_channel_order order, cl_channel_type type);
     XCamReturn generate_fisheye_table (
-        uint32_t fisheye_width, uint32_t fisheye_height, const CLFisheyeInfo &fisheye_info);
+        uint32_t fisheye_width, uint32_t fisheye_height, const FisheyeInfo &fisheye_info);
 
     void ensure_lsc_params ();
     XCamReturn generate_lsc_table (
-        uint32_t fisheye_width, uint32_t fisheye_height, CLFisheyeInfo &fisheye_info);
+        uint32_t fisheye_width, uint32_t fisheye_height, FisheyeInfo &fisheye_info);
 
 
     XCAM_DEAD_COPY (CLFisheyeHandler);
@@ -120,7 +110,7 @@ private:
     uint32_t                         _output_height;
     float                            _range_longitude;
     float                            _range_latitude;
-    CLFisheyeInfo                    _fisheye_info;
+    FisheyeInfo                    _fisheye_info;
     float                            _map_factor;
     bool                             _use_map;
     uint32_t                         _need_lsc;

@@ -26,6 +26,7 @@
 #include <ocl/cl_image_handler.h>
 #include <ocl/cl_context.h>
 #include <ocl/cl_blender.h>
+#include <interface/stitcher.h>
 
 using namespace XCam;
 
@@ -158,12 +159,6 @@ public:
 class StitchContext
     : public ContextBase
 {
-public:
-    enum StitchResMode {
-        StitchRes1080P = 0,
-        StitchRes4K
-    };
-
 public:
     StitchContext ()
         : ContextBase (HandleTypeStitch)

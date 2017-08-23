@@ -31,8 +31,10 @@ namespace XCam {
 class BufferPool;
 
 class BufferData {
-public:
+protected:
     explicit BufferData () {}
+
+public:
     virtual ~BufferData () {}
 
     virtual uint8_t *map () = 0;

@@ -474,7 +474,7 @@ int main (int argc, char *argv[])
         image_handler = create_fisheye_handler (context);
         SmartPtr<CLFisheyeHandler> fisheye = image_handler.dynamic_cast_ptr<CLFisheyeHandler> ();
         XCAM_ASSERT (fisheye.ptr ());
-        CLFisheyeInfo fisheye_info;
+        FisheyeInfo fisheye_info;
         //fisheye0 {480.0f, 480.0f, 190.0f, 480.0f, -90.0f},
         //fisheye1 {1440.0f, 480.0f, 190.0f, 480.0f, 90.0f}
         fisheye_info.center_x = 480.0f;

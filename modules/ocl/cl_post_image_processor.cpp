@@ -402,7 +402,7 @@ CLPostImageProcessor::create_handlers ()
     /* image stitch */
     image_handler =
         create_image_360_stitch (context, _stitch_enable_seam, _stitch_scale_mode,
-            _stitch_fisheye_map, _stitch_lsc, (CLStitchResMode) _stitch_res_mode);
+                                 _stitch_fisheye_map, _stitch_lsc, (StitchResMode) _stitch_res_mode);
     _stitch = image_handler.dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_FAIL_RETURN (
         WARNING,

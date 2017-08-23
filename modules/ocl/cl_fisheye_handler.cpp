@@ -66,21 +66,6 @@ const XCamKernelInfo kernel_fisheye_info[] = {
     },
 };
 
-CLFisheyeInfo::CLFisheyeInfo ()
-    : center_x (0.0f)
-    , center_y (0.0f)
-    , wide_angle (0.0f)
-    , radius (0.0f)
-    , rotate_angle (0.0f)
-{
-}
-
-bool
-CLFisheyeInfo::is_valid () const
-{
-    return wide_angle >= 1.0f && radius >= 1.0f;
-}
-
 CLFisheye2GPSKernel::CLFisheye2GPSKernel (
     const SmartPtr<CLContext> &context, SmartPtr<CLFisheyeHandler> &handler)
     : CLImageKernel (context)
@@ -98,7 +83,7 @@ CLFisheye2GPSKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     SmartPtr<CLImage> output_uv = _handler->get_output_image (CLNV12PlaneUV);
     const CLImageDesc &input_y_desc = input_y->get_image_desc ();
     const CLImageDesc &outuv_desc = output_uv->get_image_desc ();
-    CLFisheyeInfo fisheye_info;
+    FisheyeInfo fisheye_info;
     float input_y_size[2];
     float out_center[2]; //width/height
     float radian_per_pixel[2];
@@ -128,7 +113,7 @@ CLFisheye2GPSKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     args.push_back (new CLMemArgument (input_y));
     args.push_back (new CLMemArgument (input_uv));
     args.push_back (new CLArgumentTArray<float, 2> (input_y_size));
-    args.push_back (new CLArgumentT<CLFisheyeInfo> (fisheye_info));
+    args.push_back (new CLArgumentT<FisheyeInfo> (fisheye_info));
     args.push_back (new CLMemArgument (output_y));
     args.push_back (new CLMemArgument (output_uv));
     args.push_back (new CLArgumentTArray<float, 2> (out_center));
@@ -193,7 +178,7 @@ CLFisheyeHandler::get_dst_range (float &longitude, float &latitude) const
 }
 
 void
-CLFisheyeHandler::set_fisheye_info (const CLFisheyeInfo &info)
+CLFisheyeHandler::set_fisheye_info (const FisheyeInfo &info)
 {
     _fisheye_info = info;
 }
@@ -361,7 +346,7 @@ dump_geo_table (SmartPtr<CLImage> table)
 
 XCamReturn
 CLFisheyeHandler::generate_fisheye_table (
-    uint32_t fisheye_width, uint32_t fisheye_height, const CLFisheyeInfo &fisheye_info)
+    uint32_t fisheye_width, uint32_t fisheye_height, const FisheyeInfo &fisheye_info)
 {
     SmartPtr<CLContext> context = get_context ();
     XCAM_ASSERT (context.ptr ());
@@ -392,10 +377,10 @@ CLFisheyeHandler::generate_fisheye_table (
     CLArgList args;
     CLWorkSize work_size;
 
-    CLFisheyeInfo fisheye_arg1 = fisheye_info;
+    FisheyeInfo fisheye_arg1 = fisheye_info;
     fisheye_arg1.wide_angle = degree2radian (fisheye_info.wide_angle);
     fisheye_arg1.rotate_angle = degree2radian (fisheye_info.rotate_angle);
-    args.push_back (new CLArgumentT<CLFisheyeInfo> (fisheye_arg1));
+    args.push_back (new CLArgumentT<FisheyeInfo> (fisheye_arg1));
 
     float fisheye_image_size[2];
     fisheye_image_size[0] = fisheye_width;
@@ -449,7 +434,7 @@ CLFisheyeHandler::ensure_lsc_params ()
 
 XCamReturn
 CLFisheyeHandler::generate_lsc_table (
-    uint32_t fisheye_width, uint32_t fisheye_height, CLFisheyeInfo &fisheye_info)
+    uint32_t fisheye_width, uint32_t fisheye_height, FisheyeInfo &fisheye_info)
 {
     if (!_need_lsc) {
         XCAM_LOG_WARNING ("lsc is not needed, don't generate lsc table");
@@ -486,7 +471,7 @@ CLFisheyeHandler::generate_lsc_table (
     args.push_back (new CLMemArgument (_lsc_table));
     args.push_back (new CLMemArgument (array_buf));
     args.push_back (new CLArgumentT<uint32_t> (_lsc_array_size));
-    args.push_back (new CLArgumentT<CLFisheyeInfo> (fisheye_info));
+    args.push_back (new CLArgumentT<FisheyeInfo> (fisheye_info));
 
     float fisheye_image_size[2];
     fisheye_image_size[0] = fisheye_width;

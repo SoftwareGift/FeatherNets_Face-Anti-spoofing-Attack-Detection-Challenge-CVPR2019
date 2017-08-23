@@ -121,7 +121,7 @@ int main (int argc, char *argv[])
     bool enable_fisheye_map = false;
     bool enable_lsc = false;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
-    CLStitchResMode res_mode = CLStitchRes1080P;
+    StitchResMode res_mode = StitchRes1080P;
 
 #if HAVE_OPENCV
     bool fm_ocl = false;
@@ -179,9 +179,9 @@ int main (int argc, char *argv[])
             break;
         case 'R':
             if (!strcasecmp (optarg, "1080p"))
-                res_mode = CLStitchRes1080P;
+                res_mode = StitchRes1080P;
             else if (!strcasecmp (optarg, "4k"))
-                res_mode = CLStitchRes4K;
+                res_mode = StitchRes4K;
             else {
                 XCAM_LOG_ERROR ("incorrect resolution mode");
                 return -1;
@@ -262,7 +262,7 @@ int main (int argc, char *argv[])
     printf ("input height:\t\t%d\n", input_height);
     printf ("output width:\t\t%d\n", output_width);
     printf ("output height:\t\t%d\n", output_height);
-    printf ("resolution mode:\t%s\n", res_mode == CLStitchRes1080P ? "1080P" : "4K");
+    printf ("resolution mode:\t%s\n", res_mode == StitchRes1080P ? "1080P" : "4K");
     printf ("scale mode:\t\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
     printf ("seam mask:\t\t%s\n", enable_seam ? "true" : "false");
     printf ("fisheye map:\t\t%s\n", enable_fisheye_map ? "true" : "false");
@@ -339,7 +339,7 @@ int main (int argc, char *argv[])
                 cv::Mat out_mat;
                 convert_to_mat (context, output_buf, out_mat);
 #if XCAM_TEST_STITCH_DEBUG
-                CLStitchInfo stitch_info = image_360->get_stitch_info ();
+                StitchInfo stitch_info = image_360->get_stitch_info ();
 
                 static int frame = 0;
                 char file_name [1024];
