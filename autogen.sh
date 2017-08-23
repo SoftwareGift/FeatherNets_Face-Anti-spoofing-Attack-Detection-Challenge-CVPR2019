@@ -1,6 +1,12 @@
 #!/bin/sh
 
-ln -s ../../tools/pre-commit-code-style.sh .git/hooks/pre-commit
+pre_commit_hook=".git/hooks/pre-commit"
+if test ! -L $pre_commit_hook;
+then
+    rm -rf $pre_commit_hook
+    ln -s ../../tools/pre-commit-code-style.sh $pre_commit_hook
+    echo "link $pre_commit_hook to code style check"
+fi
 
 echo "git submodule update"
 git submodule sync
