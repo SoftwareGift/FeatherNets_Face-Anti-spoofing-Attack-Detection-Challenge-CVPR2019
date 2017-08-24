@@ -22,51 +22,95 @@
 
 #include <stdint.h>
 #include <atomic>
+#include <type_traits>
 #include <base/xcam_defs.h>
 
 namespace XCam {
 
-class RefCount {
+class RefCount;
+
+class RefObj {
+    friend class RefCount;
 public:
-    RefCount (): _ref_count(1) {}
-    void ref() {
+    RefObj (): _ref_count(0) {} // derived class must set to SmartPtr at birth
+    virtual ~RefObj () {}
+
+    void ref() const {
         ++_ref_count;
     }
-    uint32_t unref() {
+    uint32_t unref() const {
         return --_ref_count;
     }
+
 private:
-    mutable std::atomic<uint32_t> _ref_count;
+    explicit RefObj (uint32_t i) : _ref_count (i) {}
+    XCAM_DEAD_COPY (RefObj);
+
+private:
+    mutable std::atomic<uint32_t>  _ref_count;
 };
 
+class RefCount
+    : public RefObj
+{
+public:
+    RefCount () : RefObj (1) {}
+};
+
+template<typename Obj>
+RefCount* generate_ref_count (Obj *obj, std::true_type)
+{
+    XCAM_ASSERT (obj);
+    obj->ref ();
+    return obj;
+}
+
+template<typename Obj>
+RefCount* generate_ref_count (Obj *, std::false_type)
+{
+    return new RefCount;
+}
 
 template <typename Obj>
 class SmartPtr {
 private:
     template<typename ObjDerive> friend class SmartPtr;
 public:
-    SmartPtr (Obj *obj = NULL) : _ptr (obj), _ref(NULL) {
-        if (_ptr)
-            _ref = new RefCount();
+    SmartPtr (Obj *obj = NULL)
+        : _ptr (obj), _ref(NULL)
+    {
+        if (obj)
+            init_ref (obj);
     }
+
     template <typename ObjDerive>
-    SmartPtr (ObjDerive *obj) : _ptr (obj), _ref(NULL) {
-        if (_ptr)
-            _ref = new RefCount();
+    SmartPtr (ObjDerive *obj)
+        : _ptr (obj), _ref(NULL)
+    {
+        if (obj)
+            init_ref (obj);
     }
 
     // copy from pointer
     SmartPtr (const SmartPtr<Obj> &obj)
-        : _ptr(obj._ptr), _ref(obj._ref)  {
-        if (_ptr)
+        : _ptr(obj._ptr), _ref(obj._ref)
+    {
+        if (_ref) {
             _ref->ref();
+            XCAM_ASSERT (_ptr);
+        }
     }
+
     template <typename ObjDerive>
     SmartPtr (const SmartPtr<ObjDerive> &obj)
-        : _ptr(obj._ptr), _ref(obj._ref)  {
-        if (_ptr)
+        : _ptr(obj._ptr), _ref(obj._ref)
+    {
+        if (_ref) {
             _ref->ref();
+            XCAM_ASSERT (_ptr);
+        }
     }
+
     ~SmartPtr () {
         release();
     }
@@ -74,24 +118,27 @@ public:
     /* operator = */
     SmartPtr<Obj> & operator = (Obj *obj) {
         release ();
-        new_pointer (obj, NULL);
+        set_pointer (obj, NULL);
         return *this;
     }
+
     template <typename ObjDerive>
     SmartPtr<Obj> & operator = (ObjDerive *obj) {
         release ();
-        new_pointer (obj, NULL);
+        set_pointer (obj, NULL);
         return *this;
     }
+
     SmartPtr<Obj> & operator = (const SmartPtr<Obj> &obj) {
         release ();
-        new_pointer (obj._ptr, obj._ref);
+        set_pointer (obj._ptr, obj._ref);
         return *this;
     }
+
     template <typename ObjDerive>
     SmartPtr<Obj> & operator = (const SmartPtr<ObjDerive> &obj) {
         release ();
-        new_pointer (obj._ptr, obj._ref);
+        set_pointer (obj._ptr, obj._ref);
         return *this;
     }
 
@@ -106,9 +153,15 @@ public:
     void release() {
         if (!_ptr)
             return;
+
         XCAM_ASSERT (_ref);
         if (!_ref->unref()) {
-            delete _ref;
+            if (!std::is_base_of<RefObj, Obj>::value) {
+                XCAM_ASSERT (dynamic_cast<RefCount*>(_ref));
+                delete _ref;
+            } else {
+                XCAM_ASSERT (dynamic_cast<Obj*>(_ref) == _ptr);
+            }
             delete _ptr;
         }
         _ptr = NULL;
@@ -124,27 +177,34 @@ public:
         obj_derive = dynamic_cast<ObjDerive*>(_ptr);
         if (!obj_derive)
             return ret;
-        ret.new_pointer (obj_derive, _ref);
+        ret.set_pointer (obj_derive, _ref);
         return ret;
     }
+
 private:
-    void new_pointer (Obj *obj, RefCount *ref) {
-        if (!obj) {
-            _ptr = NULL;
-            _ref = NULL;
-        }
+    void set_pointer (Obj *obj, RefObj *ref) {
+        if (!obj)
+            return;
+
         _ptr = obj;
         if (ref) {
             _ref = ref;
             _ref->ref();
-        } else
-            _ref = new RefCount();
+        } else {
+            init_ref (obj);
+        }
+    }
+
+    void init_ref (Obj *obj)
+    {
+        typedef std::is_base_of<RefObj, Obj> BaseCheck;
+        _ref = generate_ref_count (obj, BaseCheck());
+        XCAM_ASSERT (_ref);
     }
 
 private:
-
-    Obj      *_ptr;
-    mutable RefCount *_ref;
+    Obj              *_ptr;
+    mutable RefObj   *_ref;
 };
 
 }; // end namespace
