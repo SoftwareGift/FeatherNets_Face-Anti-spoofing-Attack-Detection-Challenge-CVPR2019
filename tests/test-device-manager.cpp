@@ -352,7 +352,7 @@ int main (int argc, char *argv[])
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
 
     bool    have_usbcam = 0;
-    SmartPtr<char> usb_device_name;
+    std::string usb_device_name;
     bool sync_mode = false;
     bool save_file = false;
     uint32_t interval_frames = 1;
@@ -360,7 +360,7 @@ int main (int argc, char *argv[])
     uint32_t frame_rate;
     uint32_t frame_width = 1920;
     uint32_t frame_height = 1080;
-    SmartPtr<char> path_to_fake = NULL;
+    std::string path_to_fake;
 
     int opt;
     const char *short_opts = "sca:n:m:f:W:H:d:b:pi:e:r:h";
@@ -449,8 +449,8 @@ int main (int argc, char *argv[])
         case 'U':
             XCAM_ASSERT (optarg);
             have_usbcam = true;
-            usb_device_name = strndup(optarg, XCAM_MAX_STR_SIZE);
-            XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", XCAM_STR(usb_device_name.ptr ()));
+            usb_device_name = optarg;
+            XCAM_LOG_DEBUG("using USB camera plugged in at node: %s", XCAM_STR(usb_device_name.c_str()));
             break;
         case 'W':
             XCAM_ASSERT (optarg);
@@ -621,7 +621,7 @@ int main (int argc, char *argv[])
         case 'r': {
             XCAM_ASSERT (optarg);
             XCAM_LOG_INFO ("use raw image %s as input source", optarg);
-            path_to_fake = strndup(optarg, XCAM_MAX_STR_SIZE);
+            path_to_fake = optarg;
             break;
         }
         case 'p': {
@@ -653,10 +653,10 @@ int main (int argc, char *argv[])
     device_manager->set_display_mode (display_mode);
 
     if (!device.ptr ())  {
-        if (path_to_fake.ptr ()) {
+        if (path_to_fake.c_str ()) {
             device = new FakeV4l2Device ();
         } else if (have_usbcam) {
-            device = new UVCDevice (usb_device_name.ptr ());
+            device = new UVCDevice (usb_device_name.c_str ());
         }
 #if HAVE_IA_AIQ
         else {
@@ -850,8 +850,8 @@ int main (int argc, char *argv[])
     SmartPtr<PollThread> poll_thread;
     if (have_usbcam) {
         poll_thread = new PollThread ();
-    } else if (path_to_fake.ptr ()) {
-        poll_thread = new FakePollThread (path_to_fake.ptr ());
+    } else if (path_to_fake.c_str ()) {
+        poll_thread = new FakePollThread (path_to_fake.c_str ());
     }
 #if HAVE_IA_AIQ
     else {
