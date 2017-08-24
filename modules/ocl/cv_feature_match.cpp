@@ -46,7 +46,6 @@ dump_buffer (SmartPtr<DrmBoBuffer> buffer, char *dump_name)
     }
 
     file.close ();
-    XCAM_LOG_INFO ("write buffer to %s done", dump_name);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -54,10 +53,12 @@ dump_buffer (SmartPtr<DrmBoBuffer> buffer, char *dump_name)
 
 CVFeatureMatch::CVFeatureMatch ()
     : CVBaseClass()
+    , _x_offset (0.0f)
+    , _mean_offset (0.0f)
+    , _valid_count (0)
+    , _fm_idx (-1)
+    , _frame_num (0)
 {
-    xcam_mem_clear (_x_offset);
-    xcam_mem_clear (_mean_offset);
-    xcam_mem_clear (_valid_count);
 }
 
 void
@@ -72,11 +73,15 @@ CVFeatureMatch::get_config ()
     return _config;
 }
 
+void
+CVFeatureMatch::set_fm_index (int idx)
+{
+    _fm_idx = idx;
+}
+
 bool
 CVFeatureMatch::get_crop_image (
-    SmartPtr<DrmBoBuffer> buffer,
-    cv::Rect img_crop_left, cv::Rect img_crop_right,
-    cv::UMat &img_left, cv::UMat &img_right)
+    SmartPtr<DrmBoBuffer> buffer, cv::Rect img_crop, cv::UMat &img)
 {
     SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (_context, buffer);
     VideoBufferInfo info = buffer->get_video_info ();
@@ -89,14 +94,14 @@ CVFeatureMatch::get_crop_image (
         return false;
     }
 
-    img_left = umat (img_crop_left);
-    img_right = umat (img_crop_right);
+    img = umat (img_crop);
 
     return true;
 }
 
 void
-CVFeatureMatch::add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners)
+CVFeatureMatch::add_detected_data (
+    cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners)
 {
     std::vector<cv::KeyPoint> keypoints;
     detector->detect (image, keypoints);
@@ -203,7 +208,7 @@ CVFeatureMatch::calc_of_match (
     cv::InputArray image0, cv::InputArray image1,
     std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
     std::vector<uchar> &status, std::vector<float> &error,
-    int &last_count, float &last_mean_offset, float &out_x_offset, int frame_num, int idx)
+    int &last_count, float &last_mean_offset, float &out_x_offset)
 {
     cv::_InputOutputArray out_image;
     cv::Size img0_size = image0.size ();
@@ -258,12 +263,8 @@ CVFeatureMatch::calc_of_match (
 
 #if XCAM_CV_FM_DEBUG
     char file_name[1024];
-    snprintf (file_name, 1023, "fm_optical_flow_%d_%d.jpg", frame_num, idx);
+    snprintf (file_name, 1023, "fm_optical_flow_%d_%d.jpg", _frame_num, _fm_idx);
     cv::imwrite (file_name, out_image);
-    XCAM_LOG_INFO ("write feature match: %s", file_name);
-#else
-    XCAM_UNUSED (frame_num);
-    XCAM_UNUSED (idx);
 #endif
 }
 
@@ -300,8 +301,6 @@ CVFeatureMatch::detect_and_match (
     std::vector<cv::Point2f> corner_left, corner_right;
     cv::Ptr<cv::Feature2D> fast_detector;
     cv::Size win_size = cv::Size (5, 5);
-    static int idx = 0;
-    static int frame_num = 0;
 
     if (img_left.isUMat ())
         win_size = cv::Size (16, 16);
@@ -310,11 +309,6 @@ CVFeatureMatch::detect_and_match (
     add_detected_data (img_left, fast_detector, corner_left);
 
     if (corner_left.empty ()) {
-#if XCAM_CV_FM_DEBUG
-        if (idx == 1)
-            frame_num++;
-        idx = (idx == 0) ? 1 : 0;
-#endif
         return;
     }
 
@@ -324,87 +318,72 @@ CVFeatureMatch::detect_and_match (
     cv::ocl::finish();
 
     calc_of_match (img_left, img_right, corner_left, corner_right,
-                   status, err, valid_count, mean_offset, x_offset, frame_num, idx);
+                   status, err, valid_count, mean_offset, x_offset);
     adjust_stitch_area (dst_width, x_offset, crop_left, crop_right);
 
 #if XCAM_CV_FM_DEBUG
     XCAM_LOG_INFO (
-        "Stiching area %d: left_area(x:%d, width:%d), right_area(x:%d, width:%d)",
-        idx, crop_left.x, crop_left.width, crop_right.x, crop_right.width);
-
-    if (idx == 1)
-        frame_num++;
-    idx = (idx == 0) ? 1 : 0;
+        "Stiching area: left_area(x:%d, width:%d), right_area(x:%d, width:%d)",
+        crop_left.x, crop_left.width, crop_right.x, crop_right.width);
 #endif
 }
 
 void
 CVFeatureMatch::optical_flow_feature_match (
-    int dst_width, SmartPtr<DrmBoBuffer> buf0, SmartPtr<DrmBoBuffer> buf1,
-    cv::Rect &img0_crop_left, cv::Rect &img0_crop_right, cv::Rect &img1_crop_left, cv::Rect &img1_crop_right)
+    SmartPtr<DrmBoBuffer> left_buf, SmartPtr<DrmBoBuffer> right_buf,
+    cv::Rect &left_img_crop, cv::Rect &right_img_crop, int dst_width)
 {
-    cv::UMat umat0_left, umat0_right, umat1_left, umat1_right;
-    cv::Mat mat0_left, mat0_right, mat1_left, mat1_right;
-    cv::_InputArray img0_left, img0_right, img1_left, img1_right;
+    cv::UMat left_umat, right_umat;
+    cv::Mat left_mat, right_mat;
+    cv::_InputArray left_img, right_img;
 
-    if (!get_crop_image (buf0, img0_crop_left, img0_crop_right, umat0_left, umat0_right)
-            || !get_crop_image (buf1, img1_crop_left, img1_crop_right, umat1_left, umat1_right))
+    if (!get_crop_image (left_buf, left_img_crop, left_umat)
+            || !get_crop_image (right_buf, right_img_crop, right_umat))
         return;
 
     if (_use_ocl) {
-        img0_left = cv::_InputArray (umat0_left);
-        img0_right = cv::_InputArray (umat0_right);
-        img1_left = cv::_InputArray (umat1_left);
-        img1_right = cv::_InputArray (umat1_right);
+        left_img = cv::_InputArray (left_umat);
+        right_img = cv::_InputArray (right_umat);
     } else {
-        mat0_left = umat0_left.getMat (cv::ACCESS_READ);
-        mat0_right = umat0_right.getMat (cv::ACCESS_READ);
-        mat1_left = umat1_left.getMat (cv::ACCESS_READ);
-        mat1_right = umat1_right.getMat (cv::ACCESS_READ);
+        left_mat = left_umat.getMat (cv::ACCESS_READ);
+        right_mat = right_umat.getMat (cv::ACCESS_READ);
 
-        img0_left = cv::_InputArray (mat0_left);
-        img0_right = cv::_InputArray (mat0_right);
-        img1_left = cv::_InputArray (mat1_left);
-        img1_right = cv::_InputArray (mat1_right);
+        left_img = cv::_InputArray (left_mat);
+        right_img = cv::_InputArray (right_mat);
     }
 
-    detect_and_match (img1_right, img0_left, img1_crop_right, img0_crop_left,
-                      _valid_count[0], _mean_offset[0], _x_offset[0], dst_width);
-    detect_and_match (img0_right, img1_left, img0_crop_right, img1_crop_left,
-                      _valid_count[1], _mean_offset[1], _x_offset[1], dst_width);
+    detect_and_match (left_img, right_img, left_img_crop, right_img_crop,
+                      _valid_count, _mean_offset, _x_offset, dst_width);
 
 #if XCAM_CV_FM_DEBUG
-    static int frame = 0;
+    XCAM_ASSERT (_fm_idx >= 0);
     char file_name[1024];
-    VideoBufferInfo info = buf0->get_video_info ();
 
-    std::snprintf (file_name, 1023, "fm_in_%dx%d_%d_0.nv12", info.width, info.height, frame);
-    dump_buffer (buf0, file_name);
-    std::snprintf (file_name, 1023, "fm_in_%dx%d_%d_1.nv12", info.width, info.height, frame);
-    dump_buffer (buf1, file_name);
+    VideoBufferInfo info = left_buf->get_video_info ();
+    std::snprintf (file_name, 1023, "fm_in_%d_%d_%dx%d_0.nv12", info.width, info.height, _frame_num, _fm_idx);
+    dump_buffer (left_buf, file_name);
 
-    cv::Mat in_mat;
-    std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_0.jpg", frame);
-    convert_to_mat (buf0, in_mat);
-    cv::line (in_mat, cv::Point(img0_crop_left.x, 0), cv::Point(img0_crop_left.x, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (in_mat, cv::Point(img0_crop_left.x + img0_crop_left.width, 0),
-              cv::Point(img0_crop_left.x + img0_crop_left.width, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (in_mat, cv::Point(img0_crop_right.x, 0), cv::Point(img0_crop_right.x, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (in_mat, cv::Point(img0_crop_right.x + img0_crop_right.width, 0),
-              cv::Point(img0_crop_right.x + img0_crop_right.width, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::imwrite (file_name, in_mat);
+    info = right_buf->get_video_info ();
+    std::snprintf (file_name, 1023, "fm_in_%d_%d_%dx%d_1.nv12", info.width, info.height, _frame_num, _fm_idx);
+    dump_buffer (right_buf, file_name);
 
-    std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_1.jpg", frame);
-    convert_to_mat (buf1, in_mat);
-    cv::line (in_mat, cv::Point(img1_crop_left.x, 0), cv::Point(img1_crop_left.x, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (in_mat, cv::Point(img1_crop_left.x + img1_crop_left.width, 0),
-              cv::Point(img1_crop_left.x + img1_crop_left.width, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (in_mat, cv::Point(img1_crop_right.x, 0), cv::Point(img1_crop_right.x, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (in_mat, cv::Point(img1_crop_right.x + img1_crop_right.width, 0),
-              cv::Point(img1_crop_right.x + img1_crop_right.width, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::imwrite (file_name, in_mat);
+    cv::Mat mat;
+    std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_%d_0.jpg", _frame_num, _fm_idx);
+    convert_to_mat (left_buf, mat);
+    cv::line (mat, cv::Point(left_img_crop.x, 0), cv::Point(left_img_crop.x, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::line (mat, cv::Point(left_img_crop.x + left_img_crop.width, 0),
+              cv::Point(left_img_crop.x + left_img_crop.width, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::imwrite (file_name, mat);
 
-    frame++;
+    std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_%d_1.jpg", _frame_num, _fm_idx);
+    convert_to_mat (right_buf, mat);
+    cv::line (mat, cv::Point(right_img_crop.x, 0), cv::Point(right_img_crop.x, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::line (mat, cv::Point(right_img_crop.x + right_img_crop.width, 0),
+              cv::Point(right_img_crop.x + right_img_crop.width, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::imwrite (file_name, mat);
+
+    XCAM_LOG_INFO ("Feature match: frame number:%d index:%d done", _frame_num, _fm_idx);
+    _frame_num++;
 #endif
 }
 

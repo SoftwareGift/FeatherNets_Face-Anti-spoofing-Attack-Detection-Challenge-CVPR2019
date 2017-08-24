@@ -322,8 +322,6 @@ PyramidLayer::bind_buf_to_layer0 (
     uint32_t divider_vert[2] = {1, 2};
 
     XCAM_ASSERT (in0_info.height == in1_info.height);
-    XCAM_ASSERT (in0_info.width + in1_info.width >= out_info.width);
-    //XCAM_ASSERT (out_info.height == in0_info.height);
     XCAM_ASSERT (merge0_rect.width == merge1_rect.width);
 
     this->blend_width = XCAM_ALIGN_UP (merge0_rect.width, XCAM_BLENDER_ALIGNED_WIDTH);

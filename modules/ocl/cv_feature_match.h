@@ -65,24 +65,26 @@ public:
     void set_config (CVFMConfig config);
     CVFMConfig get_config ();
 
+    void set_fm_index (int idx);
+
     void optical_flow_feature_match (
-        int output_width, SmartPtr<DrmBoBuffer> buf0, SmartPtr<DrmBoBuffer> buf1,
-        cv::Rect &img0_crop_left, cv::Rect &img0_crop_right, cv::Rect &img1_crop_left, cv::Rect &img1_crop_right);
+        SmartPtr<DrmBoBuffer> left_buf, SmartPtr<DrmBoBuffer> right_buf,
+        cv::Rect &left_img_crop, cv::Rect &right_img_crop, int dst_width);
 
 protected:
-    bool get_crop_image (SmartPtr<DrmBoBuffer> buffer,
-                         cv::Rect img_crop_left, cv::Rect img_crop_right, cv::UMat &img_left, cv::UMat &img_right);
+    bool get_crop_image (SmartPtr<DrmBoBuffer> buffer, cv::Rect img_crop, cv::UMat &img);
 
     void add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
     void get_valid_offsets (cv::InputOutputArray out_image, cv::Size img0_size,
                             std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
-                            std::vector<uchar> status, std::vector<float> error, std::vector<float> &offsets, float &sum, int &count);
+                            std::vector<uchar> status, std::vector<float> error,
+                            std::vector<float> &offsets, float &sum, int &count);
     bool get_mean_offset (std::vector<float> offsets, float sum, int &count, float &mean_offset);
 
     void calc_of_match (cv::InputArray image0, cv::InputArray image1,
                         std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
                         std::vector<uchar> &status, std::vector<float> &error,
-                        int &last_count, float &last_mean_offset, float &out_x_offset, int frame_num, int idx);
+                        int &last_count, float &last_mean_offset, float &out_x_offset);
     void adjust_stitch_area (int dst_width, float &x_offset, cv::Rect &stitch0, cv::Rect &stitch1);
     void detect_and_match (
         cv::InputArray img_left, cv::InputArray img_right, cv::Rect &crop_left, cv::Rect &crop_right,
@@ -94,9 +96,13 @@ private:
 private:
     CVFMConfig           _config;
 
-    float                _x_offset[XCAM_CV_FM_MATCH_NUM];
-    float                _mean_offset[XCAM_CV_FM_MATCH_NUM];
-    int                  _valid_count[XCAM_CV_FM_MATCH_NUM];
+    float                _x_offset;
+    float                _mean_offset;
+    int                  _valid_count;
+
+    // debug parameters
+    int                  _fm_idx;
+    uint                 _frame_num;
 };
 
 }

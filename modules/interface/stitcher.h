@@ -26,24 +26,21 @@
 #include "interface/data_types.h"
 #include "video_buffer.h"
 
+#define XCAM_STITCH_FISHEYE_MAX_NUM    6
+
 namespace XCam {
 
 enum StitchResMode {
     StitchRes1080P,
+    StitchRes1080P4,
     StitchRes4K
 };
 
-enum ImageIdx {
-    ImageIdxMain,
-    ImageIdxSecondary,
-    ImageIdxCount,
-};
-
 struct StitchInfo {
-    uint32_t merge_width[ImageIdxCount];
+    uint32_t merge_width[XCAM_STITCH_FISHEYE_MAX_NUM];
 
-    ImageCropInfo crop[ImageIdxCount];
-    FisheyeInfo fisheye_info[ImageIdxCount];
+    ImageCropInfo crop[XCAM_STITCH_FISHEYE_MAX_NUM];
+    FisheyeInfo fisheye_info[XCAM_STITCH_FISHEYE_MAX_NUM];
 
     StitchInfo () {
         xcam_mem_clear (merge_width);
@@ -81,8 +78,8 @@ private:
     uint32_t                    _output_width;
     uint32_t                    _output_height;
 
-    ImageMergeInfo              _img_merge_info[ImageIdxCount];
-    Rect                        _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
+    ImageMergeInfo              _img_merge_info[XCAM_STITCH_FISHEYE_MAX_NUM];
+    Rect                        _overlaps[XCAM_STITCH_FISHEYE_MAX_NUM][2];   // 2=>Overlap0 and overlap1
 
     StitchInfo                  _stitch_info;
     bool                        _is_stitch_inited;

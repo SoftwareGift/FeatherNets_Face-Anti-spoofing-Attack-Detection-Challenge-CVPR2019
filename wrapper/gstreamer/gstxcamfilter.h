@@ -66,7 +66,7 @@ typedef enum {
 
 enum StitchResMode {
     StitchRes1080P = 0,
-    StitchRes4K
+    StitchRes4K = 2
 };
 
 typedef struct _GstXCamFilter      GstXCamFilter;

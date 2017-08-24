@@ -37,6 +37,13 @@
 using namespace XCam;
 
 #if HAVE_OPENCV
+#if XCAM_TEST_STITCH_DEBUG
+static void dbg_write_image (
+    SmartPtr<CLContext> context, SmartPtr<CLImage360Stitch> image_360,
+    SmartPtr<DrmBoBuffer> input_bufs[], SmartPtr<DrmBoBuffer> output_buf,
+    bool all_in_one, int fisheye_num, int input_count);
+#endif
+
 void
 init_opencv_ocl (SmartPtr<CLContext> context)
 {
@@ -83,7 +90,7 @@ void usage(const char* arg0)
             "\t--input-h           optional, input height, default: 1080\n"
             "\t--output-w          optional, output width, default: 1920\n"
             "\t--output-h          optional, output width, default: 960\n"
-            "\t--res-mode          optional, image resolution mode, select from [1080p/4k], default: 1080p\n"
+            "\t--res-mode          optional, image resolution mode, select from [1080p/1080p4/4k], default: 1080p\n"
             "\t--scale-mode        optional, image scaling mode, select from [local/global], default: local\n"
             "\t--enable-seam       optional, enable seam finder in blending area, default: no\n"
             "\t--enable-fisheyemap optional, enable fisheye map, default: no\n"
@@ -91,6 +98,8 @@ void usage(const char* arg0)
 #if HAVE_OPENCV
             "\t--fm-ocl            optional, enable ocl for feature match, select from [true/false], default: false\n"
 #endif
+            "\t--fisheye-num       optional, the number of fisheye lens, default: 2\n"
+            "\t--all-in-one        optional, all fisheye in one image, select from [true/false], default: true\n"
             "\t--save              optional, save file or not, select from [true/false], default: true\n"
             "\t--framerate         optional, framerate of saved video, default: 30.0\n"
             "\t--loop              optional, how many loops need to run for performance test, default: 1\n"
@@ -102,10 +111,11 @@ int main (int argc, char *argv[])
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLContext> context;
-    SmartPtr<DrmDisplay> display;
-    SmartPtr<BufferPool> buf_pool;
+    SmartPtr<DrmDisplay> display[XCAM_STITCH_FISHEYE_MAX_NUM];
+    SmartPtr<BufferPool> buf_pool[XCAM_STITCH_FISHEYE_MAX_NUM];
     SmartPtr<VideoBuffer> read_buf;
-    ImageFileHandle file_in, file_out;
+    ImageFileHandle file_in[XCAM_STITCH_FISHEYE_MAX_NUM];
+    ImageFileHandle file_out;
     SmartPtr<DrmBoBuffer> input_buf, output_buf;
     VideoBufferInfo input_buf_info, output_buf_info;
     SmartPtr<CLImage360Stitch> image_360;
@@ -126,11 +136,15 @@ int main (int argc, char *argv[])
 #if HAVE_OPENCV
     bool fm_ocl = false;
 #endif
+    int fisheye_num = 2;
+    bool all_in_one = true;
     bool need_save_output = true;
     double framerate = 30.0;
 
-    const char *file_in_name = NULL;
+    const char *file_in_name[XCAM_STITCH_FISHEYE_MAX_NUM] = {NULL};
     const char *file_out_name = NULL;
+
+    int input_count = 0;
 
     const struct option long_opts[] = {
         {"input", required_argument, NULL, 'i'},
@@ -147,6 +161,8 @@ int main (int argc, char *argv[])
 #if HAVE_OPENCV
         {"fm-ocl", required_argument, NULL, 'O'},
 #endif
+        {"fisheye-num", required_argument, NULL, 'N'},
+        {"all-in-one", required_argument, NULL, 'A'},
         {"save", required_argument, NULL, 's'},
         {"framerate", required_argument, NULL, 'f'},
         {"loop", required_argument, NULL, 'l'},
@@ -159,7 +175,8 @@ int main (int argc, char *argv[])
         switch (opt) {
         case 'i':
             XCAM_ASSERT (optarg);
-            file_in_name = optarg;
+            file_in_name[input_count] = optarg;
+            input_count++;
             break;
         case 'o':
             XCAM_ASSERT (optarg);
@@ -180,6 +197,8 @@ int main (int argc, char *argv[])
         case 'R':
             if (!strcasecmp (optarg, "1080p"))
                 res_mode = StitchRes1080P;
+            else if (!strcasecmp (optarg, "1080p4"))
+                res_mode = StitchRes1080P4;
             else if (!strcasecmp (optarg, "4k"))
                 res_mode = StitchRes4K;
             else {
@@ -211,6 +230,16 @@ int main (int argc, char *argv[])
             fm_ocl = (strcasecmp (optarg, "true") == 0 ? true : false);
             break;
 #endif
+        case 'N':
+            fisheye_num = atoi(optarg);
+            if (fisheye_num > XCAM_STITCH_FISHEYE_MAX_NUM) {
+                XCAM_LOG_ERROR ("fisheye number should not be greater than %d\n", XCAM_STITCH_FISHEYE_MAX_NUM);
+                return -1;
+            }
+            break;
+        case 'A':
+            all_in_one = (strcasecmp (optarg, "false") == 0 ? false : true);
+            break;
         case 's':
             need_save_output = (strcasecmp (optarg, "false") == 0 ? false : true);
             break;
@@ -236,17 +265,30 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    if (!file_in_name || !file_out_name) {
-        XCAM_LOG_ERROR ("input/output path is NULL");
+    if (!all_in_one && input_count != fisheye_num) {
+        XCAM_LOG_ERROR ("multiple-input mode: conflicting input number(%d) and fisheye number(%d)",
+                        input_count, fisheye_num);
+        return -1;
+    }
+
+    for (int i = 0; i < input_count; i++) {
+        if (!file_in_name[i]) {
+            XCAM_LOG_ERROR ("input[%d] path is NULL", i);
+            return -1;
+        }
+    }
+
+    if (!file_out_name) {
+        XCAM_LOG_ERROR ("output path is NULL");
         return -1;
     }
 
     output_width = XCAM_ALIGN_UP (output_width, XCAM_ALIGNED_WIDTH);
     output_height = XCAM_ALIGN_UP (output_height, XCAM_ALIGNED_WIDTH);
-    if (output_width != output_height * 2) {
-        XCAM_LOG_ERROR ("incorrect output size width:%d height:%d", output_width, output_height);
-        return -1;
-    }
+    // if (output_width != output_height * 2) {
+    //     XCAM_LOG_ERROR ("incorrect output size width:%d height:%d", output_width, output_height);
+    //     return -1;
+    // }
 
 #if !HAVE_OPENCV
     if (need_save_output) {
@@ -256,13 +298,19 @@ int main (int argc, char *argv[])
 #endif
 
     printf ("Description------------------------\n");
-    printf ("input file:\t\t%s\n", file_in_name);
+    if (all_in_one)
+        printf ("input file:\t\t%s\n", file_in_name[0]);
+    else {
+        for (int i = 0; i < input_count; i++)
+            printf ("input file %d:\t\t%s\n", i, file_in_name[i]);
+    }
     printf ("output file:\t\t%s\n", file_out_name);
     printf ("input width:\t\t%d\n", input_width);
     printf ("input height:\t\t%d\n", input_height);
     printf ("output width:\t\t%d\n", output_width);
     printf ("output height:\t\t%d\n", output_height);
-    printf ("resolution mode:\t%s\n", res_mode == StitchRes1080P ? "1080P" : "4K");
+    printf ("resolution mode:\t%s\n",
+            res_mode == StitchRes1080P ? "1080P" : (res_mode == StitchRes1080P4 ? "1080P4" : "4K"));
     printf ("scale mode:\t\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
     printf ("seam mask:\t\t%s\n", enable_seam ? "true" : "false");
     printf ("fisheye map:\t\t%s\n", enable_fisheye_map ? "true" : "false");
@@ -270,6 +318,8 @@ int main (int argc, char *argv[])
 #if HAVE_OPENCV
     printf ("feature match ocl:\t%s\n", fm_ocl ? "true" : "false");
 #endif
+    printf ("fisheye number:\t\t%d\n", fisheye_num);
+    printf ("all in one:\t\t%s\n", all_in_one ? "true" : "false");
     printf ("save file:\t\t%s\n", need_save_output ? "true" : "false");
     printf ("framerate:\t\t%.3lf\n", framerate);
     printf ("loop count:\t\t%d\n", loop);
@@ -279,7 +329,7 @@ int main (int argc, char *argv[])
     image_360 =
         create_image_360_stitch (
             context, enable_seam, scale_mode,
-            enable_fisheye_map, enable_lsc, res_mode).dynamic_cast_ptr<CLImage360Stitch> ();
+            enable_fisheye_map, enable_lsc, res_mode, fisheye_num, all_in_one).dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_ASSERT (image_360.ptr ());
     image_360->set_output_size (output_width, output_height);
 #if HAVE_OPENCV
@@ -289,17 +339,21 @@ int main (int argc, char *argv[])
 
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
-    display = DrmDisplay::instance ();
-    buf_pool = new DrmBoBufferPool (display);
-    XCAM_ASSERT (buf_pool.ptr ());
-    buf_pool->set_video_info (input_buf_info);
-    if (!buf_pool->reserve (6)) {
-        XCAM_LOG_ERROR ("init buffer pool failed");
-        return -1;
+    for (int i = 0; i < input_count; i++) {
+        display[i] = DrmDisplay::instance ();
+        buf_pool[i] = new DrmBoBufferPool (display[i]);
+        XCAM_ASSERT (buf_pool[i].ptr ());
+        buf_pool[i]->set_video_info (input_buf_info);
+        if (!buf_pool[i]->reserve (6)) {
+            XCAM_LOG_ERROR ("init buffer pool failed");
+            return -1;
+        }
     }
 
-    ret = file_in.open (file_in_name, "rb");
-    CHECK (ret, "open %s failed", file_in_name);
+    for (int i = 0; i < input_count; i++) {
+        ret = file_in[i].open (file_in_name[i], "rb");
+        CHECK (ret, "open %s failed", file_in_name[i]);
+    }
 
 #if HAVE_OPENCV
     init_opencv_ocl (context);
@@ -314,22 +368,41 @@ int main (int argc, char *argv[])
     }
 #endif
 
-    int i = 0;
+    SmartPtr<DrmBoBuffer> pre_buf, cur_buf;
+#if (HAVE_OPENCV) && (XCAM_TEST_STITCH_DEBUG)
+    SmartPtr<DrmBoBuffer> input_bufs[XCAM_STITCH_FISHEYE_MAX_NUM];
+#endif
     while (loop--) {
-        ret = file_in.rewind ();
-        CHECK (ret, "image_360 stitch rewind file(%s) failed", file_in_name);
+        for (int i = 0; i < input_count; i++) {
+            ret = file_in[i].rewind ();
+            CHECK (ret, "image_360 stitch rewind file(%s) failed", file_in_name[i]);
+        }
 
         do {
-            input_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
-            XCAM_ASSERT (input_buf.ptr ());
-            read_buf = input_buf;
-            ret = file_in.read_buf (read_buf);
+            for (int i = 0; i < input_count; i++) {
+                cur_buf = buf_pool[i]->get_buffer (buf_pool[i]).dynamic_cast_ptr<DrmBoBuffer> ();
+                XCAM_ASSERT (cur_buf.ptr ());
+                read_buf = cur_buf;
+                ret = file_in[i].read_buf (read_buf);
+                if (ret == XCAM_RETURN_BYPASS)
+                    break;
+                if (ret == XCAM_RETURN_ERROR_FILE) {
+                    XCAM_LOG_ERROR ("read buffer from %s failed", file_in_name[i]);
+                    return -1;
+                }
+
+                if (i == 0)
+                    input_buf = cur_buf;
+                else
+                    pre_buf->attach_buffer (cur_buf);
+
+                pre_buf = cur_buf;
+#if (HAVE_OPENCV) && (XCAM_TEST_STITCH_DEBUG)
+                input_bufs[i] = cur_buf;
+#endif
+            }
             if (ret == XCAM_RETURN_BYPASS)
                 break;
-            if (ret == XCAM_RETURN_ERROR_FILE) {
-                XCAM_LOG_ERROR ("read buffer from %s failed", file_in_name);
-                return -1;
-            }
 
             ret = image_360->execute (input_buf, output_buf);
             CHECK (ret, "image_360 stitch execute failed");
@@ -338,40 +411,57 @@ int main (int argc, char *argv[])
             if (need_save_output) {
                 cv::Mat out_mat;
                 convert_to_mat (context, output_buf, out_mat);
-#if XCAM_TEST_STITCH_DEBUG
-                StitchInfo stitch_info = image_360->get_stitch_info ();
-
-                static int frame = 0;
-                char file_name [1024];
-                std::snprintf (file_name, 1023, "orig_fisheye_%d.jpg", frame);
-
-                cv::Mat in_mat;
-                convert_to_mat (context, input_buf, in_mat);
-                cv::circle (in_mat, cv::Point(stitch_info.fisheye_info[0].center_x, stitch_info.fisheye_info[0].center_y),
-                            stitch_info.fisheye_info[0].radius, cv::Scalar(0, 0, 255), 2);
-                cv::circle (in_mat, cv::Point(stitch_info.fisheye_info[1].center_x, stitch_info.fisheye_info[1].center_y),
-                            stitch_info.fisheye_info[1].radius, cv::Scalar(0, 255, 0), 2);
-                cv::imwrite (file_name, in_mat);
-
-                char frame_str[1024];
-                std::snprintf (frame_str, 1023, "%d", frame);
-                cv::putText (out_mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
-                             cv::Scalar(0, 0, 255), 2, 8, false);
-                std::snprintf (file_name, 1023, "stitched_img_%d.jpg", frame);
-                cv::imwrite (file_name, out_mat);
-
-                frame++;
-#endif
                 writer.write (out_mat);
+
+#if XCAM_TEST_STITCH_DEBUG
+                dbg_write_image (context, image_360, input_bufs, output_buf, all_in_one, fisheye_num, input_count);
+#endif
             } else
 #endif
                 ensure_gpu_buffer_done (output_buf);
 
             FPS_CALCULATION (image_stitching, XCAM_OBJ_DUR_FRAME_NUM);
-            ++i;
         } while (true);
     }
 
     return 0;
 }
+
+#if (HAVE_OPENCV) && (XCAM_TEST_STITCH_DEBUG)
+static void dbg_write_image (
+    SmartPtr<CLContext> context, SmartPtr<CLImage360Stitch> image_360,
+    SmartPtr<DrmBoBuffer> input_bufs[], SmartPtr<DrmBoBuffer> output_buf,
+    bool all_in_one, int fisheye_num, int input_count)
+{
+    cv::Mat mat;
+    static int frame_count = 0;
+    char file_name [1024];
+    StitchInfo stitch_info = image_360->get_stitch_info ();
+
+    std::snprintf (file_name, 1023, "orig_fisheye_%d.jpg", frame_count);
+    for (int i = 0; i < input_count; i++) {
+        if (!all_in_one)
+            std::snprintf (file_name, 1023, "orig_fisheye_%d_%d.jpg", frame_count, i);
+
+        convert_to_mat (context, input_bufs[i], mat);
+        int fisheye_per_frame = all_in_one ? fisheye_num : 1;
+        for (int i = 0; i < fisheye_per_frame; i++) {
+            cv::circle (mat, cv::Point(stitch_info.fisheye_info[i].center_x, stitch_info.fisheye_info[i].center_y),
+                        stitch_info.fisheye_info[i].radius, cv::Scalar(0, 0, 255), 2);
+        }
+        cv::imwrite (file_name, mat);
+    }
+
+    char frame_str[1024];
+    std::snprintf (frame_str, 1023, "%d", frame_count);
+
+    convert_to_mat (context, output_buf, mat);
+    cv::putText (mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
+                 cv::Scalar(0, 0, 255), 2, 8, false);
+    std::snprintf (file_name, 1023, "stitched_img_%d.jpg", frame_count);
+    cv::imwrite (file_name, mat);
+
+    frame_count++;
+}
+#endif
 

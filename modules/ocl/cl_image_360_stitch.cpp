@@ -120,6 +120,15 @@ get_fm_default_config (StitchResMode res_mode)
 
         break;
     }
+    case StitchRes1080P4: {
+        config.sitch_min_width = 96;
+        config.min_corners = 8;
+        config.offset_factor = 0.8f;
+        config.delta_mean_offset = 5.0f;
+        config.max_adjusted_offset = 12.0f;
+
+        break;
+    }
     case StitchRes4K: {
         config.sitch_min_width = 160;
         config.min_corners = 8;
@@ -167,7 +176,51 @@ get_default_stitch_info (StitchResMode res_mode)
         stitch_info.fisheye_info[1].wide_angle = 202.8f;
         stitch_info.fisheye_info[1].radius = 480.0f;
         stitch_info.fisheye_info[1].rotate_angle = 89.4f;
+        break;
+    }
+    case StitchRes1080P4: {
+        stitch_info.merge_width[0] = 96;
+        stitch_info.merge_width[1] = 96;
+        stitch_info.merge_width[2] = 96;
+        stitch_info.merge_width[3] = 96;
 
+        stitch_info.crop[0].left = 16;
+        stitch_info.crop[0].right = 16;
+        stitch_info.crop[0].top = 0;
+        stitch_info.crop[0].bottom = 0;
+        stitch_info.crop[1].left = 16;
+        stitch_info.crop[1].right = 16;
+        stitch_info.crop[1].top = 0;
+        stitch_info.crop[1].bottom = 0;
+        stitch_info.crop[2].left = 16;
+        stitch_info.crop[2].right = 16;
+        stitch_info.crop[2].top = 0;
+        stitch_info.crop[2].bottom = 0;
+        stitch_info.crop[3].left = 16;
+        stitch_info.crop[3].right = 16;
+        stitch_info.crop[3].top = 0;
+        stitch_info.crop[3].bottom = 0;
+
+        stitch_info.fisheye_info[0].center_x = 640.0f;
+        stitch_info.fisheye_info[0].center_y = 400.0f;
+        stitch_info.fisheye_info[0].wide_angle = 120.0f;
+        stitch_info.fisheye_info[0].radius = 640.0f;
+        stitch_info.fisheye_info[0].rotate_angle = 0.0f;
+        stitch_info.fisheye_info[1].center_x = 640.0f;
+        stitch_info.fisheye_info[1].center_y = 400.0f;
+        stitch_info.fisheye_info[1].wide_angle = 120.0f;
+        stitch_info.fisheye_info[1].radius = 640.0f;
+        stitch_info.fisheye_info[1].rotate_angle = 0.0f;
+        stitch_info.fisheye_info[2].center_x = 640.0f;
+        stitch_info.fisheye_info[2].center_y = 400.0f;
+        stitch_info.fisheye_info[2].wide_angle = 120.0f;
+        stitch_info.fisheye_info[2].radius = 640.0f;
+        stitch_info.fisheye_info[2].rotate_angle = 0.0f;
+        stitch_info.fisheye_info[3].center_x = 640.0f;
+        stitch_info.fisheye_info[3].center_y = 400.0f;
+        stitch_info.fisheye_info[3].wide_angle = 120.0f;
+        stitch_info.fisheye_info[3].radius = 640.0f;
+        stitch_info.fisheye_info[3].rotate_angle = 0.0f;
         break;
     }
     case StitchRes4K: {
@@ -194,7 +247,6 @@ get_default_stitch_info (StitchResMode res_mode)
         stitch_info.fisheye_info[1].wide_angle = 192.0f;
         stitch_info.fisheye_info[1].radius = 1040.0f;
         stitch_info.fisheye_info[1].rotate_angle = 0.4f;
-
         break;
     }
     default:
@@ -206,7 +258,8 @@ get_default_stitch_info (StitchResMode res_mode)
 }
 
 CLImage360Stitch::CLImage360Stitch (
-    const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode)
+    const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode,
+    int fisheye_num, bool all_in_one_img)
     : CLMultiImageHandler (context, "CLImage360Stitch")
     , _context (context)
     , _output_width (0)
@@ -214,12 +267,16 @@ CLImage360Stitch::CLImage360Stitch (
     , _scale_mode (scale_mode)
     , _res_mode (res_mode)
     , _is_stitch_inited (false)
+    , _fisheye_num (fisheye_num)
+    , _all_in_one_img (all_in_one_img)
 {
 #if HAVE_OPENCV
-    _feature_match = new CVFeatureMatch ();
-    XCAM_ASSERT (_feature_match.ptr ());
-
-    _feature_match->set_config (get_fm_default_config (res_mode));
+    for (int i = 0; i < fisheye_num; i++) {
+        _feature_match[i] = new CVFeatureMatch ();
+        XCAM_ASSERT (_feature_match[i].ptr ());
+        _feature_match[i]->set_config (get_fm_default_config (res_mode));
+        _feature_match[i]->set_fm_index (i);
+    }
 #endif
 }
 
@@ -231,7 +288,7 @@ CLImage360Stitch::set_stitch_info (StitchInfo stitch_info)
         return false;
     }
 
-    for (int index = 0; index < ImageIdxCount; ++index) {
+    for (int index = 0; index < _fisheye_num; ++index) {
         _fisheye[index].handler->set_fisheye_info (stitch_info.fisheye_info[index]);
     }
 
@@ -255,7 +312,7 @@ CLImage360Stitch::get_stitch_info ()
 bool
 CLImage360Stitch::set_fisheye_handler (SmartPtr<CLFisheyeHandler> fisheye, int index)
 {
-    XCAM_ASSERT (index < ImageIdxCount);
+    XCAM_ASSERT (index < _fisheye_num);
 
     _fisheye[index].handler = fisheye;
     SmartPtr<CLImageHandler> handler = fisheye;
@@ -263,18 +320,9 @@ CLImage360Stitch::set_fisheye_handler (SmartPtr<CLFisheyeHandler> fisheye, int i
 }
 
 bool
-CLImage360Stitch::set_left_blender (SmartPtr<CLBlender> blender)
+CLImage360Stitch::set_blender (SmartPtr<CLBlender> blender, int idx)
 {
-    _left_blender = blender;
-
-    SmartPtr<CLImageHandler> handler = blender;
-    return add_image_handler (handler);
-}
-
-bool
-CLImage360Stitch::set_right_blender (SmartPtr<CLBlender> blender)
-{
-    _right_blender = blender;
+    _blender[idx] = blender;
 
     SmartPtr<CLImageHandler> handler = blender;
     return add_image_handler (handler);
@@ -283,7 +331,7 @@ CLImage360Stitch::set_right_blender (SmartPtr<CLBlender> blender)
 bool
 CLImage360Stitch::set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1)
 {
-    XCAM_ASSERT (idx < ImageIdxCount);
+    XCAM_ASSERT (idx < _fisheye_num);
     _overlaps[idx][0] = overlap0;
     _overlaps[idx][1] = overlap1;
     return true;
@@ -293,7 +341,9 @@ void
 CLImage360Stitch::set_feature_match_ocl (bool fm_ocl)
 {
 #if HAVE_OPENCV
-    _feature_match->set_ocl (fm_ocl);
+    for (int i = 0; i < _fisheye_num; i++) {
+        _feature_match[i]->set_ocl (fm_ocl);
+    }
 #else
     XCAM_UNUSED (fm_ocl);
     XCAM_LOG_WARNING ("non-OpenCV mode, failed to set ocl for feature match");
@@ -302,15 +352,15 @@ CLImage360Stitch::set_feature_match_ocl (bool fm_ocl)
 
 #if HAVE_OPENCV
 void
-CLImage360Stitch::set_feature_match_config (CVFMConfig config)
+CLImage360Stitch::set_feature_match_config (const int idx, CVFMConfig config)
 {
-    _feature_match->set_config (config);
+    _feature_match[idx]->set_config (config);
 }
 
 CVFMConfig
-CLImage360Stitch::get_feature_match_config ()
+CLImage360Stitch::get_feature_match_config (const int idx)
 {
-    return _feature_match->get_config ();
+    return _feature_match[idx]->get_config ();
 }
 #endif
 
@@ -318,22 +368,31 @@ void
 CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<DrmBoBuffer> &output)
 {
     const VideoBufferInfo &out_info = output->get_video_info ();
-    _fisheye[0].width = (out_info.width + _stitch_info.merge_width[0] + _stitch_info.merge_width[1]
-                         + _stitch_info.crop[0].left + _stitch_info.crop[0].right
-                         + _stitch_info.crop[1].left + _stitch_info.crop[1].right) / 2;
+
+    uint32_t fisheye_width_sum = out_info.width;
+    for (int i = 0; i < _fisheye_num; i++) {
+        fisheye_width_sum += _stitch_info.merge_width[i] + _stitch_info.crop[i].left + _stitch_info.crop[i].right;
+    }
+    _fisheye[0].width = fisheye_width_sum / _fisheye_num;
     _fisheye[0].width = XCAM_ALIGN_UP (_fisheye[0].width, 16);
     _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
     XCAM_LOG_INFO (
         "fisheye correction output size width:%d height:%d",
         _fisheye[0].width, _fisheye[0].height);
 
-    _fisheye[1].width = _fisheye[0].width;
-    _fisheye[1].height = _fisheye[0].height;
+    for (int i = 1; i < _fisheye_num; i++) {
+        _fisheye[i].width = _fisheye[0].width;
+        _fisheye[i].height = _fisheye[0].height;
+    }
 
-    float max_dst_angle = 180.0f * _fisheye[0].width / _fisheye[0].height;
-    for (int index = 0; index < ImageIdxCount; ++index) {
-        _fisheye[index].handler->set_dst_range (max_dst_angle, 180.0f);
-        _fisheye[index].handler->set_output_size (_fisheye[index].width, _fisheye[index].height);
+    float max_dst_longitude, max_dst_latitude;
+    for (int i = 0; i < _fisheye_num; ++i) {
+        max_dst_latitude = (_stitch_info.fisheye_info[i].wide_angle > 180.0f) ?
+                           180.0f : _stitch_info.fisheye_info[i].wide_angle;
+        max_dst_longitude = max_dst_latitude * _fisheye[i].width / _fisheye[i].height;
+
+        _fisheye[i].handler->set_dst_range (max_dst_longitude, max_dst_latitude);
+        _fisheye[i].handler->set_output_size (_fisheye[i].width, _fisheye[i].height);
     }
 }
 
@@ -342,30 +401,30 @@ CLImage360Stitch::update_image_overlap ()
 {
     static bool is_merge_info_inited = false;
     if (!is_merge_info_inited) {
-        _img_merge_info[0].left.pos_x = _stitch_info.crop[0].left;
-        _img_merge_info[0].left.pos_y = _stitch_info.crop[0].top;
-        _img_merge_info[0].left.width = _stitch_info.merge_width[0];
-        _img_merge_info[0].left.height = _fisheye[0].height - _stitch_info.crop[0].top - _stitch_info.crop[0].bottom;
+        int idx_next = 1;
+        for (int i = 0; i < _fisheye_num; i++) {
+            idx_next = (i == (_fisheye_num - 1)) ? 0 : (i + 1);
 
-        _img_merge_info[0].right.pos_x = _fisheye[0].width - _stitch_info.crop[0].right - _stitch_info.merge_width[1];
-        _img_merge_info[0].right.pos_y = _stitch_info.crop[0].top;
-        _img_merge_info[0].right.width = _stitch_info.merge_width[1];
-        _img_merge_info[0].right.height = _fisheye[0].height - _stitch_info.crop[0].top - _stitch_info.crop[0].bottom;
+            _img_merge_info[i].left.pos_x = _stitch_info.crop[i].left;
+            _img_merge_info[i].left.pos_y = _stitch_info.crop[i].top;
+            _img_merge_info[i].left.width = _stitch_info.merge_width[i];
+            _img_merge_info[i].left.height = _fisheye[i].height - _stitch_info.crop[i].top
+                                             - _stitch_info.crop[i].bottom;
 
-        _img_merge_info[1].left.pos_x = _stitch_info.crop[1].left;
-        _img_merge_info[1].left.pos_y = _stitch_info.crop[1].top;
-        _img_merge_info[1].left.width = _stitch_info.merge_width[1];
-        _img_merge_info[1].left.height = _fisheye[1].height - _stitch_info.crop[1].top - _stitch_info.crop[1].bottom;
-        _img_merge_info[1].right.pos_x = _fisheye[1].width - _stitch_info.crop[1].right - _stitch_info.merge_width[0];
-        _img_merge_info[1].right.pos_y = _stitch_info.crop[1].top;
-        _img_merge_info[1].right.width = _stitch_info.merge_width[0];
-        _img_merge_info[1].right.height = _fisheye[0].height - _stitch_info.crop[1].top - _stitch_info.crop[1].bottom;
+            _img_merge_info[i].right.pos_x = _fisheye[i].width - _stitch_info.crop[i].right
+                                             - _stitch_info.merge_width[idx_next];
+            _img_merge_info[i].right.pos_y = _stitch_info.crop[i].top;
+            _img_merge_info[i].right.width = _stitch_info.merge_width[idx_next];
+            _img_merge_info[i].right.height = _fisheye[i].height - _stitch_info.crop[i].top
+                                              - _stitch_info.crop[i].bottom;
+        }
 
         is_merge_info_inited = true;
     }
 
-    set_image_overlap (0, _img_merge_info[0].left, _img_merge_info[0].right);
-    set_image_overlap (1, _img_merge_info[1].left, _img_merge_info[1].right);
+    for (int i = 0; i < _fisheye_num; i++) {
+        set_image_overlap (i, _img_merge_info[i].left, _img_merge_info[i].right);
+    }
 }
 
 XCamReturn
@@ -373,15 +432,9 @@ CLImage360Stitch::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input, VideoBufferInfo &output)
 {
     if (_output_width == 0 || _output_height == 0) {
-        _output_width = input.width;
-        _output_height = XCAM_ALIGN_UP (input.width / 2, 16);
+        XCAM_LOG_ERROR ("incorrect output size: width:%d height:%d", _output_width, _output_height);
+        return XCAM_RETURN_ERROR_PARAM;
     }
-    XCAM_FAIL_RETURN(
-        WARNING,
-        _output_width && _output_height && (_output_width == _output_height * 2),
-        XCAM_RETURN_ERROR_PARAM,
-        "CLImage360Stitch(%s) prepare buffer pool info failed since width:%d height:%d was not set correctly",
-        XCAM_STR(get_name()), _output_width, _output_height);
 
     // aligned at least XCAM_BLENDER_ALIGNED_WIDTH
     uint32_t aligned_width = XCAM_MAX (16, XCAM_BLENDER_ALIGNED_WIDTH);
@@ -397,35 +450,43 @@ CLImage360Stitch::ensure_fisheye_parameters (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     static bool is_fisheye_inited = false;
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if (!is_fisheye_inited) {
         calc_fisheye_initial_info (output);
         is_fisheye_inited = true;
     }
 
-    if (!_fisheye[0].pool.ptr ())
-        create_buffer_pool (_fisheye[0].pool, _fisheye[0].width, _fisheye[0].height);
-    if (!_fisheye[1].pool.ptr ())
-        create_buffer_pool (_fisheye[1].pool, _fisheye[1].width, _fisheye[1].height);
+    SmartPtr<DrmBoBuffer> pre_buf;
+    SmartPtr<DrmBoBuffer> cur_buf = input;
+    for (int i = 0; i < _fisheye_num; i++) {
+        if (!_fisheye[i].pool.ptr ())
+            create_buffer_pool (_fisheye[i].pool, _fisheye[i].width, _fisheye[i].height);
 
-    _fisheye[0].buf = _fisheye[0].pool->get_buffer (_fisheye[0].pool).dynamic_cast_ptr<DrmBoBuffer> ();
-    _fisheye[1].buf = _fisheye[1].pool->get_buffer (_fisheye[1].pool).dynamic_cast_ptr<DrmBoBuffer> ();
-    XCAM_ASSERT (_fisheye[0].buf.ptr () && _fisheye[1].buf.ptr ());
+        _fisheye[i].buf = _fisheye[i].pool->get_buffer (_fisheye[i].pool).dynamic_cast_ptr<DrmBoBuffer> ();
+        XCAM_ASSERT (_fisheye[i].buf.ptr ());
 
-    ret = ensure_handler_parameters (_fisheye[0].handler, input, _fisheye[0].buf);
-    STITCH_CHECK (ret, "execute first fisheye prepare_parameters failed");
-    ret = ensure_handler_parameters (_fisheye[1].handler, input, _fisheye[1].buf);
-    STITCH_CHECK (ret, "execute second fisheye prepare_parameters failed");
+        XCamReturn ret = ensure_handler_parameters (_fisheye[i].handler, cur_buf, _fisheye[i].buf);
+        STITCH_CHECK (ret, "execute fisheye prepare_parameters failed");
+
+        if (!_all_in_one_img) {
+            pre_buf = cur_buf;
+            cur_buf = cur_buf->find_typed_attach<DrmBoBuffer> ();
+            if (!cur_buf.ptr () && (i != (_fisheye_num - 1))) {
+                XCAM_LOG_ERROR ("conflicting attached buffers and fisheye number");
+                return XCAM_RETURN_ERROR_PARAM;
+            }
+            pre_buf->detach_buffer (cur_buf);
+        }
+    }
 
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 CLImage360Stitch::prepare_global_scale_blender_parameters (
-    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output,
+    int idx, int idx_next, int &cur_start_pos)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     const VideoBufferInfo &in0_info = input0->get_video_info ();
     const VideoBufferInfo &in1_info = input1->get_video_info ();
     const VideoBufferInfo &out_info = output->get_video_info ();
@@ -433,76 +494,51 @@ CLImage360Stitch::prepare_global_scale_blender_parameters (
     XCAM_ASSERT (in0_info.height == in1_info.height);
     XCAM_ASSERT (in0_info.width <= out_info.width && in1_info.width <= out_info.width);
 
-    Rect main_left = get_image_overlap (ImageIdxMain, 0);
-    Rect main_right = get_image_overlap (ImageIdxMain, 1);
-    Rect scnd_left = get_image_overlap (ImageIdxSecondary, 1);
-    Rect scnd_right = get_image_overlap (ImageIdxSecondary, 0);
-    int main_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    int scnd_mid = 0;
-    int out_mid = XCAM_ALIGN_DOWN (out_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    Rect area, out_merge_window;
-    area.pos_y = out_merge_window.pos_y = 0;
-    area.height = out_merge_window.pos_y = out_info.height;
+    Rect left_lap = get_image_overlap (idx, 1);
+    Rect right_lap = get_image_overlap (idx_next, 0);
 
-    //calculate left stitching area(input)
-    int32_t prev_pos = main_left.pos_x;
-    main_left.pos_x = XCAM_ALIGN_AROUND (main_left.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    main_left.width = XCAM_ALIGN_UP (main_left.width, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_left.pos_x += main_left.pos_x - prev_pos;
-    scnd_left.pos_x = XCAM_ALIGN_AROUND (scnd_left.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_left.width = main_left.width;
+    int left_img_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+    int right_img_mid = XCAM_ALIGN_DOWN (in1_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
 
-    //calculate right stitching area(input)
-    prev_pos = main_right.pos_x;
-    main_right.pos_x = XCAM_ALIGN_AROUND (main_right.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    main_right.width = XCAM_ALIGN_UP (main_right.width, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_right.pos_x += main_right.pos_x - prev_pos;
-    scnd_right.pos_x = XCAM_ALIGN_AROUND (scnd_right.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_right.width = main_right.width;
+    int32_t prev_pos;
+    prev_pos = left_lap.pos_x;
+    left_lap.pos_x = XCAM_ALIGN_AROUND (left_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
+    left_lap.width = XCAM_ALIGN_UP (left_lap.width, XCAM_BLENDER_ALIGNED_WIDTH);
+    right_lap.pos_x += left_lap.pos_x - prev_pos;
+    right_lap.pos_x = XCAM_ALIGN_AROUND (right_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
+    right_lap.width = left_lap.width;
 
-    //find scnd_mid
-    scnd_mid = scnd_left.pos_x + (main_mid - main_left.pos_x) - out_mid;
-    if (scnd_mid < scnd_right.pos_x + scnd_right.width)
-        scnd_mid = scnd_right.pos_x + scnd_right.width;
+    Rect area;
+    area.pos_y = left_lap.pos_y;
+    area.height = left_lap.height;
+    area.pos_x = left_img_mid;
+    area.width = left_lap.pos_x + left_lap.width - left_img_mid;
+    _blender[idx]->set_input_valid_area (area, 0);
 
-    // set left blender
-    area.pos_x = scnd_mid;
-    area.width = scnd_left.pos_x + scnd_left.width - scnd_mid;
-    _left_blender->set_input_valid_area (area, 0);
+    area.pos_y = right_lap.pos_y;
+    area.height = right_lap.height;
+    area.pos_x = right_lap.pos_x;
+    area.width = right_img_mid - right_lap.pos_x;
+    _blender[idx]->set_input_valid_area (area, 1);
 
-    area.pos_x = main_left.pos_x;
-    area.width = main_mid - main_left.pos_x;
-    _left_blender->set_input_valid_area (area, 1);
+    Rect out_merge_window;
+    out_merge_window.width = left_lap.width;
+    out_merge_window.pos_x = cur_start_pos + (left_lap.pos_x - left_img_mid);
+    out_merge_window.pos_y = 0;
+    out_merge_window.height = out_info.height;
+    _blender[idx]->set_merge_window (out_merge_window);
 
-    out_merge_window.width = main_left.width;
-    out_merge_window.pos_x = out_mid - (main_mid - main_left.pos_x);
-    _left_blender->set_merge_window (out_merge_window);
-    _left_blender->set_input_merge_area (scnd_left, 0);
-    _left_blender->set_input_merge_area (main_left, 1);
+    _blender[idx]->set_input_merge_area (left_lap, 0);
+    _blender[idx]->set_input_merge_area (right_lap, 1);
 
-    // set right blender
-    area.pos_x = main_mid;
-    area.width = main_right.pos_x + main_right.width - main_mid;
-    _right_blender->set_input_valid_area (area, 0);
-
-    area.pos_x = scnd_right.pos_x;
-    area.width = scnd_mid - scnd_right.pos_x;
-    _right_blender->set_input_valid_area (area, 1);
-
-    out_merge_window.pos_x = out_mid + (main_right.pos_x - main_mid);
-    out_merge_window.width = main_right.width;
-    _right_blender->set_merge_window (out_merge_window);
-    _right_blender->set_input_merge_area (main_right, 0);
-    _right_blender->set_input_merge_area (scnd_right, 1);
-
-    return ret;
+    cur_start_pos += left_lap.pos_x - left_img_mid + right_img_mid - right_lap.pos_x;
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
 CLImage360Stitch::prepare_local_scale_blender_parameters (
-    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output, int idx, int idx_next)
 {
-    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     const VideoBufferInfo &in0_info = input0->get_video_info ();
     const VideoBufferInfo &in1_info = input1->get_video_info ();
     const VideoBufferInfo &out_info = output->get_video_info ();
@@ -510,67 +546,47 @@ CLImage360Stitch::prepare_local_scale_blender_parameters (
     XCAM_ASSERT (in0_info.height == in1_info.height);
     XCAM_ASSERT (in0_info.width <= out_info.width && in1_info.width <= out_info.width);
 
-    Rect main_left = get_image_overlap (ImageIdxMain, 0);
-    Rect main_right = get_image_overlap (ImageIdxMain, 1);
-    Rect scnd_left = get_image_overlap (ImageIdxSecondary, 1);
-    Rect scnd_right = get_image_overlap (ImageIdxSecondary, 0);
+    Rect left_lap = get_image_overlap (idx, 1);
+    Rect right_lap = get_image_overlap (idx_next, 0);
 
-    int main_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    int scnd_mid = XCAM_ALIGN_DOWN (in1_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    int out_mid = XCAM_ALIGN_DOWN (out_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    Rect area, out_merge_window;
-    area.pos_y = out_merge_window.pos_y = 0;
-    area.height = out_merge_window.pos_y = out_info.height;
+    int left_img_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+    int right_img_mid = XCAM_ALIGN_DOWN (in1_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+    int cur_start_pos = XCAM_ALIGN_DOWN (out_info.width / _fisheye_num * idx, XCAM_BLENDER_ALIGNED_WIDTH);
+    int merge_std_width = XCAM_ALIGN_DOWN (out_info.width / _fisheye_num, XCAM_BLENDER_ALIGNED_WIDTH);
 
-    //calculate left stitching area(input)
-    int32_t prev_pos = main_left.pos_x;
-    main_left.pos_x = XCAM_ALIGN_AROUND (main_left.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    main_left.width = XCAM_ALIGN_UP (main_left.width, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_left.pos_x += main_left.pos_x - prev_pos;
-    scnd_left.pos_x = XCAM_ALIGN_AROUND (scnd_left.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_left.width = main_left.width;
+    int32_t prev_pos;
+    prev_pos = left_lap.pos_x;
+    left_lap.pos_x = XCAM_ALIGN_AROUND (left_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
+    left_lap.width = XCAM_ALIGN_UP (left_lap.width, XCAM_BLENDER_ALIGNED_WIDTH);
+    right_lap.pos_x += left_lap.pos_x - prev_pos;
+    right_lap.pos_x = XCAM_ALIGN_AROUND (right_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
+    right_lap.width = left_lap.width;
 
-    //calculate right stitching area(input)
-    prev_pos = main_right.pos_x;
-    main_right.pos_x = XCAM_ALIGN_AROUND (main_right.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    main_right.width = XCAM_ALIGN_UP (main_right.width, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_right.pos_x += main_right.pos_x - prev_pos;
-    scnd_right.pos_x = XCAM_ALIGN_AROUND (scnd_right.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    scnd_right.width = main_right.width;
+    Rect area;
+    area.pos_y = left_lap.pos_y;
+    area.height = left_lap.height;
+    area.pos_x = left_img_mid;
+    area.width = left_lap.pos_x + left_lap.width - left_img_mid;
+    _blender[idx]->set_input_valid_area (area, 0);
 
-    // set left blender
-    area.pos_x = scnd_mid;
-    area.width = scnd_left.pos_x + scnd_left.width - scnd_mid;
-    _left_blender->set_input_valid_area (area, 0);
+    area.pos_y = right_lap.pos_y;
+    area.height = right_lap.height;
+    area.pos_x = right_lap.pos_x;
+    area.width = right_img_mid - right_lap.pos_x;
+    _blender[idx]->set_input_valid_area (area, 1);
 
-    area.pos_x = main_left.pos_x;
-    area.width = main_mid - main_left.pos_x;
-    _left_blender->set_input_valid_area (area, 1);
+    Rect out_merge_window;
+    int delta_width = merge_std_width - (right_img_mid - right_lap.pos_x) - (left_lap.pos_x - left_img_mid);
+    out_merge_window.width = left_lap.width + delta_width;
+    out_merge_window.pos_x = cur_start_pos + (left_lap.pos_x - left_img_mid);
+    out_merge_window.pos_y = 0;
+    out_merge_window.height = out_info.height;
+    _blender[idx]->set_merge_window (out_merge_window);
 
-    int delta_width = out_mid - (main_mid - main_left.pos_x) - (scnd_left.pos_x - scnd_mid);
-    out_merge_window.width = main_left.width + delta_width;
-    out_merge_window.pos_x = scnd_left.pos_x - scnd_mid;
-    _left_blender->set_merge_window (out_merge_window);
-    _left_blender->set_input_merge_area (scnd_left, 0);
-    _left_blender->set_input_merge_area (main_left, 1);
+    _blender[idx]->set_input_merge_area (left_lap, 0);
+    _blender[idx]->set_input_merge_area (right_lap, 1);
 
-    // set right blender
-    area.pos_x = main_mid;
-    area.width = main_right.pos_x + main_right.width - main_mid;
-    _right_blender->set_input_valid_area (area, 0);
-
-    area.pos_x = scnd_right.pos_x;
-    area.width = scnd_mid - scnd_right.pos_x;
-    _right_blender->set_input_valid_area (area, 1);
-
-    delta_width = out_mid - (scnd_mid - scnd_right.pos_x) - (main_right.pos_x - main_mid);
-    out_merge_window.width = main_right.width + delta_width;
-    out_merge_window.pos_x = out_mid + (main_right.pos_x - main_mid);
-    _right_blender->set_merge_window (out_merge_window);
-    _right_blender->set_input_merge_area (main_right, 0);
-    _right_blender->set_input_merge_area (scnd_right, 1);
-
-    return ret;
+    return XCAM_RETURN_NO_ERROR;
 }
 
 bool
@@ -599,12 +615,14 @@ CLImage360Stitch::reset_buffer_info (SmartPtr<DrmBoBuffer> &input)
     VideoBufferInfo reset_info;
     const VideoBufferInfo &buf_info = input->get_video_info ();
 
-    Rect img0_left = get_image_overlap (ImageIdxMain, 0);
-    Rect img0_right = get_image_overlap (ImageIdxMain, 1);
-    Rect img1_left = get_image_overlap (ImageIdxSecondary, 0);
-    Rect img1_right = get_image_overlap (ImageIdxSecondary, 1);
+    uint32_t reset_width = 0;
+    for (int i = 0; i < _fisheye_num; i++) {
+        Rect img_left = get_image_overlap (i, 0);
+        Rect img_right = get_image_overlap (i, 1);
 
-    uint32_t reset_width = img0_right.pos_x - img0_left.pos_x + img1_right.pos_x - img1_left.pos_x;
+        reset_width += img_right.pos_x - img_left.pos_x;
+    }
+
     reset_width = XCAM_ALIGN_UP (reset_width, XCAM_BLENDER_ALIGNED_WIDTH);
     reset_info.init (buf_info.format, reset_width, buf_info.height,
                      buf_info.aligned_width, buf_info.aligned_height);
@@ -623,17 +641,21 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
     ret = ensure_fisheye_parameters (input, output);
     STITCH_CHECK (ret, "ensure fisheye parameters failed");
 
-    _fisheye[0].buf->attach_buffer (_fisheye[1].buf);
-
     update_image_overlap ();
     if (_scale_mode == CLBlenderScaleLocal) {
-        ret = prepare_local_scale_blender_parameters (_fisheye[0].buf, _fisheye[1].buf, output);
-        STITCH_CHECK (ret, "prepare local scale blender parameters failed");
+        int idx_next = 1;
+        for (int i = 0; i < _fisheye_num; i++) {
+            idx_next = (i == (_fisheye_num - 1)) ? 0 : (i + 1);
 
-        ret = ensure_handler_parameters (_left_blender, _fisheye[0].buf, output);
-        STITCH_CHECK (ret, "left blender: execute ensure_parameters failed");
-        ret = ensure_handler_parameters (_right_blender, _fisheye[0].buf, output);
-        STITCH_CHECK (ret, "right blender: execute ensure_parameters failed");
+            ret = prepare_local_scale_blender_parameters (
+                  _fisheye[i].buf, _fisheye[idx_next].buf, output, i, idx_next);
+            STITCH_CHECK (ret, "prepare local scale blender parameters failed");
+
+            _fisheye[i].buf->attach_buffer (_fisheye[idx_next].buf);
+            ret = ensure_handler_parameters (_blender[i], _fisheye[i].buf, output);
+            STITCH_CHECK (ret, "blender: execute ensure_parameters failed");
+            _fisheye[i].buf->detach_buffer (_fisheye[idx_next].buf);
+        }
     } else { //global scale
         const VideoBufferInfo &buf_info = output->get_video_info ();
         if (!_scale_buf_pool.ptr ())
@@ -642,13 +664,20 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
             _scale_buf_pool->get_buffer (_scale_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
         XCAM_ASSERT (scale_input.ptr ());
 
-        ret = prepare_global_scale_blender_parameters (_fisheye[0].buf, _fisheye[1].buf, scale_input);
-        STITCH_CHECK (ret, "prepare global scale blender parameters failed");
+        int idx_next = 1;
+        int cur_start_pos = 0;
+        for (int i = 0; i < _fisheye_num; i++) {
+            idx_next = (i == (_fisheye_num - 1)) ? 0 : (i + 1);
 
-        ret = ensure_handler_parameters (_left_blender, _fisheye[0].buf, scale_input);
-        STITCH_CHECK (ret, "left blender: execute ensure_parameters failed");
-        ret = ensure_handler_parameters (_right_blender, _fisheye[0].buf, scale_input);
-        STITCH_CHECK (ret, "right blender: execute ensure_parameters failed");
+            ret = prepare_global_scale_blender_parameters (
+                      _fisheye[i].buf, _fisheye[idx_next].buf, scale_input, i, idx_next, cur_start_pos);
+            STITCH_CHECK (ret, "prepare global scale blender parameters failed");
+
+            _fisheye[i].buf->attach_buffer (_fisheye[idx_next].buf);
+            ret = ensure_handler_parameters (_blender[i], _fisheye[i].buf, scale_input);
+            STITCH_CHECK (ret, "blender: execute ensure_parameters failed");
+            _fisheye[i].buf->detach_buffer (_fisheye[idx_next].buf);
+        }
 
         reset_buffer_info (scale_input);
         _scale_global_input = scale_input;
@@ -662,8 +691,12 @@ XCamReturn
 CLImage360Stitch::execute_done (SmartPtr<DrmBoBuffer> &output)
 {
 #if HAVE_OPENCV
-    if (!_feature_match->is_ocl_path ())
-        get_context ()->finish ();
+    for (int i = 0; i < _fisheye_num; i++) {
+        if (!_feature_match[i]->is_ocl_path ()) {
+            get_context ()->finish ();
+            break;
+        }
+    }
 #endif
 
     _scale_global_input.release ();
@@ -674,26 +707,19 @@ CLImage360Stitch::execute_done (SmartPtr<DrmBoBuffer> &output)
 
 #if HAVE_OPENCV
 static void
-convert_to_cv_rect (ImageMergeInfo merge_info, cv::Rect &crop_left, cv::Rect &crop_right)
+convert_to_cv_rect (Rect xcam_rect, cv::Rect &cv_rect)
 {
-    crop_left.x = merge_info.left.pos_x;
-    crop_left.y = merge_info.left.pos_y + merge_info.left.height / 3;
-    crop_left.width = merge_info.left.width;
-    crop_left.height = merge_info.left.height / 3;
-
-    crop_right.x = merge_info.right.pos_x;
-    crop_right.y = merge_info.right.pos_y + merge_info.right.height / 3;
-    crop_right.width = merge_info.right.width;
-    crop_right.height = merge_info.right.height / 3;
+    cv_rect.x = xcam_rect.pos_x;
+    cv_rect.y = xcam_rect.pos_y + xcam_rect.height / 3;
+    cv_rect.width = xcam_rect.width;
+    cv_rect.height = xcam_rect.height / 3;
 }
 
 static void
-convert_to_xcam_rect (cv::Rect crop_left, cv::Rect crop_right, ImageMergeInfo &merge_info)
+convert_to_xcam_rect (cv::Rect cv_rect, Rect &xcam_rect)
 {
-    merge_info.left.pos_x = crop_left.x;
-    merge_info.left.width = crop_left.width;
-    merge_info.right.pos_x = crop_right.x;
-    merge_info.right.width = crop_right.width;
+    xcam_rect.pos_x = cv_rect.x;
+    xcam_rect.width = cv_rect.width;
 }
 #endif
 
@@ -703,20 +729,22 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
 #if HAVE_OPENCV
     XCAM_ASSERT (handler.ptr ());
 
-    if (handler.ptr () == _fisheye[ImageIdxCount - 1].handler.ptr ()) {
-        cv::Rect img0_crop_left, img0_crop_right, img1_crop_left, img1_crop_right;
+    if (handler.ptr () == _fisheye[_fisheye_num - 1].handler.ptr ()) {
+        int idx_next = 1;
+        cv::Rect crop_left, crop_right;
 
-        convert_to_cv_rect (_img_merge_info[0], img0_crop_left, img0_crop_right);
-        convert_to_cv_rect (_img_merge_info[1], img1_crop_left, img1_crop_right);
-        get_context ()->finish ();
+        for (int i = 0; i < _fisheye_num; i++) {
+            idx_next = (i == (_fisheye_num - 1)) ? 0 : (i + 1);
 
-        _feature_match->optical_flow_feature_match (
-            _fisheye[0].width, _fisheye[0].buf, _fisheye[1].buf,
-            img0_crop_left, img0_crop_right, img1_crop_left, img1_crop_right);
+            convert_to_cv_rect (_img_merge_info[i].right, crop_left);
+            convert_to_cv_rect (_img_merge_info[idx_next].left, crop_right);
 
-        //update merge info
-        convert_to_xcam_rect (img0_crop_left, img0_crop_right, _img_merge_info[0]);
-        convert_to_xcam_rect (img1_crop_left, img1_crop_right, _img_merge_info[1]);
+            _feature_match[i]->optical_flow_feature_match (
+                _fisheye[i].buf, _fisheye[idx_next].buf, crop_left, crop_right, _fisheye[i].width);
+
+            convert_to_xcam_rect (crop_left, _img_merge_info[i].right);
+            convert_to_xcam_rect (crop_right, _img_merge_info[idx_next].left);
+        }
     }
 #else
     XCAM_UNUSED (handler);
@@ -755,32 +783,30 @@ create_blender_global_scale_kernel (
 SmartPtr<CLImageHandler>
 create_image_360_stitch (
     const SmartPtr<CLContext> &context, bool need_seam,
-    CLBlenderScaleMode scale_mode, bool fisheye_map, bool need_lsc, StitchResMode res_mode)
+    CLBlenderScaleMode scale_mode, bool fisheye_map, bool need_lsc, StitchResMode res_mode,
+    int fisheye_num, bool all_in_one_img)
 {
     const int layer = 2;
     const bool need_uv = true;
     SmartPtr<CLFisheyeHandler> fisheye;
-    SmartPtr<CLBlender>  left_blender, right_blender;
-    SmartPtr<CLImage360Stitch> stitch = new CLImage360Stitch (context, scale_mode, res_mode);
+    SmartPtr<CLBlender> blender;
+    SmartPtr<CLImage360Stitch> stitch = new CLImage360Stitch (
+        context, scale_mode, res_mode, fisheye_num, all_in_one_img);
     XCAM_ASSERT (stitch.ptr ());
 
-    for (int index = 0; index < ImageIdxCount; ++index) {
+    for (int index = 0; index < fisheye_num; ++index) {
         fisheye = create_fisheye_handler (context, fisheye_map, need_lsc).dynamic_cast_ptr<CLFisheyeHandler> ();
         XCAM_FAIL_RETURN (ERROR, fisheye.ptr (), NULL, "image_360_stitch create fisheye handler failed");
         fisheye->disable_buf_pool (true);
         stitch->set_fisheye_handler (fisheye, index);
     }
 
-    left_blender = create_pyramid_blender (context, layer, need_uv, need_seam, scale_mode).dynamic_cast_ptr<CLBlender> ();
-    XCAM_FAIL_RETURN (ERROR, left_blender.ptr (), NULL, "image_360_stitch create left blender failed");
-    left_blender->disable_buf_pool (true);
-    left_blender->swap_input_idx (true);
-    stitch->set_left_blender (left_blender);
-
-    right_blender = create_pyramid_blender (context, layer, need_uv, need_seam, scale_mode).dynamic_cast_ptr<CLBlender> ();
-    XCAM_FAIL_RETURN (ERROR, right_blender.ptr (), NULL, "image_360_stitch create right blender failed");
-    right_blender->disable_buf_pool (true);
-    stitch->set_right_blender (right_blender);
+    for (int index = 0; index < fisheye_num; ++index) {
+        blender = create_pyramid_blender (context, layer, need_uv, need_seam, scale_mode).dynamic_cast_ptr<CLBlender> ();
+        XCAM_FAIL_RETURN (ERROR, blender.ptr (), NULL, "image_360_stitch create blender failed");
+        blender->disable_buf_pool (true);
+        stitch->set_blender (blender, index);
+    }
 
     if (scale_mode == CLBlenderScaleGlobal) {
         int max_plane = need_uv ? 2 : 1;

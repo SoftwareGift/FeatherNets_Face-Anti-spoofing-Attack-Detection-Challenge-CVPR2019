@@ -65,7 +65,8 @@ class CLImage360Stitch
 {
 public:
     explicit CLImage360Stitch (
-        const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode);
+        const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode,
+        int fisheye_num, bool all_in_one_img);
 
     bool set_stitch_info (StitchInfo stitch_info);
     StitchInfo get_stitch_info ();
@@ -75,13 +76,12 @@ public:
     }
 
     bool set_fisheye_handler (SmartPtr<CLFisheyeHandler> fisheye, int index);
-    bool set_left_blender (SmartPtr<CLBlender> blender);
-    bool set_right_blender (SmartPtr<CLBlender> blender);
+    bool set_blender (SmartPtr<CLBlender> blender, int idx);
 
     bool set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1);
-    const Rect &get_image_overlap (ImageIdx image, int num) {
-        XCAM_ASSERT (image < ImageIdxCount && num < 2);
-        return _overlaps[image][num];
+    const Rect &get_image_overlap (int img_idx, int num) {
+        XCAM_ASSERT (img_idx < _fisheye_num && num < 2);
+        return _overlaps[img_idx][num];
     }
 
     SmartPtr<DrmBoBuffer> &get_global_scale_input () {
@@ -93,8 +93,8 @@ public:
 
     void set_feature_match_ocl (bool use_ocl);
 #if HAVE_OPENCV
-    void set_feature_match_config (CVFMConfig config);
-    CVFMConfig get_feature_match_config ();
+    void set_feature_match_config (const int idx, CVFMConfig config);
+    CVFMConfig get_feature_match_config (const int idx);
 #endif
 
 protected:
@@ -104,9 +104,10 @@ protected:
 
     XCamReturn ensure_fisheye_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
     XCamReturn prepare_local_scale_blender_parameters (
-        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
+        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output, int idx, int idx_next);
     XCamReturn prepare_global_scale_blender_parameters (
-        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
+        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output,
+        int idx, int idx_next, int &cur_start_pos);
 
     bool create_buffer_pool (SmartPtr<BufferPool> &buf_pool, uint32_t width, uint32_t height);
     XCamReturn reset_buffer_info (SmartPtr<DrmBoBuffer> &input);
@@ -121,17 +122,16 @@ private:
 
 private:
     SmartPtr<CLContext>         _context;
-    CLFisheyeParams             _fisheye[ImageIdxCount];
-    SmartPtr<CLBlender>         _left_blender;
-    SmartPtr<CLBlender>         _right_blender;
+    CLFisheyeParams             _fisheye[XCAM_STITCH_FISHEYE_MAX_NUM];
+    SmartPtr<CLBlender>         _blender[XCAM_STITCH_FISHEYE_MAX_NUM];
 #if HAVE_OPENCV
-    SmartPtr<CVFeatureMatch>    _feature_match;
+    SmartPtr<CVFeatureMatch>    _feature_match[XCAM_STITCH_FISHEYE_MAX_NUM];
 #endif
 
     uint32_t                    _output_width;
     uint32_t                    _output_height;
-    ImageMergeInfo              _img_merge_info[ImageIdxCount];
-    Rect                        _overlaps[ImageIdxCount][2];   // 2=>Overlap0 and overlap1
+    ImageMergeInfo              _img_merge_info[XCAM_STITCH_FISHEYE_MAX_NUM];
+    Rect                        _overlaps[XCAM_STITCH_FISHEYE_MAX_NUM][2];   // 2=>Overlap0 and overlap1
 
     CLBlenderScaleMode          _scale_mode;
     SmartPtr<BufferPool>        _scale_buf_pool;
@@ -141,6 +141,8 @@ private:
     StitchResMode               _res_mode;
 
     bool                        _is_stitch_inited;
+    int                         _fisheye_num;
+    bool                        _all_in_one_img;
     StitchInfo                  _stitch_info;
 };
 
@@ -151,7 +153,9 @@ create_image_360_stitch (
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal,
     bool fisheye_map = false,
     bool need_lsc = false,
-    StitchResMode res_mode = StitchRes1080P);
+    StitchResMode res_mode = StitchRes1080P,
+    int fisheye_num = 2,
+    bool all_in_one_img = true);
 
 }
 
