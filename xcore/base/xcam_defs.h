@@ -23,23 +23,23 @@
 
 #ifndef XCAM_LOG_ERROR
 #define XCAM_LOG_ERROR(format, ...)    \
-    printf ("XCAM ERROR %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
+    xcam_print_log ("XCAM ERROR %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
 #endif
 
 #ifndef XCAM_LOG_WARNING
 #define XCAM_LOG_WARNING(format, ...)   \
-    printf ("XCAM WARNING %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
+    xcam_print_log ("XCAM WARNING %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
 #endif
 
 #ifndef XCAM_LOG_INFO
 #define XCAM_LOG_INFO(format, ...)   \
-    printf ("XCAM INFO %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
+    xcam_print_log ("XCAM INFO %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
 #endif
 
 #ifdef DEBUG
 #ifndef XCAM_LOG_DEBUG
 #define XCAM_LOG_DEBUG(format, ...)   \
-      printf ("XCAM DEBUG %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
+      xcam_print_log ("XCAM DEBUG %s:%d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__)
 #endif
 #else
 #define XCAM_LOG_DEBUG(...)
@@ -76,7 +76,7 @@
 #define XCAM_DEAD_COPY(ClassObj)                \
         ClassObj (const ClassObj&);             \
         ClassObj & operator= (const ClassObj&)  \
- 
+
 
 #define XCAM_STR(str)  ((str) ? (str) : "null")
 #define XCAM_BOOL2STR(value)  ((value) ? "true" : "false")

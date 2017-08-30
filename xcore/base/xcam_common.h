@@ -75,6 +75,9 @@ void xcam_free (void *ptr);
 int xcam_device_ioctl (int fd, int cmd, void *arg);
 const char *xcam_fourcc_to_string (uint32_t fourcc);
 
+void xcam_set_log (const char* file_name);
+void xcam_print_log (const char* format, ...);
+
 XCAM_END_DECLARE
 
 #endif //XCAM_COMMON_H

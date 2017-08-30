@@ -18,11 +18,11 @@
  * Author: Zong Wei <wei.zong@intel.com>
  */
 
-#include "xcam_utils.h"
 
 #include <unistd.h>
 #include <getopt.h>
 #include <string>
+#include <base/xcam_defs.h>
 #include "stabilizer.h"
 
 using namespace std;
@@ -87,14 +87,14 @@ int main(int argc, char *argv[])
             usage (argv[0]);
             return -1;
         default:
-            XCAM_LOG_ERROR ("getopt_long return unknown value:%c", opt);
+            printf ("getopt_long return unknown value:%c \n", opt);
             usage (argv[0]);
             return -1;
         }
     }
 
     if (optind < argc || argc < 2) {
-        XCAM_LOG_ERROR ("unknown option %s", argv[optind]);
+        printf ("unknown option %s \n", argv[optind]);
         usage (argv[0]);
         return -1;
     }

@@ -22,7 +22,6 @@
 #include <base/xcam_buffer.h>
 #include "xcam_utils.h"
 #include "aiq3a_utils.h"
-#include "video_buffer.h"
 #include "x3a_result_factory.h"
 #include "smart_analyzer.h"
 
@@ -287,7 +286,6 @@ private:
 private:
 // members
     SmartPtr<SampleHandler> _handler;
-    SmartPtr<BufferPool>    _buffer_pool;
     Mutex                   _result_mutex;
     X3aResultList           _results;
 };

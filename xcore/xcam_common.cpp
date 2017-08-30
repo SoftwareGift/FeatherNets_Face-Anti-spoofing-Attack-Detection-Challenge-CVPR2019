@@ -22,6 +22,9 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <stdarg.h>
+
+static char log_file_name[XCAM_MAX_STR_SIZE] = {0};
 
 void * xcam_malloc(size_t size)
 {
@@ -76,5 +79,33 @@ xcam_fourcc_to_string (uint32_t fourcc)
     xcam_mem_clear (str);
     memcpy (str, &fourcc, 4);
     return str;
+}
+
+void xcam_print_log (const char* format, ...) {
+    char buffer[XCAM_MAX_STR_SIZE] = {0};
+
+    va_list va_list;
+    va_start (va_list, format);
+    vsnprintf (buffer, XCAM_MAX_STR_SIZE, format, va_list);
+    va_end (va_list);
+
+    if (strlen (log_file_name) > 0) {
+        FILE* p_file = fopen (log_file_name, "ab+");
+        if (NULL != p_file) {
+            fwrite (buffer, sizeof (buffer[0]), strlen (buffer), p_file);
+            fclose (p_file);
+        } else {
+            printf ("%s", buffer);
+        }
+    } else {
+        printf ("%s", buffer);
+    }
+}
+
+void xcam_set_log (const char* file_name) {
+    if (NULL != file_name) {
+        memset (log_file_name, 0, XCAM_MAX_STR_SIZE);
+        strncpy (log_file_name, file_name, XCAM_MAX_STR_SIZE);
+    }
 }
 
