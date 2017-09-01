@@ -352,6 +352,7 @@ AC_CONFIG_FILES([Makefile
                  clx_kernel/Makefile
                  xcore/Makefile
                  modules/Makefile
+                 modules/soft/Makefile
                  modules/isp/Makefile
                  modules/ocl/Makefile
                  wrapper/Makefile
