@@ -26,6 +26,7 @@ xcam_sources = \
     image_file_handle.cpp               \
     poll_thread.cpp                     \
     swapped_buffer.cpp                  \
+    thread_pool.cpp                     \
     uvc_device.cpp                      \
     v4l2_buffer_proxy.cpp               \
     v4l2_device.cpp                     \
@@ -103,6 +104,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     safe_list.h                    \
     smartptr.h                     \
     swapped_buffer.h               \
+    thread_pool.h                  \
     v4l2_buffer_proxy.h            \
     v4l2_device.h                  \
     video_buffer.h                 \

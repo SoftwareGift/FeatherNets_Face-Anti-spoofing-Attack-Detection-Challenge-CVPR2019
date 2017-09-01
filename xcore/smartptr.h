@@ -58,7 +58,7 @@ public:
 };
 
 template<typename Obj>
-RefCount* generate_ref_count (Obj *obj, std::true_type)
+RefObj* generate_ref_count (Obj *obj, std::true_type)
 {
     XCAM_ASSERT (obj);
     obj->ref ();

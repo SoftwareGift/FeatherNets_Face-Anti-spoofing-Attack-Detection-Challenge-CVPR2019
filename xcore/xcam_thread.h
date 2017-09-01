@@ -35,6 +35,9 @@ public:
     virtual bool emit_stop ();
     bool stop ();
     bool is_running ();
+    const char *get_name () const {
+        return _name;
+    }
 
 protected:
     // return true to start loop, else the thread stopped

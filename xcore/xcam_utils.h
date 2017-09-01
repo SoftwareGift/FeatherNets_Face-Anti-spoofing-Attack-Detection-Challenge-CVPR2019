@@ -51,6 +51,10 @@ enum CLNV12PlaneIdx {
     CLNV12PlaneMax,
 };
 
+inline bool xcam_ret_is_ok (XCamReturn err) {
+    return err >= XCAM_RETURN_NO_ERROR;
+}
+
 inline double
 linear_interpolate_p2 (double value_start, double value_end,
                        double ref_start, double ref_end,
