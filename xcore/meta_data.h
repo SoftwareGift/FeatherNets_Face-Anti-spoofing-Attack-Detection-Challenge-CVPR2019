@@ -27,7 +27,16 @@
 
 namespace XCam {
 
+struct MetaBase
+{
+    MetaBase () {}
+    virtual ~MetaBase() {};
+private:
+    XCAM_DEAD_COPY (MetaBase);
+};
+
 struct MetaData
+    : MetaBase
 {
     int64_t timestamp; // in microseconds
 
@@ -54,6 +63,7 @@ struct DevicePose
     }
 };
 
+typedef std::list<SmartPtr<MetaBase>>  MetaBaseList;
 typedef std::list<SmartPtr<MetaData>>  MetaDataList;
 typedef std::list<SmartPtr<DevicePose>>  DevicePoseList;
 

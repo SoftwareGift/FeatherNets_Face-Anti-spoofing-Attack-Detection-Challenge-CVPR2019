@@ -21,6 +21,7 @@ xcam_sources = \
     fake_poll_thread.cpp                \
     file_handle.cpp                     \
     handler_interface.cpp               \
+    image_handler.cpp                   \
     image_processor.cpp                 \
     image_projector.cpp                 \
     image_file_handle.cpp               \
@@ -31,6 +32,7 @@ xcam_sources = \
     v4l2_buffer_proxy.cpp               \
     v4l2_device.cpp                     \
     video_buffer.cpp                    \
+    worker.cpp                          \
     xcam_analyzer.cpp                   \
     x3a_analyzer.cpp                    \
     x3a_analyzer_manager.cpp            \
@@ -98,6 +100,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     file_handle.h                  \
     pipe_manager.h                 \
     handler_interface.h            \
+    image_handler.h                \
     image_processor.h              \
     image_projector.h              \
     image_file_handle.h            \
@@ -108,6 +111,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     v4l2_buffer_proxy.h            \
     v4l2_device.h                  \
     video_buffer.h                 \
+    worker.h                       \
     xcam_analyzer.h                \
     x3a_analyzer.h                 \
     x3a_analyzer_manager.h         \
