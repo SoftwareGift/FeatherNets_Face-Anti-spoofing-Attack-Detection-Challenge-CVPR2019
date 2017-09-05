@@ -154,9 +154,9 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
     }
 
     SmartPtr<ItemSynch> sync = new ItemSynch (_work_size.x * _work_size.y * _work_size.z);
-    for (int z = 0; z < _work_size.z; ++z)
-        for (int y = 0; y < _work_size.y; ++y)
-            for (int x = 0; x < _work_size.x; ++x)
+    for (uint32_t z = 0; z < _work_size.z; ++z)
+        for (uint32_t y = 0; y < _work_size.y; ++y)
+            for (uint32_t x = 0; x < _work_size.x; ++x)
             {
                 SmartPtr<WorkItem> item = new WorkItem (this, args, WorkSize(x, y, z), sync);
                 ret = _threads->queue (item);

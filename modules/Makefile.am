@@ -10,4 +10,4 @@ else
 ISP_DIR =
 endif
 
-SUBDIRS = soft $(ISP_DIR) $(OCL_DIR)
+SUBDIRS = interface soft $(ISP_DIR) $(OCL_DIR)

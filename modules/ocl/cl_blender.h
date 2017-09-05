@@ -23,10 +23,11 @@
 
 #include "xcam_utils.h"
 #include "interface/data_types.h"
+#include "interface/blender.h"
 #include "ocl/cl_image_handler.h"
 
-#define XCAM_CL_BLENDER_IMAGE_NUM  2
-#define XCAM_BLENDER_ALIGNED_WIDTH 8
+#define XCAM_CL_BLENDER_ALIGNMENT_X 8
+#define XCAM_CL_BLENDER_ALIGNMENT_Y 1
 
 namespace XCam {
 
@@ -65,37 +66,18 @@ protected:
 };
 
 class CLBlender
-    : public CLImageHandler
+    : public CLImageHandler, public Blender
 {
 public:
     explicit CLBlender (
         const SmartPtr<CLContext> &context, const char *name,
         bool need_uv, CLBlenderScaleMode scale_mode);
 
-    void set_output_size (uint32_t width, uint32_t height) {
-        _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
-        _output_height = height;
-    }
-
-    bool set_input_valid_area (const Rect &area, uint32_t index);
-    bool set_merge_window (const Rect &window);
-    bool set_input_merge_area (const Rect &area, uint32_t index);
-
-    const Rect &get_merge_window () const {
-        return _merge_window;
-    }
-    const Rect &get_input_merge_area (uint32_t index) const {
-        return _input_merge_area[index];
-    }
-    const Rect &get_input_valid_area (uint32_t index) const {
-        return _input_valid_area[index];
-    }
+    //derived from Blender
+    virtual bool set_input_merge_area (const Rect &area, uint32_t index);
 
     bool need_uv () const {
         return _need_uv;
-    }
-    bool is_merge_window_set () const {
-        return _merge_window.pos_x || _merge_window.width;
     }
 
     CLBlenderScaleMode get_scale_mode () const {
@@ -112,8 +94,6 @@ protected:
         const VideoBufferInfo &input,
         VideoBufferInfo &output);
 
-    bool calculate_merge_window (uint32_t width0, uint32_t width1, uint32_t blend_width, Rect &out_window);
-
     //abstract virtual functions
     virtual XCamReturn allocate_cl_buffers (
         SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> &input0,
@@ -123,11 +103,6 @@ private:
     XCAM_DEAD_COPY (CLBlender);
 
 private:
-    uint32_t                         _output_width;
-    uint32_t                         _output_height;
-    Rect                             _input_valid_area[XCAM_CL_BLENDER_IMAGE_NUM];
-    Rect                             _input_merge_area[XCAM_CL_BLENDER_IMAGE_NUM];
-    Rect                             _merge_window;  // for output buffer
     bool                             _need_uv;
     bool                             _swap_input_index;
     CLBlenderScaleMode               _scale_mode;

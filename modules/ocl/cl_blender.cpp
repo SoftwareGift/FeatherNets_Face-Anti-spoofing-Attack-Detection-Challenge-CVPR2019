@@ -61,66 +61,29 @@ CLBlender::CLBlender (
     const SmartPtr<CLContext> &context, const char *name,
     bool need_uv, CLBlenderScaleMode scale_mode)
     : CLImageHandler (context, name)
-    , _output_width (0)
-    , _output_height (0)
+    , Blender (XCAM_CL_BLENDER_ALIGNMENT_X, XCAM_CL_BLENDER_ALIGNMENT_Y)
     , _need_uv (need_uv)
     , _swap_input_index (false)
     , _scale_mode (scale_mode)
 {
-}
-
-bool
-CLBlender::set_merge_window (const Rect &window) {
-    _merge_window = window;
-    _merge_window.pos_x = XCAM_ALIGN_AROUND (_merge_window.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    _merge_window.width = XCAM_ALIGN_AROUND (_merge_window.width, XCAM_BLENDER_ALIGNED_WIDTH);
-    XCAM_ASSERT (_merge_window.width >= XCAM_BLENDER_ALIGNED_WIDTH);
-    XCAM_LOG_DEBUG(
-        "CLBlender(%s) merge window:(x:%d, width:%d), blend_width:%d",
-        XCAM_STR (get_name()),
-        _merge_window.pos_x, _merge_window.width, _output_width);
-    return true;
-}
-
-bool
-CLBlender::set_input_valid_area (const Rect &area, uint32_t index)
-{
-    XCAM_ASSERT (index < XCAM_CL_BLENDER_IMAGE_NUM);
-    _input_valid_area[index] = area;
-
-    _input_valid_area[index].pos_x = XCAM_ALIGN_DOWN (_input_valid_area[index].pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    _input_valid_area[index].width = XCAM_ALIGN_UP (_input_valid_area[index].width, XCAM_BLENDER_ALIGNED_WIDTH);
-
-    XCAM_LOG_DEBUG(
-        "CLBlender(%s) buf(%d) valid area:(x:%d, width:%d)",
-        XCAM_STR(get_name()), index,
-        _input_valid_area[index].pos_x, _input_valid_area[index].width);
-    return true;
+    XCAM_ASSERT (get_alignment_x () == XCAM_CL_BLENDER_ALIGNMENT_X);
+    XCAM_ASSERT (get_alignment_y () == XCAM_CL_BLENDER_ALIGNMENT_Y);
 }
 
 bool
 CLBlender::set_input_merge_area (const Rect &area, uint32_t index)
 {
-    XCAM_ASSERT (index < XCAM_CL_BLENDER_IMAGE_NUM);
-    if (!is_merge_window_set ()) {
-        XCAM_LOG_ERROR ("set_input_merge_area(idx:%d) failed, need set merge window first", index);
-        return false;
+    Rect tmp_area = area;
+    if (_scale_mode == CLBlenderScaleGlobal)
+        tmp_area.width = get_merge_window ().width;
+
+    bool ret = Blender::set_input_merge_area (tmp_area, index);
+
+    if (ret && _scale_mode == CLBlenderScaleGlobal) {
+        XCAM_ASSERT (fabs((int32_t)(area.width - get_merge_window ().width)) < XCAM_CL_BLENDER_ALIGNMENT_X);
     }
 
-    if (_scale_mode == CLBlenderScaleGlobal)
-        XCAM_ASSERT (fabs((int32_t)(area.width - _merge_window.width)) < XCAM_BLENDER_ALIGNED_WIDTH);
-
-    _input_merge_area[index] = area;
-    _input_merge_area[index].pos_x = XCAM_ALIGN_AROUND (_input_merge_area[index].pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    if (_scale_mode == CLBlenderScaleGlobal)
-        _input_merge_area[index].width = _merge_window.width;
-
-    XCAM_LOG_DEBUG(
-        "CLBlender(%s) buf(%d) merge area:(x:%d, width:%d)",
-        XCAM_STR(get_name()), index,
-        _input_merge_area[index].pos_x, _input_merge_area[index].width);
-
-    return true;
+    return ret;
 }
 
 XCamReturn
@@ -128,11 +91,12 @@ CLBlender::prepare_buffer_pool_video_info (
     const VideoBufferInfo &input,
     VideoBufferInfo &output)
 {
-    uint32_t output_width = _output_width;
-    uint32_t output_height = input.height;
+    uint32_t output_width, output_height;
+    get_output_size (output_width, output_height);
+    XCAM_ASSERT (output_height == input.height);
 
     // aligned at least XCAM_BLENDER_ALIGNED_WIDTH
-    uint32_t aligned_width = XCAM_MAX (16, XCAM_BLENDER_ALIGNED_WIDTH);
+    uint32_t aligned_width = XCAM_MAX (16, XCAM_CL_BLENDER_ALIGNMENT_X);
     output.init (
         input.format, output_width, output_height,
         XCAM_ALIGN_UP(output_width, aligned_width), XCAM_ALIGN_UP(output_height, 16));
@@ -166,13 +130,13 @@ CLBlender::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffe
     const VideoBufferInfo &in1_info = input1->get_video_info ();
     const VideoBufferInfo &out_info = output->get_video_info ();
 
-    if (!_input_valid_area[0].width) {
+    if (!get_input_valid_area (0).width) {
         Rect area;
         area.width = in0_info.width;
         area.height = in0_info.height;
         set_input_valid_area (area, 0);
     }
-    if (!_input_valid_area[1].width) {
+    if (!get_input_valid_area (1).width) {
         Rect area;
         area.width = in1_info.width;
         area.height = in1_info.height;
@@ -183,7 +147,7 @@ CLBlender::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffe
         Rect merge_window;
         XCAM_FAIL_RETURN (
             WARNING,
-            calculate_merge_window (get_input_valid_area(0).width, get_input_valid_area(1).width, out_info.width, merge_window),
+            auto_calc_merge_window (get_input_valid_area(0).width, get_input_valid_area(1).width, out_info.width, merge_window),
             XCAM_RETURN_ERROR_PARAM,
             "CLBlender(%s) auto calculate merge window failed", get_name ());
 
@@ -204,23 +168,18 @@ CLBlender::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffe
     return ret;
 }
 
-bool
-CLBlender::calculate_merge_window (
-    uint32_t width0, uint32_t width1, uint32_t blend_width,
-    Rect &out_window)
+SmartPtr<Blender>
+create_ocl_blender ()
 {
-    out_window.pos_x = blend_width - width1;
-    out_window.width = (width0 + width1 - blend_width) / 2;
-
-    out_window.pos_x = XCAM_ALIGN_AROUND (out_window.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    out_window.width = XCAM_ALIGN_AROUND (out_window.width, XCAM_BLENDER_ALIGNED_WIDTH);
-    if ((int)blend_width < out_window.pos_x + out_window.width)
-        out_window.width = blend_width - out_window.pos_x;
-
-    XCAM_ASSERT (out_window.width > 0 && out_window.width <= (int)blend_width);
-    XCAM_ASSERT (out_window.pos_x >= 0 && out_window.pos_x <= (int)blend_width);
-
-    return true;
+    SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
+    XCAM_FAIL_RETURN (
+        ERROR, context.ptr (), NULL,
+        "create ocl blender failed to get cl context");
+    SmartPtr<CLBlender> blender = create_pyramid_blender (context, 2, true, false).dynamic_cast_ptr<CLBlender> ();
+    XCAM_FAIL_RETURN (
+        ERROR, blender.ptr (), NULL,
+        "create ocl blender failed to get pyramid blender");
+    return blender;
 }
 
 };

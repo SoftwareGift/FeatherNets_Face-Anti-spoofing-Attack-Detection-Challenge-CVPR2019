@@ -191,7 +191,7 @@ PyramidLayer::PyramidLayer ()
     , blend_height (0)
 {
     for (int plane = 0; plane < CLBlenderPlaneMax; ++plane) {
-        for (int i = 0; i < XCAM_CL_BLENDER_IMAGE_NUM; ++i) {
+        for (int i = 0; i < XCAM_BLENDER_IMAGE_NUM; ++i) {
             gauss_offset_x[plane][i] = 0;
             lap_offset_x[plane][i] = 0;
         }
@@ -228,7 +228,7 @@ SmartPtr<CLImage>
 CLPyramidBlender::get_gauss_image (uint32_t layer, uint32_t buf_index, bool is_uv)
 {
     XCAM_ASSERT (layer < _layers);
-    XCAM_ASSERT (buf_index < XCAM_CL_BLENDER_IMAGE_NUM);
+    XCAM_ASSERT (buf_index < XCAM_BLENDER_IMAGE_NUM);
     uint32_t plane = (is_uv ? 1 : 0);
     return _pyramid_layers[layer].gauss_image[plane][buf_index];
 }
@@ -237,7 +237,7 @@ SmartPtr<CLImage>
 CLPyramidBlender::get_lap_image (uint32_t layer, uint32_t buf_index, bool is_uv)
 {
     XCAM_ASSERT (layer < _layers);
-    XCAM_ASSERT (buf_index < XCAM_CL_BLENDER_IMAGE_NUM);
+    XCAM_ASSERT (buf_index < XCAM_BLENDER_IMAGE_NUM);
     uint32_t plane = (is_uv ? 1 : 0);
 
     return _pyramid_layers[layer].lap_image[plane][buf_index];
@@ -324,7 +324,7 @@ PyramidLayer::bind_buf_to_layer0 (
     XCAM_ASSERT (in0_info.height == in1_info.height);
     XCAM_ASSERT (merge0_rect.width == merge1_rect.width);
 
-    this->blend_width = XCAM_ALIGN_UP (merge0_rect.width, XCAM_BLENDER_ALIGNED_WIDTH);
+    this->blend_width = XCAM_ALIGN_UP (merge0_rect.width, XCAM_CL_BLENDER_ALIGNMENT_X);
     this->blend_height = merge0_rect.height;
 
     CLImageDesc cl_desc;
@@ -351,7 +351,7 @@ PyramidLayer::bind_buf_to_layer0 (
         if (scale_mode == CLBlenderScaleLocal) {
             this->scale_image[i_plane] = new CLVaImage (context, output, cl_desc, out_info.offsets[i_plane]);
 
-            cl_desc.width = XCAM_ALIGN_UP (this->blend_width, XCAM_BLENDER_ALIGNED_WIDTH) / 8;
+            cl_desc.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
             cl_desc.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[i_plane]) / divider_vert[i_plane];
             uint32_t row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) * cl_desc.width;
             uint32_t size = row_pitch * cl_desc.height;
@@ -431,9 +431,9 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
     cl_desc_set.format.image_channel_order = CL_RGBA;
 
     for (uint32_t plane = 0; plane < max_plane; ++plane) {
-        for (int i_image = 0; i_image < XCAM_CL_BLENDER_IMAGE_NUM; ++i_image) {
+        for (int i_image = 0; i_image < XCAM_BLENDER_IMAGE_NUM; ++i_image) {
             cl_desc_set.row_pitch = 0;
-            cl_desc_set.width = XCAM_ALIGN_UP (this->blend_width, XCAM_BLENDER_ALIGNED_WIDTH) / 8;
+            cl_desc_set.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
             cl_desc_set.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[plane]) / divider_vert[plane];
 
             //gauss y image created by cl buffer
@@ -447,7 +447,7 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
             this->gauss_offset_x[plane][i_image]  = 0; // offset to 0, need recalculate if for deep multi-band blender
         }
 
-        cl_desc_set.width = XCAM_ALIGN_UP (this->blend_width, XCAM_BLENDER_ALIGNED_WIDTH) / 8;
+        cl_desc_set.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
         cl_desc_set.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[plane]) / divider_vert[plane];
         row_pitch = CLImage::calculate_pixel_bytes (cl_desc_set.format) * cl_desc_set.width;
         size = row_pitch * cl_desc_set.height;
@@ -466,7 +466,7 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
             cl_desc_set.row_pitch = 0;
             this->blend_image[plane][BlendImageIndex] = new CLImage2D (context, cl_desc_set);
             XCAM_ASSERT (this->blend_image[plane][BlendImageIndex].ptr ());
-            for (int i_image = 0; i_image < XCAM_CL_BLENDER_IMAGE_NUM; ++i_image) {
+            for (int i_image = 0; i_image < XCAM_BLENDER_IMAGE_NUM; ++i_image) {
                 this->lap_image[plane][i_image] = new CLImage2D (context, cl_desc_set);
                 XCAM_ASSERT (this->lap_image[plane][i_image].ptr ());
                 this->lap_offset_x[plane][i_image]  = 0; // offset to 0, need calculate from next layer if for deep multi-band blender
@@ -516,7 +516,7 @@ CLPyramidBlender::last_layer_buffer_redirect ()
     for (uint32_t plane = 0; plane < max_plane; ++plane) {
         layer.blend_image[plane][BlendImageIndex] = layer.blend_image[plane][ReconstructImageIndex];
 
-        for (uint32_t i_image = 0; i_image < XCAM_CL_BLENDER_IMAGE_NUM; ++i_image) {
+        for (uint32_t i_image = 0; i_image < XCAM_BLENDER_IMAGE_NUM; ++i_image) {
             layer.lap_image[plane][i_image] = layer.gauss_image[plane][i_image];
         }
     }
@@ -643,12 +643,12 @@ CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
     _seam_width = layer0.blend_width;
     _seam_height = layer0.blend_height;
     _seam_pos_stride = XCAM_ALIGN_UP (_seam_width, 64); // need a buffer large enough to avoid judgement in kernel
-    _seam_pos_offset_x = XCAM_ALIGN_UP (_seam_width / 4, XCAM_BLENDER_ALIGNED_WIDTH);
+    _seam_pos_offset_x = XCAM_ALIGN_UP (_seam_width / 4, XCAM_CL_BLENDER_ALIGNMENT_X);
     if (_seam_pos_offset_x >= _seam_width)
         _seam_pos_offset_x = 0;
-    _seam_pos_valid_width = XCAM_ALIGN_DOWN (_seam_width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+    _seam_pos_valid_width = XCAM_ALIGN_DOWN (_seam_width / 2, XCAM_CL_BLENDER_ALIGNMENT_X);
     if (_seam_pos_valid_width <= 0)
-        _seam_pos_valid_width = XCAM_BLENDER_ALIGNED_WIDTH;
+        _seam_pos_valid_width = XCAM_CL_BLENDER_ALIGNMENT_X;
     XCAM_ASSERT (_seam_pos_offset_x + _seam_pos_valid_width <= _seam_width);
 
     XCAM_ASSERT (layer0.blend_width > 0 && layer0.blend_height > 0);
@@ -681,7 +681,7 @@ CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
         XCAM_RETURN_ERROR_CL,
         "CLPyramidBlender init seam buffer failed to create seam buffers");
 
-    uint32_t mask_width = XCAM_ALIGN_UP(_seam_width, XCAM_BLENDER_ALIGNED_WIDTH);
+    uint32_t mask_width = XCAM_ALIGN_UP(_seam_width, XCAM_CL_BLENDER_ALIGNMENT_X);
     uint32_t mask_height = XCAM_ALIGN_UP(_seam_height, 2);
     for (uint32_t i = 0; i < _layers; ++i) {
         uint32_t mask_size = sizeof (SEAM_MASK_TYPE) * mask_width * mask_height;
@@ -702,7 +702,7 @@ CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
             XCAM_RETURN_ERROR_CL,
             "CLPyramidBlender init seam buffer failed to create seam_mask buffer");
 
-        mask_width = XCAM_ALIGN_UP(mask_width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+        mask_width = XCAM_ALIGN_UP(mask_width / 2, XCAM_CL_BLENDER_ALIGNMENT_X);
         mask_height = XCAM_ALIGN_UP(mask_height / 2, 2);
     }
 
@@ -871,7 +871,7 @@ CLPyramidTransformKernel::CLPyramidTransformKernel (
     , _is_uv (is_uv)
 {
     XCAM_ASSERT (layer <= XCAM_CL_PYRAMID_MAX_LEVEL);
-    XCAM_ASSERT (buf_index <= XCAM_CL_BLENDER_IMAGE_NUM);
+    XCAM_ASSERT (buf_index <= XCAM_BLENDER_IMAGE_NUM);
 }
 
 static bool
@@ -965,9 +965,9 @@ CLSeamDiffKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     SmartPtr<CLImage> out_diff = _blender->get_image_diff ();
     CLImageDesc out_diff_desc = out_diff->get_image_desc ();
 
-    int image_offset_x[XCAM_CL_BLENDER_IMAGE_NUM];
+    int image_offset_x[XCAM_BLENDER_IMAGE_NUM];
 
-    for (uint32_t i = 0; i < XCAM_CL_BLENDER_IMAGE_NUM; ++i) {
+    for (uint32_t i = 0; i < XCAM_BLENDER_IMAGE_NUM; ++i) {
         image_offset_x[i] = layer0.gauss_offset_x[CLBlenderPlaneY][i] / 8;
     }
 
@@ -1127,7 +1127,7 @@ CLPyramidLapKernel::CLPyramidLapKernel (
     , _is_uv (is_uv)
 {
     XCAM_ASSERT (layer <= XCAM_CL_PYRAMID_MAX_LEVEL);
-    XCAM_ASSERT (buf_index <= XCAM_CL_BLENDER_IMAGE_NUM);
+    XCAM_ASSERT (buf_index <= XCAM_BLENDER_IMAGE_NUM);
 }
 
 int32_t
@@ -1228,7 +1228,7 @@ CLPyramidReconstructKernel::get_output_reconstrcut_offset_x ()
     if (_layer > 0)
         return 0;
     const Rect & window = _blender->get_merge_window ();
-    XCAM_ASSERT (window.pos_x % XCAM_BLENDER_ALIGNED_WIDTH == 0);
+    XCAM_ASSERT (window.pos_x % XCAM_CL_BLENDER_ALIGNMENT_X == 0);
     return window.pos_x;
 }
 
@@ -1796,7 +1796,7 @@ create_pyramid_blender (
     }
 
     for (int plane = 0; plane < max_plane; ++plane) {
-        for (buf_index = 0; buf_index < XCAM_CL_BLENDER_IMAGE_NUM; ++buf_index) {
+        for (buf_index = 0; buf_index < XCAM_BLENDER_IMAGE_NUM; ++buf_index) {
             for (i = 0; i < layer - 1; ++i) {
                 kernel = create_pyramid_transform_kernel (context, blender, (uint32_t)i, buf_index, uv_status[plane]);
                 XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "create pyramid transform kernel failed");
@@ -1826,7 +1826,7 @@ create_pyramid_blender (
             blender->add_kernel (kernel);
         }
 
-        for (buf_index = 0; buf_index < XCAM_CL_BLENDER_IMAGE_NUM; ++buf_index) {
+        for (buf_index = 0; buf_index < XCAM_BLENDER_IMAGE_NUM; ++buf_index) {
             kernel = create_pyramid_copy_kernel (context, blender, buf_index, uv_status[plane]);
             XCAM_FAIL_RETURN (ERROR, kernel.ptr (), NULL, "create pyramid copy kernel failed");
             blender->add_kernel (kernel);

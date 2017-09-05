@@ -47,10 +47,10 @@ enum {
 struct PyramidLayer {
     uint32_t                 blend_width; // blend, gauss, and lap
     uint32_t                 blend_height;
-    SmartPtr<CLImage>        gauss_image[CLBlenderPlaneMax][XCAM_CL_BLENDER_IMAGE_NUM];
-    int32_t                  gauss_offset_x[CLBlenderPlaneMax][XCAM_CL_BLENDER_IMAGE_NUM]; // aligned with XCAM_BLENDER_ALIGNED_WIDTH
-    SmartPtr<CLImage>        lap_image[CLBlenderPlaneMax][XCAM_CL_BLENDER_IMAGE_NUM];
-    int32_t                  lap_offset_x[CLBlenderPlaneMax][XCAM_CL_BLENDER_IMAGE_NUM]; // aligned with XCAM_BLENDER_ALIGNED_WIDTH
+    SmartPtr<CLImage>        gauss_image[CLBlenderPlaneMax][XCAM_BLENDER_IMAGE_NUM];
+    int32_t                  gauss_offset_x[CLBlenderPlaneMax][XCAM_BLENDER_IMAGE_NUM]; // aligned with XCAM_BLENDER_ALIGNED_WIDTH
+    SmartPtr<CLImage>        lap_image[CLBlenderPlaneMax][XCAM_BLENDER_IMAGE_NUM];
+    int32_t                  lap_offset_x[CLBlenderPlaneMax][XCAM_BLENDER_IMAGE_NUM]; // aligned with XCAM_BLENDER_ALIGNED_WIDTH
     SmartPtr<CLImage>        blend_image[CLBlenderPlaneMax][BlendImageCount]; // 0 blend-image, 1 reconstruct image
     uint32_t                 mask_width[CLBlenderPlaneMax];
     SmartPtr<CLBuffer>       blend_mask[CLBlenderPlaneMax]; // sizeof(float) * mask_width

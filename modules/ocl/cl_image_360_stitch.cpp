@@ -436,8 +436,8 @@ CLImage360Stitch::prepare_buffer_pool_video_info (
         return XCAM_RETURN_ERROR_PARAM;
     }
 
-    // aligned at least XCAM_BLENDER_ALIGNED_WIDTH
-    uint32_t aligned_width = XCAM_MAX (16, XCAM_BLENDER_ALIGNED_WIDTH);
+    // aligned at least XCAM_CL_BLENDER_ALIGNMENT_X
+    uint32_t aligned_width = XCAM_MAX (16, XCAM_CL_BLENDER_ALIGNMENT_X);
     output.init (
         input.format, _output_width, _output_height,
         XCAM_ALIGN_UP(_output_width, aligned_width), XCAM_ALIGN_UP(_output_height, 16));
@@ -497,15 +497,15 @@ CLImage360Stitch::prepare_global_scale_blender_parameters (
     Rect left_lap = get_image_overlap (idx, 1);
     Rect right_lap = get_image_overlap (idx_next, 0);
 
-    int left_img_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    int right_img_mid = XCAM_ALIGN_DOWN (in1_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
+    int left_img_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_CL_BLENDER_ALIGNMENT_X);
+    int right_img_mid = XCAM_ALIGN_DOWN (in1_info.width / 2, XCAM_CL_BLENDER_ALIGNMENT_X);
 
     int32_t prev_pos;
     prev_pos = left_lap.pos_x;
-    left_lap.pos_x = XCAM_ALIGN_AROUND (left_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    left_lap.width = XCAM_ALIGN_UP (left_lap.width, XCAM_BLENDER_ALIGNED_WIDTH);
+    left_lap.pos_x = XCAM_ALIGN_AROUND (left_lap.pos_x, XCAM_CL_BLENDER_ALIGNMENT_X);
+    left_lap.width = XCAM_ALIGN_UP (left_lap.width, XCAM_CL_BLENDER_ALIGNMENT_X);
     right_lap.pos_x += left_lap.pos_x - prev_pos;
-    right_lap.pos_x = XCAM_ALIGN_AROUND (right_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
+    right_lap.pos_x = XCAM_ALIGN_AROUND (right_lap.pos_x, XCAM_CL_BLENDER_ALIGNMENT_X);
     right_lap.width = left_lap.width;
 
     Rect area;
@@ -549,17 +549,17 @@ CLImage360Stitch::prepare_local_scale_blender_parameters (
     Rect left_lap = get_image_overlap (idx, 1);
     Rect right_lap = get_image_overlap (idx_next, 0);
 
-    int left_img_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    int right_img_mid = XCAM_ALIGN_DOWN (in1_info.width / 2, XCAM_BLENDER_ALIGNED_WIDTH);
-    int cur_start_pos = XCAM_ALIGN_DOWN (out_info.width / _fisheye_num * idx, XCAM_BLENDER_ALIGNED_WIDTH);
-    int merge_std_width = XCAM_ALIGN_DOWN (out_info.width / _fisheye_num, XCAM_BLENDER_ALIGNED_WIDTH);
+    int left_img_mid = XCAM_ALIGN_DOWN (in0_info.width / 2, XCAM_CL_BLENDER_ALIGNMENT_X);
+    int right_img_mid = XCAM_ALIGN_DOWN (in1_info.width / 2, XCAM_CL_BLENDER_ALIGNMENT_X);
+    int cur_start_pos = XCAM_ALIGN_DOWN (out_info.width / _fisheye_num * idx, XCAM_CL_BLENDER_ALIGNMENT_X);
+    int merge_std_width = XCAM_ALIGN_DOWN (out_info.width / _fisheye_num, XCAM_CL_BLENDER_ALIGNMENT_X);
 
     int32_t prev_pos;
     prev_pos = left_lap.pos_x;
-    left_lap.pos_x = XCAM_ALIGN_AROUND (left_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
-    left_lap.width = XCAM_ALIGN_UP (left_lap.width, XCAM_BLENDER_ALIGNED_WIDTH);
+    left_lap.pos_x = XCAM_ALIGN_AROUND (left_lap.pos_x, XCAM_CL_BLENDER_ALIGNMENT_X);
+    left_lap.width = XCAM_ALIGN_UP (left_lap.width, XCAM_CL_BLENDER_ALIGNMENT_X);
     right_lap.pos_x += left_lap.pos_x - prev_pos;
-    right_lap.pos_x = XCAM_ALIGN_AROUND (right_lap.pos_x, XCAM_BLENDER_ALIGNED_WIDTH);
+    right_lap.pos_x = XCAM_ALIGN_AROUND (right_lap.pos_x, XCAM_CL_BLENDER_ALIGNMENT_X);
     right_lap.width = left_lap.width;
 
     Rect area;
@@ -623,7 +623,7 @@ CLImage360Stitch::reset_buffer_info (SmartPtr<DrmBoBuffer> &input)
         reset_width += img_right.pos_x - img_left.pos_x;
     }
 
-    reset_width = XCAM_ALIGN_UP (reset_width, XCAM_BLENDER_ALIGNED_WIDTH);
+    reset_width = XCAM_ALIGN_UP (reset_width, XCAM_CL_BLENDER_ALIGNMENT_X);
     reset_info.init (buf_info.format, reset_width, buf_info.height,
                      buf_info.aligned_width, buf_info.aligned_height);
 
@@ -648,7 +648,7 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
             idx_next = (i == (_fisheye_num - 1)) ? 0 : (i + 1);
 
             ret = prepare_local_scale_blender_parameters (
-                  _fisheye[i].buf, _fisheye[idx_next].buf, output, i, idx_next);
+                      _fisheye[i].buf, _fisheye[idx_next].buf, output, i, idx_next);
             STITCH_CHECK (ret, "prepare local scale blender parameters failed");
 
             _fisheye[i].buf->attach_buffer (_fisheye[idx_next].buf);
