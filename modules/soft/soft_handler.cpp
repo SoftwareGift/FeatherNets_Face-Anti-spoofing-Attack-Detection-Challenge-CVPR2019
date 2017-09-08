@@ -21,6 +21,7 @@
 #include "soft_handler.h"
 #include "soft_image_allocator.h"
 #include "thread_pool.h"
+#include "soft_worker.h"
 
 #define DEFAULT_SOFT_BUF_COUNT 4
 
@@ -131,17 +132,18 @@ SoftHandler::execute_buffer (SmartPtr<ImageHandler::Parameters> &params, bool sy
         params->add_meta (sync_meta);
     }
 
-    SmartPtr<Worker> worker = get_first_worker ();
+    SmartPtr<SoftWorker> worker = get_first_worker ().dynamic_cast_ptr<SoftWorker> ();
     XCAM_FAIL_RETURN (
         WARNING, worker.ptr (), XCAM_RETURN_ERROR_PARAM,
         "No worder set to soft_hander(%s)", XCAM_STR (get_name ()));
 
-    SmartPtr<Worker::Arguments> args = get_first_worker_args (params);
+    SmartPtr<Worker::Arguments> args = get_first_worker_args (worker, params);
     XCAM_FAIL_RETURN (
         WARNING, args.ptr (), XCAM_RETURN_ERROR_PARAM,
         "soft_hander(%s) get first worker(%s) args failed",
         XCAM_STR (get_name ()), XCAM_STR (worker->get_name ()));
 
+    _params.push (params);
     ret = worker->work (args);
 
     XCAM_FAIL_RETURN (
@@ -166,6 +168,7 @@ SoftHandler::finish ()
     if (_cur_sync.ptr ()) {
         ret = _cur_sync->signal_wait_ret ();
     }
+    XCAM_ASSERT (_params.is_empty ());
     //wait for _wip_buf_count = 0
     //if (ret == XCAM_RETURN_NO_ERROR)
     //    XCAM_ASSERT (_wip_buf_count == 0);
@@ -180,17 +183,20 @@ SoftHandler::terminate ()
         _cur_sync->wakeup ();
         _cur_sync.release ();
     }
+    _params.clear ();
     return ImageHandler::terminate ();
 }
 
 XCamReturn
-SoftHandler::last_worker_done (SmartPtr<ImageHandler::Parameters> &params, XCamReturn err)
+SoftHandler::last_worker_done (XCamReturn err)
 {
+    SmartPtr<ImageHandler::Parameters> params = _params.pop (0);
     SmartPtr<SyncMeta> sync_meta = params->find_meta<SyncMeta> ();
     if (sync_meta.ptr ())
         sync_meta->signal_done (err);
 
     --_wip_buf_count;
+    XCAM_ASSERT (params.ptr ());
     return execute_status_check (params, err);
 }
 

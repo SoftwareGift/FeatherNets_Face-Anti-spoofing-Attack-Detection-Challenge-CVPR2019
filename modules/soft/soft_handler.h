@@ -29,6 +29,7 @@ namespace XCam {
 class SoftHandler;
 class ThreadPool;
 class SyncMeta;
+class SoftWorker;
 
 class SoftHandler
     : public ImageHandler
@@ -46,8 +47,8 @@ public:
 
 protected:
     virtual XCamReturn configure_resource (const SmartPtr<Parameters> &params);
-    virtual SmartPtr<Worker::Arguments> get_first_worker_args (SmartPtr<Parameters> &params) = 0;
-    virtual XCamReturn last_worker_done (SmartPtr<Parameters> &params, XCamReturn err);
+    virtual SmartPtr<Worker::Arguments> get_first_worker_args (const SmartPtr<SoftWorker> &worker, SmartPtr<Parameters> &params) = 0;
+    virtual XCamReturn last_worker_done (XCamReturn err);
 
 private:
     XCAM_DEAD_COPY (SoftHandler);
@@ -56,6 +57,7 @@ private:
     SmartPtr<ThreadPool>    _threads;
     SmartPtr<SyncMeta>      _cur_sync;
     bool                    _need_configure;
+    SafeList<Parameters>    _params;
     mutable std::atomic<int32_t>  _wip_buf_count;
 };
 

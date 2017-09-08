@@ -24,9 +24,30 @@
 #include "xcam_utils.h"
 #include "worker.h"
 
+#define SOFT_MAX_DIM 3
+
 namespace XCam {
 
 class ThreadPool;
+
+struct WorkRange {
+    uint32_t pos[SOFT_MAX_DIM];
+    uint32_t pos_len[SOFT_MAX_DIM];
+
+    WorkRange () {
+        xcam_mem_clear (pos);
+        xcam_mem_clear (pos_len);
+    }
+};
+
+struct WorkSize {
+    uint32_t value[SOFT_MAX_DIM];
+    WorkSize (uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
+        value[0] = x;
+        value[1] = y;
+        value[2] = z;
+    }
+};
 
 //multi-thread worker
 class SoftWorker
@@ -35,32 +56,36 @@ class SoftWorker
     friend class WorkItem;
 
 public:
-    struct WorkSize {
-        uint32_t x, y, z;
-        WorkSize (uint32_t x0 = 1, uint32_t y0 = 1, uint32_t z0 = 1) : x(x0), y(y0), z(z0) {}
-    };
-
-public:
     explicit SoftWorker (const char *name);
     virtual ~SoftWorker ();
     bool set_threads (const SmartPtr<ThreadPool> &threads);
-    bool set_work_size (const WorkSize &size);
-    const WorkSize &get_work_size () const {
-        return _work_size;
+    bool set_global_size (const WorkSize &size);
+    const WorkSize &get_global_size () const {
+        return _global;
+    }
+    bool set_local_size (const WorkSize &size);
+    const WorkSize &get_local_size () const {
+        return _local;
     }
 
     // derived from Worker
     virtual XCamReturn work (const SmartPtr<Arguments> &args);
 
 private:
-    virtual XCamReturn work_impl (const SmartPtr<Arguments> &args, const WorkSize &item) = 0;
+    //new virtual functions
+    virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
+    virtual WorkRange get_range (const WorkSize &item);
+    virtual XCamReturn work_pixel (const SmartPtr<Arguments> &args, const WorkSize &pixel);
+
+    XCamReturn work_impl (const SmartPtr<Arguments> &args, const WorkSize &item);
     void all_items_done (const SmartPtr<Arguments> &args, XCamReturn error);
 
     XCAM_DEAD_COPY (SoftWorker);
 
 private:
     SmartPtr<ThreadPool>    _threads;
-    WorkSize                _work_size;
+    WorkSize                _global;
+    WorkSize                _local;
 };
 
 }

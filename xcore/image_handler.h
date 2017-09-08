@@ -49,7 +49,9 @@ public:
         SmartPtr<VideoBuffer> in_buf;
         SmartPtr<VideoBuffer> out_buf;
 
-        Parameters () {}
+        Parameters (const SmartPtr<VideoBuffer> &in = NULL, const SmartPtr<VideoBuffer> &out = NULL)
+            : in_buf (in), out_buf (out)
+        {}
         virtual ~Parameters() {}
         bool add_meta (const SmartPtr<MetaBase> &meta);
         template <typename MType> SmartPtr<MType> find_meta ();

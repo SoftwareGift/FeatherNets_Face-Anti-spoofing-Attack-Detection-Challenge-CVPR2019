@@ -57,7 +57,7 @@ public:
     WorkItem (
         const SmartPtr<SoftWorker> &worker,
         const SmartPtr<Worker::Arguments> &args,
-        const SoftWorker::WorkSize &item,
+        const WorkSize &item,
         SmartPtr<ItemSynch> &sync)
         : _worker (worker)
         , _args (args)
@@ -73,7 +73,7 @@ public:
 private:
     SmartPtr<SoftWorker>         _worker;
     SmartPtr<Worker::Arguments>  _args;
-    SoftWorker::WorkSize         _item;
+    WorkSize                     _item;
     SmartPtr<ItemSynch>          _sync;
     XCamReturn                   _error;
 };
@@ -123,9 +123,26 @@ SoftWorker::set_threads (const SmartPtr<ThreadPool> &threads)
 }
 
 bool
-SoftWorker::set_work_size (const WorkSize &size)
+SoftWorker::set_global_size (const WorkSize &size)
 {
-    _work_size = size;
+    XCAM_FAIL_RETURN (
+        ERROR, size.value[0] && size.value[1] && size.value[2], false,
+        "SoftWorker(%s) set global size(x:%d, y:%d, z:%d) failed.",
+        XCAM_STR (get_name ()), size.value[0], size.value[1], size.value[2]);
+
+    _global = size;
+    return true;
+}
+
+bool
+SoftWorker::set_local_size (const WorkSize &size)
+{
+    XCAM_FAIL_RETURN (
+        ERROR, size.value[0] && size.value[1] && size.value[2], false,
+        "SoftWorker(%s) set local size(x:%d, y:%d, z:%d) failed.",
+        XCAM_STR (get_name ()), size.value[0], size.value[1], size.value[2]);
+
+    _local = size;
     return true;
 }
 
@@ -134,13 +151,26 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    if (_work_size.x == 1 && _work_size.y == 1 && _work_size.z == 1) {
-        XCAM_ASSERT (_work_size.x == 1 && _work_size.y == 1 && _work_size.z == 1);
-        ret = work_impl (args, _work_size);
+    XCAM_ASSERT (_local.value[0] * _local.value[1] * _local.value[2]);
+    XCAM_ASSERT (_global.value[0] * _global.value[1] * _global.value[2]);
+
+    WorkSize items;
+    uint32_t max_items = 1;
+
+    for (uint32_t i = 0; i < SOFT_MAX_DIM; ++i) {
+        items.value[i] = (_global.value[i] + _local.value[i] - 1) / _local.value[i];
+        max_items *= items.value[i];
+    }
+
+    XCAM_FAIL_RETURN (
+        ERROR, max_items, XCAM_RETURN_ERROR_PARAM,
+        "SoftWorker(%s) max item is zero. work failed.", XCAM_STR (get_name ()));
+
+    if (max_items == 1) {
+        ret = work_impl (args, items);
         return status_check (args, ret);
     }
 
-    uint32_t max_items = _work_size.x * _work_size.y * _work_size.z;
     if (!_threads.ptr ()) {
         char thr_name [XCAM_MAX_STR_SIZE];
         snprintf (thr_name, XCAM_MAX_STR_SIZE, "%s-thread-pool", XCAM_STR(get_name ()));
@@ -153,17 +183,16 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
             "SoftWorker(%s) work failed when starting threads", XCAM_STR(get_name()));
     }
 
-    SmartPtr<ItemSynch> sync = new ItemSynch (_work_size.x * _work_size.y * _work_size.z);
-    for (uint32_t z = 0; z < _work_size.z; ++z)
-        for (uint32_t y = 0; y < _work_size.y; ++y)
-            for (uint32_t x = 0; x < _work_size.x; ++x)
+    SmartPtr<ItemSynch> sync = new ItemSynch (max_items);
+    for (uint32_t z = 0; z < items.value[2]; ++z)
+        for (uint32_t y = 0; y < items.value[1]; ++y)
+            for (uint32_t x = 0; x < items.value[0]; ++x)
             {
                 SmartPtr<WorkItem> item = new WorkItem (this, args, WorkSize(x, y, z), sync);
                 ret = _threads->queue (item);
                 XCAM_FAIL_RETURN (
                     ERROR, xcam_ret_is_ok (ret), ret,
-                    "SoftWorker(%s) queue work item(x:%d y: %d z:%d) failed",
-                    _work_size.x, _work_size.y, _work_size.z);
+                    "SoftWorker(%s) queue work item(x:%d y: %d z:%d) failed", x, y, z);
             }
 
     return XCAM_RETURN_NO_ERROR;
@@ -173,6 +202,55 @@ void
 SoftWorker::all_items_done (const SmartPtr<Arguments> &args, XCamReturn error)
 {
     status_check (args, error);
+}
+
+WorkRange
+SoftWorker::get_range (const WorkSize &item)
+{
+    WorkRange range;
+    for (uint32_t i = 0; i < SOFT_MAX_DIM; ++i) {
+        range.pos[i] = item.value[i] * _local.value[i];
+        XCAM_ASSERT (range.pos[i] < _global.value[i]);
+        if (range.pos[i] + _local.value[i] > _global.value[i])
+            range.pos_len[i] = _global.value[i] - range.pos[i];
+        else
+            range.pos_len[i] = _local.value[i];
+    }
+    return range;
+}
+
+XCamReturn
+SoftWorker::work_impl (const SmartPtr<Arguments> &args, const WorkSize &item)
+{
+    WorkRange range = get_range (item);
+    return work_range (args, range);
+}
+
+XCamReturn
+SoftWorker::work_range (const SmartPtr<Arguments> &args, const WorkRange &range)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    WorkSize pixel;
+    memcpy(pixel.value, range.pos, sizeof (pixel.value));
+
+    for (pixel.value[2] = range.pos[2]; pixel.value[2] < range.pos[2] + range.pos_len[2]; ++pixel.value[2])
+        for (pixel.value[1] = range.pos[1]; pixel.value[1] < range.pos[1] + range.pos_len[1]; ++pixel.value[1])
+            for (pixel.value[0] = range.pos[0]; pixel.value[0] < range.pos[0] + range.pos_len[0]; ++pixel.value[0]) {
+                ret = work_pixel (args, pixel);
+                XCAM_FAIL_RETURN (
+                    ERROR, xcam_ret_is_ok (ret), ret,
+                    "SoftWorker(%s) work on pixel(x:%d y: %d z:%d) failed",
+                    get_name (), pixel.value[0], pixel.value[1], pixel.value[2]);
+            }
+
+    return ret;
+}
+
+XCamReturn
+SoftWorker::work_pixel (const SmartPtr<Arguments> &, const WorkSize &)
+{
+    XCAM_LOG_ERROR ("SoftWorker(%s) work_pixel was not derived. check code");
+    return XCAM_RETURN_ERROR_PARAM;
 }
 
 };

@@ -59,7 +59,10 @@ class Worker
 public:
     struct Arguments
     {
+        Arguments () {}
         virtual ~Arguments () {}
+
+        XCAM_DEAD_COPY (Arguments);
     };
 
     class Callback {
