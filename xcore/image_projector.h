@@ -18,12 +18,12 @@
  * Author: Zong Wei <wei.zong@intel.com>
  */
 
-#ifndef IMAGE_PROJECTIVE_2D_H
-#define IMAGE_PROJECTIVE_2D_H
+#ifndef XCAM_IMAGE_PROJECTIVE_2D_H
+#define XCAM_IMAGE_PROJECTIVE_2D_H
 
 #include "xcam_utils.h"
 #include "meta_data.h"
-#include "quaternion.h"
+#include "vec_mat.h"
 #include <vector>
 
 namespace XCam {
@@ -154,4 +154,4 @@ private:
 
 }
 
-#endif
+#endif //XCAM_IMAGE_PROJECTIVE_2D_H

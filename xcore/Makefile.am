@@ -125,7 +125,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     buffer_pool.h                  \
     drm_bo_buffer.h                \
     meta_data.h                    \
-    quaternion.h                   \
+    vec_mat.h                      \
     $(NULL)
 
 if HAVE_LIBDRM

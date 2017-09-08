@@ -1,5 +1,5 @@
 /*
- * quaternion.h - Quaternion defination & calculation
+ * vec_mat.h - vector and matrix defination & calculation
  *
  *  Copyright (c) 2017 Intel Corporation
  *
@@ -18,11 +18,12 @@
  * Author: Zong Wei <wei.zong@intel.com>
  */
 
-#ifndef QUATERNOINS_H_DEF
-#define QUATERNOINS_H_DEF
+#ifndef XCAM_VECTOR_MATRIX_H
+#define XCAM_VECTOR_MATRIX_H
 
-#include <cmath>
 #include "xcam_utils.h"
+#include <cmath>
+
 
 namespace XCam {
 
@@ -39,11 +40,11 @@ namespace XCam {
 #endif
 
 #ifndef DEGREE_2_RADIANS
-#define DEGREE_2_RADIANS(x) ((x * PI) / 180.0)
+#define DEGREE_2_RADIANS(x) (((x) * PI) / 180.0)
 #endif
 
 #ifndef RADIANS_2_DEGREE
-#define RADIANS_2_DEGREE(x) ((x * 180) / PI)
+#define RADIANS_2_DEGREE(x) (((x) * 180.0) / PI)
 #endif
 
 
@@ -959,5 +960,4 @@ typedef Quaternion<double> Quaternd;
 
 }
 
-#endif
-
+#endif //XCAM_VECTOR_MATRIX_H

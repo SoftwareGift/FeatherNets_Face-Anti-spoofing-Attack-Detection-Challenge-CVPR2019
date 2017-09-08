@@ -18,12 +18,12 @@
  * Author: Zong Wei <wei.zong@intel.com>
  */
 
-#ifndef CL_VIDEO_STABILIZER_H
-#define CL_VIDEO_STABILIZER_H
+#ifndef XCAM_CL_VIDEO_STABILIZER_H
+#define XCAM_CL_VIDEO_STABILIZER_H
 
 #include "xcam_utils.h"
 #include "meta_data.h"
-#include "quaternion.h"
+#include "vec_mat.h"
 #include "image_projector.h"
 #include "ocl/cl_image_warp_handler.h"
 
