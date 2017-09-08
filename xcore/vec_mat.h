@@ -90,6 +90,12 @@ public:
         return (x == rhs.x) && (y == rhs.y);
     }
 
+    template <typename New>
+    Vector2<New> convert_to () const {
+        Vector2<New> ret((New)(this->x), (New)(this->y));
+        return ret;
+    }
+
     void reset () {
         this->x = (T) 0;
         this->y = (T) 0;
@@ -162,6 +168,12 @@ public:
 
     inline bool operator == (const Vector3<T>& rhs) const {
         return (x == rhs.x) && (y == rhs.y) && (z == rhs.z);
+    }
+
+    template <typename New>
+    Vector3<New> convert_to () const {
+        Vector3<New> ret((New)(this->x), (New)(this->y), (New)(this->z));
+        return ret;
     }
 
     inline void zeros () {
@@ -246,6 +258,12 @@ public:
 
     inline bool operator == (const Vector4<T>& rhs) const {
         return (x == rhs.x) && (y == rhs.y) && (z == rhs.z) && (w == rhs.w);
+    }
+
+    template <typename New>
+    Vector4<New> convert_to () const {
+        Vector4<New> ret((New)(this->x), (New)(this->y), (New)(this->z), (New)(this->w));
+        return ret;
     }
 
     inline void zeros () {
