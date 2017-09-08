@@ -70,11 +70,11 @@ public:
         return _alignment_y;
     }
 
-#if 0
+#if 1
     virtual XCamReturn blend (
         const SmartPtr<VideoBuffer> &in0,
         const SmartPtr<VideoBuffer> &in1,
-        SmartPtr<VideoBuffer> &out_buf) = 0;
+        SmartPtr<VideoBuffer> &out_buf);
 #endif
 
 protected:

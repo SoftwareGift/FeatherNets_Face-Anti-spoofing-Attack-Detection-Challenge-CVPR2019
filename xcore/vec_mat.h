@@ -59,7 +59,21 @@ public:
     Vector2 () : x(0), y(0) {};
     Vector2 (T _x, T _y) : x(_x), y(_y) {};
 
+    template <typename New>
+    Vector2<New> convert_to () const {
+        Vector2<New> ret((New)(this->x), (New)(this->y));
+        return ret;
+    }
+
     Vector2<T>& operator = (const Vector2<T>& rhs)
+    {
+        x = rhs.x;
+        y = rhs.y;
+        return *this;
+    }
+
+    template <typename Other>
+    Vector2<T>& operator = (const Vector2<Other>& rhs)
     {
         x = rhs.x;
         y = rhs.y;
@@ -72,6 +86,17 @@ public:
 
     Vector2<T> operator + (const Vector2<T>& rhs) const {
         return Vector2<T>(x + rhs.x, y + rhs.y);
+    }
+    Vector2<T> &operator += (const Vector2<T>& rhs) {
+        x += rhs.x;
+        y += rhs.y;
+        return *this;
+    }
+
+    Vector2<T> &operator -= (const Vector2<T>& rhs) {
+        x -= rhs.x;
+        y -= rhs.y;
+        return *this;
     }
 
     Vector2<T> operator - (const Vector2<T>& rhs) const {
@@ -88,12 +113,6 @@ public:
 
     bool operator == (const Vector2<T>& rhs) const {
         return (x == rhs.x) && (y == rhs.y);
-    }
-
-    template <typename New>
-    Vector2<New> convert_to () const {
-        Vector2<New> ret((New)(this->x), (New)(this->y));
-        return ret;
     }
 
     void reset () {

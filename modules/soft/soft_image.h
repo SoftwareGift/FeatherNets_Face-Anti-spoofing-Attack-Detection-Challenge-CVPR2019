@@ -49,16 +49,34 @@ private:
     uint32_t    _height;
     uint32_t    _pitch;
 
+    SmartPtr<VideoBuffer> _bind;
+
 public:
-    explicit SoftImage (const SmartPtr<VideoBuffer> &buf, const uint32_t &plane)
+    explicit SoftImage (
+        const SmartPtr<VideoBuffer> &buf,
+        const uint32_t width,
+        const uint32_t height,
+        const uint32_t pictch,
+        const uint32_t offset = 0)
         : _buf_ptr (NULL)
+        , _width (width)
+        , _height (height)
+        , _pitch (pictch)
+        , _bind (buf)
     {
-        const VideoBufferInfo &info = buf->get_video_info ();
         XCAM_ASSERT (buf.ptr ());
-        _buf_ptr = buf->map () + info.offsets[plane];
-        _width = info.width;
-        _height = info.height;
-        _pitch = info.strides[plane];
+        XCAM_ASSERT (buf->map ());
+        _buf_ptr = buf->map () + offset;
+    }
+
+    uint32_t get_width () const {
+        return _width;
+    }
+    uint32_t get_height () const {
+        return _height;
+    }
+    const SmartPtr<VideoBuffer> &get_buf () const {
+        return _bind;
     }
 
     inline T read_data_no_check (int32_t x, int32_t y) {

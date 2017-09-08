@@ -109,5 +109,14 @@ Blender::auto_calc_merge_window (
     return true;
 }
 
+XCamReturn
+Blender::blend (
+    const SmartPtr<VideoBuffer> &,
+    const SmartPtr<VideoBuffer> &,
+    SmartPtr<VideoBuffer> &)
+{
+    XCAM_LOG_ERROR ("Blender interface blend must be derived.");
+    return XCAM_RETURN_ERROR_UNKNOWN;
+}
 
 }
