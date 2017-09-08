@@ -22,6 +22,9 @@
 #ifndef XCAM_TEST_COMMON_H
 #define XCAM_TEST_COMMON_H
 
+#include <unistd.h>
+#include <getopt.h>
+
 #undef CHECK_DECLARE
 #undef CHECK
 #undef CHECK_CONTINUE

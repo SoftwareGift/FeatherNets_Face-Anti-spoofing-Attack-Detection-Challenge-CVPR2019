@@ -6,3 +6,4 @@ test-image-deblurring
 test-image-stitching
 test-pipe-manager
 test-video-stabilization
+test-soft-image

@@ -20,6 +20,7 @@ TEST_BASE_LA = \
 
 noinst_PROGRAMS = \
 	test-device-manager  \
+	test-soft-image  \
 	$(NULL)
 
 if ENABLE_IA_AIQ
@@ -117,3 +118,10 @@ test_image_deblurring_LDADD = \
 	$(NULL)
 endif
 endif
+
+test_soft_image_SOURCES = test-soft-image.cpp
+test_soft_image_CXXFLAGS = $(TEST_BASE_CXXFLAGS)
+test_soft_image_LDADD =                           \
+	$(top_builddir)/modules/soft/libxcam_soft.la  \
+	$(TEST_BASE_LA)          \
+	$(NULL)
