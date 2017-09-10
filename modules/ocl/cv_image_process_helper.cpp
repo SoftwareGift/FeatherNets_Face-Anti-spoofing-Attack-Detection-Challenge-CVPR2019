@@ -45,21 +45,13 @@ float
 CVImageProcessHelper::get_snr (const cv::Mat &noisy, const cv::Mat &noiseless)
 {
     cv::Mat temp_noisy, temp_noiseless;
-    noisy.convertTo (temp_noisy, CV_8UC1);
-    noiseless.convertTo (temp_noiseless, CV_8UC1);
-    float numerator = 0;
-    float denominator = 0;
-    float res = 0;
-    for (int i = 0; i < temp_noisy.rows; i++)
-    {
-        for (int j = 0; j < temp_noisy.cols; j++)
-        {
-            denominator += ((temp_noisy.at<unsigned char>(i, j) - temp_noiseless.at<unsigned char>(i, j))
-                            * (temp_noisy.at<unsigned char>(i, j) - temp_noiseless.at<unsigned char>(i, j)));
-            numerator += (temp_noisy.at<unsigned char>(i, j) * temp_noisy.at<unsigned char>(i, j));
-        }
-    }
-    res = sqrt (numerator / denominator);
+    noisy.convertTo (temp_noisy, CV_32FC1);
+    noiseless.convertTo (temp_noiseless, CV_32FC1);
+    cv::Mat numerator, denominator;
+    cv::pow (temp_noisy, 2, numerator);
+    cv::pow (temp_noisy - temp_noiseless, 2, denominator);
+    float res = cv::sum (numerator)[0] / cv::sum (denominator)[0];
+    res = sqrt (res);
     return res;
 }
 
@@ -129,7 +121,6 @@ CVImageProcessHelper::normalize_weights (cv::Mat &weights)
     {
         for (int j = 0; j <= i; j++)
         {
-
             weights.at<float>(i, j) = (weights.at<float>(i, j) + weights.at<float>(j, i)) / 2;
             weights.at<float>(j, i) = weights.at<float>(i, j);
             if (j == i)

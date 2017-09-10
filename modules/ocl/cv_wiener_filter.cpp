@@ -49,8 +49,8 @@ CVWienerFilter::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &know
 {
     int image_w = blurred_image.size().width;
     int image_h = blurred_image.size().height;
-    cv::Mat yFT[2];
-    _helpers->compute_dft (blurred_image, yFT);
+    cv::Mat y_ft[2];
+    _helpers->compute_dft (blurred_image, y_ft);
 
     cv::Mat padded = cv::Mat::zeros(image_h, image_w, CV_32FC1);
     int padx = padded.cols - known.cols;
@@ -64,25 +64,26 @@ CVWienerFilter::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &know
     unknown_ft[0] = cv::Mat::zeros(image_h, image_w, CV_32FC1);
     unknown_ft[1] = cv::Mat::zeros(image_h, image_w, CV_32FC1);
 
-    float padded_re;
-    float padded_im;
-    float padded_abs;
-    float denominator;
-    std::complex<float> numerator;
+    cv::Mat denominator;
+    cv::Mat padded_re;
+    cv::Mat padded_im;
+    cv::pow (padded_ft[0], 2, padded_re);
+    cv::pow (padded_ft[1], 2, padded_im);
+    denominator = padded_re + padded_im + cv::Scalar (noise_power);
 
-    for (int i = 0; i < padded.rows; i++)
-    {
-        for (int j = 0; j < padded.cols; j++)
-        {
-            padded_re = padded_ft[0].at<float>(i, j);
-            padded_im = padded_ft[1].at<float>(i, j);
-            padded_abs = padded_re * padded_re + padded_im * padded_im;
-            denominator = noise_power + padded_abs;
-            numerator = std::complex<float>(padded_re, -padded_im) * std::complex<float>(yFT[0].at<float>(i, j), yFT[1].at<float>(i, j));
-            unknown_ft[0].at<float>(i, j) = numerator.real() / denominator;
-            unknown_ft[1].at<float>(i, j) = numerator.imag() / denominator;
-        }
-    }
+    cv::Mat numerator_real;
+    cv::Mat numerator_im;
+    cv::Mat first_term;
+    cv::Mat second_term;
+    first_term = padded_ft[0].mul (y_ft[0]);
+    second_term = padded_ft[1].mul (y_ft[1]);
+    numerator_real = first_term + second_term;
+    first_term = padded_ft[0].mul (y_ft[1]);
+    second_term = padded_ft[1].mul (y_ft[0]);
+    numerator_im = first_term - second_term;
+    cv::divide (numerator_real, denominator, unknown_ft[0]);
+    cv::divide (numerator_im, denominator, unknown_ft[1]);
+
     _helpers->compute_idft (unknown_ft, temp_unknown);
     rotate (temp_unknown, temp_unknown);
     unknown = temp_unknown.clone();
