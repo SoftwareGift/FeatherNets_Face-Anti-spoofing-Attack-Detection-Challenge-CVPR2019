@@ -1,5 +1,5 @@
 /*
- * soft_image_allocator.h - soft image allocator class
+ * soft_video_buf_allocator.h - soft video buffer allocator class
  *
  *  Copyright (c) 2017 Intel Corporation
  *
@@ -18,20 +18,21 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#ifndef XCAM_SOFT_IMAGE_ALLOCATOR_H
-#define XCAM_SOFT_IMAGE_ALLOCATOR_H
+#ifndef XCAM_SOFT_VIDEO_BUF_ALLOCATOR_H
+#define XCAM_SOFT_VIDEO_BUF_ALLOCATOR_H
 
 #include "xcam_utils.h"
 #include "buffer_pool.h"
 
 namespace XCam {
 
-class SoftImageAllocator
+class SoftVideoBufAllocator
     : public BufferPool
 {
 public:
-    explicit SoftImageAllocator ();
-    virtual ~SoftImageAllocator ();
+    explicit SoftVideoBufAllocator ();
+    explicit SoftVideoBufAllocator (const VideoBufferInfo &info);
+    virtual ~SoftVideoBufAllocator ();
 
 private:
     //derive from BufferPool
@@ -53,4 +54,4 @@ private:
 
 }
 
-#endif //XCAM_SOFT_IMAGE_ALLOCATOR_H
+#endif //XCAM_SOFT_VIDEO_BUF_ALLOCATOR_H

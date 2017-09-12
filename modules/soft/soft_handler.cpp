@@ -19,7 +19,7 @@
  */
 
 #include "soft_handler.h"
-#include "soft_image_allocator.h"
+#include "soft_video_buf_allocator.h"
 #include "thread_pool.h"
 #include "soft_worker.h"
 
@@ -75,7 +75,7 @@ SoftHandler::SoftHandler (const char* name)
     , _need_configure (true)
     , _wip_buf_count (0)
 {
-    set_allocator (new SoftImageAllocator);
+    set_allocator (new SoftVideoBufAllocator);
     char thrds_name[XCAM_MAX_STR_SIZE];
     snprintf (thrds_name, XCAM_MAX_STR_SIZE, "t-pool-%s", XCAM_STR(name));
     _threads = new ThreadPool (thrds_name);

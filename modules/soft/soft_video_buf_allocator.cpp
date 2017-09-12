@@ -1,5 +1,5 @@
 /*
- * soft_image_allocator.cpp - soft image allocator implementation
+ * soft_video_buf_allocator.cpp - soft video buffer allocator implementation
  *
  *  Copyright (c) 2017 Intel Corporation
  *
@@ -18,7 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "soft_image_allocator.h"
+#include "soft_video_buf_allocator.h"
 
 namespace XCam {
 
@@ -69,21 +69,26 @@ VideoMemData::unmap ()
     return true;
 }
 
-SoftImageAllocator::SoftImageAllocator ()
+SoftVideoBufAllocator::SoftVideoBufAllocator ()
 {
 }
 
-SoftImageAllocator::~SoftImageAllocator ()
+SoftVideoBufAllocator::SoftVideoBufAllocator (const VideoBufferInfo &info)
+{
+    set_video_info (info);
+}
+
+SoftVideoBufAllocator::~SoftVideoBufAllocator ()
 {
 }
 
 SmartPtr<BufferData>
-SoftImageAllocator::allocate_data (const VideoBufferInfo &buffer_info)
+SoftVideoBufAllocator::allocate_data (const VideoBufferInfo &buffer_info)
 {
     SmartPtr<VideoMemData> data = new VideoMemData (buffer_info.size);
     XCAM_FAIL_RETURN (
         ERROR, data.ptr () && data->is_valid (),
-        NULL, "SoftImageAllocator allocate data failed. buf_size:%d", buffer_info.size);
+        NULL, "SoftVideoBufAllocator allocate data failed. buf_size:%d", buffer_info.size);
 
     return data;
 }

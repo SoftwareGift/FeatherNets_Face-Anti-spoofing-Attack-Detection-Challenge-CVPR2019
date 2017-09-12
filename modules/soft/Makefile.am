@@ -8,7 +8,7 @@ XCAMSOFT_CXXFLAGS =               \
 
 xcam_soft_sources =                  \
     soft_handler.cpp                 \
-    soft_image_allocator.cpp         \
+    soft_video_buf_allocator.cpp     \
     soft_worker.cpp                  \
     soft_blender.cpp                 \
    $(NULL)
@@ -35,7 +35,7 @@ libxcam_softincludedir = $(includedir)/xcam/soft
 
 nobase_libxcam_softinclude_HEADERS =   \
     soft_handler.h                     \
-    soft_image_allocator.h             \
+    soft_video_buf_allocator.h         \
     soft_worker.h                      \
     soft_image.h                       \
     soft_blender.h                     \
