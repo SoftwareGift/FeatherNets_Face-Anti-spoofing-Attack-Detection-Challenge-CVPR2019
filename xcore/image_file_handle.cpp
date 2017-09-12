@@ -27,6 +27,11 @@ ImageFileHandle::ImageFileHandle ()
 {
 }
 
+ImageFileHandle::ImageFileHandle (const char *name, const char *option)
+    : FileHandle (name, option)
+{
+}
+
 ImageFileHandle::~ImageFileHandle ()
 {
     close ();
@@ -79,7 +84,7 @@ ImageFileHandle::write_buf (const SmartPtr<VideoBuffer> &buf)
 
         for (uint32_t i = 0; i < planar.height; i++) {
             if (fwrite (memory + info.offsets [index] + i * info.strides [index], 1, line_bytes, _fp) != line_bytes) {
-                XCAM_LOG_ERROR ("read file failed, size doesn't match");
+                XCAM_LOG_ERROR ("write file failed, size doesn't match");
                 ret = XCAM_RETURN_ERROR_FILE;
             }
         }

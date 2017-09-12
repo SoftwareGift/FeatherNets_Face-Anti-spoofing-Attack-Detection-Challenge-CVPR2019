@@ -29,6 +29,7 @@ namespace XCam {
 class FileHandle {
 public:
     FileHandle ();
+    explicit FileHandle (const char *name, const char *option);
     virtual ~FileHandle ();
 
     bool is_valid () const {

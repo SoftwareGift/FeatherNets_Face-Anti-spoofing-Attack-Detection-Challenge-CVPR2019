@@ -32,6 +32,7 @@ class ImageFileHandle
 {
 public:
     ImageFileHandle ();
+    explicit ImageFileHandle (const char *name, const char *option);
     virtual ~ImageFileHandle ();
 
     XCamReturn read_buf (const SmartPtr<VideoBuffer> &buf);

@@ -31,6 +31,14 @@ FileHandle::FileHandle ()
     , _file_size (INVALID_SIZE)
 {}
 
+FileHandle::FileHandle (const char *name, const char *option)
+    : _fp (NULL)
+    , _file_name (NULL)
+    , _file_size (INVALID_SIZE)
+{
+    open (name, option);
+}
+
 FileHandle::~FileHandle ()
 {
     close ();
