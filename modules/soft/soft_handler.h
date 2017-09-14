@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "image_handler.h"
+#include "worker.h"
 
 namespace XCam {
 
@@ -30,6 +31,22 @@ class SoftHandler;
 class ThreadPool;
 class SyncMeta;
 class SoftWorker;
+
+struct SoftArgs
+    : Worker::Arguments
+{
+private:
+    SmartPtr<ImageHandler::Parameters> _param;
+public:
+    explicit SoftArgs (const SmartPtr<ImageHandler::Parameters> &param = NULL) : _param (param) {}
+    inline const SmartPtr<ImageHandler::Parameters> &get_param () const {
+        return _param;
+    }
+    inline void set_param (const SmartPtr<ImageHandler::Parameters> &param) {
+        _param = param;
+        XCAM_ASSERT (param.ptr ());
+    }
+};
 
 class SoftHandler
     : public ImageHandler
@@ -41,14 +58,23 @@ public:
     bool set_threads (uint32_t num);
 
     // derive from ImageHandler
-    virtual XCamReturn execute_buffer (SmartPtr<Parameters> &params, bool sync);
+    virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &param, bool sync);
     virtual XCamReturn finish ();
     virtual XCamReturn terminate ();
 
 protected:
-    virtual XCamReturn configure_resource (const SmartPtr<Parameters> &params);
-    virtual SmartPtr<Worker::Arguments> get_first_worker_args (const SmartPtr<SoftWorker> &worker, SmartPtr<Parameters> &params) = 0;
-    virtual XCamReturn last_worker_done (XCamReturn err);
+    virtual XCamReturn configure_resource (const SmartPtr<Parameters> &param);
+    virtual XCamReturn start_work (const SmartPtr<Parameters> &param) = 0;
+    //virtual SmartPtr<Worker::Arguments> get_first_worker_args (const SmartPtr<SoftWorker> &worker, SmartPtr<Parameters> &params) = 0;
+    virtual void work_well_done (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
+    virtual void work_broken (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
+
+    //directly usage
+    bool check_work_continue (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
+
+private:
+    void param_ended (SmartPtr<ImageHandler::Parameters> param, XCamReturn err);
+    static bool is_param_error (const SmartPtr<ImageHandler::Parameters> &param);
 
 private:
     XCAM_DEAD_COPY (SoftHandler);

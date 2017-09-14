@@ -97,12 +97,11 @@ ImageHandler::terminate ()
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-ImageHandler::execute_status_check (SmartPtr<ImageHandler::Parameters> &params, const XCamReturn error)
+void
+ImageHandler::execute_status_check (const SmartPtr<ImageHandler::Parameters> &params, const XCamReturn error)
 {
     if (_callback.ptr ())
-        return _callback->execute_status (this, params, error);
-    return error;
+        _callback->execute_status (this, params, error);
 }
 
 XCamReturn

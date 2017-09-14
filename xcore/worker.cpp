@@ -29,8 +29,9 @@ WorkChain::set_next (const SmartPtr<WorkChain>& next)
     return true;
 }
 
-Worker::Worker (const char *name)
+Worker::Worker (const char *name, const SmartPtr<Callback> &cb)
     : _name (NULL)
+    , _callback (cb)
 {
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
@@ -68,12 +69,11 @@ Worker::set_callback (const SmartPtr<Worker::Callback> &callback)
     return true;
 }
 
-XCamReturn
+void
 Worker::status_check (const SmartPtr<Worker::Arguments> &args, const XCamReturn error)
 {
     if (_callback.ptr ())
-        return _callback->work_status (this, args, error);
-    return error;
+        _callback->work_status (this, args, error);
 }
 
 #if ENABLE_FUNC_OBJ
@@ -91,7 +91,8 @@ XCamReturn
 Worker::work (const SmartPtr<Worker::Arguments> &args)
 {
     XCamReturn ret = _func_obj->impl(args);
-    return status_check (args, ret);
+    status_check (args, ret);
+    return ret;
 }
 #endif
 };
@@ -111,7 +112,8 @@ public:
         SmartPtr<UTArguments> ut_args = args.dynamic_cast_ptr<UTArguments> ();
         XCAM_ASSERT (ut_args.ptr ());
         printf ("unit test worker runing on data:%d\n", ut_args->data);
-        return status_check (args, XCAM_RETURN_NO_ERROR);
+        status_check (args, XCAM_RETURN_NO_ERROR);
+        return XCAM_RETURN_NO_ERROR;
     }
 };
 

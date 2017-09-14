@@ -90,10 +90,19 @@ public:
     }
 
     template<uint32_t N>
-    inline void read_array_no_check (int32_t x, int32_t y, T *array) {
+    inline void read_array_no_check (const int32_t x, const int32_t y, T *array) {
         XCAM_ASSERT (N <= 8);
-        const T *t_ptr = ((const T *)(_buf_ptr + y * _pitch));
-        memcpy (array, t_ptr + x, sizeof (T) * N);
+        const T *t_ptr = ((const T *)(_buf_ptr + y * _pitch)) + x;
+        memcpy (array, t_ptr, sizeof (T) * N);
+    }
+
+    template<typename O, uint32_t N>
+    inline void read_array_no_check (const int32_t x, const int32_t y, O *array) {
+        XCAM_ASSERT (N <= 8);
+        const T *t_ptr = ((const T *)(_buf_ptr + y * _pitch)) + x;
+        for (uint32_t i = 0; i < N; ++i) {
+            array[i] = t_ptr[i];
+        }
     }
 
     template<uint32_t N>
@@ -180,6 +189,26 @@ inline Uchar convert_to_uchar (const T& v) {
     else if (v > 255.0f) return 255;
     return (Uchar)(v + 0.5f);
 }
+
+template <typename T, uint32_t N>
+inline void convert_to_uchar_N (const T *in, Uchar *out) {
+    for (uint32_t i = 0; i < N; ++i) {
+        out[i] = convert_to_uchar<T> (in[i]);
+    }
+}
+
+template <typename Vec2, uint32_t N>
+inline void convert_to_uchar2_N (const Vec2 *in, Uchar2 *out) {
+    for (uint32_t i = 0; i < N; ++i) {
+        out[i].x = convert_to_uchar (in[i].x);
+        out[i].y = convert_to_uchar (in[i].y);
+    }
+}
+
+typedef SoftImage<Uchar> UcharImage;
+typedef SoftImage<Uchar2> Uchar2Image;
+typedef SoftImage<float> FloatImage;
+typedef SoftImage<Float2> Float2Image;
 
 }
 #endif //XCAM_SOFT_IMAGE_H

@@ -103,8 +103,8 @@ WorkItem::done (XCamReturn err)
     }
 }
 
-SoftWorker::SoftWorker (const char *name)
-    : Worker (name)
+SoftWorker::SoftWorker (const char *name, const SmartPtr<Callback> &cb)
+    : Worker (name, cb)
 {
 }
 
@@ -158,7 +158,7 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
     uint32_t max_items = 1;
 
     for (uint32_t i = 0; i < SOFT_MAX_DIM; ++i) {
-        items.value[i] = (_global.value[i] + _local.value[i] - 1) / _local.value[i];
+        items.value[i] = xcam_ceil (_global.value[i],  _local.value[i]);
         max_items *= items.value[i];
     }
 
@@ -168,7 +168,8 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
 
     if (max_items == 1) {
         ret = work_impl (args, items);
-        return status_check (args, ret);
+        status_check (args, ret);
+        return ret;
     }
 
     if (!_threads.ptr ()) {
@@ -190,9 +191,15 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
             {
                 SmartPtr<WorkItem> item = new WorkItem (this, args, WorkSize(x, y, z), sync);
                 ret = _threads->queue (item);
-                XCAM_FAIL_RETURN (
-                    ERROR, xcam_ret_is_ok (ret), ret,
-                    "SoftWorker(%s) queue work item(x:%d y: %d z:%d) failed", x, y, z);
+                if (!xcam_ret_is_ok (ret)) {
+                    //consider half queued but half failed
+                    sync->update_error (ret);
+                    //status_check (args, ret); // need it here?
+                    XCAM_LOG_ERROR (
+                        "SoftWorker(%s) queue work item(x:%d y: %d z:%d) failed",
+                        XCAM_STR(get_name()), x, y, z);
+                    return ret;
+                }
             }
 
     return XCAM_RETURN_NO_ERROR;

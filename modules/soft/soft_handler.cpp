@@ -35,12 +35,13 @@ public:
     void signal_done (XCamReturn err);
     void wakeup ();
     XCamReturn signal_wait_ret ();
+    bool is_error () const;
 
 private:
-    Mutex       _mutex;
-    Cond        _cond;
-    bool        _done;
-    XCamReturn  _error;
+    mutable Mutex   _mutex;
+    Cond            _cond;
+    bool            _done;
+    XCamReturn      _error;
 };
 
 void
@@ -70,6 +71,13 @@ SyncMeta::signal_wait_ret ()
     return _error;
 }
 
+bool
+SyncMeta::is_error () const
+{
+    SmartLock locker (_mutex);
+    return !xcam_ret_is_ok (_error);
+}
+
 SoftHandler::SoftHandler (const char* name)
     : ImageHandler (name)
     , _need_configure (true)
@@ -92,14 +100,13 @@ SoftHandler::set_threads (uint32_t num)
 }
 
 XCamReturn
-SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &params)
+SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    if (!_need_configure)
-        return ret;
 
-    if (!params->out_buf.ptr ()) {
-        ret = reserve_buffers (params->out_buf->get_video_info (), DEFAULT_SOFT_BUF_COUNT);
+    XCAM_ASSERT (_need_configure);
+    if (!param->out_buf.ptr ()) {
+        ret = reserve_buffers (param->out_buf->get_video_info (), DEFAULT_SOFT_BUF_COUNT);
         XCAM_FAIL_RETURN (
             ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
             "soft_hander(%s) configure resource failed in reserving buffers", XCAM_STR (get_name ()));
@@ -117,21 +124,24 @@ SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param
 }
 
 XCamReturn
-SoftHandler::execute_buffer (SmartPtr<ImageHandler::Parameters> &params, bool sync)
+SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bool sync)
 {
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<SyncMeta> sync_meta;
-    XCamReturn ret = configure_resource (params);
-    XCAM_FAIL_RETURN (
-        WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
-        "soft_hander(%s) configure resource failed", XCAM_STR (get_name ()));
 
-    if (sync) {
-        XCAM_ASSERT (!params->find_meta<SyncMeta> ().ptr ());
-        sync_meta = new SyncMeta ();
-        XCAM_ASSERT (sync_meta.ptr ());
-        params->add_meta (sync_meta);
+    if (_need_configure) {
+        ret = configure_resource (param);
+        XCAM_FAIL_RETURN (
+            WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
+            "soft_hander(%s) configure resource failed", XCAM_STR (get_name ()));
     }
 
+    XCAM_ASSERT (!param->find_meta<SyncMeta> ().ptr ());
+    sync_meta = new SyncMeta ();
+    XCAM_ASSERT (sync_meta.ptr ());
+    param->add_meta (sync_meta);
+
+#if 0
     SmartPtr<SoftWorker> worker = get_first_worker ().dynamic_cast_ptr<SoftWorker> ();
     XCAM_FAIL_RETURN (
         WARNING, worker.ptr (), XCAM_RETURN_ERROR_PARAM,
@@ -145,15 +155,22 @@ SoftHandler::execute_buffer (SmartPtr<ImageHandler::Parameters> &params, bool sy
 
     _params.push (params);
     ret = worker->work (args);
+#else
+    _params.push (param);
+    ret = start_work (param);
+#endif
 
-    XCAM_FAIL_RETURN (
-        WARNING, ret >= XCAM_RETURN_NO_ERROR, XCAM_RETURN_ERROR_PARAM,
-        "soft_hander(%s) execute buffer failed in working", XCAM_STR (get_name ()));
+    if (!xcam_ret_is_ok (ret)) {
+        _params.erase (param);
+        XCAM_LOG_WARNING ("soft_hander(%s) execute buffer failed in starting workers", XCAM_STR (get_name ()));
+        return ret;
+    }
+
     ++_wip_buf_count;
+    _cur_sync = sync_meta;
 
     if (sync) {
         XCAM_ASSERT (sync_meta.ptr ());
-        _cur_sync = sync_meta;
         ret = sync_meta->signal_wait_ret ();
         _cur_sync.release ();
     }
@@ -165,8 +182,9 @@ XCamReturn
 SoftHandler::finish ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    if (_cur_sync.ptr ()) {
-        ret = _cur_sync->signal_wait_ret ();
+    SmartPtr<SyncMeta> sync = _cur_sync;
+    if (sync.ptr ()) {
+        ret = sync->signal_wait_ret ();
     }
     XCAM_ASSERT (_params.is_empty ());
     //wait for _wip_buf_count = 0
@@ -179,25 +197,97 @@ SoftHandler::finish ()
 XCamReturn
 SoftHandler::terminate ()
 {
-    if (_cur_sync.ptr ()) {
-        _cur_sync->wakeup ();
-        _cur_sync.release ();
+    SmartPtr<SyncMeta> sync = _cur_sync;
+    if (sync.ptr ()) {
+        sync->wakeup ();
+        sync.release ();
     }
     _params.clear ();
     return ImageHandler::terminate ();
 }
 
-XCamReturn
-SoftHandler::last_worker_done (XCamReturn err)
+void
+SoftHandler::work_well_done (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err)
 {
-    SmartPtr<ImageHandler::Parameters> params = _params.pop (0);
-    SmartPtr<SyncMeta> sync_meta = params->find_meta<SyncMeta> ();
-    if (sync_meta.ptr ())
-        sync_meta->signal_done (err);
+    XCAM_ASSERT (param.ptr ());
+    XCAM_ASSERT (xcam_ret_is_ok (err));
 
+    if (!xcam_ret_is_ok (err)) {
+        XCAM_LOG_WARNING ("soft_hander(%s) work_well_done but errno(%d) is not ok", XCAM_STR (get_name ()), (int)err);
+        //continue work
+    }
+
+    if (!_params.erase (param)) {
+        XCAM_LOG_ERROR(
+            "soft_hander(%s) last_work_done param already removed, who removed it?", XCAM_STR (get_name ()));
+        return;
+    }
+
+    XCAM_LOG_DEBUG ("soft_hander(%s) work well done", XCAM_STR (get_name ()));
+
+    XCAM_ASSERT (param.ptr () == _params.front ().ptr ());
+    param_ended (param, err);
+}
+
+void
+SoftHandler::work_broken (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err)
+{
+    XCAM_ASSERT (param.ptr ());
+    XCAM_ASSERT (!xcam_ret_is_ok (err));
+
+    if (xcam_ret_is_ok (err)) {
+        XCAM_LOG_WARNING ("soft_hander(%s) work_broken but the errno(%d) is ok", XCAM_STR (get_name ()), (int)err);
+        //continue work
+    }
+
+    if (!_params.erase (param)) {
+        //already removed by other handlers
+        return;
+    }
+    XCAM_LOG_WARNING ("soft_hander(%s) work broken", XCAM_STR (get_name ()));
+
+    param_ended (param, err);
+}
+
+void
+SoftHandler::param_ended (SmartPtr<ImageHandler::Parameters> param, XCamReturn err)
+{
+    XCAM_ASSERT (param.ptr ());
+
+    SmartPtr<SyncMeta> sync_meta = param->find_meta<SyncMeta> ();
+    XCAM_ASSERT (sync_meta.ptr ());
+    sync_meta->signal_done (err);
     --_wip_buf_count;
-    XCAM_ASSERT (params.ptr ());
-    return execute_status_check (params, err);
+    execute_status_check (param, err);
+}
+
+bool
+SoftHandler::check_work_continue (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err)
+{
+    if (!xcam_ret_is_ok (err)) {
+        work_broken (param, err);
+        return false;
+    }
+
+    if (is_param_error (param)) {
+        XCAM_LOG_WARNING (
+            "soft_handler(%s) check_work_continue found param broken", XCAM_STR(get_name ()));
+        return false;
+    }
+    return true;
+}
+
+bool
+SoftHandler::is_param_error (const SmartPtr<ImageHandler::Parameters> &param)
+{
+    XCAM_ASSERT (param.ptr ());
+    SmartPtr<SyncMeta> meta = param->find_meta<SyncMeta> ();
+    if (!meta.ptr ()) { // return ok if param not set
+        XCAM_ASSERT (meta.ptr ());
+        return false;
+    }
+
+    return meta->is_error ();
 }
 
 }

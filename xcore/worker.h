@@ -30,11 +30,11 @@
     class CbClass : public ::XCam::Worker::Callback {                     \
         private: ::XCam::SmartPtr<Handler>  _h;                           \
         public: CbClass (const ::XCam::SmartPtr<Handler> &h) { _h = h;}   \
-        protected: XCamReturn work_status (                               \
+        protected: void work_status (                                     \
             const ::XCam::SmartPtr<::XCam::Worker> &worker,               \
             const ::XCam::SmartPtr<::XCam::Worker::Arguments> &args,      \
             const XCamReturn error) {                                     \
-            return _h->mem_func (worker, args, error);  }                 \
+            _h->mem_func (worker, args, error);  }                        \
     }
 
 namespace XCam {
@@ -70,7 +70,7 @@ public:
         Callback () {}
         virtual ~Callback () {}
 
-        virtual XCamReturn work_status (
+        virtual void work_status (
             const SmartPtr<Worker> &worker, const SmartPtr<Arguments> &args, const XCamReturn error) = 0;
 
     private:
@@ -89,7 +89,7 @@ public:
 #endif
 
 protected:
-    explicit Worker (const char *name);
+    explicit Worker (const char *name, const SmartPtr<Callback> &cb = NULL);
 
 public:
     virtual ~Worker ();
@@ -105,7 +105,7 @@ public:
     virtual XCamReturn work (const SmartPtr<Arguments> &args) = 0;
 
 protected:
-    virtual XCamReturn status_check (const SmartPtr<Arguments> &args, const XCamReturn error);
+    virtual void status_check (const SmartPtr<Arguments> &args, const XCamReturn error);
 
 private:
     XCAM_DEAD_COPY (Worker);

@@ -78,6 +78,21 @@ const char *xcam_fourcc_to_string (uint32_t fourcc);
 void xcam_set_log (const char* file_name);
 void xcam_print_log (const char* format, ...);
 
+static inline uint32_t
+xcam_ceil (uint32_t value, const uint32_t align) {
+    return (value + align - 1) / align * align;
+}
+
+static inline uint32_t
+xcam_around (uint32_t value, const uint32_t align) {
+    return (value + align / 2) / align * align;
+}
+
+static inline uint32_t
+xcam_floor (uint32_t value, const uint32_t align) {
+    return value / align * align;
+}
+
 XCAM_END_DECLARE
 
 #endif //XCAM_COMMON_H

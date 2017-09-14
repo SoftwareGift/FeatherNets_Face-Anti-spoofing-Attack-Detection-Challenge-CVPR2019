@@ -10,7 +10,6 @@ xcam_soft_sources =                  \
     soft_handler.cpp                 \
     soft_video_buf_allocator.cpp     \
     soft_worker.cpp                  \
-    soft_blender.cpp                 \
    $(NULL)
 
 libxcam_soft_la_SOURCES =   \
@@ -38,7 +37,6 @@ nobase_libxcam_softinclude_HEADERS =   \
     soft_video_buf_allocator.h         \
     soft_worker.h                      \
     soft_image.h                       \
-    soft_blender.h                     \
    $(NULL)
 
 libxcam_soft_la_LIBTOOLFLAGS = --tag=disable-static

@@ -30,11 +30,11 @@
     class CbClass : public ::XCam::ImageHandler::Callback {              \
         private: ::XCam::SmartPtr<Next>  _h;                             \
         public: CbClass (const ::XCam::SmartPtr<Next> &h) { _h = h;}     \
-        protected: XCamReturn execute_status (                           \
+        protected: void execute_status (                                 \
             const ::XCam::SmartPtr<::XCam::ImageHandler> &handler,       \
-            ::XCam::SmartPtr<::XCam::ImageHandler::Parameters> &params,  \
+            const ::XCam::SmartPtr<::XCam::ImageHandler::Parameters> &params,  \
             const XCamReturn error) {                                    \
-            return _h->mem_func (handler, params, error);  }             \
+            _h->mem_func (handler, params, error);  }                    \
     }
 
 namespace XCam {
@@ -63,8 +63,8 @@ public:
     class Callback {
     public:
         virtual ~Callback () {}
-        virtual XCamReturn execute_status (
-            const SmartPtr<ImageHandler> &handler, SmartPtr<Parameters> &params, const XCamReturn error) = 0;
+        virtual void execute_status (
+            const SmartPtr<ImageHandler> &handler, const SmartPtr<Parameters> &params, const XCamReturn error) = 0;
 
     private:
         XCAM_DEAD_COPY (Callback);
@@ -92,12 +92,12 @@ public:
 
     // virtual functions
     // execute_buffer params should  NOT be const
-    virtual XCamReturn execute_buffer (SmartPtr<Parameters> &params, bool sync) = 0;
+    virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &params, bool sync) = 0;
     virtual XCamReturn finish ();
     virtual XCamReturn terminate ();
 
 protected:
-    virtual XCamReturn execute_status_check (SmartPtr<Parameters> &params, const XCamReturn error);
+    virtual void execute_status_check (const SmartPtr<Parameters> &params, const XCamReturn error);
 
     bool set_allocator (const SmartPtr<BufferPool> &allocator);
     const SmartPtr<BufferPool> &get_allocator () const {

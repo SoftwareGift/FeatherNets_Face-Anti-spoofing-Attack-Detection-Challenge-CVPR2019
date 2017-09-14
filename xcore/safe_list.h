@@ -35,6 +35,7 @@ class SafeList {
 public:
     typedef SmartPtr<OBj> ObjPtr;
     typedef std::list<ObjPtr> ObjList;
+    typedef typename std::list<typename SafeList<OBj>::ObjPtr>::iterator ObjIter;
 
     SafeList ()
         : _pop_paused (false)
@@ -48,6 +49,8 @@ public:
     */
     inline ObjPtr pop (int32_t timeout = -1);
     inline bool push (const ObjPtr &obj);
+    inline bool erase (const ObjPtr &obj);
+    inline ObjPtr front ();
     uint32_t size () {
         SmartLock lock(_mutex);
         return _obj_list.size();
@@ -120,10 +123,37 @@ SafeList<OBj>::push (const SafeList<OBj>::ObjPtr &obj)
 }
 
 template<class OBj>
+bool
+SafeList<OBj>::erase (const SafeList<OBj>::ObjPtr &obj)
+{
+    XCAM_ASSERT (obj.ptr ());
+    SmartLock lock (_mutex);
+    for (SafeList<OBj>::ObjIter i_obj = _obj_list.begin ();
+            i_obj != _obj_list.end (); ++i_obj) {
+        if ((*i_obj).ptr () == obj.ptr ()) {
+            _obj_list.erase (i_obj);
+            return true;
+        }
+    }
+    return false;
+}
+
+template<class OBj>
+typename SafeList<OBj>::ObjPtr
+SafeList<OBj>::front ()
+{
+    SmartLock lock (_mutex);
+    SafeList<OBj>::ObjIter i = _obj_list.begin ();
+    if (i == _obj_list.end ())
+        return NULL;
+    return *i;
+}
+
+template<class OBj>
 void SafeList<OBj>::clear ()
 {
     SmartLock lock (_mutex);
-    typename std::list<typename SafeList<OBj>::ObjPtr>::iterator i_obj = _obj_list.begin ();
+    SafeList<OBj>::ObjIter i_obj = _obj_list.begin ();
     while (i_obj != _obj_list.end ()) {
         _obj_list.erase (i_obj++);
     }

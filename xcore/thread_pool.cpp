@@ -222,12 +222,22 @@ ThreadPool::create_user_thread_unsafe ()
 XCamReturn
 ThreadPool::queue (const SmartPtr<UserData> &data)
 {
-    bool ret = _data_queue.push (data);
-    if (!ret)
+    {
+        SmartLock locker (_mutex);
+        if (!_running)
+            return XCAM_RETURN_ERROR_THREAD;
+    }
+
+    if (!_data_queue.push (data))
         return XCAM_RETURN_ERROR_THREAD;
 
     do {
         SmartLock locker(_mutex);
+        if (!_running) {
+            _data_queue.erase (data);
+            return XCAM_RETURN_ERROR_THREAD;
+        }
+
         if (_allocated_threads >= _max_threads)
             break;
 
@@ -235,6 +245,11 @@ ThreadPool::queue (const SmartPtr<UserData> &data)
             break;
 
         XCamReturn err = create_user_thread_unsafe ();
+        if (!xcam_ret_is_ok (err) && _allocated_threads) {
+            XCAM_LOG_WARNING ("thread pool(%s) create new thread failed but queue data can continue");
+            break;
+        }
+
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (err), err,
             "thread pool(%s) queue data failed by creating user thread", XCAM_STR (get_name()));

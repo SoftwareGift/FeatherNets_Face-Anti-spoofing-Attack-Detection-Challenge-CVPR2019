@@ -56,7 +56,7 @@ class SoftWorker
     friend class WorkItem;
 
 public:
-    explicit SoftWorker (const char *name);
+    explicit SoftWorker (const char *name, const SmartPtr<Callback> &cb = NULL);
     virtual ~SoftWorker ();
     bool set_threads (const SmartPtr<ThreadPool> &threads);
     bool set_global_size (const WorkSize &size);
