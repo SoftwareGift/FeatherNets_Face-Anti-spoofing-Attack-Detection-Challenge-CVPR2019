@@ -28,35 +28,31 @@
 
 #include "libdvs.h"
 
-using namespace cv;
-using namespace cv::videostab;
-using namespace std;
-
-class OnePassVideoStabilizer : public OnePassStabilizer
+class OnePassVideoStabilizer : public cv::videostab::OnePassStabilizer
 {
 public:
     virtual ~OnePassVideoStabilizer() {};
 
-    virtual Mat nextStabilizedMotion(DvsData* frame, int& stablizedPos);
+    virtual cv::Mat nextStabilizedMotion(DvsData* frame, int& stablizedPos);
 
 protected:
-    virtual Mat estimateMotion();
-    virtual void setUpFrame(const Mat &firstFrame);
+    virtual cv::Mat estimateMotion();
+    virtual void setUpFrame(const cv::Mat &firstFrame);
 
 private:
 
 };
 
-class TwoPassVideoStabilizer : public TwoPassStabilizer
+class TwoPassVideoStabilizer : public cv::videostab::TwoPassStabilizer
 {
 public:
     virtual ~TwoPassVideoStabilizer() {};
 
-    virtual Mat nextStabilizedMotion(DvsData* frame, int& stablizedPos);
+    virtual cv::Mat nextStabilizedMotion(DvsData* frame, int& stablizedPos);
 
 protected:
-    virtual Mat estimateMotion();
-    virtual void setUpFrame(const Mat &firstFrame);
+    virtual cv::Mat estimateMotion();
+    virtual void setUpFrame(const cv::Mat &firstFrame);
 
 private:
 
@@ -71,18 +67,18 @@ public:
                     bool inpainter = false);
     virtual ~VideoStabilizer();
 
-    Ptr<StabilizerBase> stabilizer() const {
+    cv::Ptr<cv::videostab::StabilizerBase> stabilizer() const {
         return stabilizer_;
     }
 
-    Mat nextFrame();
-    Mat nextStabilizedMotion(DvsData* frame, int& stablizedPos);
+    cv::Mat nextFrame();
+    cv::Mat nextStabilizedMotion(DvsData* frame, int& stablizedPos);
 
-    Size trimedVideoSize(Size frameSize);
-    Mat cropVideoFrame(Mat& frame);
+    cv::Size trimedVideoSize(cv::Size frameSize);
+    cv::Mat cropVideoFrame(cv::Mat& frame);
 
-    void setFrameSize(Size frameSize);
-    Size getFrameSize() const {
+    void setFrameSize(cv::Size frameSize);
+    cv::Size getFrameSize() const {
         return frameSize_;
     }
 
@@ -91,13 +87,13 @@ public:
     void configDeblurrer(int radius, double sensitivity);
 
 public:
-    VideoWriter writer_;
+    cv::VideoWriter writer_;
 
 private:
     bool isTwoPass_;
     float trimRatio_;
-    Size frameSize_;
-    Ptr<StabilizerBase> stabilizer_;
+    cv::Size frameSize_;
+    cv::Ptr<cv::videostab::StabilizerBase> stabilizer_;
 };
 
 

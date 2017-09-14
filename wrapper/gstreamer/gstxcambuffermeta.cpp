@@ -20,6 +20,8 @@
 
 #include "gstxcambuffermeta.h"
 
+using namespace XCam;
+
 GType
 gst_xcam_buffer_meta_api_get_type (void)
 {

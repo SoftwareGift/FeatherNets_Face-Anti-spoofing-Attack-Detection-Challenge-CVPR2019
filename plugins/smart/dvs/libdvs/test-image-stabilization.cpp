@@ -27,6 +27,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace cv::videostab;
 
 void usage(const char* arg0)
 {

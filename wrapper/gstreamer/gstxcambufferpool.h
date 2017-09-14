@@ -26,9 +26,6 @@
 #include "main_dev_manager.h"
 #include "gstxcamsrc.h"
 
-using namespace XCam;
-using namespace GstXCam;
-
 G_BEGIN_DECLS
 
 #define GST_TYPE_XCAM_BUFFER_POOL \
@@ -41,11 +38,11 @@ typedef struct _GstXCamBufferPoolClass GstXCamBufferPoolClass;
 
 struct _GstXCamBufferPool
 {
-    GstBufferPool                  parent;
-    GstAllocator                  *allocator;
-    GstXCamSrc                    *src;
-    gboolean                       need_video_meta;
-    SmartPtr<MainDeviceManager>    device_manager;
+    GstBufferPool                              parent;
+    GstAllocator                              *allocator;
+    GstXCamSrc                                *src;
+    gboolean                                   need_video_meta;
+    XCam::SmartPtr<GstXCam::MainDeviceManager> device_manager;
 };
 
 struct _GstXCamBufferPoolClass
@@ -56,7 +53,7 @@ struct _GstXCamBufferPoolClass
 GType gst_xcam_buffer_pool_get_type (void);
 
 GstBufferPool *
-gst_xcam_buffer_pool_new (GstXCamSrc *xcamsrc, GstCaps *caps, SmartPtr<MainDeviceManager> &device_manager);
+gst_xcam_buffer_pool_new (GstXCamSrc *xcamsrc, GstCaps *caps, XCam::SmartPtr<GstXCam::MainDeviceManager> &device_manager);
 
 G_END_DECLS
 

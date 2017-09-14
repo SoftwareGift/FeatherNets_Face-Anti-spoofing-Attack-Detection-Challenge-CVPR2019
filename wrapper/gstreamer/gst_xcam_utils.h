@@ -23,14 +23,12 @@
 
 #include "dma_video_buffer.h"
 
-using namespace XCam;
-
 class DmaGstBuffer
-    : public DmaVideoBuffer
+    : public XCam::DmaVideoBuffer
 {
 public:
-    DmaGstBuffer (const VideoBufferInfo &info, int dma_fd, GstBuffer *gst_buf)
-        : DmaVideoBuffer (info, dma_fd)
+    DmaGstBuffer (const XCam::VideoBufferInfo &info, int dma_fd, GstBuffer *gst_buf)
+        : XCam::DmaVideoBuffer (info, dma_fd)
         , _gst_buf (gst_buf)
     {
         gst_buffer_ref (_gst_buf);

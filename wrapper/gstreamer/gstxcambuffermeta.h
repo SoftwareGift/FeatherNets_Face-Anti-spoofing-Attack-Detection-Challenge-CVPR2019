@@ -26,8 +26,6 @@
 
 #include <video_buffer.h>
 
-using namespace XCam;
-
 XCAM_BEGIN_DECLARE
 
 #define GST_XCAM_META_TAG_XCAM  "xcam"
@@ -40,8 +38,8 @@ XCAM_BEGIN_DECLARE
     ((GstXCamBufferMeta*)gst_buffer_get_meta ((b), GST_XCAM_BUFFER_META_API_TYPE))
 
 typedef struct _GstXCamBufferMeta {
-    GstMeta                     meta_base;
-    SmartPtr<VideoBuffer>       buffer;
+    GstMeta                           meta_base;
+    XCam::SmartPtr<XCam::VideoBuffer> buffer;
 } GstXCamBufferMeta;
 
 GType
@@ -50,7 +48,7 @@ gst_xcam_buffer_meta_api_get_type (void);
 GstXCamBufferMeta *
 gst_buffer_add_xcam_buffer_meta (
     GstBuffer *buffer,
-    const SmartPtr<VideoBuffer>  &data);
+    const XCam::SmartPtr<XCam::VideoBuffer>  &data);
 
 XCAM_END_DECLARE
 

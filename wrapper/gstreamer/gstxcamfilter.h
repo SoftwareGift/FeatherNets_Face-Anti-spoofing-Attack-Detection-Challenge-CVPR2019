@@ -27,9 +27,6 @@
 #include "main_pipe_manager.h"
 #include "gst_xcam_utils.h"
 
-using namespace XCam;
-using namespace GstXCam;
-
 XCAM_BEGIN_DECLARE
 
 #define GST_TYPE_XCAM_FILTER             (gst_xcam_filter_get_type())
@@ -74,31 +71,31 @@ typedef struct _GstXCamFilterClass GstXCamFilterClass;
 
 struct _GstXCamFilter
 {
-    GstBaseTransform             transform;
+    GstBaseTransform                         transform;
 
-    uint32_t                     buf_count;
-    CopyMode                     copy_mode;
-    DefogModeType                defog_mode;
-    WaveletModeType              wavelet_mode;
-    Denoise3DModeType            denoise_3d_mode;
-    uint8_t                      denoise_3d_ref_count;
-    gboolean                     enable_wireframe;
-    gboolean                     enable_image_warp;
-    gboolean                     enable_stitch;
-    gboolean                     stitch_enable_seam;
-    gboolean                     stitch_fisheye_map;
-    gboolean                     stitch_fm_ocl;
-    gboolean                     stitch_lsc;
-    CLBlenderScaleMode           stitch_scale_mode;
-    StitchResMode                stitch_res_mode;
+    uint32_t                                 buf_count;
+    CopyMode                                 copy_mode;
+    DefogModeType                            defog_mode;
+    WaveletModeType                          wavelet_mode;
+    Denoise3DModeType                        denoise_3d_mode;
+    uint8_t                                  denoise_3d_ref_count;
+    gboolean                                 enable_wireframe;
+    gboolean                                 enable_image_warp;
+    gboolean                                 enable_stitch;
+    gboolean                                 stitch_enable_seam;
+    gboolean                                 stitch_fisheye_map;
+    gboolean                                 stitch_fm_ocl;
+    gboolean                                 stitch_lsc;
+    XCam::CLBlenderScaleMode                 stitch_scale_mode;
+    StitchResMode                            stitch_res_mode;
 
-    uint32_t                     delay_buf_num;
-    uint32_t                     cached_buf_num;
-    GstAllocator                 *allocator;
-    GstVideoInfo                 gst_sink_video_info;
-    GstVideoInfo                 gst_src_video_info;
-    SmartPtr<DrmBoBufferPool>    buf_pool;
-    SmartPtr<MainPipeManager>    pipe_manager;
+    uint32_t                                 delay_buf_num;
+    uint32_t                                 cached_buf_num;
+    GstAllocator                            *allocator;
+    GstVideoInfo                             gst_sink_video_info;
+    GstVideoInfo                             gst_src_video_info;
+    XCam::SmartPtr<XCam::DrmBoBufferPool>    buf_pool;
+    XCam::SmartPtr<GstXCam::MainPipeManager> pipe_manager;
 };
 
 struct _GstXCamFilterClass

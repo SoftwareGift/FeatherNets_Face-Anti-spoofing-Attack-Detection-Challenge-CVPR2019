@@ -47,7 +47,7 @@ struct DigitalVideoStabilizer : DvsInterface
 
 int DigitalVideoStabilizer::init(int width, int height, bool twoPass)
 {
-    Size frameSize;
+    cv::Size frameSize;
     frameSize.width = width;
     frameSize.height = height;
 
@@ -73,7 +73,7 @@ void DigitalVideoStabilizer::setConfig(DvsConfig* config)
         return;
     }
     // stabilizer configuration
-    _videoStab->setFrameSize(Size(config->frame_width, config->frame_height));
+    _videoStab->setFrameSize(cv::Size(config->frame_width, config->frame_height));
     _videoStab->configMotionFilter(config->radius, config->stdev);
     _videoStab->configFeatureDetector(config->features, config->minDistance);
 }

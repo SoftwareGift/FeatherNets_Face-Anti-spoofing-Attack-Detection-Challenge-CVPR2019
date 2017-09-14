@@ -25,9 +25,6 @@
 #include "main_dev_manager.h"
 #include <gst/base/gstpushsrc.h>
 
-using namespace XCam;
-using namespace GstXCam;
-
 XCAM_BEGIN_DECLARE
 
 #define GST_TYPE_XCAM_SRC \
@@ -115,13 +112,13 @@ struct _GstXCamSrc
     uint32_t                     in_format;
     uint32_t                     out_format;
     GstVideoInfo                 gst_video_info;
-    VideoBufferInfo              xcam_video_info;
+    XCam::VideoBufferInfo        xcam_video_info;
     ImageProcessorType           image_processor_type;
     WDRModeType                  wdr_mode_type;
     AnalyzerType                 analyzer_type;
     int32_t                      cl_pipe_profile;
-    SmartPtr<MainDeviceManager>  device_manager;
     WaveletModeType              wavelet_mode;
+    XCam::SmartPtr<GstXCam::MainDeviceManager>  device_manager;
 };
 
 struct _GstXCamSrcClass

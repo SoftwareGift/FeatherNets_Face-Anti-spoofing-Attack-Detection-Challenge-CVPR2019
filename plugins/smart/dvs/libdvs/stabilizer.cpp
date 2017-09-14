@@ -20,6 +20,10 @@
 
 #include "stabilizer.h"
 
+using namespace cv;
+using namespace cv::videostab;
+using namespace std;
+
 Mat
 OnePassVideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 {
