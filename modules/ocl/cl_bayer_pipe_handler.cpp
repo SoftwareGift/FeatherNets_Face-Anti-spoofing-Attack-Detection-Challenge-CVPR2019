@@ -19,7 +19,8 @@
  * Author: wangfei <feix.w.wang@intel.com>
  * Author: Shincy Tu <shincy.tu@intel.com>
  */
-#include "xcam_utils.h"
+
+#include "cl_utils.h"
 #include "cl_bayer_pipe_handler.h"
 
 #define WORKGROUP_PIXEL_WIDTH 128
@@ -139,7 +140,7 @@ CLBayerPipeImageHandler::prepare_buffer_pool_video_info (
 
 XCamReturn
 CLBayerPipeImageHandler::prepare_parameters (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & in_video_info = input->get_video_info ();
@@ -156,7 +157,7 @@ CLBayerPipeImageHandler::prepare_parameters (
     in_desc.height = in_video_info.aligned_height * 4;  //540
     in_desc.row_pitch = in_video_info.strides[0];
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, in_desc);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, in_desc);
 
     CLImageDesc out_desc;
     out_desc.format.image_channel_order = CL_RGBA;
@@ -170,7 +171,7 @@ CLBayerPipeImageHandler::prepare_parameters (
     out_desc.array_size = 3;
     out_desc.slice_pitch = out_video_info.strides [0] * out_video_info.aligned_height;
 
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, out_desc);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, out_desc);
 
     uint input_height = in_video_info.aligned_height;
     uint output_height = out_video_info.aligned_height;

@@ -22,7 +22,6 @@
 #include "base/xcam_buffer.h"
 #include "drm_bo_buffer.h"
 
-
 namespace XCam {
 
 class SmartBufferPriv
@@ -48,15 +47,14 @@ private:
 
 private:
     mutable RefCount       *_ref;
-    SmartPtr<DrmBoBuffer>   _buf_ptr;
+    SmartPtr<VideoBuffer>   _buf_ptr;
 };
 
 SmartBufferPriv::SmartBufferPriv (const SmartPtr<VideoBuffer> &buf)
     : _ref (NULL)
 {
     XCAM_ASSERT (buf.ptr ());
-    this->_buf_ptr = buf.dynamic_cast_ptr<DrmBoBuffer> ();
-    XCAM_ASSERT (this->_buf_ptr.ptr ());
+    this->_buf_ptr = buf;
 
     if (!buf.ptr ()) {
         return;
@@ -133,7 +131,15 @@ SmartBufferPriv::buf_get_bo (XCamVideoBufferIntel *data)
 {
     SmartBufferPriv *buf = (SmartBufferPriv*) data;
     XCAM_ASSERT (buf->_buf_ptr.ptr ());
-    return buf->_buf_ptr->get_bo ();
+
+    SmartPtr<DrmBoBuffer> bo_buf = buf->_buf_ptr.dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        bo_buf.ptr (),
+        NULL,
+        "get DrmBoBuffer failed");
+
+    return bo_buf->get_bo ();
 }
 
 XCamVideoBuffer *

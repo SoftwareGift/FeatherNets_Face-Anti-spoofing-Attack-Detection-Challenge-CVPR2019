@@ -18,7 +18,7 @@
  * Author: wangfei <feix.w.wang@intel.com>
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_csc_handler.h"
 #include "cl_device.h"
 #include "cl_kernel.h"
@@ -151,7 +151,7 @@ ensure_image_desc (const VideoBufferInfo &info, CLImageDesc &desc)
 }
 
 XCamReturn
-CLCscImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLCscImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
 
@@ -169,8 +169,8 @@ CLCscImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
     ensure_image_desc (in_video_info, in_desc);
     ensure_image_desc (out_video_info, out_desc);
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, in_desc, in_video_info.offsets[0]);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, out_desc, out_video_info.offsets[0]);
+    SmartPtr<CLImage> image_in  = convert_to_climage (context, input, in_desc, in_video_info.offsets[0]);
+    SmartPtr<CLImage> image_out  = convert_to_climage (context, output, out_desc, out_video_info.offsets[0]);
     SmartPtr<CLBuffer> matrix_buffer = new CLBuffer (
         context, sizeof(float)*XCAM_COLOR_MATRIX_SIZE,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_rgbtoyuv_matrix);
@@ -199,7 +199,7 @@ CLCscImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
 
         SmartPtr<CLImage> image_uv;
         if(_csc_type == CL_CSC_TYPE_NV12TORGBA) {
-            image_uv = new CLVaImage (context, input, in_desc, in_video_info.offsets[1]);
+            image_uv = convert_to_climage (context, input, in_desc, in_video_info.offsets[1]);
             args.push_back (new CLMemArgument (image_uv));
 
             work_size.global[0] = out_video_info.width / 2;
@@ -208,7 +208,7 @@ CLCscImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
         }
 
         if (_csc_type == CL_CSC_TYPE_RGBATONV12) {
-            image_uv = new CLVaImage (context, output, out_desc, out_video_info.offsets[1]);
+            image_uv = convert_to_climage (context, output, out_desc, out_video_info.offsets[1]);
             args.push_back (new CLMemArgument (image_uv));
             args.push_back (new CLMemArgument (matrix_buffer));
 

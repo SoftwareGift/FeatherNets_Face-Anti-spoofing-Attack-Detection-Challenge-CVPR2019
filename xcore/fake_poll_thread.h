@@ -25,9 +25,6 @@
 
 namespace XCam {
 
-class DrmBoBufferPool;
-class DrmBoBuffer;
-
 class FakePollThread
     : public PollThread
 {
@@ -48,13 +45,13 @@ private:
         return XCAM_RETURN_ERROR_UNKNOWN;
     }
     XCamReturn init_buffer_pool ();
-    XCamReturn read_buf (SmartPtr<DrmBoBuffer> &buf);
+    XCamReturn read_buf (SmartPtr<VideoBuffer> &buf);
 
 private:
     char                        *_raw_path;
     FILE                        *_raw;
 #if HAVE_LIBDRM
-    SmartPtr<DrmBoBufferPool>    _buf_pool;
+    SmartPtr<BufferPool>         _buf_pool;
 #endif
 };
 

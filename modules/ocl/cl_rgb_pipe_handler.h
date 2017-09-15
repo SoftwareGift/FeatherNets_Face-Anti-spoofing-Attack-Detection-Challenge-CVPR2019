@@ -53,7 +53,7 @@ public:
 
 protected:
     virtual XCamReturn prepare_parameters (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+        SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     SmartPtr<CLRgbPipeImageKernel>  _rgb_pipe_kernel;

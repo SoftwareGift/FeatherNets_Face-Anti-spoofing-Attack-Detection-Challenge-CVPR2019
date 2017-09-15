@@ -35,7 +35,7 @@ namespace XCam {
 struct CLFisheyeParams {
     SmartPtr<CLFisheyeHandler>  handler;
     SmartPtr<BufferPool>        pool;
-    SmartPtr<DrmBoBuffer>       buf;
+    SmartPtr<VideoBuffer>       buf;
 
     uint32_t                    width;
     uint32_t                    height;
@@ -84,10 +84,10 @@ public:
         return _overlaps[img_idx][num];
     }
 
-    SmartPtr<DrmBoBuffer> &get_global_scale_input () {
+    SmartPtr<VideoBuffer> &get_global_scale_input () {
         return _scale_global_input;
     }
-    SmartPtr<DrmBoBuffer> &get_global_scale_output () {
+    SmartPtr<VideoBuffer> &get_global_scale_output () {
         return _scale_global_output;
     }
 
@@ -99,22 +99,22 @@ public:
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (const VideoBufferInfo &input, VideoBufferInfo &output);
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
-    XCamReturn ensure_fisheye_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn ensure_fisheye_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
     XCamReturn prepare_local_scale_blender_parameters (
-        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output, int idx, int idx_next);
+        SmartPtr<VideoBuffer> &input0, SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output, int idx, int idx_next);
     XCamReturn prepare_global_scale_blender_parameters (
-        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output,
+        SmartPtr<VideoBuffer> &input0, SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output,
         int idx, int idx_next, int &cur_start_pos);
 
     bool create_buffer_pool (SmartPtr<BufferPool> &buf_pool, uint32_t width, uint32_t height);
-    XCamReturn reset_buffer_info (SmartPtr<DrmBoBuffer> &input);
+    XCamReturn reset_buffer_info (SmartPtr<VideoBuffer> &input);
 
     virtual XCamReturn sub_handler_execute_done (SmartPtr<CLImageHandler> &handler);
 
-    void calc_fisheye_initial_info (SmartPtr<DrmBoBuffer> &output);
+    void calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output);
     void update_image_overlap ();
 
 private:
@@ -135,8 +135,8 @@ private:
 
     CLBlenderScaleMode          _scale_mode;
     SmartPtr<BufferPool>        _scale_buf_pool;
-    SmartPtr<DrmBoBuffer>       _scale_global_input;
-    SmartPtr<DrmBoBuffer>       _scale_global_output;
+    SmartPtr<VideoBuffer>       _scale_global_input;
+    SmartPtr<VideoBuffer>       _scale_global_output;
 
     StitchResMode               _res_mode;
 

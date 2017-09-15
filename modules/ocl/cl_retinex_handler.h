@@ -56,8 +56,8 @@ public:
 
 protected:
     //derived from CLScalerKernel
-    virtual SmartPtr<DrmBoBuffer> get_input_buffer ();
-    virtual SmartPtr<DrmBoBuffer> get_output_buffer ();
+    virtual SmartPtr<VideoBuffer> get_input_buffer ();
+    virtual SmartPtr<VideoBuffer> get_output_buffer ();
 
 private:
     SmartPtr<CLRetinexImageHandler> _retinex;
@@ -73,8 +73,8 @@ public:
         SmartPtr<CLRetinexImageHandler> &retinex,
         uint32_t index,
         uint32_t radius, float sigma);
-    virtual SmartPtr<DrmBoBuffer> get_input_buf ();
-    virtual SmartPtr<DrmBoBuffer> get_output_buf ();
+    virtual SmartPtr<VideoBuffer> get_input_buf ();
+    virtual SmartPtr<VideoBuffer> get_output_buf ();
 
 
 private:
@@ -105,10 +105,10 @@ public:
     bool set_retinex_kernel(SmartPtr<CLRetinexImageKernel> &kernel);
     bool set_retinex_scaler_kernel(SmartPtr<CLRetinexScalerImageKernel> &kernel);
     //bool set_retinex_gauss_kernel(SmartPtr<CLRetinexGaussImageKernel> &kernel);
-    SmartPtr<DrmBoBuffer> &get_scaler_buf1 () {
+    SmartPtr<VideoBuffer> &get_scaler_buf1 () {
         return _scaler_buf1;
     };
-    SmartPtr<DrmBoBuffer> &get_gaussian_buf (uint index) {
+    SmartPtr<VideoBuffer> &get_gaussian_buf (uint index) {
         XCAM_ASSERT (index < XCAM_RETINEX_MAX_SCALE);
         return _gaussian_buf[index];
     };
@@ -116,7 +116,7 @@ public:
     virtual void emit_stop ();
 
 protected:
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info);
@@ -127,9 +127,9 @@ private:
     //SmartPtr<CLRetinexGaussImageKernel>   _retinex_gauss_kernel;
 
     double                                _scaler_factor;
-    SmartPtr<DrmBoBufferPool>             _scaler_buf_pool;
-    SmartPtr<DrmBoBuffer>                 _scaler_buf1;
-    SmartPtr<DrmBoBuffer>                 _gaussian_buf[XCAM_RETINEX_MAX_SCALE];
+    SmartPtr<BufferPool>                  _scaler_buf_pool;
+    SmartPtr<VideoBuffer>                 _scaler_buf1;
+    SmartPtr<VideoBuffer>                 _gaussian_buf[XCAM_RETINEX_MAX_SCALE];
 
 };
 

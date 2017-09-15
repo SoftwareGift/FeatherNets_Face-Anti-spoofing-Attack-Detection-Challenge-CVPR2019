@@ -28,7 +28,7 @@ namespace XCam {
 
 #if XCAM_CV_FM_DEBUG
 static XCamReturn
-dump_buffer (SmartPtr<DrmBoBuffer> buffer, char *dump_name)
+dump_buffer (SmartPtr<VideoBuffer> buffer, char *dump_name)
 {
     ImageFileHandle file;
 
@@ -81,9 +81,9 @@ CVFeatureMatch::set_fm_index (int idx)
 
 bool
 CVFeatureMatch::get_crop_image (
-    SmartPtr<DrmBoBuffer> buffer, cv::Rect img_crop, cv::UMat &img)
+    SmartPtr<VideoBuffer> buffer, cv::Rect img_crop, cv::UMat &img)
 {
-    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (_context, buffer);
+    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_context, buffer);
     VideoBufferInfo info = buffer->get_video_info ();
     cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 
@@ -330,7 +330,7 @@ CVFeatureMatch::detect_and_match (
 
 void
 CVFeatureMatch::optical_flow_feature_match (
-    SmartPtr<DrmBoBuffer> left_buf, SmartPtr<DrmBoBuffer> right_buf,
+    SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
     cv::Rect &left_img_crop, cv::Rect &right_img_crop, int dst_width)
 {
     cv::UMat left_umat, right_umat;

@@ -115,11 +115,11 @@ public:
     bool is_handler_enabled () const;
 
     virtual bool is_ready ();
-    XCamReturn execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn execute (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
     virtual void emit_stop ();
 
-    SmartPtr<DrmBoBuffer> &get_input_buf ();
-    SmartPtr<DrmBoBuffer> &get_output_buf ();
+    SmartPtr<VideoBuffer> &get_input_buf ();
+    SmartPtr<VideoBuffer> &get_output_buf ();
 
 private:
     virtual XCamReturn prepare_buffer_pool_video_info (
@@ -127,22 +127,22 @@ private:
         VideoBufferInfo &output);
 
     // if derive prepare_output_buf, then prepare_buffer_pool_video_info is not involked
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
 protected:
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
     //only for multi-handler
     virtual XCamReturn execute_kernels ();
 
-    XCamReturn ensure_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    XCamReturn ensure_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
     XCamReturn execute_kernel (SmartPtr<CLImageKernel> &kernel);
     XCamReturn create_buffer_pool (const VideoBufferInfo &video_info);
     SmartPtr<BufferPool> &get_buffer_pool () {
         return _buf_pool;
     }
-    void reset_buf_cache (const SmartPtr<DrmBoBuffer>& input, const SmartPtr<DrmBoBuffer>& output);
+    void reset_buf_cache (const SmartPtr<VideoBuffer>& input, const SmartPtr<VideoBuffer>& output);
 
     bool append_kernels (SmartPtr<CLImageHandler> handler);
 
@@ -163,8 +163,8 @@ private:
     X3aResultList              _3a_results;
     int64_t                    _result_timestamp;
 
-    SmartPtr<DrmBoBuffer>      _input_buf_cache;
-    SmartPtr<DrmBoBuffer>      _output_buf_cache;
+    SmartPtr<VideoBuffer>      _input_buf_cache;
+    SmartPtr<VideoBuffer>      _output_buf_cache;
 
     XCAM_OBJ_PROFILING_DEFINES;
 };
@@ -184,7 +184,7 @@ public:
 
 protected:
     //derived from CLImageHandler
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLCloneImageHandler);

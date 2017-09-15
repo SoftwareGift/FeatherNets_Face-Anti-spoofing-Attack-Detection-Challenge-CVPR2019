@@ -68,8 +68,8 @@ protected:
     // derived from CLImageHandler
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input, VideoBufferInfo &output);
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
     // derived from GeoKernelParamCallback
     virtual SmartPtr<CLImage> get_geo_input_image (CLNV12PlaneIdx index);

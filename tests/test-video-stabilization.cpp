@@ -22,6 +22,7 @@
 #include "test_inline.h"
 #include <unistd.h>
 #include <getopt.h>
+#include "ocl/cl_utils.h"
 #include "ocl/cl_device.h"
 #include "ocl/cl_context.h"
 #include "ocl/cl_blender.h"
@@ -51,9 +52,9 @@ init_opencv_ocl (SmartPtr<CLContext> context)
 }
 
 bool
-convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image)
+convert_to_mat (SmartPtr<CLContext> context, SmartPtr<VideoBuffer> buffer, cv::Mat &image)
 {
-    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (context, buffer);
+    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (context, buffer);
     VideoBufferInfo info = buffer->get_video_info ();
     cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 
@@ -100,14 +101,12 @@ int main (int argc, char *argv[])
     SmartPtr<CLVideoStabilizer> video_stab;
 
     SmartPtr<CLContext> context;
-    SmartPtr<DrmDisplay> display;
     SmartPtr<BufferPool> buf_pool;
 
     VideoBufferInfo input_buf_info;
     VideoBufferInfo output_buf_info;
-    SmartPtr<DrmBoBuffer> input_buf;
-    SmartPtr<DrmBoBuffer> output_buf;
-    SmartPtr<VideoBuffer> read_buf;
+    SmartPtr<VideoBuffer> input_buf;
+    SmartPtr<VideoBuffer> output_buf;
 
     uint32_t input_format = V4L2_PIX_FMT_NV12;
     uint32_t input_width = 1920;
@@ -240,7 +239,7 @@ int main (int argc, char *argv[])
 
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
-    display = DrmDisplay::instance ();
+    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
     buf_pool = new DrmBoBufferPool (display);
     XCAM_ASSERT (buf_pool.ptr ());
     buf_pool->set_video_info (input_buf_info);
@@ -274,10 +273,9 @@ int main (int argc, char *argv[])
 
         DevicePoseList::iterator pose_iterator = device_pose.begin ();
         do {
-            input_buf = buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+            input_buf = buf_pool->get_buffer (buf_pool);
             XCAM_ASSERT (input_buf.ptr ());
-            read_buf = input_buf;
-            ret = file_in.read_buf (read_buf);
+            ret = file_in.read_buf (input_buf);
             if (ret == XCAM_RETURN_BYPASS)
                 break;
             if (ret == XCAM_RETURN_ERROR_FILE) {

@@ -68,11 +68,11 @@ public:
     void set_fm_index (int idx);
 
     void optical_flow_feature_match (
-        SmartPtr<DrmBoBuffer> left_buf, SmartPtr<DrmBoBuffer> right_buf,
+        SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
         cv::Rect &left_img_crop, cv::Rect &right_img_crop, int dst_width);
 
 protected:
-    bool get_crop_image (SmartPtr<DrmBoBuffer> buffer, cv::Rect img_crop, cv::UMat &img);
+    bool get_crop_image (SmartPtr<VideoBuffer> buffer, cv::Rect img_crop, cv::UMat &img);
 
     void add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
     void get_valid_offsets (cv::InputOutputArray out_image, cv::Size img0_size,

@@ -22,7 +22,7 @@
 #ifndef XCAM_CV_CONTEXT
 #define XCAM_CV_CONTEXT
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include <base/xcam_common.h>
 #include <base/xcam_buffer.h>
 #include <dma_video_buffer.h>

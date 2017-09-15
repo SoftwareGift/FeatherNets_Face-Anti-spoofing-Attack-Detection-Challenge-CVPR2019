@@ -17,7 +17,7 @@
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_demo_handler.h"
 #include "cl_device.h"
 #include "cl_kernel.h"
@@ -36,7 +36,7 @@ CLDemoImageHandler::CLDemoImageHandler (const SmartPtr<CLContext> &context)
 }
 
 XCamReturn
-CLDemoImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLDemoImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     const VideoBufferInfo &info = input->get_video_info ();
     XCAM_FAIL_RETURN (
@@ -49,7 +49,7 @@ CLDemoImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<D
 }
 
 XCamReturn
-CLDemoImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLDemoImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
     const VideoBufferInfo &info = input->get_video_info ();
@@ -65,8 +65,8 @@ CLDemoImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<D
     desc.array_size = 0;
     desc.slice_pitch = 0;
 
-    SmartPtr<CLImage> input_image = new CLVaImage (context, input, desc);
-    SmartPtr<CLImage> output_image = new CLVaImage (context, output, desc);
+    SmartPtr<CLImage> input_image = convert_to_climage (context, input, desc);
+    SmartPtr<CLImage> output_image = convert_to_climage (context, output, desc);
 
     XCAM_ASSERT (input_image.ptr () && output_image.ptr ());
     XCAM_ASSERT (input_image->is_valid () && output_image->is_valid ());

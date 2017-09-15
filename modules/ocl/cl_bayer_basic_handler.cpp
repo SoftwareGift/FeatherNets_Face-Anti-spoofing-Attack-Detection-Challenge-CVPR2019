@@ -18,7 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_bayer_basic_handler.h"
 #include "xcam_thread.h"
 
@@ -41,7 +41,7 @@ static const XCamKernelInfo kernel_bayer_basic_info = {
 };
 
 struct BayerPostData {
-    SmartPtr<DrmBoBuffer> image_buffer;
+    SmartPtr<VideoBuffer> image_buffer;
     SmartPtr<CLBuffer>    stats_cl_buf;
 };
 
@@ -56,8 +56,8 @@ public:
     ~CLBayer3AStatsThread () {}
 
     virtual bool emit_stop ();
-    bool queue_stats (SmartPtr<DrmBoBuffer> &buf, SmartPtr<CLBuffer> &stats);
-    SmartPtr<DrmBoBuffer> pop_buf ();
+    bool queue_stats (SmartPtr<VideoBuffer> &buf, SmartPtr<CLBuffer> &stats);
+    SmartPtr<VideoBuffer> pop_buf ();
 protected:
     virtual bool loop ();
     virtual void stopped ();
@@ -65,7 +65,7 @@ protected:
 private:
     CLBayerBasicImageHandler     *_handler;
     SafeList<BayerPostData>      _stats_process_list;
-    SafeList<DrmBoBuffer>        _buffer_done_list;
+    SafeList<VideoBuffer>        _buffer_done_list;
 };
 
 bool
@@ -81,7 +81,7 @@ CLBayer3AStatsThread::emit_stop ()
 }
 
 bool
-CLBayer3AStatsThread::queue_stats (SmartPtr<DrmBoBuffer> &buf, SmartPtr<CLBuffer> &stats)
+CLBayer3AStatsThread::queue_stats (SmartPtr<VideoBuffer> &buf, SmartPtr<CLBuffer> &stats)
 {
     XCAM_FAIL_RETURN (
         WARNING,
@@ -97,7 +97,7 @@ CLBayer3AStatsThread::queue_stats (SmartPtr<DrmBoBuffer> &buf, SmartPtr<CLBuffer
     return _stats_process_list.push (data);
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLBayer3AStatsThread::pop_buf ()
 {
     return _buffer_done_list.pop ();
@@ -146,7 +146,7 @@ CLBayerBasicImageKernel::CLBayerBasicImageKernel (const SmartPtr<CLContext> &con
 }
 
 XCamReturn
-CLBayerBasicImageHandler::process_stats_buffer (SmartPtr<DrmBoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats)
+CLBayerBasicImageHandler::process_stats_buffer (SmartPtr<VideoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats)
 {
     SmartPtr<X3aStats> stats_3a;
     SmartPtr<CLContext> context = get_context ();
@@ -278,7 +278,7 @@ CLBayerBasicImageHandler::prepare_buffer_pool_video_info (
 
 XCamReturn
 CLBayerBasicImageHandler::prepare_parameters (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & in_video_info = input->get_video_info ();
@@ -318,12 +318,12 @@ CLBayerBasicImageHandler::prepare_parameters (
     out_image_info.row_pitch = out_video_info.strides[0];
 
 #if ENABLE_IMAGE_2D_INPUT
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, in_image_info);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, in_image_info);
 #else
-    SmartPtr<CLBuffer> buffer_in = new CLVaBuffer (context, input);
+    SmartPtr<CLBuffer> buffer_in = convert_to_clbuffer (context, input);
 #endif
     uint32_t input_aligned_width = in_video_info.strides[0] / (2 * 8); // ushort8
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, out_image_info);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, out_image_info);
 
     uint32_t out_aligned_height = out_video_info.aligned_height;
     _blc_config.color_bits = in_video_info.color_bits;
@@ -376,10 +376,8 @@ CLBayerBasicImageHandler::prepare_parameters (
 }
 
 XCamReturn
-CLBayerBasicImageHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLBayerBasicImageHandler::execute_done (SmartPtr<VideoBuffer> &output)
 {
-    SmartPtr<DrmBoBuffer> done_buf;
-
     XCAM_FAIL_RETURN (
         ERROR, _3a_stats_thread->queue_stats (output, _stats_cl_buffer), XCAM_RETURN_ERROR_UNKNOWN,
         "cl bayer basic handler(%s) process 3a stats failed", XCAM_STR (get_name ()));
@@ -391,7 +389,7 @@ CLBayerBasicImageHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
         return XCAM_RETURN_BYPASS;
     }
 
-    done_buf = _3a_stats_thread->pop_buf ();
+    SmartPtr<VideoBuffer> done_buf = _3a_stats_thread->pop_buf ();
     XCAM_FAIL_RETURN (
         WARNING,
         done_buf.ptr (),

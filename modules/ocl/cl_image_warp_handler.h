@@ -98,7 +98,7 @@ public:
         _warp_config_list.clear ();
     }
 
-    virtual SmartPtr<DrmBoBuffer> get_warp_input_buf ();
+    virtual SmartPtr<VideoBuffer> get_warp_input_buf ();
 
     bool set_warp_config (const XCamDVSResult& config);
     CLWarpConfig get_warp_config ();
@@ -106,7 +106,7 @@ public:
     virtual bool is_ready ();
 
 protected:
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLImageWarpHandler);

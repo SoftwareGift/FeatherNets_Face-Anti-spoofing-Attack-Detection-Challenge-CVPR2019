@@ -38,14 +38,14 @@ public:
     bool add_image_handler (SmartPtr<CLImageHandler> &handler);
 
 protected:
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
     virtual XCamReturn execute_kernels ();
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
     virtual XCamReturn sub_handler_execute_done (SmartPtr<CLImageHandler> &handler);
 
     XCamReturn ensure_handler_parameters (
-        const SmartPtr<CLImageHandler> &handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+        const SmartPtr<CLImageHandler> &handler, SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLMultiImageHandler);

@@ -77,14 +77,14 @@ public:
 
     virtual void emit_stop ();
     XCamReturn post_stats (const SmartPtr<X3aStats> &stats);
-    XCamReturn process_stats_buffer (SmartPtr<DrmBoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats);
+    XCamReturn process_stats_buffer (SmartPtr<VideoBuffer> &buffer, SmartPtr<CLBuffer> &cl_stats);
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input, VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+        SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
 private:
     SmartPtr<CLBayerBasicImageKernel>     _bayer_kernel;

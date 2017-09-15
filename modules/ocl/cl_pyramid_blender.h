@@ -66,7 +66,7 @@ struct PyramidLayer {
     PyramidLayer ();
     void bind_buf_to_layer0 (
         SmartPtr<CLContext> context,
-        SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output,
+        SmartPtr<VideoBuffer> &input0, SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output,
         const Rect &merge0_rect, const Rect &merge1_rect, bool need_uv, CLBlenderScaleMode scale_mode);
     void init_layer0 (SmartPtr<CLContext> context, bool last_layer, bool need_uv, int mask_radius, float mask_sigma);
     void build_cl_images (SmartPtr<CLContext> context, bool need_lap, bool need_uv);
@@ -113,12 +113,12 @@ public:
 
 protected:
     // from CLImageHandler
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
     // from CLBlender
     virtual XCamReturn allocate_cl_buffers (
-        SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> &input0,
-        SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output);
+        SmartPtr<CLContext> context, SmartPtr<VideoBuffer> &input0,
+        SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output);
 
 private:
     XCamReturn init_seam_buffers (SmartPtr<CLContext> context);

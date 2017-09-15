@@ -75,12 +75,12 @@ usage(const char* arg0)
 
 static int
 geo_correct_image (
-    SmartPtr<CLGeoMapHandler> geo_map_handler, SmartPtr<DrmBoBuffer> &in_out,
+    SmartPtr<CLGeoMapHandler> geo_map_handler, SmartPtr<VideoBuffer> &in_out,
     GeoPos *geo_map0, uint32_t map_width, uint32_t map_height,
     char *file_name, bool need_save_output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<DrmBoBuffer> geo_out;
+    SmartPtr<VideoBuffer> geo_out;
     geo_map_handler->set_map_data (geo_map0, map_width, map_height);
     ret = geo_map_handler->execute (in_out, geo_out);
     CHECK (ret, "geo map handler execute inpu0 failed");
@@ -99,7 +99,7 @@ geo_correct_image (
     return 0;
 }
 
-static SmartPtr<DrmBoBuffer>
+static SmartPtr<VideoBuffer>
 dma_buf_to_xcam_buf (
     SmartPtr<DrmDisplay> display, int dma_fd,
     uint32_t width, uint32_t height, uint32_t size,
@@ -113,7 +113,7 @@ dma_buf_to_xcam_buf (
      */;
     VideoBufferInfo info;
     SmartPtr<VideoBuffer> dma_buf;
-    SmartPtr<DrmBoBuffer> output;
+    SmartPtr<VideoBuffer> output;
 
     XCAM_ASSERT (dma_fd > 0);
 
@@ -132,19 +132,19 @@ dma_buf_to_xcam_buf (
     return output;
 }
 
-static SmartPtr<DrmBoBuffer>
+static SmartPtr<VideoBuffer>
 create_dma_buffer (SmartPtr<DrmDisplay> &display, const VideoBufferInfo &info)
 {
     SmartPtr<BufferPool> buf_pool = new DrmBoBufferPool (display);
     buf_pool->set_video_info (info);
     buf_pool->reserve (1);
-    return buf_pool->get_buffer (buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+    return buf_pool->get_buffer (buf_pool);
 }
 
 static XCamReturn
 blend_images (
-    SmartPtr<DrmBoBuffer> input0, SmartPtr<DrmBoBuffer> input1,
-    SmartPtr<DrmBoBuffer> &output_buf,
+    SmartPtr<VideoBuffer> input0, SmartPtr<VideoBuffer> input1,
+    SmartPtr<VideoBuffer> &output_buf,
     SmartPtr<CLBlender> blender)
 {
     blender->set_output_size (output_width, output_height);
@@ -164,8 +164,8 @@ int main (int argc, char *argv[])
     SmartPtr<DrmDisplay> display;
     SmartPtr<BufferPool> buf_pool0, buf_pool1;
     ImageFileHandle file_in0, file_in1, file_out;
-    SmartPtr<DrmBoBuffer> input0, input1;
-    SmartPtr<DrmBoBuffer> output_buf;
+    SmartPtr<VideoBuffer> input0, input1;
+    SmartPtr<VideoBuffer> output_buf;
     SmartPtr<VideoBuffer> read_buf;
 
 #define FAILED_GEO_FREE  { delete [] geo_map0; delete [] geo_map1; return -1; }
@@ -286,7 +286,7 @@ int main (int argc, char *argv[])
     uint32_t in_size = input_buf_info0.aligned_width * input_buf_info0.aligned_height * 3 / 2;
     uint32_t out_size = output_buf_info.aligned_width * output_buf_info.aligned_height * 3 / 2;
     /* create dma fd, for buffer_handle_t just skip this segment, directly goto dma_buf_to_xcam_buf */
-    SmartPtr<DrmBoBuffer> dma_buf0, dma_buf1, dma_buf_out;
+    SmartPtr<VideoBuffer> dma_buf0, dma_buf1, dma_buf_out;
     dma_buf0 = create_dma_buffer (display, input_buf_info0); //unit test
     dma_buf1 = create_dma_buffer (display, input_buf_info1); //unit test
     dma_buf_out = create_dma_buffer (display, output_buf_info); //unit test
@@ -311,8 +311,8 @@ int main (int argc, char *argv[])
                      output_buf_info.aligned_width, output_buf_info.aligned_height);
     blender->disable_buf_pool (true);
 #else
-    input0 = buf_pool0->get_buffer (buf_pool0).dynamic_cast_ptr<DrmBoBuffer> ();
-    input1 = buf_pool1->get_buffer (buf_pool1).dynamic_cast_ptr<DrmBoBuffer> ();
+    input0 = buf_pool0->get_buffer (buf_pool0);
+    input1 = buf_pool1->get_buffer (buf_pool1);
     XCAM_ASSERT (input0.ptr () && input1.ptr ());
 #endif
     //

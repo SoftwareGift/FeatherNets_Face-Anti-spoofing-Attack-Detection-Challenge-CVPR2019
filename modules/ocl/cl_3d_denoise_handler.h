@@ -79,15 +79,15 @@ public:
     XCam3aResultTemporalNoiseReduction& get_denoise_config () {
         return _config;
     };
-    SmartPtr<DrmBoBuffer> get_input_buf () {
+    SmartPtr<VideoBuffer> get_input_buf () {
         return _input_buf;
     }
-    SmartPtr<DrmBoBuffer> get_output_buf () {
+    SmartPtr<VideoBuffer> get_output_buf () {
         return _output_buf;
     }
 
 protected:
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CL3DDenoiseImageHandler);
@@ -95,8 +95,8 @@ private:
 private:
     uint8_t                             _ref_count;
     XCam3aResultTemporalNoiseReduction  _config;
-    SmartPtr<DrmBoBuffer>               _input_buf;
-    SmartPtr<DrmBoBuffer>               _output_buf;
+    SmartPtr<VideoBuffer>               _input_buf;
+    SmartPtr<VideoBuffer>               _output_buf;
 };
 
 SmartPtr<CLImageHandler>

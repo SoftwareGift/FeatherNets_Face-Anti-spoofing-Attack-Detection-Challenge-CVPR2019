@@ -17,7 +17,8 @@
  *
  *  Author: Wu Junkai <junkai.wu@intel.com>
  */
-#include "xcam_utils.h"
+
+#include "cl_utils.h"
 #include "cl_newtonemapping_handler.h"
 
 namespace XCam {
@@ -248,7 +249,7 @@ CLNewTonemappingImageHandler::prepare_buffer_pool_video_info (
 
 XCamReturn
 CLNewTonemappingImageHandler::prepare_parameters (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo &video_info = input->get_video_info ();
@@ -266,8 +267,8 @@ CLNewTonemappingImageHandler::prepare_parameters (
     desc.array_size = 4;
     desc.slice_pitch = video_info.strides [0] * video_info.aligned_height;
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, desc);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, desc);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, desc);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, desc);
     int image_width = video_info.aligned_width;
     int image_height = video_info.aligned_height;
 
@@ -277,7 +278,14 @@ CLNewTonemappingImageHandler::prepare_parameters (
         XCAM_RETURN_ERROR_MEM,
         "cl image handler(%s) in/out memory not available", XCAM_STR (get_name ()));
 
-    SmartPtr<X3aStats> stats = input->find_3a_stats ();
+    SmartPtr<DrmBoBuffer> bo_buf = input.dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        bo_buf.ptr (),
+        XCAM_RETURN_ERROR_MEM,
+        "get DrmBoBuffer failed");
+
+    SmartPtr<X3aStats> stats = bo_buf->find_3a_stats ();
     XCAM_FAIL_RETURN (
         ERROR, stats.ptr (), XCAM_RETURN_ERROR_MEM,
         "new tonemapping handler prepare_arguments find_3a_stats failed");

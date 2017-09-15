@@ -44,8 +44,8 @@ protected:
     virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
     // new virtual fucntions
-    virtual SmartPtr<DrmBoBuffer> get_input_buf () = 0;
-    virtual SmartPtr<DrmBoBuffer> get_output_buf () = 0;
+    virtual SmartPtr<VideoBuffer> get_input_buf () = 0;
+    virtual SmartPtr<VideoBuffer> get_output_buf () = 0;
 
 protected:
     SmartPtr<CLBuffer>    _g_table_buffer;

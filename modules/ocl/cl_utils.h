@@ -29,6 +29,17 @@ namespace XCam {
 
 bool write_image (SmartPtr<CLImage> image, const char *file_name);
 
+SmartPtr<CLBuffer> convert_to_clbuffer (
+    const SmartPtr<CLContext> &context,
+    SmartPtr<VideoBuffer> &buf);
+
+SmartPtr<CLImage> convert_to_climage (
+    const SmartPtr<CLContext> &context,
+    SmartPtr<VideoBuffer> &buf,
+    const CLImageDesc &desc,
+    uint32_t offset = 0,
+    cl_mem_flags flags = CL_MEM_READ_WRITE);
+
 }
 
 #endif //XCAM_CL_UTILS_H

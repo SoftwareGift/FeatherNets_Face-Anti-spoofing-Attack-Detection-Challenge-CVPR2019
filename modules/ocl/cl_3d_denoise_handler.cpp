@@ -18,6 +18,7 @@
  * Author: Wei Zong <wei.zong@intel.com>
  */
 
+#include "cl_utils.h"
 #include "cl_3d_denoise_handler.h"
 
 namespace XCam {
@@ -73,8 +74,8 @@ CL3DDenoiseImageKernel::prepare_arguments (
 {
     SmartPtr<CLContext> context = get_context ();
 
-    SmartPtr<DrmBoBuffer> input = _handler->get_input_buf ();
-    SmartPtr<DrmBoBuffer> output = _handler->get_output_buf ();
+    SmartPtr<VideoBuffer> input = _handler->get_input_buf ();
+    SmartPtr<VideoBuffer> output = _handler->get_output_buf ();
 
     const VideoBufferInfo & video_info_in = input->get_video_info ();
     const VideoBufferInfo & video_info_out = output->get_video_info ();
@@ -113,8 +114,8 @@ CL3DDenoiseImageKernel::prepare_arguments (
     float gain = 5.0f / (_handler->get_denoise_config ().gain + 0.0001f);
     float threshold = 2.0f * _handler->get_denoise_config ().threshold[info_index];
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[info_index]);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[info_index]);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[info_index]);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[info_index]);
     XCAM_ASSERT (image_in->is_valid () && image_out->is_valid ());
     XCAM_FAIL_RETURN (
         WARNING,
@@ -196,7 +197,7 @@ CL3DDenoiseImageHandler::set_denoise_config (const XCam3aResultTemporalNoiseRedu
 }
 
 XCamReturn
-CL3DDenoiseImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CL3DDenoiseImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     _input_buf = input;
     _output_buf = output;

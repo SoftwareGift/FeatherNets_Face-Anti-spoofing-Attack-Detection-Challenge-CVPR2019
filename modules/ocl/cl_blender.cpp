@@ -104,13 +104,13 @@ CLBlender::prepare_buffer_pool_video_info (
 }
 
 XCamReturn
-CLBlender::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLBlender::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     XCAM_ASSERT (input.ptr () && output.ptr ());
-    SmartPtr<DrmBoBuffer> input0, input1;
+    SmartPtr<VideoBuffer> input0, input1;
 
-    SmartPtr<DrmBoBuffer> next = input->find_typed_attach<DrmBoBuffer> ();
+    SmartPtr<VideoBuffer> next = input->find_typed_attach<VideoBuffer> ();
     XCAM_FAIL_RETURN(
         WARNING,
         next.ptr (),

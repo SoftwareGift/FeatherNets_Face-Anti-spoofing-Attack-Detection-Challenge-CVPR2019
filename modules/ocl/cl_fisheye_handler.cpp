@@ -18,7 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_fisheye_handler.h"
 #include "cl_device.h"
 
@@ -227,7 +227,7 @@ CLFisheyeHandler::prepare_buffer_pool_video_info (
 }
 
 XCamReturn
-CLFisheyeHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLFisheyeHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     const VideoBufferInfo &in_info = input->get_video_info ();
     const VideoBufferInfo &out_info = output->get_video_info ();
@@ -245,14 +245,14 @@ CLFisheyeHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
     cl_desc.width = input_image_w;
     cl_desc.height = input_image_h;
     cl_desc.row_pitch = in_info.strides[CLNV12PlaneY];
-    _input[CLNV12PlaneY] = new CLVaImage (context, input, cl_desc, in_info.offsets[CLNV12PlaneY]);
+    _input[CLNV12PlaneY] = convert_to_climage (context, input, cl_desc, in_info.offsets[CLNV12PlaneY]);
 
     cl_desc.format.image_channel_data_type = CL_UNORM_INT8;
     cl_desc.format.image_channel_order = CL_RG;
     cl_desc.width = input_image_w / 2;
     cl_desc.height = input_image_h / 2;
     cl_desc.row_pitch = in_info.strides[CLNV12PlaneUV];
-    _input[CLNV12PlaneUV] = new CLVaImage (context, input, cl_desc, in_info.offsets[CLNV12PlaneUV]);
+    _input[CLNV12PlaneUV] = convert_to_climage (context, input, cl_desc, in_info.offsets[CLNV12PlaneUV]);
 
     if (_use_map) {
         cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
@@ -260,20 +260,20 @@ CLFisheyeHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
         cl_desc.width = XCAM_ALIGN_DOWN (out_info.width, 8) / 8; //CL_RGBA * CL_UNSIGNED_INT16 = 8
         cl_desc.height = XCAM_ALIGN_DOWN (out_info.height, 2);
         cl_desc.row_pitch = out_info.strides[CLNV12PlaneY];
-        _output[CLNV12PlaneY] = new CLVaImage (context, output, cl_desc, out_info.offsets[CLNV12PlaneY]);
+        _output[CLNV12PlaneY] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneY]);
         cl_desc.height /= 2;
         cl_desc.row_pitch = out_info.strides[CLNV12PlaneUV];
-        _output[CLNV12PlaneUV] = new CLVaImage (context, output, cl_desc, out_info.offsets[CLNV12PlaneUV]);
+        _output[CLNV12PlaneUV] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneUV]);
     } else {
         cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT8;
         cl_desc.format.image_channel_order = CL_RGBA;
         cl_desc.width = XCAM_ALIGN_DOWN (out_info.width, 4) / 4; //CL_RGBA * CL_UNSIGNED_INT8 = 4
         cl_desc.height = XCAM_ALIGN_DOWN (out_info.height, 2);
         cl_desc.row_pitch = out_info.strides[CLNV12PlaneY];
-        _output[CLNV12PlaneY] = new CLVaImage (context, output, cl_desc, out_info.offsets[CLNV12PlaneY]);
+        _output[CLNV12PlaneY] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneY]);
         cl_desc.height /= 2;
         cl_desc.row_pitch = out_info.strides[CLNV12PlaneUV];
-        _output[CLNV12PlaneUV] = new CLVaImage (context, output, cl_desc, out_info.offsets[CLNV12PlaneUV]);
+        _output[CLNV12PlaneUV] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneUV]);
     }
 
     XCAM_ASSERT (
@@ -497,7 +497,7 @@ CLFisheyeHandler::generate_lsc_table (
 }
 
 XCamReturn
-CLFisheyeHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLFisheyeHandler::execute_done (SmartPtr<VideoBuffer> &output)
 {
     XCAM_UNUSED (output);
 

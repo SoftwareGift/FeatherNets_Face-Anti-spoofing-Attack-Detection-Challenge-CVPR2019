@@ -65,12 +65,12 @@ public:
     XCamReturn init_handler ();
     XCamReturn uinit_handler ();
 
-    XCamReturn execute (SmartPtr<DrmBoBuffer> &buf_in, SmartPtr<DrmBoBuffer> &buf_out);
+    XCamReturn execute (SmartPtr<VideoBuffer> &buf_in, SmartPtr<VideoBuffer> &buf_out);
 
     SmartPtr<CLImageHandler> get_handler() const {
         return  _handler;
     }
-    SmartPtr<DrmBoBufferPool> get_input_buffer_pool() const {
+    SmartPtr<BufferPool> get_input_buffer_pool() const {
         return  _inbuf_pool;
     }
     HandleType get_type () const {
@@ -93,7 +93,7 @@ protected:
     HandleType                       _type;
     char                            *_usage;
     SmartPtr<CLImageHandler>         _handler;
-    SmartPtr<DrmBoBufferPool>        _inbuf_pool;
+    SmartPtr<BufferPool>             _inbuf_pool;
 
     //parameters
     uint32_t                         _image_width;

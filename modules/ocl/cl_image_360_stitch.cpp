@@ -18,6 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
+#include "cl_utils.h"
 #include "cl_image_360_stitch.h"
 
 #define XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH 64
@@ -40,7 +41,7 @@ CLBlenderGlobalScaleKernel::CLBlenderGlobalScaleKernel (
 SmartPtr<CLImage>
 CLBlenderGlobalScaleKernel::get_input_image () {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> input = _stitch->get_global_scale_input ();
+    SmartPtr<VideoBuffer> input = _stitch->get_global_scale_input ();
 
     CLImageDesc cl_desc;
     SmartPtr<CLImage> cl_image;
@@ -52,13 +53,13 @@ CLBlenderGlobalScaleKernel::get_input_image () {
         cl_desc.width = buf_info.width / 2;
         cl_desc.height = buf_info.height / 2;
         cl_desc.row_pitch = buf_info.strides[1];
-        cl_image = new CLVaImage (context, input, cl_desc, buf_info.offsets[1]);
+        cl_image = convert_to_climage (context, input, cl_desc, buf_info.offsets[1]);
     } else {
         cl_desc.format.image_channel_order = CL_R;
         cl_desc.width = buf_info.width;
         cl_desc.height = buf_info.height;
         cl_desc.row_pitch = buf_info.strides[0];
-        cl_image = new CLVaImage (context, input, cl_desc, buf_info.offsets[0]);
+        cl_image = convert_to_climage (context, input, cl_desc, buf_info.offsets[0]);
     }
 
     return cl_image;
@@ -67,7 +68,7 @@ CLBlenderGlobalScaleKernel::get_input_image () {
 SmartPtr<CLImage>
 CLBlenderGlobalScaleKernel::get_output_image () {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> output = _stitch->get_global_scale_output ();
+    SmartPtr<VideoBuffer> output = _stitch->get_global_scale_output ();
 
     CLImageDesc cl_desc;
     SmartPtr<CLImage> cl_image;
@@ -79,12 +80,12 @@ CLBlenderGlobalScaleKernel::get_output_image () {
         cl_desc.width = buf_info.width / 8;
         cl_desc.height = buf_info.height / 2;
         cl_desc.row_pitch = buf_info.strides[1];
-        cl_image = new CLVaImage (context, output, cl_desc, buf_info.offsets[1]);
+        cl_image = convert_to_climage (context, output, cl_desc, buf_info.offsets[1]);
     } else {
         cl_desc.width = buf_info.width / 8;
         cl_desc.height = buf_info.height;
         cl_desc.row_pitch = buf_info.strides[0];
-        cl_image = new CLVaImage (context, output, cl_desc, buf_info.offsets[0]);
+        cl_image = convert_to_climage (context, output, cl_desc, buf_info.offsets[0]);
     }
 
     return cl_image;
@@ -94,7 +95,7 @@ bool
 CLBlenderGlobalScaleKernel::get_output_info (
     uint32_t &out_width, uint32_t &out_height, int &out_offset_x)
 {
-    SmartPtr<DrmBoBuffer> output = _stitch->get_global_scale_output ();
+    SmartPtr<VideoBuffer> output = _stitch->get_global_scale_output ();
     const VideoBufferInfo &output_info = output->get_video_info ();
 
     out_width = output_info.width / 8;
@@ -365,7 +366,7 @@ CLImage360Stitch::get_feature_match_config (const int idx)
 #endif
 
 void
-CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<DrmBoBuffer> &output)
+CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
 {
     const VideoBufferInfo &out_info = output->get_video_info ();
 
@@ -447,7 +448,7 @@ CLImage360Stitch::prepare_buffer_pool_video_info (
 
 XCamReturn
 CLImage360Stitch::ensure_fisheye_parameters (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     static bool is_fisheye_inited = false;
 
@@ -456,13 +457,13 @@ CLImage360Stitch::ensure_fisheye_parameters (
         is_fisheye_inited = true;
     }
 
-    SmartPtr<DrmBoBuffer> pre_buf;
-    SmartPtr<DrmBoBuffer> cur_buf = input;
+    SmartPtr<VideoBuffer> pre_buf;
+    SmartPtr<VideoBuffer> cur_buf = input;
     for (int i = 0; i < _fisheye_num; i++) {
         if (!_fisheye[i].pool.ptr ())
             create_buffer_pool (_fisheye[i].pool, _fisheye[i].width, _fisheye[i].height);
 
-        _fisheye[i].buf = _fisheye[i].pool->get_buffer (_fisheye[i].pool).dynamic_cast_ptr<DrmBoBuffer> ();
+        _fisheye[i].buf = _fisheye[i].pool->get_buffer (_fisheye[i].pool);
         XCAM_ASSERT (_fisheye[i].buf.ptr ());
 
         XCamReturn ret = ensure_handler_parameters (_fisheye[i].handler, cur_buf, _fisheye[i].buf);
@@ -470,7 +471,7 @@ CLImage360Stitch::ensure_fisheye_parameters (
 
         if (!_all_in_one_img) {
             pre_buf = cur_buf;
-            cur_buf = cur_buf->find_typed_attach<DrmBoBuffer> ();
+            cur_buf = cur_buf->find_typed_attach<VideoBuffer> ();
             if (!cur_buf.ptr () && (i != (_fisheye_num - 1))) {
                 XCAM_LOG_ERROR ("conflicting attached buffers and fisheye number");
                 return XCAM_RETURN_ERROR_PARAM;
@@ -484,7 +485,7 @@ CLImage360Stitch::ensure_fisheye_parameters (
 
 XCamReturn
 CLImage360Stitch::prepare_global_scale_blender_parameters (
-    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output,
+    SmartPtr<VideoBuffer> &input0, SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output,
     int idx, int idx_next, int &cur_start_pos)
 {
     const VideoBufferInfo &in0_info = input0->get_video_info ();
@@ -537,7 +538,7 @@ CLImage360Stitch::prepare_global_scale_blender_parameters (
 
 XCamReturn
 CLImage360Stitch::prepare_local_scale_blender_parameters (
-    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output, int idx, int idx_next)
+    SmartPtr<VideoBuffer> &input0, SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output, int idx, int idx_next)
 {
     const VideoBufferInfo &in0_info = input0->get_video_info ();
     const VideoBufferInfo &in1_info = input1->get_video_info ();
@@ -610,7 +611,7 @@ CLImage360Stitch::create_buffer_pool (SmartPtr<BufferPool> &buf_pool, uint32_t w
 }
 
 XCamReturn
-CLImage360Stitch::reset_buffer_info (SmartPtr<DrmBoBuffer> &input)
+CLImage360Stitch::reset_buffer_info (SmartPtr<VideoBuffer> &input)
 {
     VideoBufferInfo reset_info;
     const VideoBufferInfo &buf_info = input->get_video_info ();
@@ -632,7 +633,7 @@ CLImage360Stitch::reset_buffer_info (SmartPtr<DrmBoBuffer> &input)
 }
 
 XCamReturn
-CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLImage360Stitch::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_is_stitch_inited)
@@ -660,8 +661,7 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
         const VideoBufferInfo &buf_info = output->get_video_info ();
         if (!_scale_buf_pool.ptr ())
             create_buffer_pool (_scale_buf_pool, buf_info.width + XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH, buf_info.height);
-        SmartPtr<DrmBoBuffer> scale_input =
-            _scale_buf_pool->get_buffer (_scale_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+        SmartPtr<VideoBuffer> scale_input = _scale_buf_pool->get_buffer (_scale_buf_pool);
         XCAM_ASSERT (scale_input.ptr ());
 
         int idx_next = 1;
@@ -688,7 +688,7 @@ CLImage360Stitch::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Drm
 }
 
 XCamReturn
-CLImage360Stitch::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLImage360Stitch::execute_done (SmartPtr<VideoBuffer> &output)
 {
 #if HAVE_OPENCV
     for (int i = 0; i < _fisheye_num; i++) {

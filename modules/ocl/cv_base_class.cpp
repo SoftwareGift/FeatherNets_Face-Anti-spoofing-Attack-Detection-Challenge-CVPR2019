@@ -31,9 +31,9 @@ CVBaseClass::CVBaseClass ()
 }
 
 bool
-CVBaseClass::convert_to_mat (SmartPtr<DrmBoBuffer> buffer, cv::Mat &image)
+CVBaseClass::convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image)
 {
-    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (_context, buffer);
+    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_context, buffer);
     VideoBufferInfo info = buffer->get_video_info ();
     cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 

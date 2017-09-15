@@ -126,8 +126,8 @@ protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input,
         VideoBufferInfo &output);
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
 private:
     bool normalize_geo_map (uint32_t image_w, uint32_t image_h);

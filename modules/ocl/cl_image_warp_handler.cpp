@@ -18,7 +18,7 @@
  * Author: Zong Wei <wei.zong@intel.com>
  */
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_image_warp_handler.h"
 
 namespace XCam {
@@ -56,8 +56,8 @@ CLImageWarpKernel::prepare_arguments (
     CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> input = _handler->get_warp_input_buf ();
-    SmartPtr<DrmBoBuffer> output = _handler->get_output_buf ();
+    SmartPtr<VideoBuffer> input = _handler->get_warp_input_buf ();
+    SmartPtr<VideoBuffer> output = _handler->get_output_buf ();
 
     const VideoBufferInfo & video_info_in = input->get_video_info ();
     const VideoBufferInfo & video_info_out = output->get_video_info ();
@@ -89,7 +89,7 @@ CLImageWarpKernel::prepare_arguments (
 #endif
 
     cl_desc_out.row_pitch = video_info_out.strides[info_index];
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[info_index]);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[info_index]);
 
     CLWarpConfig warp_config = _handler->get_warp_config ();
     if ((warp_config.trim_ratio > 0.5f) || (warp_config.trim_ratio < 0.0f)) {
@@ -147,7 +147,7 @@ CLImageWarpKernel::prepare_arguments (
                     warp_config.proj_mat[3], warp_config.proj_mat[4], warp_config.proj_mat[5],
                     warp_config.proj_mat[6], warp_config.proj_mat[7], warp_config.proj_mat[8]);
 
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[info_index]);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[info_index]);
     XCAM_FAIL_RETURN (
         WARNING,
         image_in->is_valid () && image_out->is_valid (),
@@ -181,7 +181,7 @@ CLImageWarpHandler::is_ready ()
 }
 
 XCamReturn
-CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLImageWarpHandler::execute_done (SmartPtr<VideoBuffer> &output)
 {
     XCAM_UNUSED (output);
     if (!_warp_config_list.empty ()) {
@@ -191,7 +191,7 @@ CLImageWarpHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
     return XCAM_RETURN_NO_ERROR;
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLImageWarpHandler::get_warp_input_buf ()
 {
     return CLImageHandler::get_input_buf ();

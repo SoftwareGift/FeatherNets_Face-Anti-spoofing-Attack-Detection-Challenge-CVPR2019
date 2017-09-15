@@ -54,4 +54,35 @@ write_image (SmartPtr<CLImage> image, const char *file_name)
     return true;
 }
 
+SmartPtr<CLBuffer>
+convert_to_clbuffer (
+    const SmartPtr<CLContext> &context,
+    SmartPtr<VideoBuffer> &buf)
+{
+    SmartPtr<CLBuffer> cl_buf;
+
+    SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
+    cl_buf = new CLVaBuffer (context, bo_buf);
+
+    XCAM_FAIL_RETURN (WARNING, cl_buf.ptr (), NULL, "convert to clbuffer failed");
+    return cl_buf;
+}
+
+SmartPtr<CLImage>
+convert_to_climage (
+    const SmartPtr<CLContext> &context,
+    SmartPtr<VideoBuffer> &buf,
+    const CLImageDesc &desc,
+    uint32_t offset,
+    cl_mem_flags flags)
+{
+    SmartPtr<CLImage> cl_image;
+
+    SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
+    cl_image = new CLVaImage (context, bo_buf, desc, offset);
+
+    XCAM_FAIL_RETURN (WARNING, cl_image.ptr (), NULL, "convert to climage failed");
+    return cl_image;
+}
+
 }

@@ -87,7 +87,7 @@ private:
     PriorityBufferQueue            _process_buffer_queue;
     UnsafePriorityBufferList       _not_ready_buffers;
     SmartPtr<CLBufferNotifyThread> _done_buf_thread;
-    SafeList<DrmBoBuffer>          _done_buffer_queue;
+    SafeList<VideoBuffer>          _done_buffer_queue;
     uint32_t                       _seq_num;
     bool                           _keep_attached_buffer;  //default false
     XCAM_OBJ_PROFILING_DEFINES;

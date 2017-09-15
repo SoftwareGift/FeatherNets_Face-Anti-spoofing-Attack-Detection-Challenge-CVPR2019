@@ -18,12 +18,11 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_defog_dcp_handler.h"
 #include <algorithm>
 #include "cl_device.h"
 #include "cl_image_bo_buffer.h"
-#include "cl_utils.h"
 
 enum {
     KernelDarkChannel = 0,
@@ -69,7 +68,8 @@ XCamReturn
 CLDarkChannelKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> &input = _defog_handler->get_input_buf ();
+    SmartPtr<VideoBuffer> &input = _defog_handler->get_input_buf ();
+
     const VideoBufferInfo & video_info_in = input->get_video_info ();
 
     CLImageDesc cl_desc_in;
@@ -79,11 +79,11 @@ CLDarkChannelKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     cl_desc_in.width = video_info_in.width / 8;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    SmartPtr<CLImage> image_in_y = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    SmartPtr<CLImage> image_in_y = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[0]);
 
     cl_desc_in.height = video_info_in.height / 2;
     cl_desc_in.row_pitch = video_info_in.strides[1];
-    SmartPtr<CLImage> image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
+    SmartPtr<CLImage> image_in_uv = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[1]);
 
     args.push_back (new CLMemArgument (image_in_y));
     args.push_back (new CLMemArgument (image_in_uv));
@@ -156,7 +156,7 @@ XCamReturn
 CLBiFilterKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> &input = _defog_handler->get_input_buf ();
+    SmartPtr<VideoBuffer> &input = _defog_handler->get_input_buf ();
     const VideoBufferInfo & video_info_in = input->get_video_info ();
 
     CLImageDesc cl_desc_in;
@@ -165,7 +165,7 @@ CLBiFilterKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     cl_desc_in.width = video_info_in.width / 8;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    SmartPtr<CLImage> image_in_y = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    SmartPtr<CLImage> image_in_y = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[0]);
 
     SmartPtr<CLImage> &dark_channel_in = _defog_handler->get_dark_map (XCAM_DEFOG_DC_ORIGINAL);
     SmartPtr<CLImage> &dark_channel_out = _defog_handler->get_dark_map (XCAM_DEFOG_DC_BI_FILTER);
@@ -195,11 +195,19 @@ CLDefogRecoverKernel::CLDefogRecoverKernel (
 }
 
 float
-CLDefogRecoverKernel::get_max_value (SmartPtr<DrmBoBuffer> &buf)
+CLDefogRecoverKernel::get_max_value (SmartPtr<VideoBuffer> &buf)
 {
     float ret = 255.0f;
     const float max_percent = 1.0f;
-    SmartPtr<X3aStats> stats = buf->find_3a_stats ();
+
+    SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        bo_buf.ptr (),
+        XCAM_RETURN_ERROR_MEM,
+        "get DrmBoBuffer failed");
+
+    SmartPtr<X3aStats> stats = bo_buf->find_3a_stats ();
 
     _max_r = 230.0f;
     _max_g = 230.0f;
@@ -233,8 +241,8 @@ XCamReturn
 CLDefogRecoverKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> &input = _defog_handler->get_input_buf ();
-    SmartPtr<DrmBoBuffer> &output = _defog_handler->get_output_buf ();
+    SmartPtr<VideoBuffer> &input = _defog_handler->get_input_buf ();
+    SmartPtr<VideoBuffer> &output = _defog_handler->get_output_buf ();
     SmartPtr<CLImage> &dark_map = _defog_handler->get_dark_map (XCAM_DEFOG_DC_BI_FILTER);
     get_max_value (input);
 
@@ -257,11 +265,11 @@ CLDefogRecoverKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     cl_desc_out.width = video_info_out.width / 8;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
-    SmartPtr<CLImage> image_out_y = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
+    SmartPtr<CLImage> image_out_y = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
     cl_desc_out.height = video_info_out.height / 2;
     cl_desc_out.row_pitch = video_info_out.strides[1];
-    SmartPtr<CLImage> image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[1]);
+    SmartPtr<CLImage> image_out_uv = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[1]);
 
     args.push_back (new CLMemArgument (image_out_y));
     args.push_back (new CLMemArgument (image_out_uv));
@@ -283,7 +291,7 @@ CLDefogDcpImageHandler::CLDefogDcpImageHandler (
 }
 
 XCamReturn
-CLDefogDcpImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLDefogDcpImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCAM_UNUSED (output);
     XCamReturn ret = allocate_transmit_bufs (input->get_video_info ());
@@ -297,7 +305,7 @@ CLDefogDcpImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartP
 }
 
 XCamReturn
-CLDefogDcpImageHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLDefogDcpImageHandler::execute_done (SmartPtr<VideoBuffer> &output)
 {
     XCAM_UNUSED (output);
 #if 0

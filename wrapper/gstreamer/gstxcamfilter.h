@@ -94,7 +94,7 @@ struct _GstXCamFilter
     GstAllocator                            *allocator;
     GstVideoInfo                             gst_sink_video_info;
     GstVideoInfo                             gst_src_video_info;
-    XCam::SmartPtr<XCam::DrmBoBufferPool>    buf_pool;
+    XCam::SmartPtr<XCam::BufferPool>         buf_pool;
     XCam::SmartPtr<GstXCam::MainPipeManager> pipe_manager;
 };
 

@@ -18,7 +18,8 @@
  * Author: Wangfei <feix.w.wang@intel.com>
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
-#include "xcam_utils.h"
+
+#include "cl_utils.h"
 #include "cl_yuv_pipe_handler.h"
 
 #define USE_BUFFER_OBJECT 0
@@ -102,7 +103,7 @@ CLYuvPipeImageHandler::prepare_buffer_pool_video_info (
 
 XCamReturn
 CLYuvPipeImageHandler::prepare_parameters (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info_in = input->get_video_info ();
@@ -128,15 +129,15 @@ CLYuvPipeImageHandler::prepare_parameters (
     out_image_info.height = video_info_out.aligned_height;
     out_image_info.row_pitch = video_info_out.strides[0];
 
-    buffer_in = new CLVaImage (context, input, in_image_info);
-    buffer_out = new CLVaImage (context, output, out_image_info, video_info_out.offsets[0]);
+    buffer_in = convert_to_climage (context, input, in_image_info);
+    buffer_out = convert_to_climage (context, output, out_image_info, video_info_out.offsets[0]);
 
     out_image_info.height = video_info_out.aligned_height / 2;
     out_image_info.row_pitch = video_info_out.strides[1];
-    buffer_out_UV = new CLVaImage (context, output, out_image_info, video_info_out.offsets[1]);
+    buffer_out_UV = convert_to_climage (context, output, out_image_info, video_info_out.offsets[1]);
 #else
-    buffer_in = new CLVaBuffer (context, input);
-    buffer_out = new CLVaBuffer (context, output);
+    buffer_in = convert_to_clbuffer (context, input);
+    buffer_out = convert_to_clbuffer (context, output);
 #endif
     SmartPtr<CLBuffer> matrix_buffer = new CLBuffer (
         context, sizeof(float)*XCAM_COLOR_MATRIX_SIZE,

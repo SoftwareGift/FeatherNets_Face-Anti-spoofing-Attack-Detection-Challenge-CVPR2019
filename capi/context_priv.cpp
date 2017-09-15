@@ -153,7 +153,7 @@ ContextBase::uinit_handler ()
 }
 
 XCamReturn
-ContextBase::execute (SmartPtr<DrmBoBuffer> &buf_in, SmartPtr<DrmBoBuffer> &buf_out)
+ContextBase::execute (SmartPtr<VideoBuffer> &buf_in, SmartPtr<VideoBuffer> &buf_out)
 {
     if (!_alloc_out_buf) {
         XCAM_FAIL_RETURN (

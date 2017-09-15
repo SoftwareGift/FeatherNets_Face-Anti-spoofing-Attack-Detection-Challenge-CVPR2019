@@ -18,7 +18,7 @@
  * Author: Wei Zong <wei.zong@intel.com>
  */
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_context.h"
 #include "cl_device.h"
 #include "cl_newwavelet_denoise_handler.h"
@@ -78,7 +78,7 @@ CLWaveletNoiseEstimateKernel::CLWaveletNoiseEstimateKernel (
 SmartPtr<CLImage>
 CLWaveletNoiseEstimateKernel::get_input_buffer ()
 {
-    SmartPtr<DrmBoBuffer> input = _handler->get_input_buf ();
+    SmartPtr<VideoBuffer> input = _handler->get_input_buf ();
     const VideoBufferInfo & video_info = input->get_video_info ();
 
     SmartPtr<CLImage> image;
@@ -391,8 +391,8 @@ XCamReturn
 CLWaveletTransformKernel::prepare_arguments (
     CLArgList &args, CLWorkSize &work_size)
 {
-    SmartPtr<DrmBoBuffer> input = _handler->get_input_buf ();
-    SmartPtr<DrmBoBuffer> output = _handler->get_output_buf ();
+    SmartPtr<VideoBuffer> input = _handler->get_input_buf ();
+    SmartPtr<VideoBuffer> output = _handler->get_output_buf ();
     SmartPtr<CLContext> context = get_context ();
 
     const VideoBufferInfo & video_info_in = input->get_video_info ();
@@ -415,8 +415,8 @@ CLWaveletTransformKernel::prepare_arguments (
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
     cl_desc_in.height = XCAM_ALIGN_UP (video_info_in.height, 2) / 2;
     cl_desc_in.row_pitch = video_info_in.strides[1];
@@ -424,8 +424,8 @@ CLWaveletTransformKernel::prepare_arguments (
     cl_desc_out.height = XCAM_ALIGN_UP (video_info_out.height, 2) / 2;
     cl_desc_out.row_pitch = video_info_out.strides[1];
 
-    SmartPtr<CLImage> image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
-    SmartPtr<CLImage> image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[1]);
+    SmartPtr<CLImage> image_in_uv = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[1]);
+    SmartPtr<CLImage> image_out_uv = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[1]);
 
     XCAM_FAIL_RETURN (
         WARNING,
@@ -520,7 +520,7 @@ CLNewWaveletDenoiseImageHandler::CLNewWaveletDenoiseImageHandler (
 }
 
 XCamReturn
-CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLNewWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     CLImageHandler::prepare_output_buf(input, output);

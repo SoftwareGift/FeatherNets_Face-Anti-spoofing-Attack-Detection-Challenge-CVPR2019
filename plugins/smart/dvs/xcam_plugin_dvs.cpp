@@ -23,11 +23,11 @@
 #include <base/xcam_3a_result.h>
 #include <base/xcam_buffer.h>
 
-#include <xcam_utils.h>
 #include <smartptr.h>
 #include <drm_display.h>
 #include <dma_video_buffer.h>
 
+#include <ocl/cl_utils.h>
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
 #include <ocl/cl_memory.h>
@@ -116,10 +116,10 @@ XCamReturn dvs_analyze(XCamSmartAnalysisContext *context, XCamVideoBuffer *buffe
     XCam::SmartPtr<XCam::VideoBuffer> video_buffer = new XCam::DmaVideoBuffer(buffer_info, buffer_fd);
 
     XCam::SmartPtr<XCam::DrmDisplay> display = XCam::DrmDisplay::instance ();
-    XCam::SmartPtr<XCam::DrmBoBuffer> bo_buffer = display->convert_to_drm_bo_buf (display, video_buffer);
+    XCam::SmartPtr<XCam::VideoBuffer> bo_buffer = display->convert_to_drm_bo_buf (display, video_buffer);
 
     XCam::SmartPtr<XCam::CLContext> cl_Context = XCam::CLDevice::instance()->get_context();
-    XCam::SmartPtr<XCam::CLBuffer> cl_buffer = new XCam::CLVaBuffer (cl_Context, bo_buffer);
+    XCam::SmartPtr<XCam::CLBuffer> cl_buffer = XCam::convert_to_clbuffer (cl_Context, bo_buffer);
     cl_mem cl_mem_id = cl_buffer->get_mem_id();
 
     clRetainMemObject(cl_mem_id);

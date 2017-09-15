@@ -213,14 +213,14 @@ XCamReturn CLImageHandler::prepare_buffer_pool_video_info (
 }
 
 XCamReturn
-CLImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCAM_ASSERT (input.ptr () && output.ptr ());
     return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
-CLImageHandler::ensure_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLImageHandler::ensure_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = prepare_parameters (input, output);
     XCAM_FAIL_RETURN(
@@ -232,16 +232,15 @@ CLImageHandler::ensure_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoB
 }
 
 void
-CLImageHandler::reset_buf_cache (const SmartPtr<DrmBoBuffer>& input, const SmartPtr<DrmBoBuffer>& output)
+CLImageHandler::reset_buf_cache (const SmartPtr<VideoBuffer>& input, const SmartPtr<VideoBuffer>& output)
 {
     _input_buf_cache = input;
     _output_buf_cache = output;
 }
 
 XCamReturn
-CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
-    SmartPtr<VideoBuffer> new_buf;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if (_disable_buf_pool)
@@ -265,19 +264,17 @@ CLImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBo
             "CLImageHandler(%s) ensure drm buffer pool failed", XCAM_STR (_name));
     }
 
-    new_buf = _buf_pool->get_buffer (_buf_pool);
+    output = _buf_pool->get_buffer (_buf_pool);
     XCAM_FAIL_RETURN(
         WARNING,
-        new_buf.ptr(),
+        output.ptr(),
         XCAM_RETURN_ERROR_UNKNOWN,
         "CLImageHandler(%s) failed to get drm buffer from pool", XCAM_STR (_name));
 
     // TODO, need consider output is not sync up with input buffer
-    new_buf->set_timestamp (input->get_timestamp ());
-    new_buf->copy_attaches (input);
+    output->set_timestamp (input->get_timestamp ());
+    output->copy_attaches (input);
 
-    output = new_buf.dynamic_cast_ptr<DrmBoBuffer> ();
-    XCAM_ASSERT (output.ptr ());
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -293,14 +290,14 @@ CLImageHandler::emit_stop ()
         _buf_pool->stop ();
 }
 
-SmartPtr<DrmBoBuffer> &
+SmartPtr<VideoBuffer> &
 CLImageHandler::get_input_buf ()
 {
     XCAM_ASSERT (_input_buf_cache.ptr ());
     return _input_buf_cache;
 }
 
-SmartPtr<DrmBoBuffer> &
+SmartPtr<VideoBuffer> &
 CLImageHandler::get_output_buf ()
 {
     XCAM_ASSERT (_output_buf_cache.ptr ());
@@ -366,7 +363,7 @@ CLImageHandler::execute_kernels ()
 }
 
 XCamReturn
-CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLImageHandler::execute (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
@@ -418,7 +415,7 @@ CLImageHandler::execute (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &ou
 }
 
 XCamReturn
-CLImageHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLImageHandler::execute_done (SmartPtr<VideoBuffer> &output)
 {
     XCAM_UNUSED (output);
     return XCAM_RETURN_NO_ERROR;
@@ -476,7 +473,7 @@ CLCloneImageHandler::CLCloneImageHandler (const SmartPtr<CLContext> &context, co
 }
 
 XCamReturn
-CLCloneImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLCloneImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCAM_FAIL_RETURN (
         ERROR,
@@ -486,7 +483,8 @@ CLCloneImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<
         XCAM_STR (get_name ()));
 
     XCAM_ASSERT (input.ptr ());
-    SmartPtr<SwappedBuffer> swap_input = input;
+    SmartPtr<SwappedBuffer> swap_input = input.dynamic_cast_ptr<DrmBoBuffer> ();
+    XCAM_ASSERT (swap_input.ptr ());
     SmartPtr<SwappedBuffer> swap_output = swap_input->swap_clone (swap_input, _clone_flags);
     SmartPtr<DrmBoBuffer> swapped_buf = swap_output.dynamic_cast_ptr<DrmBoBuffer> ();
     XCAM_FAIL_RETURN (

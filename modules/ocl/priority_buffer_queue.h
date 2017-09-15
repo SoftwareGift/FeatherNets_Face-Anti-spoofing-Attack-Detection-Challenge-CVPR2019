@@ -30,7 +30,7 @@ namespace XCam {
 
 struct PriorityBuffer
 {
-    SmartPtr<DrmBoBuffer>     data;
+    SmartPtr<VideoBuffer>     data;
     SmartPtr<CLImageHandler>  handler;
     uint32_t                  rank;
     uint32_t                  seq_num;

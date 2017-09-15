@@ -18,7 +18,8 @@
  * Author: wangfei <feix.w.wang@intel.com>
  *             Wind Yuan <feng.yuan@intel.com>
  */
-#include "xcam_utils.h"
+
+#include "cl_utils.h"
 #include "cl_gauss_handler.h"
 #include <algorithm>
 
@@ -40,8 +41,8 @@ public:
         SmartPtr<CLGaussImageHandler> &handler,
         const SmartPtr<CLContext> &context, uint32_t radius, float sigma);
 
-    virtual SmartPtr<DrmBoBuffer> get_input_buf ();
-    virtual SmartPtr<DrmBoBuffer> get_output_buf ();
+    virtual SmartPtr<VideoBuffer> get_input_buf ();
+    virtual SmartPtr<VideoBuffer> get_output_buf ();
 private:
     SmartPtr<CLGaussImageHandler> _handler;
 };
@@ -57,12 +58,12 @@ CLGaussImageKernelImpl::CLGaussImageKernelImpl (
 {
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLGaussImageKernelImpl::get_input_buf ()
 {
     return _handler->get_input_buf ();
 }
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLGaussImageKernelImpl::get_output_buf ()
 {
     return _handler->get_output_buf ();;
@@ -119,17 +120,17 @@ XCamReturn
 CLGaussImageKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer>  input_buf = get_input_buf ();
-    SmartPtr<DrmBoBuffer>  output_buf = get_output_buf ();
+    SmartPtr<VideoBuffer> input = get_input_buf ();
+    SmartPtr<VideoBuffer> output = get_output_buf ();
 
     XCAM_FAIL_RETURN (
         WARNING,
-        input_buf.ptr () && output_buf.ptr (),
+        input.ptr () && output.ptr (),
         XCAM_RETURN_ERROR_MEM,
         "cl image kernel(%s) get input/output buffer failed", get_kernel_name ());
 
-    const VideoBufferInfo & video_info_in = input_buf->get_video_info ();
-    const VideoBufferInfo & video_info_out = output_buf->get_video_info ();
+    const VideoBufferInfo & video_info_in = input->get_video_info ();
+    const VideoBufferInfo & video_info_out = output->get_video_info ();
     CLImageDesc cl_desc_in, cl_desc_out;
 
     cl_desc_in.format.image_channel_data_type = CL_UNORM_INT8;
@@ -137,14 +138,14 @@ CLGaussImageKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     cl_desc_in.width = video_info_in.width;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input_buf, cl_desc_in, video_info_in.offsets[0]);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[0]);
 
     cl_desc_out.format.image_channel_data_type = CL_UNORM_INT8;
     cl_desc_out.format.image_channel_order = CL_RGBA;
     cl_desc_out.width = video_info_out.width / 4;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output_buf, cl_desc_out, video_info_out.offsets[0]);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
     XCAM_FAIL_RETURN (
         WARNING,

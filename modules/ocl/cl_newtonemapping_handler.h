@@ -51,7 +51,7 @@ protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input, VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (
-        SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+        SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     SmartPtr<CLNewTonemappingImageKernel>   _tonemapping_kernel;

@@ -69,7 +69,7 @@ public:
     bool get_border_coordinates (uint32_t *coords);
 
 protected:
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLWireFrameImageHandler);

@@ -63,12 +63,12 @@ CLVideoStabilizer::CLVideoStabilizer (const SmartPtr<CLContext> &context, const 
     _stabilized_frame_id = -1;
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLVideoStabilizer::get_warp_input_buf ()
 {
     XCAM_ASSERT (_input_buf_list.size () >= 1);
 
-    SmartPtr<DrmBoBuffer> buf = (*_input_buf_list.begin ());
+    SmartPtr<VideoBuffer> buf = (*_input_buf_list.begin ());
     return buf;
 }
 
@@ -92,7 +92,7 @@ CLVideoStabilizer::reset_counter ()
 }
 
 XCamReturn
-CLVideoStabilizer::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLVideoStabilizer::execute_done (SmartPtr<VideoBuffer> &output)
 {
     if (!_input_buf_list.empty ()) {
         _input_buf_list.pop_front ();
@@ -104,7 +104,7 @@ CLVideoStabilizer::execute_done (SmartPtr<DrmBoBuffer> &output)
 }
 
 XCamReturn
-CLVideoStabilizer::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLVideoStabilizer::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     XCAM_ASSERT (input.ptr () && output.ptr ());

@@ -19,7 +19,8 @@
  * Author: Wei Zong <wei.zong@intel.com>
  * Author: Wangfei <feix.w.wang@intel.com>
  */
-#include "xcam_utils.h"
+
+#include "cl_utils.h"
 #include "base/xcam_3a_result.h"
 #include "cl_rgb_pipe_handler.h"
 
@@ -72,7 +73,7 @@ CLRgbPipeImageHandler::set_tnr_config (const XCam3aResultTemporalNoiseReduction&
 
 XCamReturn
 CLRgbPipeImageHandler::prepare_parameters (
-    SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info = input->get_video_info ();
@@ -89,8 +90,8 @@ CLRgbPipeImageHandler::prepare_parameters (
     desc.slice_pitch = 0;
 
     XCAM_ASSERT (_rgb_pipe_kernel.ptr ());
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, desc);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, desc);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, desc);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, desc);
 
     if (_image_in_list.size () < 4) {
         while (_image_in_list.size () < 4) {

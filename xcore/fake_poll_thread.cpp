@@ -73,7 +73,7 @@ FakePollThread::stop ()
 }
 
 XCamReturn
-FakePollThread::read_buf (SmartPtr<DrmBoBuffer> &buf)
+FakePollThread::read_buf (SmartPtr<VideoBuffer> &buf)
 {
     uint8_t *dst = buf->map ();
     const VideoBufferInfo info = buf->get_video_info ();
@@ -111,8 +111,7 @@ FakePollThread::poll_buffer_loop ()
     if (!_buf_pool.ptr () && init_buffer_pool () != XCAM_RETURN_NO_ERROR)
         return XCAM_RETURN_ERROR_MEM;
 
-    SmartPtr<DrmBoBuffer> buf =
-        _buf_pool->get_buffer (_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+    SmartPtr<VideoBuffer> buf = _buf_pool->get_buffer (_buf_pool);
     if (!buf.ptr ()) {
         XCAM_LOG_WARNING ("FakePollThread get buffer failed");
         return XCAM_RETURN_ERROR_MEM;

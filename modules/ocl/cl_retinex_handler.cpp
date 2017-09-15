@@ -19,7 +19,7 @@
  *             Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "cl_retinex_handler.h"
 #include <algorithm>
 #include "cl_device.h"
@@ -65,13 +65,13 @@ CLRetinexScalerImageKernel::CLRetinexScalerImageKernel (
 {
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLRetinexScalerImageKernel::get_input_buffer ()
 {
     return _retinex->get_input_buf ();
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLRetinexScalerImageKernel::get_output_buffer ()
 {
     return _retinex->get_scaler_buf1 ();
@@ -88,13 +88,13 @@ CLRetinexGaussImageKernel::CLRetinexGaussImageKernel (
 {
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLRetinexGaussImageKernel::get_input_buf ()
 {
     return _retinex->get_scaler_buf1 ();
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 CLRetinexGaussImageKernel::get_output_buf ()
 {
     return _retinex->get_gaussian_buf (_index);
@@ -111,8 +111,9 @@ CLRetinexImageKernel::prepare_arguments (
     CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> input = _retinex->get_input_buf ();
-    SmartPtr<DrmBoBuffer> output = _retinex->get_output_buf ();
+    SmartPtr<VideoBuffer> input = _retinex->get_input_buf ();
+    SmartPtr<VideoBuffer> output = _retinex->get_output_buf ();
+
     const VideoBufferInfo & video_info_in = input->get_video_info ();
     const VideoBufferInfo & video_info_out = output->get_video_info ();
     SmartPtr<CLImage> image_in, image_in_uv;
@@ -126,22 +127,22 @@ CLRetinexImageKernel::prepare_arguments (
     cl_desc_in.width = video_info_in.width / 4; // 16;
     cl_desc_in.height = video_info_in.height;
     cl_desc_in.row_pitch = video_info_in.strides[0];
-    image_in = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[0]);
+    image_in = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[0]);
 
     cl_desc_in.height = video_info_in.height / 2;
     cl_desc_in.row_pitch = video_info_in.strides[1];
-    image_in_uv = new CLVaImage (context, input, cl_desc_in, video_info_in.offsets[1]);
+    image_in_uv = convert_to_climage (context, input, cl_desc_in, video_info_in.offsets[1]);
 
     cl_desc_out.format.image_channel_data_type = CL_UNORM_INT8; //CL_UNSIGNED_INT32;
     cl_desc_out.format.image_channel_order = CL_RGBA;
     cl_desc_out.width = video_info_out.width / 4; // 16;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides[0];
-    image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[0]);
+    image_out = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[0]);
 
     cl_desc_out.height = video_info_out.height / 2;
     cl_desc_out.row_pitch = video_info_out.strides[1];
-    image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets[1]);
+    image_out_uv = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets[1]);
 
     XCAM_FAIL_RETURN (
         WARNING,
@@ -151,8 +152,9 @@ CLRetinexImageKernel::prepare_arguments (
         "cl image kernel(%s) in/out memory not available", get_kernel_name ());
 
     for (uint32_t i = 0; i < XCAM_RETINEX_MAX_SCALE; ++i) {
-        SmartPtr<DrmBoBuffer> gaussian_buf = _retinex->get_gaussian_buf (i);
+        SmartPtr<VideoBuffer> gaussian_buf = _retinex->get_gaussian_buf (i);
         XCAM_ASSERT (gaussian_buf.ptr ());
+
         const VideoBufferInfo & video_info_gauss = gaussian_buf->get_video_info ();
 
         cl_desc_ga.format.image_channel_data_type = CL_UNORM_INT8;
@@ -160,7 +162,7 @@ CLRetinexImageKernel::prepare_arguments (
         cl_desc_ga.width = video_info_gauss.width;
         cl_desc_ga.height = video_info_gauss.height;
         cl_desc_ga.row_pitch = video_info_gauss.strides[0];
-        image_in_ga[i] = new CLVaImage (context, gaussian_buf, cl_desc_ga, video_info_gauss.offsets[0]);
+        image_in_ga[i] = convert_to_climage (context, gaussian_buf, cl_desc_ga, video_info_gauss.offsets[0]);
 
         XCAM_FAIL_RETURN (
             WARNING,
@@ -208,7 +210,7 @@ CLRetinexImageHandler::emit_stop ()
 }
 
 XCamReturn
-CLRetinexImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLRetinexImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     CLImageHandler::prepare_output_buf(input, output);
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -240,11 +242,11 @@ CLRetinexImageHandler::prepare_scaler_buf (const VideoBufferInfo &video_info)
         _scaler_buf_pool->set_video_info (scaler_video_info);
         _scaler_buf_pool->reserve (XCAM_RETINEX_MAX_SCALE + 1);
 
-        _scaler_buf1 = _scaler_buf_pool->get_buffer (_scaler_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+        _scaler_buf1 = _scaler_buf_pool->get_buffer (_scaler_buf_pool);
         XCAM_ASSERT (_scaler_buf1.ptr ());
 
         for (int i = 0; i < XCAM_RETINEX_MAX_SCALE; ++i) {
-            _gaussian_buf[i] = _scaler_buf_pool->get_buffer (_scaler_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
+            _gaussian_buf[i] = _scaler_buf_pool->get_buffer (_scaler_buf_pool);
             XCAM_ASSERT (_gaussian_buf[i].ptr ());
         }
     }

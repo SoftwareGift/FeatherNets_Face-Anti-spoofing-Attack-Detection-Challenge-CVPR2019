@@ -54,7 +54,7 @@ private:
 class CLVideoStabilizer
     : public CLImageWarpHandler
 {
-    typedef std::list<SmartPtr<DrmBoBuffer>> CLImageBufferList;
+    typedef std::list<SmartPtr<VideoBuffer>> CLImageBufferList;
 
 public:
     explicit CLVideoStabilizer (
@@ -65,7 +65,7 @@ public:
         _input_buf_list.clear ();
     }
 
-    virtual SmartPtr<DrmBoBuffer> get_warp_input_buf ();
+    virtual SmartPtr<VideoBuffer> get_warp_input_buf ();
 
     virtual bool is_ready ();
 
@@ -97,8 +97,8 @@ public:
     Mat3d stabilize_motion (int32_t stab_frame_id, std::list<Mat3d> &motions);
 
 protected:
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
 private:
     XCAM_DEAD_COPY (CLVideoStabilizer);

@@ -89,15 +89,15 @@ public:
     }
 
 protected:
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
     virtual XCamReturn prepare_buffer_pool_video_info (
         const VideoBufferInfo &input,
         VideoBufferInfo &output);
 
     //abstract virtual functions
     virtual XCamReturn allocate_cl_buffers (
-        SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> &input0,
-        SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output) = 0;
+        SmartPtr<CLContext> context, SmartPtr<VideoBuffer> &input0,
+        SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output) = 0;
 
 private:
     XCAM_DEAD_COPY (CLBlender);

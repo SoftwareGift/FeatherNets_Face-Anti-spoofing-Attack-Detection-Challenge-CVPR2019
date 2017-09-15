@@ -174,7 +174,7 @@ public:
     void dump_coeff (SmartPtr<CLImage> image, uint32_t channel, uint32_t layer, uint32_t subband);
 
 protected:
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
 
 private:
     uint32_t _channel;

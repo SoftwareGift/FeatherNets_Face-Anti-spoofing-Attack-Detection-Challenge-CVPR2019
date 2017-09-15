@@ -18,6 +18,7 @@
   * Author: Yinhang Liu <yinhangx.liu@intel.com>
   */
 
+#include "cl_utils.h"
 #include "cl_wire_frame_handler.h"
 
 namespace XCam {
@@ -148,7 +149,7 @@ XCamReturn
 CLWireFrameImageKernel::prepare_arguments (
     CLArgList &args, CLWorkSize &work_size)
 {
-    SmartPtr<DrmBoBuffer> output = _handler->get_output_buf ();
+    SmartPtr<VideoBuffer> output = _handler->get_output_buf ();
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo &video_info_out = output->get_video_info ();
     CLImageDesc cl_desc_out;
@@ -158,11 +159,11 @@ CLWireFrameImageKernel::prepare_arguments (
     cl_desc_out.width = video_info_out.width / 2;
     cl_desc_out.height = video_info_out.height;
     cl_desc_out.row_pitch = video_info_out.strides [0];
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets [0]);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets [0]);
 
     cl_desc_out.height = video_info_out.height / 2;
     cl_desc_out.row_pitch = video_info_out.strides [1];
-    SmartPtr<CLImage> image_out_uv = new CLVaImage (context, output, cl_desc_out, video_info_out.offsets [1]);
+    SmartPtr<CLImage> image_out_uv = convert_to_climage (context, output, cl_desc_out, video_info_out.offsets [1]);
 
     XCAM_FAIL_RETURN (
         WARNING,
@@ -218,7 +219,7 @@ CLWireFrameImageHandler::set_wire_frame_kernel (SmartPtr<CLWireFrameImageKernel>
 }
 
 XCamReturn
-CLWireFrameImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLWireFrameImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     output = input;
     return XCAM_RETURN_NO_ERROR;

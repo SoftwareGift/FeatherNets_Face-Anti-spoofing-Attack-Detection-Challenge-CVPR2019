@@ -27,7 +27,6 @@
 #include "ocl/cl_context.h"
 #include "drm_display.h"
 #include "image_file_handle.h"
-
 #include "ocl/cl_fisheye_handler.h"
 #include "ocl/cl_image_360_stitch.h"
 
@@ -40,7 +39,7 @@ using namespace XCam;
 #if XCAM_TEST_STITCH_DEBUG
 static void dbg_write_image (
     SmartPtr<CLContext> context, SmartPtr<CLImage360Stitch> image_360,
-    SmartPtr<DrmBoBuffer> input_bufs[], SmartPtr<DrmBoBuffer> output_buf,
+    SmartPtr<VideoBuffer> input_bufs[], SmartPtr<VideoBuffer> output_buf,
     bool all_in_one, int fisheye_num, int input_count);
 #endif
 
@@ -55,9 +54,9 @@ init_opencv_ocl (SmartPtr<CLContext> context)
 }
 
 bool
-convert_to_mat (SmartPtr<CLContext> context, SmartPtr<DrmBoBuffer> buffer, cv::Mat &image)
+convert_to_mat (SmartPtr<CLContext> context, SmartPtr<VideoBuffer> buffer, cv::Mat &image)
 {
-    SmartPtr<CLBuffer> cl_buffer = new CLVaBuffer (context, buffer);
+    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (context, buffer);
     VideoBufferInfo info = buffer->get_video_info ();
     cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 
@@ -111,12 +110,10 @@ int main (int argc, char *argv[])
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<CLContext> context;
-    SmartPtr<DrmDisplay> display[XCAM_STITCH_FISHEYE_MAX_NUM];
     SmartPtr<BufferPool> buf_pool[XCAM_STITCH_FISHEYE_MAX_NUM];
-    SmartPtr<VideoBuffer> read_buf;
     ImageFileHandle file_in[XCAM_STITCH_FISHEYE_MAX_NUM];
     ImageFileHandle file_out;
-    SmartPtr<DrmBoBuffer> input_buf, output_buf;
+    SmartPtr<VideoBuffer> input_buf, output_buf;
     VideoBufferInfo input_buf_info, output_buf_info;
     SmartPtr<CLImage360Stitch> image_360;
 
@@ -340,8 +337,8 @@ int main (int argc, char *argv[])
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
     for (int i = 0; i < input_count; i++) {
-        display[i] = DrmDisplay::instance ();
-        buf_pool[i] = new DrmBoBufferPool (display[i]);
+        SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
+        buf_pool[i] = new DrmBoBufferPool (display);
         XCAM_ASSERT (buf_pool[i].ptr ());
         buf_pool[i]->set_video_info (input_buf_info);
         if (!buf_pool[i]->reserve (6)) {
@@ -368,9 +365,9 @@ int main (int argc, char *argv[])
     }
 #endif
 
-    SmartPtr<DrmBoBuffer> pre_buf, cur_buf;
+    SmartPtr<VideoBuffer> pre_buf, cur_buf;
 #if (HAVE_OPENCV) && (XCAM_TEST_STITCH_DEBUG)
-    SmartPtr<DrmBoBuffer> input_bufs[XCAM_STITCH_FISHEYE_MAX_NUM];
+    SmartPtr<VideoBuffer> input_bufs[XCAM_STITCH_FISHEYE_MAX_NUM];
 #endif
     while (loop--) {
         for (int i = 0; i < input_count; i++) {
@@ -380,10 +377,9 @@ int main (int argc, char *argv[])
 
         do {
             for (int i = 0; i < input_count; i++) {
-                cur_buf = buf_pool[i]->get_buffer (buf_pool[i]).dynamic_cast_ptr<DrmBoBuffer> ();
+                cur_buf = buf_pool[i]->get_buffer (buf_pool[i]);
                 XCAM_ASSERT (cur_buf.ptr ());
-                read_buf = cur_buf;
-                ret = file_in[i].read_buf (read_buf);
+                ret = file_in[i].read_buf (cur_buf);
                 if (ret == XCAM_RETURN_BYPASS)
                     break;
                 if (ret == XCAM_RETURN_ERROR_FILE) {
@@ -430,7 +426,7 @@ int main (int argc, char *argv[])
 #if (HAVE_OPENCV) && (XCAM_TEST_STITCH_DEBUG)
 static void dbg_write_image (
     SmartPtr<CLContext> context, SmartPtr<CLImage360Stitch> image_360,
-    SmartPtr<DrmBoBuffer> input_bufs[], SmartPtr<DrmBoBuffer> output_buf,
+    SmartPtr<VideoBuffer> input_bufs[], SmartPtr<VideoBuffer> output_buf,
     bool all_in_one, int fisheye_num, int input_count)
 {
     cv::Mat mat;

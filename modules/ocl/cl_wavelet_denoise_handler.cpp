@@ -17,7 +17,7 @@
  *
  * Author: Wei Zong <wei.zong@intel.com>
  */
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include "x3a_stats_pool.h"
 #include "cl_context.h"
 #include "cl_device.h"
@@ -51,14 +51,14 @@ CLWaveletDenoiseImageKernel::prepare_arguments (
     CLArgList &args, CLWorkSize &work_size)
 {
     SmartPtr<CLContext> context = get_context ();
-    SmartPtr<DrmBoBuffer> input = _handler->get_input_buf ();
-    SmartPtr<DrmBoBuffer> output = _handler->get_output_buf ();
+    SmartPtr<VideoBuffer> input = _handler->get_input_buf ();
+    SmartPtr<VideoBuffer> output = _handler->get_output_buf ();
 
-    const VideoBufferInfo & video_info_in = input->get_video_info ();
-    const VideoBufferInfo & video_info_out = output->get_video_info ();
+    const VideoBufferInfo &video_info_in = input->get_video_info ();
+    const VideoBufferInfo &video_info_out = output->get_video_info ();
 
-    SmartPtr<CLMemory> input_image = new CLVaBuffer (context, input);
-    SmartPtr<CLMemory> reconstruct_image = new CLVaBuffer (context, output);
+    SmartPtr<CLMemory> input_image = convert_to_clbuffer (context, input);
+    SmartPtr<CLMemory> reconstruct_image = convert_to_clbuffer (context, output);
 
     SmartPtr<CLMemory> details_image = _handler->get_details_image ();
     SmartPtr<CLMemory> approx_image = _handler->get_approx_image ();
@@ -123,7 +123,7 @@ CLWaveletDenoiseImageHandler::CLWaveletDenoiseImageHandler (
 }
 
 XCamReturn
-CLWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLWaveletDenoiseImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     CLImageHandler::prepare_output_buf(input, output);

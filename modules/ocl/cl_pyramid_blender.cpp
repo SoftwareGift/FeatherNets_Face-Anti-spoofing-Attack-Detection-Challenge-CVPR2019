@@ -312,7 +312,7 @@ CLPyramidBlender::get_seam_pos_info (uint32_t &offset_x, uint32_t &valid_width) 
 void
 PyramidLayer::bind_buf_to_layer0 (
     SmartPtr<CLContext> context,
-    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1, SmartPtr<DrmBoBuffer> &output,
+    SmartPtr<VideoBuffer> &input0, SmartPtr<VideoBuffer> &input1, SmartPtr<VideoBuffer> &output,
     const Rect &merge0_rect, const Rect &merge1_rect, bool need_uv, CLBlenderScaleMode scale_mode)
 {
     const VideoBufferInfo &in0_info = input0->get_video_info ();
@@ -335,13 +335,13 @@ PyramidLayer::bind_buf_to_layer0 (
         cl_desc.width = in0_info.width / 8;
         cl_desc.height = in0_info.height / divider_vert[i_plane];
         cl_desc.row_pitch = in0_info.strides[i_plane];
-        this->gauss_image[i_plane][0] = new CLVaImage (context, input0, cl_desc, in0_info.offsets[i_plane]);
+        this->gauss_image[i_plane][0] = convert_to_climage (context, input0, cl_desc, in0_info.offsets[i_plane]);
         this->gauss_offset_x[i_plane][0] = merge0_rect.pos_x; // input0 offset
 
         cl_desc.width = in1_info.width / 8;
         cl_desc.height = in1_info.height / divider_vert[i_plane];
         cl_desc.row_pitch = in1_info.strides[i_plane];
-        this->gauss_image[i_plane][1] = new CLVaImage (context, input1, cl_desc, in1_info.offsets[i_plane]);
+        this->gauss_image[i_plane][1] = convert_to_climage (context, input1, cl_desc, in1_info.offsets[i_plane]);
         this->gauss_offset_x[i_plane][1] = merge1_rect.pos_x; // input1 offset
 
         cl_desc.width = out_info.width / 8;
@@ -349,7 +349,7 @@ PyramidLayer::bind_buf_to_layer0 (
         cl_desc.row_pitch = out_info.strides[i_plane];
 
         if (scale_mode == CLBlenderScaleLocal) {
-            this->scale_image[i_plane] = new CLVaImage (context, output, cl_desc, out_info.offsets[i_plane]);
+            this->scale_image[i_plane] = convert_to_climage (context, output, cl_desc, out_info.offsets[i_plane]);
 
             cl_desc.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
             cl_desc.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[i_plane]) / divider_vert[i_plane];
@@ -362,7 +362,7 @@ PyramidLayer::bind_buf_to_layer0 (
             XCAM_ASSERT (this->blend_image[i_plane][ReconstructImageIndex].ptr ());
         } else {
             this->blend_image[i_plane][ReconstructImageIndex] =
-                new CLVaImage (context, output, cl_desc, out_info.offsets[i_plane]);
+                convert_to_climage (context, output, cl_desc, out_info.offsets[i_plane]);
         }
     }
 
@@ -585,8 +585,8 @@ gauss_fill_mask (
 XCamReturn
 CLPyramidBlender::allocate_cl_buffers (
     SmartPtr<CLContext> context,
-    SmartPtr<DrmBoBuffer> &input0, SmartPtr<DrmBoBuffer> &input1,
-    SmartPtr<DrmBoBuffer> &output)
+    SmartPtr<VideoBuffer> &input0, SmartPtr<VideoBuffer> &input1,
+    SmartPtr<VideoBuffer> &output)
 {
     uint32_t index = 0;
     const Rect & window = get_merge_window ();
@@ -793,7 +793,7 @@ CLPyramidBlender::fill_seam_mask ()
 }
 
 XCamReturn
-CLPyramidBlender::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLPyramidBlender::execute_done (SmartPtr<VideoBuffer> &output)
 {
     int max_plane = (need_uv () ? 2 : 1);
     XCAM_UNUSED (output);

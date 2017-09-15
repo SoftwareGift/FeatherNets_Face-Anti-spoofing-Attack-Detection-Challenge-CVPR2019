@@ -148,7 +148,7 @@ CLTnrImageHandler::calculate_image_histogram (XCam3AStats* stats, CLTnrHistogram
 }
 
 bool
-CLTnrImageHandler::calculate_image_histogram (SmartPtr<DrmBoBuffer> &input, CLTnrHistogramType type, float* histogram)
+CLTnrImageHandler::calculate_image_histogram (SmartPtr<VideoBuffer> &input, CLTnrHistogramType type, float* histogram)
 {
     if ( NULL == histogram ) {
         return false;
@@ -333,7 +333,7 @@ CLTnrImageHandler::set_yuv_config (const XCam3aResultTemporalNoiseReduction& con
 }
 
 XCamReturn
-CLTnrImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLTnrImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
     const VideoBufferInfo & video_info = input->get_video_info ();
@@ -362,8 +362,8 @@ CLTnrImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
         desc.slice_pitch = 0;
     }
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, desc);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, desc);
+    SmartPtr<CLImage> image_in = convert_to_climage (context, input, desc);
+    SmartPtr<CLImage> image_out = convert_to_climage (context, output, desc);
 
     XCAM_FAIL_RETURN (
         WARNING,

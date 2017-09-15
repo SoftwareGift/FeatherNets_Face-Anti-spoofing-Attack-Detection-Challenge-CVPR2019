@@ -99,7 +99,7 @@ protected:
     virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
 private:
-    float get_max_value (SmartPtr<DrmBoBuffer> &buf);
+    float get_max_value (SmartPtr<VideoBuffer> &buf);
 
     XCAM_DEAD_COPY (CLDefogRecoverKernel);
 
@@ -128,8 +128,8 @@ public:
     };
 
 protected:
-    virtual XCamReturn prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
 private:
     XCamReturn allocate_transmit_bufs (const VideoBufferInfo &video_info);

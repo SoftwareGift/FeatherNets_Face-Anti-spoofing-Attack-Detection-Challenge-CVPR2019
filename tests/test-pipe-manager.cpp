@@ -127,7 +127,7 @@ MainPipeManager::display_buf (const SmartPtr<VideoBuffer> &data)
 }
 
 XCamReturn
-read_buf (SmartPtr<DrmBoBuffer> &buf, FileFP &file)
+read_buf (SmartPtr<VideoBuffer> &buf, FileFP &file)
 {
     const VideoBufferInfo info = buf->get_video_info ();
     VideoBufferPlanarInfo planar;
@@ -193,6 +193,7 @@ int main (int argc, char *argv[])
     SmartPtr<VideoBuffer> video_buf;
     SmartPtr<SmartAnalyzer> smart_analyzer;
     SmartPtr<CLPostImageProcessor> cl_post_processor;
+    SmartPtr<BufferPool> drm_buf_pool;
 
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
     uint32_t image_width = 1920;
@@ -410,8 +411,8 @@ int main (int argc, char *argv[])
     CHECK (ret, "pipe manager start failed");
 
     buf_info.init (pixel_format, image_width, image_height);
-    SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance ();
-    SmartPtr<DrmBoBufferPool> drm_buf_pool = new DrmBoBufferPool (drm_disp);
+    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
+    drm_buf_pool = new DrmBoBufferPool (display);
     XCAM_ASSERT (drm_buf_pool.ptr ());
     if (!drm_buf_pool->set_video_info (buf_info) || !drm_buf_pool->reserve (DEFAULT_FPT_BUF_COUNT)) {
         XCAM_LOG_ERROR ("init drm buffer pool failed");
@@ -419,21 +420,16 @@ int main (int argc, char *argv[])
     }
 
     while (!is_stop) {
-        SmartPtr<DrmBoBuffer> drm_bo_buf = drm_buf_pool->get_buffer (drm_buf_pool).dynamic_cast_ptr<DrmBoBuffer> ();
-        if (!drm_bo_buf.ptr ()) {
-            XCAM_LOG_ERROR ("get drm buffer failed");
-            return -1;
-        }
+        video_buf = drm_buf_pool->get_buffer (drm_buf_pool);
+        XCAM_ASSERT (video_buf.ptr ());
 
-        ret = read_buf (drm_bo_buf, input_fp);
+        ret = read_buf (video_buf, input_fp);
         if (ret == XCAM_RETURN_BYPASS) {
-            ret = read_buf (drm_bo_buf, input_fp);
+            ret = read_buf (video_buf, input_fp);
         }
 
-        if (ret == XCAM_RETURN_NO_ERROR) {
-            video_buf = drm_bo_buf;
+        if (ret == XCAM_RETURN_NO_ERROR)
             pipe_manager->push_buffer (video_buf);
-        }
     }
 
     ret = pipe_manager->stop();

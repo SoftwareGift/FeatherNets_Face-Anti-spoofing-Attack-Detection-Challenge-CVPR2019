@@ -86,14 +86,14 @@ CLMultiImageHandler::execute_kernels ()
 
 XCamReturn
 CLMultiImageHandler::ensure_handler_parameters (
-    const SmartPtr<CLImageHandler> &handler, SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+    const SmartPtr<CLImageHandler> &handler, SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCAM_ASSERT (handler.ptr ());
     return handler->ensure_parameters (input, output);
 }
 
 XCamReturn
-CLMultiImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+CLMultiImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     for (HandlerList::iterator i_handler = _handler_list.begin ();
             i_handler != _handler_list.end (); ++i_handler) {
@@ -112,7 +112,7 @@ CLMultiImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<
 }
 
 XCamReturn
-CLMultiImageHandler::execute_done (SmartPtr<DrmBoBuffer> &output)
+CLMultiImageHandler::execute_done (SmartPtr<VideoBuffer> &output)
 {
     for (HandlerList::iterator i_handler = _handler_list.begin ();
             i_handler != _handler_list.end (); ++i_handler) {

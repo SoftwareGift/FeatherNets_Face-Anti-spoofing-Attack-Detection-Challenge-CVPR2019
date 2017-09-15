@@ -55,8 +55,8 @@ protected:
     virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
 
     //new virtual functions
-    virtual SmartPtr<DrmBoBuffer> get_input_buffer () = 0;
-    virtual SmartPtr<DrmBoBuffer> get_output_buffer () = 0;
+    virtual SmartPtr<VideoBuffer> get_input_buffer () = 0;
+    virtual SmartPtr<VideoBuffer> get_output_buffer () = 0;
 
 protected:
     CLImageScalerMemoryLayout _mem_layout;
@@ -70,8 +70,8 @@ public:
         const SmartPtr<CLContext> &context, CLImageScalerMemoryLayout mem_layout, SmartPtr<CLImageScaler> &scaler);
 
 protected:
-    virtual SmartPtr<DrmBoBuffer> get_input_buffer ();
-    virtual SmartPtr<DrmBoBuffer> get_output_buffer ();
+    virtual SmartPtr<VideoBuffer> get_input_buffer ();
+    virtual SmartPtr<VideoBuffer> get_output_buffer ();
 
 private:
     XCAM_DEAD_COPY (CLImageScalerKernel);
@@ -92,25 +92,25 @@ public:
 
     bool set_scaler_factor (const double h_factor, const double v_factor);
     bool get_scaler_factor (double &h_factor, double &v_factor) const;
-    SmartPtr<DrmBoBuffer> &get_scaler_buf () {
+    SmartPtr<VideoBuffer> &get_scaler_buf () {
         return _scaler_buf;
     };
 
     void emit_stop ();
 
 protected:
-    virtual XCamReturn prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output);
-    virtual XCamReturn execute_done (SmartPtr<DrmBoBuffer> &output);
+    virtual XCamReturn prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
+    virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
 private:
-    XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<DrmBoBuffer> &output);
-    XCamReturn post_buffer (const SmartPtr<DrmBoBuffer> &buffer);
+    XCamReturn prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<VideoBuffer> &output);
+    XCamReturn post_buffer (const SmartPtr<VideoBuffer> &buffer);
 
 private:
     double                     _h_scaler_factor;
     double                     _v_scaler_factor;
-    SmartPtr<DrmBoBufferPool>  _scaler_buf_pool;
-    SmartPtr<DrmBoBuffer>      _scaler_buf;
+    SmartPtr<BufferPool>       _scaler_buf_pool;
+    SmartPtr<VideoBuffer>      _scaler_buf;
     SmartPtr<StatsCallback>    _scaler_callback;
 };
 

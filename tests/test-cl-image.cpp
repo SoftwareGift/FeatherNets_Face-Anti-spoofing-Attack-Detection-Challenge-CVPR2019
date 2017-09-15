@@ -67,7 +67,7 @@ enum PsnrType {
 };
 
 static XCamReturn
-calculate_psnr (SmartPtr<DrmBoBuffer> &psnr_cur, SmartPtr<DrmBoBuffer> &psnr_ref, PsnrType psnr_type, float &psnr)
+calculate_psnr (SmartPtr<VideoBuffer> &psnr_cur, SmartPtr<VideoBuffer> &psnr_ref, PsnrType psnr_type, float &psnr)
 {
     const VideoBufferInfo info = psnr_cur->get_video_info ();
     VideoBufferPlanarInfo planar;
@@ -114,7 +114,7 @@ calculate_psnr (SmartPtr<DrmBoBuffer> &psnr_cur, SmartPtr<DrmBoBuffer> &psnr_ref
 }
 
 static XCamReturn
-kernel_loop(SmartPtr<CLImageHandler> &image_handler, SmartPtr<DrmBoBuffer> &input_buf, SmartPtr<DrmBoBuffer> &output_buf, uint32_t kernel_loop_count)
+kernel_loop(SmartPtr<CLImageHandler> &image_handler, SmartPtr<VideoBuffer> &input_buf, SmartPtr<VideoBuffer> &output_buf, uint32_t kernel_loop_count)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     for (uint32_t i = 0; i < kernel_loop_count; i++) {
@@ -175,8 +175,7 @@ int main (int argc, char *argv[])
     SmartPtr<CLImageHandler> image_handler;
     VideoBufferInfo input_buf_info;
     SmartPtr<CLContext> context;
-    SmartPtr<DrmDisplay> display;
-    SmartPtr<DrmBoBufferPool> buf_pool;
+    SmartPtr<BufferPool> buf_pool;
     int opt = 0;
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
     bool enable_bnr = false;
@@ -497,24 +496,23 @@ int main (int argc, char *argv[])
     }
 
     input_buf_info.init (input_format, width, height);
-    display = DrmDisplay::instance ();
-    buf_pool = new DrmBoBufferPool (display);
-    XCAM_ASSERT (buf_pool.ptr ());
-    buf_pool->set_swap_flags (
+    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
+    SmartPtr<DrmBoBufferPool> bo_buf_pool = new DrmBoBufferPool (display);
+    XCAM_ASSERT (bo_buf_pool.ptr ());
+    bo_buf_pool->set_swap_flags (
         SwappedBuffer::SwapY | SwappedBuffer::SwapUV, SwappedBuffer::OrderY0Y1 | SwappedBuffer::OrderUV0UV1);
+    buf_pool = bo_buf_pool;
     buf_pool->set_video_info (input_buf_info);
     if (!buf_pool->reserve (6)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
         return -1;
     }
 
-    SmartPtr<DrmBoBuffer> psnr_cur, psnr_ref;
+    SmartPtr<VideoBuffer> input_buf, output_buf, psnr_cur, psnr_ref;
     while (true) {
-        SmartPtr<DrmBoBuffer> input_buf, output_buf;
-        SmartPtr<VideoBuffer> tmp_buf = buf_pool->get_buffer (buf_pool);
-        input_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
-
+        input_buf = buf_pool->get_buffer (buf_pool);
         XCAM_ASSERT (input_buf.ptr ());
+
         ret = input_fp.read_buf (input_buf);
         if (ret == XCAM_RETURN_BYPASS)
             break;
@@ -554,8 +552,7 @@ int main (int argc, char *argv[])
             return -1;
         }
 
-        SmartPtr<VideoBuffer> tmp_buf = buf_pool->get_buffer (buf_pool);
-        psnr_ref = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
+        psnr_ref = buf_pool->get_buffer (buf_pool);
         XCAM_ASSERT (psnr_ref.ptr ());
 
         ret = refer_fp.read_buf (psnr_ref);
@@ -569,7 +566,7 @@ int main (int argc, char *argv[])
         image_handler = create_cl_csc_image_handler (context, CL_CSC_TYPE_NV12TORGBA);
         XCAM_ASSERT (image_handler.ptr ());
 
-        SmartPtr<DrmBoBuffer> psnr_cur_output, psnr_ref_output;
+        SmartPtr<VideoBuffer> psnr_cur_output, psnr_ref_output;
         ret = image_handler->execute (psnr_cur, psnr_cur_output);
         CHECK (ret, "execute kernels failed");
         XCAM_ASSERT (psnr_cur_output.ptr ());

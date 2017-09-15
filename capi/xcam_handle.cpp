@@ -135,12 +135,12 @@ xcam_handle_set_parameters (
     return context->set_parameters (params);
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 external_buf_to_drm_buf (XCamVideoBuffer *buf)
 {
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
     SmartPtr<DmaVideoBuffer> dma_buf;
-    SmartPtr<DrmBoBuffer> drm_buf;
+    SmartPtr<VideoBuffer> drm_buf;
     SmartPtr<VideoBuffer> video_buf;
 
     dma_buf = external_buf_to_dma_buf (buf);
@@ -152,10 +152,12 @@ external_buf_to_drm_buf (XCamVideoBuffer *buf)
     video_buf = dma_buf;
     XCAM_ASSERT (display.ptr ());
     drm_buf = display->convert_to_drm_bo_buf (display, video_buf);
-    return drm_buf;
+
+    video_buf = drm_buf;
+    return video_buf;
 }
 
-SmartPtr<DrmBoBuffer>
+SmartPtr<VideoBuffer>
 copy_external_buf_to_drm_buf (XCamHandle *handle, XCamVideoBuffer *buf)
 {
     if (!handle || !buf) {
@@ -178,13 +180,10 @@ copy_external_buf_to_drm_buf (XCamHandle *handle, XCamVideoBuffer *buf)
     }
     uint32_t height = src_info.height;
 
-    SmartPtr<DrmBoBufferPool> buf_pool = context->get_input_buffer_pool();
+    SmartPtr<BufferPool> buf_pool = context->get_input_buffer_pool();
     XCAM_ASSERT (buf_pool.ptr ());
-
-    SmartPtr<VideoBuffer> tmp_buf = buf_pool->get_buffer (buf_pool);
-    XCAM_ASSERT (tmp_buf.ptr ());
-    SmartPtr<DrmBoBuffer> drm_buf = tmp_buf.dynamic_cast_ptr<DrmBoBuffer> ();
-    SmartPtr<VideoBuffer> video_buf = drm_buf;
+    SmartPtr<VideoBuffer> video_buf = buf_pool->get_buffer (buf_pool);
+    XCAM_ASSERT (video_buf.ptr ());
     const XCamVideoBufferInfo dest_info = video_buf->get_video_info ();
 
     uint8_t* dest = video_buf->map ();
@@ -209,14 +208,14 @@ copy_external_buf_to_drm_buf (XCamHandle *handle, XCamVideoBuffer *buf)
     buf->unmap (buf);
     video_buf->unmap ();
 
-    return drm_buf;
+    return video_buf;
 }
 
 XCamReturn
 xcam_handle_execute (XCamHandle *handle, XCamVideoBuffer *buf_in, XCamVideoBuffer **buf_out)
 {
     ContextBase *context = CONTEXT_BASE_CAST (handle);
-    SmartPtr<DrmBoBuffer> input, output;
+    SmartPtr<VideoBuffer> input, output;
 
     XCAM_FAIL_RETURN (
         ERROR, context && buf_in && buf_out, XCAM_RETURN_ERROR_PARAM,

@@ -155,11 +155,10 @@ CLImageProcessor::apply_3a_result (SmartPtr<X3aResult> &result)
 XCamReturn
 CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
-    SmartPtr<DrmBoBuffer> drm_bo_in;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
 
-    drm_bo_in = display->convert_to_drm_bo_buf (display, input);
+    SmartPtr<VideoBuffer> drm_bo_in = display->convert_to_drm_bo_buf (display, input);
     XCAM_FAIL_RETURN (
         WARNING,
         drm_bo_in.ptr (),
@@ -198,7 +197,7 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
 XCamReturn
 CLImageProcessor::process_done_buffer ()
 {
-    SmartPtr<DrmBoBuffer> done_buf = _done_buffer_queue.pop (-1);
+    SmartPtr<VideoBuffer> done_buf = _done_buffer_queue.pop (-1);
     if (!done_buf.ptr ())
         return XCAM_RETURN_ERROR_THREAD;
 
@@ -250,9 +249,9 @@ CLImageProcessor::process_cl_buffer_queue ()
         return XCAM_RETURN_BYPASS;
     }
 
-    SmartPtr<DrmBoBuffer> data = p_buf->data;
+    SmartPtr<VideoBuffer> data = p_buf->data;
     SmartPtr<CLImageHandler> handler = p_buf->handler;
-    SmartPtr <DrmBoBuffer> out_data;
+    SmartPtr <VideoBuffer> out_data;
 
     XCAM_ASSERT (data.ptr () && handler.ptr ());
 

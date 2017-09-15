@@ -22,7 +22,7 @@
 #ifndef XCAM_CV_BASE_CLASS_H
 #define XCAM_CV_BASE_CLASS_H
 
-#include "xcam_utils.h"
+#include "cl_utils.h"
 #include <base/xcam_common.h>
 #include <base/xcam_buffer.h>
 #include <dma_video_buffer.h>
@@ -50,7 +50,7 @@ public:
     bool is_ocl_path () {
         return _use_ocl;
     }
-    bool convert_to_mat (SmartPtr<DrmBoBuffer> buffer, cv::Mat &image);
+    bool convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image);
 
 protected:
     XCAM_DEAD_COPY (CVBaseClass);
