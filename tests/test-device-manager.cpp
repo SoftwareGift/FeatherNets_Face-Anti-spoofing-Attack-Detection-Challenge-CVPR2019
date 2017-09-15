@@ -299,7 +299,6 @@ void print_help (const char *bin_name)
             "\t --pipeline      specify pipe mode\n"
             "\t                 select from [basic, advance, extreme], default is [basic]\n"
             "\t --disable-post  disable cl post image processor\n"
-            "(e.g.: xxxx --hdr=xx --tnr=xx --tnr-level=xx --bilateral --enable-snr --enable-ee --enable-bnr --enable-dpc)\n\n"
 #endif
             , bin_name
             , DEFAULT_SAVE_FILE_NAME);

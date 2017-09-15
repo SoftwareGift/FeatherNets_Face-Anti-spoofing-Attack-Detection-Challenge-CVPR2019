@@ -58,7 +58,6 @@ xcam_ocl_sources = \
     cl_tonemapping_handler.cpp         \
     cl_newtonemapping_handler.cpp      \
     cl_fisheye_handler.cpp             \
-    cl_bilateral_handler.cpp           \
     cl_image_scaler.cpp                \
     cl_image_360_stitch.cpp            \
     cl_retinex_handler.cpp             \

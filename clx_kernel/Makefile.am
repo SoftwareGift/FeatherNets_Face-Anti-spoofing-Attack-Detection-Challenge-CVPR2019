@@ -12,7 +12,6 @@ clx_kernel_sources = \
 	kernel_yuv_pipe.clx           \
 	kernel_tonemapping.clx        \
 	kernel_newtonemapping.clx     \
-	kernel_bilateral.clx          \
 	kernel_image_scaler.clx       \
 	kernel_retinex.clx            \
 	kernel_gauss.clx              \
