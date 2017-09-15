@@ -116,6 +116,10 @@ public:
         CLEventList &event_waits = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
+    uint32_t get_buf_size () {
+        return _size;
+    }
+
 private:
     bool init_buffer (
         const SmartPtr<CLContext> &context, uint32_t size,

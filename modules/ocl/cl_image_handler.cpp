@@ -153,20 +153,20 @@ CLImageHandler::is_handler_enabled () const
 XCamReturn
 CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
 {
-    SmartPtr<DrmBoBufferPool> buffer_pool;
-    SmartPtr<DrmDisplay> display;
-
     if (_buf_pool.ptr ())
         return XCAM_RETURN_ERROR_PARAM;
 
-    display = DrmDisplay::instance ();
+    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
     XCAM_FAIL_RETURN(
         WARNING,
         display.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLImageHandler(%s) failed to get drm dispay", XCAM_STR (_name));
 
-    if (_buf_pool_type == CLImageHandler::DrmBoPoolType)
+    SmartPtr<BufferPool> buffer_pool;
+    if (_buf_pool_type == CLImageHandler::CLVideoPoolType)
+        buffer_pool = new CLVideoBufferPool ();
+    else if (_buf_pool_type == CLImageHandler::DrmBoPoolType)
         buffer_pool = new DrmBoBufferPool (display);
     else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
         buffer_pool = new CLBoBufferPool (display, get_context ());
@@ -180,7 +180,7 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
         XCAM_STR (_name), (int32_t)_buf_pool_type);
 
     XCAM_ASSERT (buffer_pool.ptr ());
-    buffer_pool->set_swap_flags (_buf_swap_flags, _buf_swap_init_order);
+    // buffer_pool->set_swap_flags (_buf_swap_flags, _buf_swap_init_order);
     buffer_pool->set_video_info (video_info);
 
     XCAM_FAIL_RETURN(

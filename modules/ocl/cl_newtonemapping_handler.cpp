@@ -278,14 +278,14 @@ CLNewTonemappingImageHandler::prepare_parameters (
         XCAM_RETURN_ERROR_MEM,
         "cl image handler(%s) in/out memory not available", XCAM_STR (get_name ()));
 
-    SmartPtr<DrmBoBuffer> bo_buf = input.dynamic_cast_ptr<DrmBoBuffer> ();
-    XCAM_FAIL_RETURN (
-        ERROR,
-        bo_buf.ptr (),
-        XCAM_RETURN_ERROR_MEM,
-        "get DrmBoBuffer failed");
-
-    SmartPtr<X3aStats> stats = bo_buf->find_3a_stats ();
+    SmartPtr<X3aStats> stats;
+    SmartPtr<CLVideoBuffer> cl_buf = input.dynamic_cast_ptr<CLVideoBuffer> ();
+    if (cl_buf.ptr ()) {
+        stats = cl_buf->find_3a_stats ();
+    } else {
+        SmartPtr<DrmBoBuffer> bo_buf = input.dynamic_cast_ptr<DrmBoBuffer> ();
+        stats = bo_buf->find_3a_stats ();
+    }
     XCAM_FAIL_RETURN (
         ERROR, stats.ptr (), XCAM_RETURN_ERROR_MEM,
         "new tonemapping handler prepare_arguments find_3a_stats failed");

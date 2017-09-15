@@ -200,14 +200,14 @@ CLDefogRecoverKernel::get_max_value (SmartPtr<VideoBuffer> &buf)
     float ret = 255.0f;
     const float max_percent = 1.0f;
 
-    SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
-    XCAM_FAIL_RETURN (
-        ERROR,
-        bo_buf.ptr (),
-        XCAM_RETURN_ERROR_MEM,
-        "get DrmBoBuffer failed");
-
-    SmartPtr<X3aStats> stats = bo_buf->find_3a_stats ();
+    SmartPtr<X3aStats> stats;
+    SmartPtr<CLVideoBuffer> cl_buf = buf.dynamic_cast_ptr<CLVideoBuffer> ();
+    if (cl_buf.ptr ()) {
+        stats = cl_buf->find_3a_stats ();
+    } else {
+        SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
+        stats = bo_buf->find_3a_stats ();
+    }
 
     _max_r = 230.0f;
     _max_g = 230.0f;

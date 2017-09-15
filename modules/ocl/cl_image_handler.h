@@ -26,6 +26,7 @@
 #include "ocl/cl_kernel.h"
 #include "ocl/cl_argument.h"
 #include "ocl/cl_memory.h"
+#include "ocl/cl_video_buffer.h"
 #include "x3a_result.h"
 
 namespace XCam {
@@ -70,8 +71,9 @@ class CLImageHandler
 public:
     typedef std::list<SmartPtr<CLImageKernel>> KernelList;
     enum BufferPoolType {
-        CLBoPoolType  = 0x0001,
-        DrmBoPoolType = 0x0002,
+        CLVideoPoolType = 0x0000,
+        CLBoPoolType = 0x0001,
+        DrmBoPoolType = 0x0002
     };
 
 public:

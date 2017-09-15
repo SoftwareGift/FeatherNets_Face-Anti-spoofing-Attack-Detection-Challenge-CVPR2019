@@ -24,6 +24,7 @@
 #include "xcam_utils.h"
 #include "ocl/cl_context.h"
 #include "ocl/cl_memory.h"
+#include "ocl/cl_video_buffer.h"
 
 namespace XCam {
 
