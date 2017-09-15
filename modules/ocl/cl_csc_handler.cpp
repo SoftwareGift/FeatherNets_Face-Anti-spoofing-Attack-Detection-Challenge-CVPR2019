@@ -139,34 +139,42 @@ CLCscImageHandler::prepare_buffer_pool_video_info (
     return XCAM_RETURN_NO_ERROR;
 }
 
+static bool
+ensure_image_desc (const VideoBufferInfo &info, CLImageDesc &desc)
+{
+    desc.array_size = 0;
+    desc.slice_pitch = 0;
+    if (info.format == XCAM_PIX_FMT_RGB48_planar || info.format == XCAM_PIX_FMT_RGB24_planar)
+        desc.height = info.aligned_height * 3;
+
+    return true;
+}
+
 XCamReturn
 CLCscImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
 
-    const VideoBufferInfo & in_video_info = input->get_video_info ();
-    const VideoBufferInfo & out_video_info = output->get_video_info ();
-    bool in_single_plane = false, out_single_plane = false;
+    const VideoBufferInfo &in_video_info = input->get_video_info ();
+    const VideoBufferInfo &out_video_info = output->get_video_info ();
     CLArgList args;
     CLWorkSize work_size;
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     XCAM_ASSERT (_csc_kernel.ptr ());
 
-    if (_csc_type == CL_CSC_TYPE_NV12TORGBA) {
-        in_single_plane = true;
-    }
-    if (_csc_type == CL_CSC_TYPE_RGBATONV12) {
-        out_single_plane = true;
-    }
+    CLImageDesc in_desc, out_desc;
+    CLImage::video_info_2_cl_image_desc (in_video_info, in_desc);
+    CLImage::video_info_2_cl_image_desc (out_video_info, out_desc);
+    ensure_image_desc (in_video_info, in_desc);
+    ensure_image_desc (out_video_info, out_desc);
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, in_video_info.offsets[0], in_single_plane);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output, out_video_info.offsets[0], out_single_plane);
+    SmartPtr<CLImage> image_in = new CLVaImage (context, input, in_desc, in_video_info.offsets[0]);
+    SmartPtr<CLImage> image_out = new CLVaImage (context, output, out_desc, out_video_info.offsets[0]);
     SmartPtr<CLBuffer> matrix_buffer = new CLBuffer (
         context, sizeof(float)*XCAM_COLOR_MATRIX_SIZE,
         CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR , &_rgbtoyuv_matrix);
 
-    XCAM_ASSERT (image_in->is_valid () && image_out->is_valid () && matrix_buffer->is_valid());
     XCAM_FAIL_RETURN (
         WARNING,
         image_in->is_valid () && image_out->is_valid () && matrix_buffer->is_valid(),
@@ -191,7 +199,7 @@ CLCscImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
 
         SmartPtr<CLImage> image_uv;
         if(_csc_type == CL_CSC_TYPE_NV12TORGBA) {
-            image_uv = new CLVaImage (context, input, in_video_info.offsets[1], true);
+            image_uv = new CLVaImage (context, input, in_desc, in_video_info.offsets[1]);
             args.push_back (new CLMemArgument (image_uv));
 
             work_size.global[0] = out_video_info.width / 2;
@@ -200,7 +208,7 @@ CLCscImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<Dr
         }
 
         if (_csc_type == CL_CSC_TYPE_RGBATONV12) {
-            image_uv = new CLVaImage (context, output, out_video_info.offsets[1], true);
+            image_uv = new CLVaImage (context, output, out_desc, out_video_info.offsets[1]);
             args.push_back (new CLMemArgument (image_uv));
             args.push_back (new CLMemArgument (matrix_buffer));
 

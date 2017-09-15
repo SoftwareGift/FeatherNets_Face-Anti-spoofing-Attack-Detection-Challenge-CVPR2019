@@ -251,16 +251,25 @@ CLNewTonemappingImageHandler::prepare_parameters (
     SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     SmartPtr<CLContext> context = get_context ();
-    const VideoBufferInfo & in_video_info = input->get_video_info ();
+    const VideoBufferInfo &video_info = input->get_video_info ();
     CLArgList args;
     CLWorkSize work_size;
 
     XCAM_ASSERT (_tonemapping_kernel.ptr ());
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output);
-    int image_width = in_video_info.aligned_width;
-    int image_height = in_video_info.aligned_height;
+    CLImageDesc desc;
+    desc.format.image_channel_order = CL_RGBA;
+    desc.format.image_channel_data_type = CL_UNORM_INT16;
+    desc.width = video_info.aligned_width / 4;
+    desc.height = video_info.aligned_height * 4;
+    desc.row_pitch = video_info.strides[0];
+    desc.array_size = 4;
+    desc.slice_pitch = video_info.strides [0] * video_info.aligned_height;
+
+    SmartPtr<CLImage> image_in = new CLVaImage (context, input, desc);
+    SmartPtr<CLImage> image_out = new CLVaImage (context, output, desc);
+    int image_width = video_info.aligned_width;
+    int image_height = video_info.aligned_height;
 
     XCAM_FAIL_RETURN (
         WARNING,

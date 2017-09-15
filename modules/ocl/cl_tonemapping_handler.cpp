@@ -92,11 +92,20 @@ CLTonemappingImageHandler::prepare_parameters (
     CLWorkSize work_size;
     XCAM_ASSERT (_tonemapping_kernel.ptr ());
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output);
+    const VideoBufferInfo &video_info = input->get_video_info ();
 
-    const VideoBufferInfo & in_video_info = input->get_video_info ();
-    int image_height = in_video_info.aligned_height;
+    CLImageDesc desc;
+    desc.format.image_channel_order = CL_RGBA;
+    desc.format.image_channel_data_type = CL_UNORM_INT16;
+    desc.width = video_info.aligned_width / 4;
+    desc.height = video_info.aligned_height * 4;
+    desc.row_pitch = video_info.strides[0];
+    desc.array_size = 4;
+    desc.slice_pitch = video_info.strides [0] * video_info.aligned_height;
+
+    SmartPtr<CLImage> image_in = new CLVaImage (context, input, desc);
+    SmartPtr<CLImage> image_out = new CLVaImage (context, output, desc);
+    int image_height = video_info.aligned_height;
 
     XCAM_FAIL_RETURN (
         WARNING,

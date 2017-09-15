@@ -149,15 +149,29 @@ CLBayerPipeImageHandler::prepare_parameters (
 
     XCAM_ASSERT (_bayer_kernel.ptr ());
 
-    CLImageDesc in_image_info;
-    in_image_info.format.image_channel_order = CL_RGBA;
-    in_image_info.format.image_channel_data_type = CL_UNORM_INT16; //CL_UNSIGNED_INT32;
-    in_image_info.width = in_video_info.width / 4; // 960/4
-    in_image_info.height = in_video_info.aligned_height * 4;  //540
-    in_image_info.row_pitch = in_video_info.strides[0];
+    CLImageDesc in_desc;
+    in_desc.format.image_channel_order = CL_RGBA;
+    in_desc.format.image_channel_data_type = CL_UNORM_INT16; //CL_UNSIGNED_INT32;
+    in_desc.width = in_video_info.width / 4; // 960/4
+    in_desc.height = in_video_info.aligned_height * 4;  //540
+    in_desc.row_pitch = in_video_info.strides[0];
 
-    SmartPtr<CLImage> image_in = new CLVaImage (context, input, in_image_info);
-    SmartPtr<CLImage> image_out = new CLVaImage (context, output);
+    SmartPtr<CLImage> image_in = new CLVaImage (context, input, in_desc);
+
+    CLImageDesc out_desc;
+    out_desc.format.image_channel_order = CL_RGBA;
+    if (XCAM_PIX_FMT_RGB48_planar == out_video_info.format)
+        out_desc.format.image_channel_data_type = CL_UNORM_INT16;
+    else
+        out_desc.format.image_channel_data_type = CL_UNORM_INT8;
+    out_desc.width = out_video_info.aligned_width / 4;
+    out_desc.height = out_video_info.aligned_height * 3;
+    out_desc.row_pitch = out_video_info.strides[0];
+    out_desc.array_size = 3;
+    out_desc.slice_pitch = out_video_info.strides [0] * out_video_info.aligned_height;
+
+    SmartPtr<CLImage> image_out = new CLVaImage (context, output, out_desc);
+
     uint input_height = in_video_info.aligned_height;
     uint output_height = out_video_info.aligned_height;
 

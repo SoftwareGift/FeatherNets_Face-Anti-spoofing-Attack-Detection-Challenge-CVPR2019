@@ -22,7 +22,6 @@
 #include "cl_device.h"
 #include "cl_kernel.h"
 
-
 namespace XCam {
 
 static const XCamKernelInfo kernel_demo_info = {
@@ -37,24 +36,46 @@ CLDemoImageHandler::CLDemoImageHandler (const SmartPtr<CLContext> &context)
 }
 
 XCamReturn
+CLDemoImageHandler::prepare_output_buf (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
+{
+    const VideoBufferInfo &info = input->get_video_info ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        info.format == V4L2_PIX_FMT_RGBA32,
+        XCAM_RETURN_ERROR_PARAM,
+        "CLDemoImageHandler support only RGBA format");
+
+    return CLImageHandler::prepare_output_buf (input, output);
+}
+
+XCamReturn
 CLDemoImageHandler::prepare_parameters (SmartPtr<DrmBoBuffer> &input, SmartPtr<DrmBoBuffer> &output)
 {
     SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
+    const VideoBufferInfo &info = input->get_video_info ();
     CLArgList args;
     CLWorkSize work_size;
 
-    SmartPtr<CLImage> input_image = new CLVaImage (context, input);
-    SmartPtr<CLImage> output_image = new CLVaImage (context, output);
+    CLImageDesc desc;
+    desc.format.image_channel_order = CL_RGBA;
+    desc.format.image_channel_data_type = CL_UNORM_INT8;
+    desc.width = info.aligned_width;
+    desc.height = info.height;
+    desc.row_pitch = info.strides[0];
+    desc.array_size = 0;
+    desc.slice_pitch = 0;
+
+    SmartPtr<CLImage> input_image = new CLVaImage (context, input, desc);
+    SmartPtr<CLImage> output_image = new CLVaImage (context, output, desc);
 
     XCAM_ASSERT (input_image.ptr () && output_image.ptr ());
     XCAM_ASSERT (input_image->is_valid () && output_image->is_valid ());
     args.push_back (new CLMemArgument (input_image));
     args.push_back (new CLMemArgument (output_image));
 
-    const CLImageDesc out_info = output_image->get_image_desc ();
     work_size.dim = XCAM_DEFAULT_IMAGE_DIM;
-    work_size.global[0] = out_info.width;
-    work_size.global[1] = out_info.height;
+    work_size.global[0] = desc.width;
+    work_size.global[1] = desc.height;
     work_size.local[0] = 8;
     work_size.local[1] = 4;
 
