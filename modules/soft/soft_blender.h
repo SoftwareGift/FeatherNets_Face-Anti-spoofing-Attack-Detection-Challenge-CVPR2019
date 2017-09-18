@@ -25,17 +25,51 @@
 #include "interface/blender.h"
 #include "soft/soft_handler.h"
 
+#define XCAM_SOFT_PYRAMID_MAX_LEVEL 4
+#define XCAM_SOFT_PYRAMID_DEFAULT_LEVEL 3
+
 namespace XCam {
+
+namespace SoftBlenderPriv {
+class BlenderPrivConfig;
+};
 
 class SoftBlender
     : public SoftHandler, public Blender
 {
+    friend class SoftBlenderPriv::BlenderPrivConfig;
     friend SmartPtr<SoftHandler> create_soft_blender ();
+public:
+    struct BlenderParam : ImageHandler::Parameters {
+        SmartPtr<VideoBuffer> in1_buf;
+
+        BlenderParam (
+            const SmartPtr<VideoBuffer> &in0,
+            const SmartPtr<VideoBuffer> &in1,
+            const SmartPtr<VideoBuffer> &out)
+            : Parameters (in0, out)
+            , in1_buf (in1)
+        {}
+    };
+
+    enum BufIdx {
+        Idx0 = 0,
+        Idx1,
+        BufIdxCount,
+    };
 
 public:
     ~SoftBlender ();
 
-    XCamReturn gauss_scale_done (
+    bool set_pyr_levels (uint32_t num);
+
+    void gauss_scale_done (
+        const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
+    void lap_done (
+        const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
+    void blend_task_done (
+        const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
+    void reconstruct_done (
         const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
 
 protected:
@@ -48,10 +82,11 @@ protected:
         SmartPtr<VideoBuffer> &out_buf);
 
     //derived from SoftHandler
-    virtual SmartPtr<Worker::Arguments> get_first_worker_args (
-        const SmartPtr<SoftWorker> &worker, SmartPtr<ImageHandler::Parameters> &params);
+    XCamReturn configure_resource (const SmartPtr<Parameters> &param);
+    XCamReturn start_work (const SmartPtr<Parameters> &param);
 
 private:
+    SmartPtr<SoftBlenderPriv::BlenderPrivConfig> _priv_config;
 };
 
 extern SmartPtr<SoftHandler> create_soft_blender ();
