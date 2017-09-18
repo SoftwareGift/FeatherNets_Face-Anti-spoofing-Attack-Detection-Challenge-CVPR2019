@@ -41,6 +41,9 @@ public:
     uint32_t unref() const {
         return --_ref_count;
     }
+    virtual bool is_a_object () const {
+        return true;
+    }
 
 private:
     explicit RefObj (uint32_t i) : _ref_count (i) {}
@@ -55,6 +58,9 @@ class RefCount
 {
 public:
     RefCount () : RefObj (1) {}
+    virtual bool is_a_object () const {
+        return false;
+    }
 };
 
 template<typename Obj>
@@ -156,7 +162,7 @@ public:
 
         XCAM_ASSERT (_ref);
         if (!_ref->unref()) {
-            if (!std::is_base_of<RefObj, Obj>::value) {
+            if (!_ref->is_a_object ()) {
                 XCAM_ASSERT (dynamic_cast<RefCount*>(_ref));
                 delete _ref;
             } else {
@@ -197,6 +203,7 @@ private:
 
     void init_ref (Obj *obj)
     {
+        // consider is_base_of or dynamic_cast ?
         typedef std::is_base_of<RefObj, Obj> BaseCheck;
         _ref = generate_ref_count (obj, BaseCheck());
         XCAM_ASSERT (_ref);
