@@ -77,7 +77,9 @@ private:
     SmartPtr<BufferPool>       _pool;
 };
 
-class BufferPool {
+class BufferPool
+    : public RefObj
+{
     friend class BufferProxy;
 
 public:
@@ -87,6 +89,7 @@ public:
     bool set_video_info (const VideoBufferInfo &info);
     bool reserve (uint32_t max_count = 4);
     SmartPtr<VideoBuffer> get_buffer (const SmartPtr<BufferPool> &self);
+    SmartPtr<VideoBuffer> get_buffer ();
 
     void stop ();
 

@@ -172,6 +172,12 @@ BufferPool::get_buffer (const SmartPtr<BufferPool> &self)
     return ret_buf;
 }
 
+SmartPtr<VideoBuffer>
+BufferPool::get_buffer ()
+{
+    return get_buffer (SmartPtr<BufferPool>(this));
+}
+
 void
 BufferPool::stop ()
 {
