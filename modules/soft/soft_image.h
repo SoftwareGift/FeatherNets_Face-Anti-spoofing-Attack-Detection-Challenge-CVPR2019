@@ -52,21 +52,18 @@ private:
     SmartPtr<VideoBuffer> _bind;
 
 public:
+    explicit SoftImage (const SmartPtr<VideoBuffer> &buf, const uint32_t plane);
+    explicit SoftImage (
+        const uint32_t width, const uint32_t height,
+        uint32_t aligned_width = 0);
     explicit SoftImage (
         const SmartPtr<VideoBuffer> &buf,
-        const uint32_t width,
-        const uint32_t height,
-        const uint32_t pictch,
-        const uint32_t offset = 0)
-        : _buf_ptr (NULL)
-        , _width (width)
-        , _height (height)
-        , _pitch (pictch)
-        , _bind (buf)
-    {
-        XCAM_ASSERT (buf.ptr ());
-        XCAM_ASSERT (buf->map ());
-        _buf_ptr = buf->map () + offset;
+        const uint32_t width, const uint32_t height, const uint32_t pictch, const uint32_t offset = 0);
+
+    ~SoftImage () {
+        if (!_bind.ptr ()) {
+            xcam_free (_buf_ptr);
+        }
     }
 
     uint32_t get_width () const {
@@ -75,29 +72,42 @@ public:
     uint32_t get_height () const {
         return _height;
     }
-    const SmartPtr<VideoBuffer> &get_buf () const {
-        return _bind;
+    uint32_t get_pitch () const {
+        return _pitch;
+    }
+    bool is_valid () const {
+        return (_buf_ptr && _width && _height);
     }
 
-    inline T read_data_no_check (int32_t x, int32_t y) {
+    const SmartPtr<VideoBuffer> &get_bind_buf () const {
+        return _bind;
+    }
+    T *get_buf_ptr (int32_t x, int32_t y) {
+        return (T *)(_buf_ptr + y * _pitch) + x;
+    }
+    const T *get_buf_ptr (int32_t x, int32_t y) const {
+        return (const T *)(_buf_ptr + y * _pitch) + x;
+    }
+
+    inline T read_data_no_check (int32_t x, int32_t y) const {
         const T *t_ptr = (const T *)(_buf_ptr + y * _pitch);
         return t_ptr[x];
     }
 
-    inline T read_data (int32_t x, int32_t y) {
+    inline T read_data (int32_t x, int32_t y) const {
         border_check (x, y);
         return read_data_no_check (x, y);
     }
 
     template<uint32_t N>
-    inline void read_array_no_check (const int32_t x, const int32_t y, T *array) {
+    inline void read_array_no_check (const int32_t x, const int32_t y, T *array) const {
         XCAM_ASSERT (N <= 8);
         const T *t_ptr = ((const T *)(_buf_ptr + y * _pitch)) + x;
         memcpy (array, t_ptr, sizeof (T) * N);
     }
 
     template<typename O, uint32_t N>
-    inline void read_array_no_check (const int32_t x, const int32_t y, O *array) {
+    inline void read_array_no_check (const int32_t x, const int32_t y, O *array) const {
         XCAM_ASSERT (N <= 8);
         const T *t_ptr = ((const T *)(_buf_ptr + y * _pitch)) + x;
         for (uint32_t i = 0; i < N; ++i) {
@@ -106,7 +116,7 @@ public:
     }
 
     template<uint32_t N>
-    inline void read_array (int32_t x, int32_t y, T *array) {
+    inline void read_array (int32_t x, int32_t y, T *array) const {
         XCAM_ASSERT (N <= 8);
         border_check_y (y);
         if (x + N < _width) {
@@ -121,7 +131,7 @@ public:
     }
 
     template<typename O, uint32_t N>
-    inline void read_array (int32_t x, int32_t y, O *array) {
+    inline void read_array (int32_t x, int32_t y, O *array) const {
         XCAM_ASSERT (N <= 8);
         border_check_y (y);
         const T *t_ptr = ((const T *)(_buf_ptr + y * _pitch));
@@ -167,21 +177,76 @@ public:
     }
 
 private:
-    inline void border_check_x (int32_t &x) {
+    inline void border_check_x (int32_t &x) const {
         if (x < 0) x = 0;
         else if (x >= (int32_t)_width) x = (int32_t)(_width - 1);
     }
 
-    inline void border_check_y (int32_t &y) {
+    inline void border_check_y (int32_t &y) const {
         if (y < 0) y = 0;
         else if (y >= (int32_t)_height) y = (int32_t)(_height - 1);
     }
 
-    inline void border_check (int32_t &x, int32_t &y) {
+    inline void border_check (int32_t &x, int32_t &y) const {
         border_check_x (x);
         border_check_y (y);
     }
 };
+
+
+template <typename T>
+SoftImage<T>::SoftImage (const SmartPtr<VideoBuffer> &buf, const uint32_t plane)
+    : _buf_ptr (NULL)
+    , _width (0) , _height (0) , _pitch (0)
+{
+    XCAM_ASSERT (buf.ptr ());
+    const VideoBufferInfo &info = buf->get_video_info ();
+    VideoBufferPlanarInfo planar;
+    if (!info.get_planar_info(planar, plane)) {
+        XCAM_LOG_ERROR (
+            "videobuf to soft image failed. buf format:%s, plane:%d", xcam_fourcc_to_string (info.format), plane);
+        return;
+    }
+    _buf_ptr = buf->map () + info.offsets[plane];
+    XCAM_ASSERT (_buf_ptr);
+    _pitch = info.strides[plane];
+    _height = planar.height;
+    _width = planar.pixel_bytes * planar.width / sizeof (T);
+    XCAM_ASSERT (_width * sizeof(T) == planar.pixel_bytes * planar.width);
+    _bind = buf;
+}
+
+template <typename T>
+SoftImage<T>::SoftImage (
+    const uint32_t width, const uint32_t height, uint32_t aligned_width)
+    : _buf_ptr (NULL)
+    , _width (0) , _height (0) , _pitch (0)
+{
+    if (!aligned_width)
+        aligned_width = width;
+
+    XCAM_ASSERT (aligned_width >= width);
+    XCAM_ASSERT (width > 0 && height > 0);
+    _pitch = aligned_width * sizeof (T);
+    _buf_ptr = (uint8_t *)xcam_malloc (_pitch * height);
+    XCAM_ASSERT (_buf_ptr);
+    _width = width;
+    _height = height;
+}
+
+template <typename T>
+SoftImage<T>::SoftImage (
+    const SmartPtr<VideoBuffer> &buf,
+    const uint32_t width, const uint32_t height, const uint32_t pictch, const uint32_t offset)
+    : _buf_ptr (NULL)
+    , _width (width) , _height (height)
+    , _pitch (pictch)
+    , _bind (buf)
+{
+    XCAM_ASSERT (buf.ptr ());
+    XCAM_ASSERT (buf->map ());
+    _buf_ptr = buf->map () + offset;
+}
 
 template <typename T>
 inline Uchar convert_to_uchar (const T& v) {

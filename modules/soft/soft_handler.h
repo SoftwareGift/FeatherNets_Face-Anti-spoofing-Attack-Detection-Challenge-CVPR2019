@@ -23,6 +23,7 @@
 
 #include "xcam_utils.h"
 #include "image_handler.h"
+#include "video_buffer.h"
 #include "worker.h"
 
 namespace XCam {
@@ -56,6 +57,7 @@ public:
     ~SoftHandler ();
 
     bool set_threads (uint32_t num);
+    bool set_out_video_info (const VideoBufferInfo &info);
 
     // derive from ImageHandler
     virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &param, bool sync);
@@ -81,6 +83,7 @@ private:
 
 private:
     SmartPtr<ThreadPool>    _threads;
+    VideoBufferInfo         _out_video_info;
     SmartPtr<SyncMeta>      _cur_sync;
     bool                    _need_configure;
     SafeList<Parameters>    _params;

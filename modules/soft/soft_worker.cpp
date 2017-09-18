@@ -158,7 +158,7 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
     uint32_t max_items = 1;
 
     for (uint32_t i = 0; i < SOFT_MAX_DIM; ++i) {
-        items.value[i] = xcam_ceil (_global.value[i],  _local.value[i]);
+        items.value[i] = xcam_ceil (_global.value[i],  _local.value[i]) / _local.value[i];
         max_items *= items.value[i];
     }
 
@@ -167,7 +167,7 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
         "SoftWorker(%s) max item is zero. work failed.", XCAM_STR (get_name ()));
 
     if (max_items == 1) {
-        ret = work_impl (args, items);
+        ret = work_impl (args, WorkSize(0, 0, 0));
         status_check (args, ret);
         return ret;
     }

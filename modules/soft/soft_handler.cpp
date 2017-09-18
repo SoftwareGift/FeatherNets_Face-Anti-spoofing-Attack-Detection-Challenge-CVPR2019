@@ -99,14 +99,27 @@ SoftHandler::set_threads (uint32_t num)
     return _threads->set_threads (num, num);
 }
 
+bool
+SoftHandler::set_out_video_info (const VideoBufferInfo &info)
+{
+    XCAM_ASSERT (info.width && info.height && info.format);
+    _out_video_info = info;
+    return true;
+}
+
 XCamReturn
 SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     XCAM_ASSERT (_need_configure);
-    if (!param->out_buf.ptr ()) {
-        ret = reserve_buffers (param->out_buf->get_video_info (), DEFAULT_SOFT_BUF_COUNT);
+    if (!param->out_buf.ptr ()) { // correct?
+        XCAM_FAIL_RETURN (
+            ERROR, _out_video_info.width > 0 && _out_video_info.height > 0, XCAM_RETURN_ERROR_PARAM,
+            "soft_hander(%s) configure resource failed before reserver buffer since out video info was not set",
+            XCAM_STR (get_name ()));
+
+        ret = reserve_buffers (_out_video_info, DEFAULT_SOFT_BUF_COUNT);
         XCAM_FAIL_RETURN (
             ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
             "soft_hander(%s) configure resource failed in reserving buffers", XCAM_STR (get_name ()));
@@ -225,7 +238,6 @@ SoftHandler::work_well_done (const SmartPtr<ImageHandler::Parameters> &param, XC
 
     XCAM_LOG_DEBUG ("soft_hander(%s) work well done", XCAM_STR (get_name ()));
 
-    XCAM_ASSERT (param.ptr () == _params.front ().ptr ());
     param_ended (param, err);
 }
 
