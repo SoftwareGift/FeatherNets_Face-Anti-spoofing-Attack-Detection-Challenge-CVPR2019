@@ -40,6 +40,9 @@ public:
     XCamReturn close ();
     XCamReturn rewind ();
     XCamReturn get_file_size (size_t &size);
+    const char* get_file_name () const {
+        return _file_name;
+    }
     XCamReturn read_file (void *buf, const size_t &size);
     XCamReturn write_file (const void *buf, const size_t &size);
 

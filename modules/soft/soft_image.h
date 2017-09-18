@@ -24,6 +24,7 @@
 #include "xcam_utils.h"
 #include "video_buffer.h"
 #include "vec_mat.h"
+#include "file_handle.h"
 
 namespace XCam {
 
@@ -64,6 +65,10 @@ public:
         if (!_bind.ptr ()) {
             xcam_free (_buf_ptr);
         }
+    }
+
+    uint32_t pixel_size () const {
+        return sizeof (T);
     }
 
     uint32_t get_width () const {
@@ -262,6 +267,11 @@ inline void convert_to_uchar_N (const T *in, Uchar *out) {
     }
 }
 
+template <typename Vec2>
+inline Uchar2 convert_to_uchar2 (const Vec2& v) {
+    return Uchar2 (convert_to_uchar(v.x), convert_to_uchar(v.y));
+}
+
 template <typename Vec2, uint32_t N>
 inline void convert_to_uchar2_N (const Vec2 *in, Uchar2 *out) {
     for (uint32_t i = 0; i < N; ++i) {
@@ -274,6 +284,70 @@ typedef SoftImage<Uchar> UcharImage;
 typedef SoftImage<Uchar2> Uchar2Image;
 typedef SoftImage<float> FloatImage;
 typedef SoftImage<Float2> Float2Image;
+
+template <class SoftImageT>
+class SoftImageFile
+    : public FileHandle
+{
+public:
+    SoftImageFile () {}
+    explicit SoftImageFile (const char *name, const char *option)
+        : FileHandle (name, option)
+    {}
+
+    inline XCamReturn read_buf (const SmartPtr<SoftImageT> &buf);
+    inline XCamReturn write_buf (const SmartPtr<SoftImageT> &buf);
+};
+
+template <class SoftImageT>
+inline XCamReturn
+SoftImageFile<SoftImageT>::read_buf (const SmartPtr<SoftImageT> &buf)
+{
+    XCAM_FAIL_RETURN (
+        WARNING, is_valid (), XCAM_RETURN_ERROR_PARAM,
+        "soft image file(%s) read buf failed, file is not open", XCAM_STR (get_file_name ()));
+
+    XCAM_FAIL_RETURN (
+        WARNING, buf->is_valid (), XCAM_RETURN_ERROR_PARAM,
+        "soft image file(%s) read buf failed, buf is not valid", XCAM_STR (get_file_name ()));
+
+    XCAM_ASSERT (is_valid ());
+    uint32_t height = buf->get_height ();
+    uint32_t line_bytes = buf->get_width () * buf->pixel_size ();
+
+    for (uint32_t index = 0; index < height; index++) {
+        uint8_t *line_ptr = buf->get_buf_ptr (0, index);
+        XCAM_FAIL_RETURN (
+            WARNING, fread (line_ptr, 1, line_bytes, _fp) == line_bytes, XCAM_RETURN_ERROR_FILE,
+            "soft image file(%s) read buf failed, image_line:%d", XCAM_STR (get_file_name ()), index);
+    }
+    return XCAM_RETURN_NO_ERROR;
+}
+
+template <class SoftImageT>
+inline XCamReturn
+SoftImageFile<SoftImageT>::write_buf (const SmartPtr<SoftImageT> &buf)
+{
+    XCAM_FAIL_RETURN (
+        WARNING, is_valid (), XCAM_RETURN_ERROR_PARAM,
+        "soft image file(%s) write buf failed, file is not open", XCAM_STR (get_file_name ()));
+
+    XCAM_FAIL_RETURN (
+        WARNING, buf->is_valid (), XCAM_RETURN_ERROR_PARAM,
+        "soft image file(%s) write buf failed, buf is not valid", XCAM_STR (get_file_name ()));
+
+    XCAM_ASSERT (is_valid ());
+    uint32_t height = buf->get_height ();
+    uint32_t line_bytes = buf->get_width () * buf->pixel_size ();
+
+    for (uint32_t index = 0; index < height; index++) {
+        uint8_t *line_ptr = buf->get_buf_ptr (0, index);
+        XCAM_FAIL_RETURN (
+            WARNING, fwrite (line_ptr, 1, line_bytes, _fp) == line_bytes, XCAM_RETURN_ERROR_FILE,
+            "soft image file(%s) write buf failed, image_line:%d", XCAM_STR (get_file_name ()), index);
+    }
+    return XCAM_RETURN_NO_ERROR;
+}
 
 }
 #endif //XCAM_SOFT_IMAGE_H
