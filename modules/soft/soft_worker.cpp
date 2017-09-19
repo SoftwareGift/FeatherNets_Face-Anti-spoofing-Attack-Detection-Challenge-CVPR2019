@@ -177,7 +177,7 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
         snprintf (thr_name, XCAM_MAX_STR_SIZE, "%s-thread-pool", XCAM_STR(get_name ()));
         _threads = new ThreadPool (thr_name);
         XCAM_ASSERT (_threads.ptr ());
-        _threads->set_threads (max_items, max_items);
+        _threads->set_threads (max_items, max_items + 1); //extra thread to process all_items_done
         ret = _threads->start ();
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (ret), ret,
