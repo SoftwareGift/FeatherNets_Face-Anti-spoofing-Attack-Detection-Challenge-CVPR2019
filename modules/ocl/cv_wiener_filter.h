@@ -50,7 +50,6 @@ public:
     void wiener_filter (const cv::Mat &blurred_image, const cv::Mat &known, cv::Mat &unknown, float noise_power);
 
 private:
-    void rotate (cv::Mat &src, cv::Mat &dst);
 
     XCAM_DEAD_COPY (CVWienerFilter);
 

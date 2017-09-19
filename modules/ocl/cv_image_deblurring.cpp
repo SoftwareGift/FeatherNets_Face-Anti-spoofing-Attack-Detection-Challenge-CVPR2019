@@ -189,12 +189,12 @@ CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat
     for (int i = 0; i < _config.iterations; i++)
     {
         cv::Mat sharpened = _sharp->sharp_image_gray (deblurred_current, sigmar);
-        _wiener->wiener_filter(blurred, sharpened.clone (), kernel_current, noise_power);
-        kernel_current = kernel_current (cv::Rect((blurred.cols - kernel_size) / 2 , (blurred.rows - kernel_size) / 2, kernel_size, kernel_size));
+        _wiener->wiener_filter (blurred, sharpened.clone (), kernel_current, noise_power);
+        kernel_current = kernel_current (cv::Rect(0, 0, kernel_size, kernel_size));
         double min_val;
         double max_val;
         cv::minMaxLoc (kernel_current, &min_val, &max_val);
-        _helper->apply_constraints (kernel_current, (float)max_val / 15);
+        _helper->apply_constraints (kernel_current, (float)max_val / 20);
         _helper->normalize_weights (kernel_current);
         enhanced_blurred = _edgetaper->edgetaper (blurred, kernel_current);
         _wiener->wiener_filter (enhanced_blurred, kernel_current.clone(), deblurred_current, noise_power);

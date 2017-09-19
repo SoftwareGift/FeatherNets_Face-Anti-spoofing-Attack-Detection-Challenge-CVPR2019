@@ -47,7 +47,7 @@ namespace XCam {
 struct CVIDConfig {
     int iterations;            // number of iterations for IBD algorithm
 
-    CVIDConfig (unsigned int _iterations = 50)
+    CVIDConfig (unsigned int _iterations = 200)
     {
         iterations = _iterations;
     }

@@ -31,20 +31,6 @@ CVWienerFilter::CVWienerFilter ()
 }
 
 void
-CVWienerFilter::rotate (cv::Mat &src, cv::Mat &dst)
-{
-    int cx = src.cols >> 1;
-    int cy = src.rows >> 1;
-    cv::Mat tmp;
-    tmp.create(src.size (), src.type ());
-    src(cv::Rect(0, 0, cx, cy)).copyTo(tmp(cv::Rect(cx, cy, cx, cy)));
-    src(cv::Rect(cx, cy, cx, cy)).copyTo(tmp(cv::Rect(0, 0, cx, cy)));
-    src(cv::Rect(cx, 0, cx, cy)).copyTo(tmp(cv::Rect(0, cy, cx, cy)));
-    src(cv::Rect(0, cy, cx, cy)).copyTo(tmp(cv::Rect(cx, 0, cx, cy)));
-    dst = tmp.clone();
-}
-
-void
 CVWienerFilter::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &known, cv::Mat &unknown, float noise_power)
 {
     int image_w = blurred_image.size().width;
@@ -55,7 +41,7 @@ CVWienerFilter::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &know
     cv::Mat padded = cv::Mat::zeros(image_h, image_w, CV_32FC1);
     int padx = padded.cols - known.cols;
     int pady = padded.rows - known.rows;
-    cv::copyMakeBorder (known, padded, pady / 2, pady - pady / 2, padx / 2, padx - padx / 2, cv::BORDER_CONSTANT, cv::Scalar::all(0));
+    cv::copyMakeBorder (known, padded, 0, pady, 0, padx, cv::BORDER_CONSTANT, cv::Scalar::all(0));
     cv::Mat padded_ft[2];
     _helpers->compute_dft (padded, padded_ft);
 
@@ -85,7 +71,6 @@ CVWienerFilter::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &know
     cv::divide (numerator_im, denominator, unknown_ft[1]);
 
     _helpers->compute_idft (unknown_ft, temp_unknown);
-    rotate (temp_unknown, temp_unknown);
     unknown = temp_unknown.clone();
 }
 
