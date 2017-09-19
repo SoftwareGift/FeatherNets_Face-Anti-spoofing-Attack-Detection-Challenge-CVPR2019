@@ -141,16 +141,11 @@ if test "$HAVE_LIBCL" -eq 1; then
 fi
 
 # check opencv minimum version number
-m4_define([opencv_major_version_req], [3])
-m4_define([opencv_minor_version_req], [0])
-m4_define([opencv_revision_version_req], [0])
-m4_define([OPENCV_VERSION_REQ], [opencv_major_version_req.opencv_minor_version_req.opencv_revision_version_req])
-
 HAVE_OPENCV=0
 if test "$enable_opencv" = "yes"; then
     OPENCV_VERSION_STR=`$PKG_CONFIG --modversion opencv`
-    PKG_CHECK_MODULES([OPENCV], [opencv >= OPENCV_VERSION_REQ], [HAVE_OPENCV=1], [HAVE_OPENCV=0])
-    echo "OpenCV version:"$OPENCV_VERSION_STR "required version:"OPENCV_VERSION_REQ "have opencv:"$HAVE_OPENCV
+        PKG_CHECK_MODULES([OPENCV], [opencv >= 3.0.0], [HAVE_OPENCV=1], [HAVE_OPENCV=0])
+        echo "OpenCV version:"$OPENCV_VERSION_STR "minimum required version:3.0.0" "have opencv:"$HAVE_OPENCV
 fi
 
 # check opencv videostab module
