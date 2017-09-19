@@ -129,6 +129,18 @@ void dump_buf (const SmartPtr<VideoBuffer> buf, const char *name)
     writer.close ();
 }
 
+template <class SoftImageT>
+static void
+dump_soft (const SmartPtr<SoftImageT> &image, const char *name)
+{
+    XCAM_ASSERT (image.ptr ());
+    char file_name[256];
+    snprintf (file_name, 256, "%s-%dx%d.soft", name, image->get_width(), image->get_height());
+    SoftImageFile<SoftImageT> file(file_name, "wb");
+    file.write_buf (image);
+    file.close ();
+}
+
 static
 void dump_buf (const SmartPtr<VideoBuffer> buf, const char *name, uint32_t level, uint32_t idx)
 {
@@ -139,6 +151,7 @@ void dump_buf (const SmartPtr<VideoBuffer> buf, const char *name, uint32_t level
 }
 #else
 static void dump_buf (...) {}
+static void dump_soft (...) {}
 #endif
 
 SoftBlender::SoftBlender (const char *name)
@@ -192,9 +205,10 @@ SoftBlenderPriv::BlenderPrivConfig::init_masks (uint32_t width, uint32_t height)
     uint32_t right = XCAM_ALIGN_UP (width, SOFT_BLENDER_ALIGNMENT_X) - left;
     for (uint32_t h = 0; h < height; ++h) {
         Uchar *ptr = orig_mask->get_buf_ptr (0, h);
-        memset (ptr, 0, left);
+        memset (ptr, 255, left);
         memset (ptr + left, 0, right);
     }
+    dump_soft (orig_mask, "orig_mask");
 
     for (uint32_t i = 0; i < pyr_levels; ++i) {
         width = (width + 1) / 2;
@@ -221,6 +235,7 @@ SoftBlenderPriv::BlenderPrivConfig::init_masks (uint32_t width, uint32_t height)
             "blender:(%s) first time scale coeff mask failed. level:%d",
             XCAM_STR (_blender->get_name ()), i);
     }
+    dump_soft (pyr_layer[pyr_levels - 1].coef_mask, "orig_last");
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -249,8 +264,11 @@ SoftBlenderPriv::BlenderPrivConfig::start_scaler (
     args->out_uv = new Uchar2Image (out_buf, 1);
 
     XCAM_ASSERT (out_buf->get_video_info ().width % 2 == 0 && out_buf->get_video_info ().height % 2 == 0);
+    uint32_t thread_x = 2, thread_y = 2;
     WorkSize global_size (args->out_uv->get_width (), args->out_uv->get_height ());
-    WorkSize local_size (global_size.value[0] / 2 , global_size.value[1] / 2);
+    WorkSize local_size (
+        xcam_ceil(global_size.value[0], thread_x) / thread_x ,
+        xcam_ceil(global_size.value[1], thread_y) / thread_y);
 
     worker->set_local_size (local_size);
     worker->set_global_size (global_size);
@@ -289,8 +307,11 @@ SoftBlenderPriv::BlenderPrivConfig::start_lap_task (
     args->out_luma = new UcharImage (out_buf, 0);
     args->out_uv = new Uchar2Image (out_buf, 1);
 
-    WorkSize global_size (args->out_uv->get_width (), args->out_uv->get_height ());
-    WorkSize local_size (global_size.value[0] / 2 , global_size.value[1] / 2);
+    uint32_t thread_x = 2, thread_y = 2;
+    WorkSize global_size (args->out_uv->get_width () / 4, args->out_uv->get_height () / 2);
+    WorkSize local_size (
+        xcam_ceil(global_size.value[0], thread_x) / thread_x ,
+        xcam_ceil(global_size.value[1], thread_y) / thread_y);
 
 
     SmartPtr<SoftWorker> worker = pyr_layer[level].lap_task[idx];
@@ -346,8 +367,11 @@ SoftBlenderPriv::BlenderPrivConfig::start_blend_task (
     args->out_buf = out_buf;
 
     // process 4x1 uv each loop
+    uint32_t thread_x = 2, thread_y = 2;
     WorkSize global_size (args->out_uv->get_width () / 4, args->out_uv->get_height ());
-    WorkSize local_size (global_size.value[0] / 2 , global_size.value[1] / 2);
+    WorkSize local_size (
+        xcam_ceil (global_size.value[0], thread_x) / thread_x,
+        xcam_ceil (global_size.value[1], thread_y) / thread_y);
 
     SmartPtr<SoftWorker> worker = last_level_blend;
     XCAM_ASSERT (worker.ptr ());
@@ -379,8 +403,11 @@ SoftBlenderPriv::BlenderPrivConfig::start_reconstruct_task (
     args->out_uv = new Uchar2Image (out_buf, 1);
     args->out_buf = out_buf;
 
+    uint32_t thread_x = 2, thread_y = 2;
     WorkSize global_size (args->out_uv->get_width (), args->out_uv->get_height ());
-    WorkSize local_size (global_size.value[0] / 2 , global_size.value[1] / 2);
+    WorkSize local_size (
+        xcam_ceil (global_size.value[0], thread_x) / thread_x,
+        xcam_ceil (global_size.value[1], thread_y) / thread_y);
 
     SmartPtr<SoftWorker> worker = pyr_layer[level].recon_task;
     XCAM_ASSERT (worker.ptr ());

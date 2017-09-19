@@ -241,11 +241,142 @@ BlendTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-LaplaceTask::work_range (const SmartPtr<Arguments> &args, const WorkRange &range)
+static inline void
+minus_array_8 (float *orig, float *gauss, Uchar *ret)
 {
-    XCAM_UNUSED (args.ptr ());
-    XCAM_UNUSED (range);
+#define ORG_MINUS_GAUSS(i) ret[i] = convert_to_uchar<float> ((orig[i] - gauss[i]) * 0.5f + 128.0f)
+    ORG_MINUS_GAUSS(0);
+    ORG_MINUS_GAUSS(1);
+    ORG_MINUS_GAUSS(2);
+    ORG_MINUS_GAUSS(3);
+    ORG_MINUS_GAUSS(4);
+    ORG_MINUS_GAUSS(5);
+    ORG_MINUS_GAUSS(6);
+    ORG_MINUS_GAUSS(7);
+}
+
+static inline void
+interpolate_luma_int_row_8x1 (UcharImage* image, uint32_t fixed_x, uint32_t fixed_y, float *gauss_v, float* ret)
+{
+    image->read_array<float, 5> (fixed_x, fixed_y, gauss_v);
+    ret[0] = gauss_v[0];
+    ret[1] = (gauss_v[0] + gauss_v[1]) * 0.5f;
+    ret[2] = gauss_v[1];
+    ret[3] = (gauss_v[1] + gauss_v[2]) * 0.5f;
+    ret[4] = gauss_v[2];
+    ret[5] = (gauss_v[2] + gauss_v[3]) * 0.5f;
+    ret[6] = gauss_v[3];
+    ret[7] = (gauss_v[3] + gauss_v[4]) * 0.5f;
+}
+
+static inline void
+interpolate_luma_half_row_8x1 (UcharImage* image, uint32_t fixed_x, uint32_t next_y, float *last_gauss_v, float* ret)
+{
+    float next_gauss_v[5];
+    float tmp;
+    image->read_array<float, 5> (fixed_x, next_y, next_gauss_v);
+    ret[0] = (last_gauss_v[0] + next_gauss_v[0]) / 2.0f;
+    ret[2] = (last_gauss_v[1] + next_gauss_v[1]) / 2.0f;
+    ret[4] = (last_gauss_v[2] + next_gauss_v[2]) / 2.0f;
+    ret[6] = (last_gauss_v[3] + next_gauss_v[3]) / 2.0f;
+    tmp = (last_gauss_v[4] + next_gauss_v[4]) / 2.0f;
+    ret[1] = (ret[0] + ret[2]) / 2.0f;
+    ret[3] = (ret[2] + ret[4]) / 2.0f;
+    ret[5] = (ret[4] + ret[6]) / 2.0f;
+    ret[7] = (ret[6] + tmp) / 2.0f;
+}
+
+void
+LaplaceTask::interplate_luma_8x2 (
+    UcharImage *orig_luma, UcharImage *gauss_luma, UcharImage *out_luma,
+    uint32_t out_x, uint32_t out_y)
+{
+    uint32_t gauss_x = out_x / 2, first_gauss_y = out_y / 2;
+    float inter_value[8];
+    float gauss_v[5];
+    float orig_v[8];
+    Uchar lap_ret[8];
+    //interplate instaed of coefficient
+    interpolate_luma_int_row_8x1 (gauss_luma, gauss_x, first_gauss_y, gauss_v, inter_value);
+    orig_luma->read_array_no_check<float, 8> (out_x, out_y, orig_v);
+    minus_array_8 (orig_v, inter_value, lap_ret);
+    out_luma->write_array_no_check<8> (out_x, out_y, lap_ret);
+
+    uint32_t next_gauss_y = first_gauss_y + 1;
+    interpolate_luma_half_row_8x1 (gauss_luma, gauss_x, next_gauss_y, gauss_v, inter_value);
+    orig_luma->read_array_no_check<float, 8> (out_x, out_y + 1, orig_v);
+    minus_array_8 (orig_v, inter_value, lap_ret);
+    out_luma->write_array_no_check<8> (out_x, out_y + 1, lap_ret);
+}
+
+static inline void
+minus_array_uv_4 (Float2 *orig, Float2 *gauss, Uchar2 *ret)
+{
+#define ORG_MINUS_GAUSS_UV(i) orig[i] -= gauss[i]; orig[i] *= 0.5f; orig[i] += 128.0f
+    ORG_MINUS_GAUSS_UV(0);
+    ORG_MINUS_GAUSS_UV(1);
+    ORG_MINUS_GAUSS_UV(2);
+    ORG_MINUS_GAUSS_UV(3);
+    convert_to_uchar2_N<Float2, 4> (orig, ret);
+}
+
+static inline void
+interpolate_uv_int_row_4x1 (Uchar2Image *image, uint32_t x, uint32_t y, Float2 *gauss_value, Float2 *ret)
+{
+    image->read_array<Float2, 3> (x, y, gauss_value);
+    ret[0] = gauss_value[0];
+    ret[1] = gauss_value[0] + gauss_value[1];
+    ret[1] *= 0.5f;
+    ret[2] = gauss_value[1];
+    ret[3] = gauss_value[1] + gauss_value[2];
+    ret[3] *= 0.5f;
+}
+
+static inline void
+interpolate_uv_half_row_4x1 (Uchar2Image *image, uint32_t x, uint32_t y, Float2 *gauss_value, Float2 *ret)
+{
+    Float2 next_gauss_uv[3];
+    image->read_array<Float2, 3> (x, y, next_gauss_uv);
+    ret[0] = (gauss_value[0] + next_gauss_uv[0]) * 0.5f;
+    ret[2] = (gauss_value[1] + next_gauss_uv[1]) * 0.5f;
+    Float2 tmp = (gauss_value[2] + next_gauss_uv[2]) * 0.5f;
+    ret[1] = (ret[0] + ret[2]) * 0.5f;
+    ret[3] = (ret[2] + tmp) * 0.5f;
+}
+
+XCamReturn
+LaplaceTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
+{
+    SmartPtr<LaplaceTask::Args> args = base.dynamic_cast_ptr<LaplaceTask::Args> ();
+    XCAM_ASSERT (args.ptr ());
+    UcharImage *orig_luma = args->orig_luma.ptr (), *gauss_luma = args->gauss_luma.ptr (), *out_luma = args->out_luma.ptr ();
+    Uchar2Image *orig_uv = args->orig_uv.ptr (), *gauss_uv = args->gauss_uv.ptr (), *out_uv = args->out_uv.ptr ();
+
+    for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
+        for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
+        {
+            // 8x4 -pixels each time for luma
+            uint32_t out_x = x * 8, out_y = y * 4;
+            interplate_luma_8x2 (orig_luma, gauss_luma, out_luma, out_x, out_y);
+            interplate_luma_8x2 (orig_luma, gauss_luma, out_luma, out_x, out_y + 2);
+
+            // 4x2 uv
+            uint32_t out_uv_x = x * 4, out_uv_y = y * 2;
+            uint32_t gauss_uv_x = out_uv_x / 2, gauss_uv_y = out_uv_y / 2;
+            Float2 gauss_uv_value[3];
+            Float2 orig_uv_value[4];
+            Float2 inter_uv_value[4];
+            Uchar2 lap_uv_ret[4];
+            interpolate_uv_int_row_4x1 (gauss_uv, gauss_uv_x, gauss_uv_y, gauss_uv_value, inter_uv_value);
+            orig_uv->read_array_no_check<Float2, 4> (out_uv_x , out_uv_y, orig_uv_value);
+            minus_array_uv_4 (orig_uv_value, inter_uv_value, lap_uv_ret);
+            out_uv->write_array_no_check<4> (out_uv_x , out_uv_y, lap_uv_ret);
+
+            interpolate_uv_half_row_4x1 (gauss_uv, gauss_uv_x, gauss_uv_y + 1, gauss_uv_value, inter_uv_value);
+            orig_uv->read_array_no_check<Float2, 4> (out_uv_x , out_uv_y + 1, orig_uv_value);
+            minus_array_uv_4 (orig_uv_value, inter_uv_value, lap_uv_ret);
+            out_uv->write_array_no_check<4> (out_uv_x, out_uv_y + 1, lap_uv_ret);
+        }
     return XCAM_RETURN_NO_ERROR;
 }
 

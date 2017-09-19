@@ -178,6 +178,10 @@ public:
 
 private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
+
+    void interplate_luma_8x2 (
+        UcharImage *orig_luma, UcharImage *gauss_luma, UcharImage *out_luma,
+        uint32_t out_x, uint32_t out_y);
 };
 
 class ReconstructTask
