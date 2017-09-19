@@ -47,6 +47,21 @@ namespace XCam {
 #define RADIANS_2_DEGREE(x) (((x) * 180.0) / PI)
 #endif
 
+#define XCAM_VECT2_OPERATOR_VECT2(op)                       \
+    Vector2<T> operator op (const Vector2<T>& b) const {    \
+        return Vector2<T>(x op b.x, y op b.y);              \
+    }                                                       \
+    Vector2<T> &operator op##= (const Vector2<T>& b) {      \
+        x op##= b.x;  y op##= b.y; return *this;            \
+    }
+
+#define XCAM_VECT2_OPERATOR_SCALER(op)                      \
+    Vector2<T> operator op (const T& b) const {             \
+        return Vector2<T>(x op b, y op b);                  \
+    }                                                       \
+    Vector2<T> &operator op##= (const T& b) {               \
+        x op##= b;  y op##= b; return *this;                \
+    }
 
 template<class T>
 class Vector2
@@ -84,32 +99,14 @@ public:
         return Vector2<T>(-x, -y);
     }
 
-    Vector2<T> operator + (const Vector2<T>& rhs) const {
-        return Vector2<T>(x + rhs.x, y + rhs.y);
-    }
-    Vector2<T> &operator += (const Vector2<T>& rhs) {
-        x += rhs.x;
-        y += rhs.y;
-        return *this;
-    }
-
-    Vector2<T> &operator -= (const Vector2<T>& rhs) {
-        x -= rhs.x;
-        y -= rhs.y;
-        return *this;
-    }
-
-    Vector2<T> operator - (const Vector2<T>& rhs) const {
-        return Vector2<T>(x - rhs.x, y - rhs.y);
-    }
-
-    Vector2<T> operator * (const T a) const {
-        return Vector2<T>(x * a, y * a);
-    }
-
-    Vector2<T> operator / (const T a) const {
-        return Vector2<T>(x / a, y / a);
-    }
+    XCAM_VECT2_OPERATOR_VECT2 (+)
+    XCAM_VECT2_OPERATOR_VECT2 (-)
+    XCAM_VECT2_OPERATOR_VECT2 (*)
+    XCAM_VECT2_OPERATOR_VECT2 ( / )
+    XCAM_VECT2_OPERATOR_SCALER (+)
+    XCAM_VECT2_OPERATOR_SCALER (-)
+    XCAM_VECT2_OPERATOR_SCALER (*)
+    XCAM_VECT2_OPERATOR_SCALER ( / )
 
     bool operator == (const Vector2<T>& rhs) const {
         return (x == rhs.x) && (y == rhs.y);
@@ -143,6 +140,22 @@ public:
 
 };
 
+#define XCAM_VECT3_OPERATOR_VECT3(op)                         \
+    Vector3<T> operator op (const Vector3<T>& b) const {      \
+        return Vector3<T>(x op b.x, y op b.y, z op b.z);      \
+    }                                                         \
+    Vector3<T> &operator op##= (const Vector3<T>& b) {        \
+        x op##= b.x;  y op##= b.y; z op##= b.z; return *this; \
+    }
+
+#define XCAM_VECT3_OPERATOR_SCALER(op)                        \
+    Vector3<T> operator op (const T& b) const {               \
+        return Vector3<T>(x op b, y op b, z op b);            \
+    }                                                         \
+    Vector3<T> &operator op##= (const T& b) {                 \
+        x op##= b;  y op##= b; z op##= b; return *this;       \
+    }
+
 
 template<class T>
 class Vector3
@@ -168,22 +181,14 @@ public:
         return Vector3<T>(-x, -y, -z);
     }
 
-    inline Vector3<T> operator + (const Vector3<T>& rhs) const {
-        return Vector3<T>(x + rhs.x, y + rhs.y, z + rhs.z);
-    }
-
-    inline Vector3<T> operator - (const Vector3<T>& rhs) const {
-        return Vector3<T>(x - rhs.x, y - rhs.y, z - rhs.z);
-    }
-
-    inline Vector3<T> operator * (const T a) const {
-        return Vector3<T>(x * a, y * a, z * a);
-    }
-
-    inline Vector3<T> operator / (const T a) const {
-        return Vector3<T>(x / a, y / a, z / a);
-    }
-
+    XCAM_VECT3_OPERATOR_VECT3 (+)
+    XCAM_VECT3_OPERATOR_VECT3 (-)
+    XCAM_VECT3_OPERATOR_VECT3 (*)
+    XCAM_VECT3_OPERATOR_VECT3 ( / )
+    XCAM_VECT3_OPERATOR_SCALER (+)
+    XCAM_VECT3_OPERATOR_SCALER (-)
+    XCAM_VECT3_OPERATOR_SCALER (*)
+    XCAM_VECT3_OPERATOR_SCALER ( / )
 
     inline bool operator == (const Vector3<T>& rhs) const {
         return (x == rhs.x) && (y == rhs.y) && (z == rhs.z);
@@ -231,6 +236,22 @@ public:
 
 };
 
+#define XCAM_VECT4_OPERATOR_VECT4(op)                         \
+    Vector4<T> operator op (const Vector4<T>& b) const {      \
+        return Vector4<T>(x op b.x, y op b.y, z op b.z, w op b.w); \
+    }                                                         \
+    Vector4<T> &operator op##= (const Vector4<T>& b) {        \
+        x op##= b.x;  y op##= b.y; z op##= b.z; w op##= b.w; return *this; \
+    }
+
+#define XCAM_VECT4_OPERATOR_SCALER(op)                        \
+    Vector4<T> operator op (const T& b) const {               \
+        return Vector4<T>(x op b, y op b, z op b, w op b);    \
+    }                                                         \
+    Vector4<T> &operator op##= (const T& b) {                 \
+        x op##= b;  y op##= b; z op##= b; w op##= b; return *this; \
+    }
+
 
 template<class T>
 class Vector4
@@ -259,21 +280,14 @@ public:
         return Vector4<T>(-x, -y, -z, -w);
     }
 
-    inline Vector4<T> operator + (const Vector4<T>& rhs) const {
-        return Vector4<T>(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
-    }
-
-    inline Vector4<T> operator - (const Vector4<T>& rhs) const {
-        return Vector4<T>(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
-    }
-
-    inline Vector4<T> operator * (const T a) const {
-        return Vector4<T>(x * a, y * a, z * a, w * a);
-    }
-
-    inline Vector4<T> operator / (const T a) const {
-        return Vector4<T>(x / a, y / a, z / a, w / a);
-    }
+    XCAM_VECT4_OPERATOR_VECT4 (+)
+    XCAM_VECT4_OPERATOR_VECT4 (-)
+    XCAM_VECT4_OPERATOR_VECT4 (*)
+    XCAM_VECT4_OPERATOR_VECT4 ( / )
+    XCAM_VECT4_OPERATOR_SCALER (+)
+    XCAM_VECT4_OPERATOR_SCALER (-)
+    XCAM_VECT4_OPERATOR_SCALER (*)
+    XCAM_VECT4_OPERATOR_SCALER ( / )
 
     inline bool operator == (const Vector4<T>& rhs) const {
         return (x == rhs.x) && (y == rhs.y) && (z == rhs.z) && (w == rhs.w);
