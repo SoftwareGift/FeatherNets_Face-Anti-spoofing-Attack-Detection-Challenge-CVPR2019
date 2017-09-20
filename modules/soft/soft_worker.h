@@ -58,6 +58,12 @@ class SoftWorker
 public:
     explicit SoftWorker (const char *name, const SmartPtr<Callback> &cb = NULL);
     virtual ~SoftWorker ();
+
+    bool set_work_uint (uint32_t x, uint32_t y, uint32_t z = 1);
+    const WorkSize &get_work_uint () const {
+        return _work_unit;
+    }
+
     bool set_threads (const SmartPtr<ThreadPool> &threads);
     bool set_global_size (const WorkSize &size);
     const WorkSize &get_global_size () const {
@@ -75,7 +81,7 @@ private:
     //new virtual functions
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
     virtual WorkRange get_range (const WorkSize &item);
-    virtual XCamReturn work_pixel (const SmartPtr<Arguments> &args, const WorkSize &pixel);
+    virtual XCamReturn work_unit (const SmartPtr<Arguments> &args, const WorkSize &unit);
 
     XCamReturn work_impl (const SmartPtr<Arguments> &args, const WorkSize &item);
     void all_items_done (const SmartPtr<Arguments> &args, XCamReturn error);
@@ -86,6 +92,7 @@ private:
     SmartPtr<ThreadPool>    _threads;
     WorkSize                _global;
     WorkSize                _local;
+    WorkSize                _work_unit;
 };
 
 }

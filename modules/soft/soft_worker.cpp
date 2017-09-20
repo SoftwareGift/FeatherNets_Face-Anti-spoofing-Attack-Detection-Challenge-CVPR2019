@@ -105,11 +105,27 @@ WorkItem::done (XCamReturn err)
 
 SoftWorker::SoftWorker (const char *name, const SmartPtr<Callback> &cb)
     : Worker (name, cb)
+    , _global (1, 1, 1)
+    , _local (1, 1, 1)
+    , _work_unit (1, 1, 1)
 {
 }
 
 SoftWorker::~SoftWorker ()
 {
+}
+
+bool
+SoftWorker::set_work_uint (uint32_t x, uint32_t y, uint32_t z)
+{
+    XCAM_FAIL_RETURN (
+        ERROR, x && y && z, false,
+        "SoftWorker(%s) set work unit failed(x:%d, y:%d, z:%d)",
+        XCAM_STR (get_name ()), x, y, z);
+    _work_unit.value[0] = x;
+    _work_unit.value[1] = y;
+    _work_unit.value[2] = z;
+    return true;
 }
 
 bool
@@ -237,24 +253,24 @@ XCamReturn
 SoftWorker::work_range (const SmartPtr<Arguments> &args, const WorkRange &range)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    WorkSize pixel;
-    memcpy(pixel.value, range.pos, sizeof (pixel.value));
+    WorkSize unit;
+    memcpy(unit.value, range.pos, sizeof (unit.value));
 
-    for (pixel.value[2] = range.pos[2]; pixel.value[2] < range.pos[2] + range.pos_len[2]; ++pixel.value[2])
-        for (pixel.value[1] = range.pos[1]; pixel.value[1] < range.pos[1] + range.pos_len[1]; ++pixel.value[1])
-            for (pixel.value[0] = range.pos[0]; pixel.value[0] < range.pos[0] + range.pos_len[0]; ++pixel.value[0]) {
-                ret = work_pixel (args, pixel);
+    for (unit.value[2] = range.pos[2]; unit.value[2] < range.pos[2] + range.pos_len[2]; ++unit.value[2])
+        for (unit.value[1] = range.pos[1]; unit.value[1] < range.pos[1] + range.pos_len[1]; ++unit.value[1])
+            for (unit.value[0] = range.pos[0]; unit.value[0] < range.pos[0] + range.pos_len[0]; ++unit.value[0]) {
+                ret = work_unit (args, unit);
                 XCAM_FAIL_RETURN (
                     ERROR, xcam_ret_is_ok (ret), ret,
                     "SoftWorker(%s) work on pixel(x:%d y: %d z:%d) failed",
-                    get_name (), pixel.value[0], pixel.value[1], pixel.value[2]);
+                    get_name (), unit.value[0], unit.value[1], unit.value[2]);
             }
 
     return ret;
 }
 
 XCamReturn
-SoftWorker::work_pixel (const SmartPtr<Arguments> &, const WorkSize &)
+SoftWorker::work_unit (const SmartPtr<Arguments> &, const WorkSize &)
 {
     XCAM_LOG_ERROR ("SoftWorker(%s) work_pixel was not derived. check code");
     return XCAM_RETURN_ERROR_PARAM;
