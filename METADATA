@@ -1,6 +1,11 @@
 name: "LibXCam"
 description:
-    "libXCam is a project for extended camera and computer vision features. This library can work on GPU, CPU and other HW platforms to improve image/video quality. OpenCL as one of the common parallel computing languages is used to improve performance in different platforms. Other shading language supports are in roadmap."
+    "libXCam is a project for extended camera and computer "
+    "vision features. This library can work on GPU, CPU and "
+    "other HW platforms to improve image/video quality. "
+    "OpenCL as one of the common parallel computing languages "
+    "is used to improve performance in different platforms. "
+    "Other shading language supports are in roadmap."
 
 third_party {
   url {
@@ -9,5 +14,5 @@ third_party {
   }
   version: "1.0.0"
   last_upgrade_date { year: 2017 month: 9 day: 11 }
-  license_type: Apache License Version 2.0
+  license_type: "Apache-2.0"
 }
