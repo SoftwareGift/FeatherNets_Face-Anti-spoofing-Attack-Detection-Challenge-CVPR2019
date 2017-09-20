@@ -27,7 +27,7 @@
 #include "soft/soft_blender.h"
 
 #define SOFT_BLENDER_ALIGNMENT_X 8
-#define SOFT_BLENDER_ALIGNMENT_Y 2
+#define SOFT_BLENDER_ALIGNMENT_Y 4
 
 #define GAUSS_DOWN_SCALE_RADIUS 2
 #define GAUSS_DOWN_SCALE_SIZE  ((GAUSS_DOWN_SCALE_RADIUS)*2+1)
@@ -45,7 +45,9 @@ public:
 public:
     explicit GaussScaleGray (const char *name = "GaussScaleGray", const SmartPtr<Worker::Callback> &cb = NULL)
         : SoftWorker (name, cb)
-    {}
+    {
+        set_work_uint (2, 2);
+    }
 
 private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
@@ -142,7 +144,9 @@ public:
 public:
     explicit BlendTask (const SmartPtr<Worker::Callback> &cb)
         : SoftWorker ("SoftBlendTask", cb)
-    {}
+    {
+        set_work_uint (8, 2);
+    }
 
 private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
@@ -174,7 +178,9 @@ public:
 public:
     explicit LaplaceTask (const SmartPtr<Worker::Callback> &cb)
         : SoftWorker ("SoftLaplaceTask", cb)
-    {}
+    {
+        set_work_uint (8, 4);
+    }
 
 private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
@@ -209,7 +215,9 @@ public:
 public:
     explicit ReconstructTask (const SmartPtr<Worker::Callback> &cb)
         : SoftWorker ("SoftReconstructTask", cb)
-    {}
+    {
+        set_work_uint (8, 4);
+    }
 
 private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);

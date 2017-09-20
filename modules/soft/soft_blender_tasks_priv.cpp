@@ -82,6 +82,7 @@ GaussScaleGray::work_range (const SmartPtr<Worker::Arguments> &base, const WorkR
     SmartPtr<GaussScaleGray::Args> args = base.dynamic_cast_ptr<GaussScaleGray::Args> ();
     XCAM_ASSERT (args.ptr ());
     UcharImage *in_luma = args->in_luma.ptr (), *out_luma = args->out_luma.ptr ();
+    XCAM_ASSERT (in_luma && out_luma);
 
     for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
         for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
@@ -98,6 +99,8 @@ GaussDownScale::work_range (const SmartPtr<Worker::Arguments> &base, const WorkR
     XCAM_ASSERT (args.ptr ());
     UcharImage *in_luma = args->in_luma.ptr (), *out_luma = args->out_luma.ptr ();
     Uchar2Image *in_uv = args->in_uv.ptr (), *out_uv = args->out_uv.ptr ();
+    XCAM_ASSERT (in_luma && in_uv);
+    XCAM_ASSERT (out_luma && out_uv);
 
     for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
         for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
@@ -203,6 +206,10 @@ BlendTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
     UcharImage *in0_luma = args->in_luma[0].ptr (), *in1_luma = args->in_luma[1].ptr (), *out_luma = args->out_luma.ptr ();
     Uchar2Image *in0_uv = args->in_uv[0].ptr (), *in1_uv = args->in_uv[1].ptr (), *out_uv = args->out_uv.ptr ();
     UcharImage *mask = args->mask.ptr ();
+
+    XCAM_ASSERT (in0_luma && in0_uv && in1_luma && in1_uv);
+    XCAM_ASSERT (out_luma && out_uv);
+    XCAM_ASSERT (mask);
 
     for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
         for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
@@ -351,6 +358,9 @@ LaplaceTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range
     XCAM_ASSERT (args.ptr ());
     UcharImage *orig_luma = args->orig_luma.ptr (), *gauss_luma = args->gauss_luma.ptr (), *out_luma = args->out_luma.ptr ();
     Uchar2Image *orig_uv = args->orig_uv.ptr (), *gauss_uv = args->gauss_uv.ptr (), *out_uv = args->out_uv.ptr ();
+    XCAM_ASSERT (orig_luma && orig_uv);
+    XCAM_ASSERT (gauss_luma && gauss_uv);
+    XCAM_ASSERT (out_luma && out_uv);
 
     for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
         for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
@@ -380,11 +390,111 @@ LaplaceTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-ReconstructTask::work_range (const SmartPtr<Arguments> &args, const WorkRange &range)
+static inline void
+reconstruct_luma_8x1 (float *lap, float *up_sample, Uchar *result)
 {
-    XCAM_UNUSED (args.ptr ());
-    XCAM_UNUSED (range);
+#define RECONSTRUCT_UP_SAMPLE(i) result[i] = convert_to_uchar<float>(up_sample[i] + lap[i] * 2.0f - 256.0f)
+    RECONSTRUCT_UP_SAMPLE(0);
+    RECONSTRUCT_UP_SAMPLE(1);
+    RECONSTRUCT_UP_SAMPLE(2);
+    RECONSTRUCT_UP_SAMPLE(3);
+    RECONSTRUCT_UP_SAMPLE(4);
+    RECONSTRUCT_UP_SAMPLE(5);
+    RECONSTRUCT_UP_SAMPLE(6);
+    RECONSTRUCT_UP_SAMPLE(7);
+}
+
+static inline void
+reconstruct_luma_4x1 (Float2 *lap, Float2 *up_sample, Uchar2 *uv_uc)
+{
+#define RECONSTRUCT_UP_SAMPLE_UV(i) \
+    uv_uc[i].x = convert_to_uchar<float>(up_sample[i].x + lap[i].x * 2.0f - 256.0f); \
+    uv_uc[i].y = convert_to_uchar<float>(up_sample[i].y + lap[i].y * 2.0f - 256.0f)
+
+    RECONSTRUCT_UP_SAMPLE_UV (0);
+    RECONSTRUCT_UP_SAMPLE_UV (1);
+    RECONSTRUCT_UP_SAMPLE_UV (2);
+    RECONSTRUCT_UP_SAMPLE_UV (3);
+}
+
+XCamReturn
+ReconstructTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
+{
+    SmartPtr<ReconstructTask::Args> args = base.dynamic_cast_ptr<ReconstructTask::Args> ();
+    XCAM_ASSERT (args.ptr ());
+    UcharImage *lap_luma[2] = {args->lap_luma[0].ptr (), args->lap_luma[1].ptr ()};
+    UcharImage *gauss_luma = args->gauss_luma.ptr (), *out_luma = args->out_luma.ptr ();
+    Uchar2Image *lap_uv[2] = {args->lap_uv[0].ptr (), args->lap_uv[1].ptr ()};
+    Uchar2Image *gauss_uv = args->gauss_uv.ptr (), *out_uv = args->out_uv.ptr ();
+    UcharImage *mask_image = args->mask.ptr ();
+    XCAM_ASSERT (lap_luma[0] && lap_luma[1] && lap_uv[0] && lap_uv[1]);
+    XCAM_ASSERT (gauss_luma && gauss_uv);
+    XCAM_ASSERT (out_luma && out_uv);
+    XCAM_ASSERT (mask_image);
+
+    for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
+        for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
+        {
+            // 8x4 -pixels each time for luma
+            float luma_blend[8], luma_mask1[8], luma_mask2[8];
+            float luma_sample[8];
+            float gauss_data[5];
+            Uchar luma_uchar[8];
+            uint32_t in_x = x * 8, in_y = y * 4;
+
+            // luma 1st - line
+            read_and_blend_pixel_luma_8 (lap_luma[0], lap_luma[1], mask_image, in_x, in_y, luma_blend, luma_mask1);
+            interpolate_luma_int_row_8x1 (gauss_luma, in_x / 2, in_y / 2, gauss_data, luma_sample);
+            reconstruct_luma_8x1 (luma_blend, luma_sample, luma_uchar);
+            out_luma->write_array_no_check<8> (in_x, in_y, luma_uchar);
+
+            // luma 2nd -line
+            in_y += 1;
+            read_and_blend_pixel_luma_8 (lap_luma[0], lap_luma[1], mask_image, in_x, in_y, luma_blend, luma_mask1);
+            interpolate_luma_half_row_8x1 (gauss_luma, in_x / 2, in_y / 2 + 1, gauss_data, luma_sample);
+            reconstruct_luma_8x1 (luma_blend, luma_sample, luma_uchar);
+            out_luma->write_array_no_check<8> (in_x, in_y, luma_uchar);
+
+            // luma 3rd -line
+            in_y += 1;
+            read_and_blend_pixel_luma_8 (lap_luma[0], lap_luma[1], mask_image, in_x, in_y, luma_blend, luma_mask2);
+            interpolate_luma_int_row_8x1 (gauss_luma, in_x / 2, in_y / 2, gauss_data, luma_sample);
+            reconstruct_luma_8x1 (luma_blend, luma_sample, luma_uchar);
+            out_luma->write_array_no_check<8> (in_x, in_y, luma_uchar);
+
+            // luma 4th -line
+            in_y += 1;
+            read_and_blend_pixel_luma_8 (lap_luma[0], lap_luma[1], mask_image, in_x, in_y, luma_blend, luma_mask2);
+            interpolate_luma_half_row_8x1 (gauss_luma, in_x / 2, in_y / 2 + 1, gauss_data, luma_sample);
+            reconstruct_luma_8x1 (luma_blend, luma_sample, luma_uchar);
+            out_luma->write_array_no_check<8> (in_x, in_y, luma_uchar);
+
+            // 4x2-UV process UV
+            uint32_t uv_x = x * 4, uv_y = y * 2;
+            Float2 uv_blend[4];
+            Float2 gauss_uv_value[3];
+            Float2 up_sample_uv[4];
+            Uchar2 uv_uc[4];
+            luma_mask1[1] = luma_mask1[2];
+            luma_mask1[2] = luma_mask1[4];
+            luma_mask1[3] = luma_mask1[6];
+            luma_mask2[1] = luma_mask2[2];
+            luma_mask2[2] = luma_mask2[4];
+            luma_mask2[3] = luma_mask1[6];
+
+            //1st-line UV
+            read_and_blend_uv_4 (lap_uv[0], lap_uv[1], luma_mask1, uv_x, uv_y, uv_blend);
+            interpolate_uv_int_row_4x1 (gauss_uv, uv_x / 2, uv_y / 2, gauss_uv_value, up_sample_uv);
+            reconstruct_luma_4x1 (uv_blend, up_sample_uv, uv_uc);
+            out_uv->write_array_no_check<4> (uv_x, uv_y, uv_uc);
+
+            //2nd-line UV
+            uv_y += 1;
+            read_and_blend_uv_4 (lap_uv[0], lap_uv[1], luma_mask2, uv_x, uv_y, uv_blend);
+            interpolate_uv_half_row_4x1 (gauss_uv, uv_x / 2, uv_y / 2 + 1, gauss_uv_value, up_sample_uv);
+            reconstruct_luma_4x1 (uv_blend, up_sample_uv, uv_uc);
+            out_uv->write_array_no_check<4> (uv_x, uv_y, uv_uc);
+        }
     return XCAM_RETURN_NO_ERROR;
 }
 
