@@ -49,6 +49,8 @@ struct VideoBufferInfo
 
     bool get_planar_info (
         VideoBufferPlanarInfo &planar, const uint32_t index = 0) const;
+
+    bool is_valid () const;
 };
 
 class VideoBuffer {

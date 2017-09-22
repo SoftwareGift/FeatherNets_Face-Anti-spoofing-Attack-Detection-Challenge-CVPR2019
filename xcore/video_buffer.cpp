@@ -59,6 +59,12 @@ VideoBufferInfo::init (
 }
 
 bool
+VideoBufferInfo::is_valid () const
+{
+    return format && aligned_width && aligned_height && size;
+}
+
+bool
 VideoBufferInfo::get_planar_info (
     VideoBufferPlanarInfo &planar, const uint32_t index) const
 {
