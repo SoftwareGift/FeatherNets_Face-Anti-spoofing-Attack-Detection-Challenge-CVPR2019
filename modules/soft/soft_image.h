@@ -33,7 +33,7 @@ typedef int8_t Char;
 typedef Vector2<uint8_t> Uchar2;
 typedef Vector2<int8_t> Char2;
 typedef Vector2<float> Float2;
-
+typedef Vector2<int> Int2;
 
 enum BorderType {
     BorderTypeNearest,
@@ -103,6 +103,12 @@ public:
         border_check (x, y);
         return read_data_no_check (x, y);
     }
+
+    template<typename O>
+    inline O read_interpolate_data (float x, float y) const;
+
+    template<typename O, uint32_t N>
+    inline void read_interpolate_array (Float2 *pos, O *array) const;
 
     template<uint32_t N>
     inline void read_array_no_check (const int32_t x, const int32_t y, T *array) const {
@@ -347,6 +353,29 @@ SoftImageFile<SoftImageT>::write_buf (const SmartPtr<SoftImageT> &buf)
             "soft image file(%s) write buf failed, image_line:%d", XCAM_STR (get_file_name ()), index);
     }
     return XCAM_RETURN_NO_ERROR;
+}
+
+template <typename T> template <typename O>
+O
+SoftImage<T>::read_interpolate_data (float x, float y) const
+{
+    int32_t x0 = (int32_t)(x), y0 = (int32_t)(y);
+    float a = x - x0, b = y - y0;
+    O l0[2], l1[2];
+    read_array<O, 2> (x0, y0, l0);
+    read_array<O, 2> (x0, y0 + 1, l1);
+
+    return l1[1] * (a * b) + l0[0] * ((1 - a) * (1 - b)) +
+           l1[0] * ((1 - a) * b) + l0[1] * (a * (1 - b));
+}
+
+template <typename T> template<typename O, uint32_t N>
+void
+SoftImage<T>::read_interpolate_array (Float2 *pos, O *array) const
+{
+    for (uint32_t i = 0; i < N; ++i) {
+        array[i] = read_interpolate_data<O> (pos[i].x, pos[i].y);
+    }
 }
 
 }
