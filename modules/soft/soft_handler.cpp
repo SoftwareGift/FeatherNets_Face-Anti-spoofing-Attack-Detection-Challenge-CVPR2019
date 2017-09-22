@@ -142,11 +142,24 @@ SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bo
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     SmartPtr<SyncMeta> sync_meta;
 
+    XCAM_FAIL_RETURN (
+        ERROR, param.ptr () && param->in_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
+        "soft_hander(%s) execute buffer failed, params or input buffer is null",
+        XCAM_STR (get_name ()));
+
     if (_need_configure) {
         ret = configure_resource (param);
         XCAM_FAIL_RETURN (
             WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
             "soft_hander(%s) configure resource failed", XCAM_STR (get_name ()));
+    }
+
+    if (!param->out_buf.ptr () && _out_video_info.is_valid ()) {
+        param->out_buf = get_free_buf ();
+        XCAM_FAIL_RETURN (
+            ERROR, param->out_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
+            "soft_hander:%s execute buffer failed, output buffer failed in allocation.",
+            XCAM_STR (get_name ()));
     }
 
     XCAM_ASSERT (!param->find_meta<SyncMeta> ().ptr ());

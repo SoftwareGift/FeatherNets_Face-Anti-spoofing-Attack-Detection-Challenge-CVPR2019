@@ -34,6 +34,8 @@
 
 namespace XCam {
 
+namespace XCamSoftTasks {
+
 class GaussScaleGray
     : public SoftWorker
 {
@@ -222,6 +224,8 @@ public:
 private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
 };
+
+}
 
 }
 

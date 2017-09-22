@@ -33,6 +33,8 @@
 
 namespace XCam {
 
+using namespace XCamSoftTasks;
+
 DECLARE_WORK_CALLBACK (CbGaussDownScale, SoftBlender, gauss_scale_done);
 DECLARE_WORK_CALLBACK (CbBlendTask, SoftBlender, blend_task_done);
 DECLARE_WORK_CALLBACK (CbReconstructTask, SoftBlender, reconstruct_done);
@@ -504,17 +506,8 @@ SoftBlender::start_work (const SmartPtr<ImageHandler::Parameters> &base)
     SmartPtr<BlenderParam> param = base.dynamic_cast_ptr<BlenderParam> ();
 
     XCAM_FAIL_RETURN (
-        ERROR, param.ptr () && param->in1_buf.ptr () && param->in_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
-        "blender:%s start_work failed, params(in0/in1) are not fully set or type not correct",
-        XCAM_STR (get_name ()));
-
-    if (!param->out_buf.ptr ()) {
-        param->out_buf = get_free_buf ();
-    }
-
-    XCAM_FAIL_RETURN (
-        ERROR, param->out_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
-        "blender:%s start_work failed, params output buffer was not set or failed in allocation.",
+        ERROR, param.ptr () && param->in1_buf.ptr () && param->out_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
+        "blender:%s start_work failed, params(in1/out buf) are not fully set or type not correct",
         XCAM_STR (get_name ()));
 
     //start gauss scale level0: idx0

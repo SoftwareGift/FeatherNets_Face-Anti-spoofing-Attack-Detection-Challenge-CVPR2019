@@ -23,6 +23,8 @@
 
 namespace XCam {
 
+namespace XCamSoftTasks {
+
 const float GaussScaleGray::coeffs[GAUSS_DOWN_SCALE_SIZE] = {0.152f, 0.222f, 0.252f, 0.222f, 0.152f};
 
 void
@@ -496,6 +498,8 @@ ReconstructTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &r
             out_uv->write_array_no_check<4> (uv_x, uv_y, uv_uc);
         }
     return XCAM_RETURN_NO_ERROR;
+}
+
 }
 
 }
