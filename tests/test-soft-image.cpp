@@ -21,18 +21,35 @@
 #include "test_common.h"
 #include "test_inline.h"
 #include "buffer_pool.h"
-#include "interface/blender.h"
 #include "image_handler.h"
 #include "image_file_handle.h"
 #include "soft/soft_video_buf_allocator.h"
-#include "soft/soft_handler.h"
+#include "interface/blender.h"
+#include "interface/geo_mapper.h"
+
+#define MAP_WIDTH 3
+#define MAP_HEIGHT 4
+
+static GeoData map_table[MAP_HEIGHT * MAP_WIDTH] = {
+    {160.0f, 120.0f, 0.0f, 0.0f}, {480.0f, 120.0f, 0.0f, 0.0f}, {796.0f, 120.0f, 0.0f, 0.0f},
+    {60.0f, 240.0f, 0.0f, 0.0f}, {480.0f, 240.0f, 0.0f, 0.0f}, {900.0f, 240.0f, 0.0f, 0.0f},
+    {16.0f, 360.0f, 0.0f, 0.0f}, {480.0f, 360.0f, 0.0f, 0.0f}, {944.0f, 360.0f, 0.0f, 0.0f},
+    {0.0f, 480.0f, 0.0f, 0.0f}, {480.0f, 480.0f, 0.0f, 0.0f}, {960.0f, 480.0f, 0.0f, 0.0f},
+};
 
 using namespace XCam;
+
+enum SoftType {
+    SoftTypeNone     = 0,
+    SoftTypeBlender,
+    SoftTypeRemap,
+};
 
 void usage(const char* arg0)
 {
     printf ("Usage:\n"
-            "%s --input0 file0 --input1 file1 --output file\n"
+            "%s --type TYPE--input0 file0 --input1 file1 --output file\n"
+            "\t--type              processing type, selected from: blender, remap, ...\n"
             "\t--input0            input image(NV12)\n"
             "\t--input1            input image(NV12)\n"
             "\t--output            output image(NV12)\n"
@@ -54,8 +71,10 @@ int main (int argc, char *argv[])
     uint32_t input_height = 1080;
     uint32_t output_width = 1920; //output_height * 2;
     uint32_t output_height = 960; //960;
+    SoftType type = SoftTypeNone;
 
     const struct option long_opts[] = {
+        {"type", required_argument, NULL, 't'},
         {"input0", required_argument, NULL, 'i'},
         {"input1", required_argument, NULL, 'j'},
         {"output", required_argument, NULL, 'o'},
@@ -70,6 +89,19 @@ int main (int argc, char *argv[])
     int opt = -1;
     while ((opt = getopt_long(argc, argv, "", long_opts, NULL)) != -1) {
         switch (opt) {
+        case 't':
+            XCAM_ASSERT (optarg);
+            if (!strcasecmp (optarg, "blender"))
+                type = SoftTypeBlender;
+            else if (!strcasecmp (optarg, "remap"))
+                type = SoftTypeRemap;
+            else {
+                XCAM_LOG_ERROR ("unknown type:%s", optarg);
+                usage (argv[0]);
+                return -1;
+            }
+            break;
+
         case 'i':
             XCAM_ASSERT (optarg);
             strncpy(file_in0_name, optarg, sizeof (file_in0_name) - 1);
@@ -107,7 +139,13 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    if (!strlen (file_in0_name) || !strlen (file_in1_name) || !strlen (file_out_name)) {
+    if (SoftTypeNone == type) {
+        XCAM_LOG_ERROR ("Type was not set");
+        usage (argv[0]);
+        return -1;
+    }
+
+    if (!strlen (file_in0_name) || !strlen (file_out_name)) {
         XCAM_LOG_ERROR ("input or output file name was not set");
         usage (argv[0]);
         return -1;
@@ -140,26 +178,48 @@ int main (int argc, char *argv[])
     }
 
     SmartPtr<VideoBuffer> in0 = in_pool->get_buffer (in_pool);
-    SmartPtr<VideoBuffer> in1 = in_pool->get_buffer (in_pool);
     SmartPtr<VideoBuffer> out = out_pool->get_buffer (out_pool);
+    SmartPtr<VideoBuffer> in1;
 
     ImageFileHandle in0_file(file_in0_name, "rb");
     CHECK (in0_file.read_buf (in0), "read buffer from file(%s) failed.", file_in0_name);
 
-    ImageFileHandle in1_file(file_in1_name, "rb");
-    CHECK (in1_file.read_buf (in1), "read buffer from file(%s) failed.", file_in1_name);
+    if (strlen (file_in1_name)) {
+        in1 = in_pool->get_buffer (in_pool);
+        ImageFileHandle in1_file(file_in1_name, "rb");
+        CHECK (in1_file.read_buf (in1), "read buffer from file(%s) failed.", file_in1_name);
+    }
 
-    SmartPtr<Blender> blender = Blender::create_soft_blender ();
-    XCAM_ASSERT (blender.ptr ());
-    SmartPtr<SoftHandler> handler = blender.dynamic_cast_ptr<SoftHandler> ();
-    blender->set_output_size (output_width, output_height);
-    Rect merge_window;
-    merge_window.pos_x = 0;
-    merge_window.pos_y = 0;
-    merge_window.width = out_info.width;
-    merge_window.height = out_info.height;
-    blender->set_merge_window (merge_window);
-    CHECK (blender->blend (in0, in1, out), "blend in0/in1 to out buffer failed.");
+    switch (type) {
+    case SoftTypeBlender: {
+        SmartPtr<Blender> blender = Blender::create_soft_blender ();
+        XCAM_ASSERT (blender.ptr ());
+        blender->set_output_size (output_width, output_height);
+        Rect merge_window;
+        merge_window.pos_x = 0;
+        merge_window.pos_y = 0;
+        merge_window.width = out_info.width;
+        merge_window.height = out_info.height;
+        blender->set_merge_window (merge_window);
+        CHECK (blender->blend (in0, in1, out), "blend in0/in1 to out buffer failed.");
+        break;
+    }
+    case SoftTypeRemap: {
+        SmartPtr<GeoMapper> mapper = GeoMapper::create_soft_geo_mapper ();
+        XCAM_ASSERT (mapper.ptr ());
+        mapper->set_output_size (output_width, output_height);
+        mapper->set_lookup_table (map_table, MAP_WIDTH, MAP_HEIGHT);
+        //mapper->set_factors ((output_width - 1.0f) / (MAP_WIDTH - 1.0f), (output_height - 1.0f) / (MAP_HEIGHT - 1.0f));
+        CHECK (mapper->remap (in0, out), "remap in0 to out buffer failed.");
+        break;
+    }
+
+    default: {
+        XCAM_LOG_ERROR ("unsupported type:%d", type);
+        usage (argv[0]);
+        return -1;
+    }
+    }
 
     ImageFileHandle out_file (file_out_name, "wb");
     CHECK (out_file.write_buf (out), "write buffer to file(%s) failed.", file_out_name);
