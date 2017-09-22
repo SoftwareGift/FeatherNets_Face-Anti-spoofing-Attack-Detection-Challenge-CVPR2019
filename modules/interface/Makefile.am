@@ -8,6 +8,7 @@ XCAM_INTERFACE_CXXFLAGS =              \
 
 xcam_interface_sources =               \
     blender.cpp                        \
+    geo_mapper.cpp                     \
    $(NULL)
 
 libxcam_interface_la_SOURCES =         \
@@ -33,6 +34,7 @@ libxcam_interfaceincludedir = $(includedir)/xcam/interface
 nobase_libxcam_interfaceinclude_HEADERS =  \
     data_types.h                       \
     blender.h                          \
+    geo_mapper.h                       \
     $(NULL)
 
 libxcam_interface_la_LIBTOOLFLAGS = --tag=disable-static
