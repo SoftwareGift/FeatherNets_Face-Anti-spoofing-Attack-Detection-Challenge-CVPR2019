@@ -80,6 +80,7 @@ xcam_ocl_sources += cv_edgetaper.cpp
 xcam_ocl_sources += cv_wiener_filter.cpp
 xcam_ocl_sources += cv_feature_match.cpp
 xcam_ocl_sources += cv_image_deblurring.cpp
+xcam_ocl_sources += cv_calibration_parser.cpp
 endif
 
 if HAVE_LIBDRM
@@ -159,6 +160,7 @@ nobase_libxcam_oclinclude_HEADERS += cv_edgetaper.h
 nobase_libxcam_oclinclude_HEADERS += cv_wiener_filter.h
 nobase_libxcam_oclinclude_HEADERS += cv_feature_match.h
 nobase_libxcam_oclinclude_HEADERS += cv_image_deblurring.h
+nobase_libxcam_oclinclude_HEADERS += cv_calibration_parser.h
 endif
 
 if HAVE_LIBDRM
