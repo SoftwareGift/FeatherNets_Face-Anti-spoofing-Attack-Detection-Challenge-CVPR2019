@@ -291,7 +291,8 @@ kernel_lap_transform (
     const sampler_t gauss0_sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
     const sampler_t gauss1_sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
-    float8 orig = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_gauss0, gauss0_sampler, (int2)(g_x + gauss0_offset_x, g_y)))));
+    float8 orig = convert_float8(as_uchar8(convert_ushort4(
+                      read_imageui(input_gauss0, gauss0_sampler, (int2)(g_x + gauss0_offset_x, g_y)))));
     float8 zoom_in;
     float2 gauss1_pos;
     float sampler_step;
@@ -516,12 +517,18 @@ kernel_mask_gauss_scale_slm (
         result_pre = convert_float4(slm_gauss_y[i_line][clamp (g_x * 2 - 1, 0, image_width * 2)]) / CONV_COEFF;
         result_next = convert_float4(slm_gauss_y[i_line][clamp (g_x * 2 + 2, 0, image_width * 2)]) / CONV_COEFF;
         final_g[i_line] = result_cur[i_line] * mask_coeffs[MASK_COEFF_MID] +
-                          (float8)(result_pre.s3, result_cur[i_line].s0123456) * mask_coeffs[MASK_COEFF_MID + 1] +
-                          (float8)(result_cur[i_line].s1234567, result_next.s0) * mask_coeffs[MASK_COEFF_MID + 1] +
-                          (float8)(result_pre.s23, result_cur[i_line].s012345) * mask_coeffs[MASK_COEFF_MID + 2] +
-                          (float8)(result_cur[i_line].s234567, result_next.s01) * mask_coeffs[MASK_COEFF_MID + 2] +
-                          (float8)(result_pre.s123, result_cur[i_line].s01234) * mask_coeffs[MASK_COEFF_MID + 3] +
-                          (float8)(result_cur[i_line].s34567, result_next.s012) * mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_pre.s3, result_cur[i_line].s0123, result_cur[i_line].s456) *
+                                  mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_cur[i_line].s1234, result_cur[i_line].s567, result_next.s0) *
+                                  mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_pre.s23, result_cur[i_line].s0123, result_cur[i_line].s45) *
+                                  mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_cur[i_line].s2345, result_cur[i_line].s67, result_next.s01) *
+                                  mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_pre.s123, result_cur[i_line].s0123, result_cur[i_line].s4) *
+                                  mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_cur[i_line].s3456, result_cur[i_line].s7, result_next.s012) *
+                                  mask_coeffs[MASK_COEFF_MID + 3] +
                           (float8)(result_pre.s0123, result_cur[i_line].s0123) * mask_coeffs[MASK_COEFF_MID + 4] +
                           (float8)(result_cur[i_line].s4567, result_next.s0123) * mask_coeffs[MASK_COEFF_MID + 4];
         final_g[i_line] = clamp (final_g[i_line] + 0.5f, 0.0f, 255.0f);
@@ -581,12 +588,18 @@ kernel_mask_gauss_scale (
 #pragma unroll
     for (i_line = 0; i_line < 2; ++i_line) {
         final_g[i_line] = result_cur[i_line] * mask_coeffs[MASK_COEFF_MID] +
-                          (float8)(result_pre[i_line].s7, result_cur[i_line].s0123456) * mask_coeffs[MASK_COEFF_MID + 1] +
-                          (float8)(result_cur[i_line].s1234567, result_next[i_line].s0) * mask_coeffs[MASK_COEFF_MID + 1] +
-                          (float8)(result_pre[i_line].s67, result_cur[i_line].s012345) * mask_coeffs[MASK_COEFF_MID + 2] +
-                          (float8)(result_cur[i_line].s234567, result_next[i_line].s01) * mask_coeffs[MASK_COEFF_MID + 2] +
-                          (float8)(result_pre[i_line].s567, result_cur[i_line].s01234) * mask_coeffs[MASK_COEFF_MID + 3] +
-                          (float8)(result_cur[i_line].s34567, result_next[i_line].s012) * mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_pre[i_line].s7, result_cur[i_line].s0123, result_cur[i_line].s456) *
+                                  mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_cur[i_line].s1234, result_cur[i_line].s567, result_next[i_line].s0) *
+                                  mask_coeffs[MASK_COEFF_MID + 1] +
+                          (float8)(result_pre[i_line].s67, result_cur[i_line].s0123, result_cur[i_line].s45) *
+                                  mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_cur[i_line].s2345, result_cur[i_line].s67, result_next[i_line].s01) *
+                                  mask_coeffs[MASK_COEFF_MID + 2] +
+                          (float8)(result_pre[i_line].s567, result_cur[i_line].s0123, result_cur[i_line].s4) *
+                                  mask_coeffs[MASK_COEFF_MID + 3] +
+                          (float8)(result_cur[i_line].s3456,result_cur[i_line].s7, result_next[i_line].s012) *
+                                  mask_coeffs[MASK_COEFF_MID + 3] +
                           (float8)(result_pre[i_line].s4567, result_cur[i_line].s0123) * mask_coeffs[MASK_COEFF_MID + 4] +
                           (float8)(result_cur[i_line].s4567, result_next[i_line].s0123) * mask_coeffs[MASK_COEFF_MID + 4];
         final_g[i_line] = clamp (final_g[i_line] + 0.5f, 0.0f, 255.0f);

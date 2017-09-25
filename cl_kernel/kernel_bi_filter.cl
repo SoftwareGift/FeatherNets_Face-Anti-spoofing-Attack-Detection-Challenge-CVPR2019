@@ -12,9 +12,9 @@
 #define PATCH_RADIUS 7
 #define PATCH_DIAMETER (2 * PATCH_RADIUS + 1)
 
-#define CALC_SUM(y1,y2,dark1,dark2) \
-    cur_y = (float8)(y1, y2); \
-    cur_dark = (float8)(dark1, dark2); \
+#define CALC_SUM(y1,y2,y3,dark1,dark2,dark3) \
+    cur_y = (float8)(y1, y2, y3); \
+    cur_dark = (float8)(dark1, dark2, dark3); \
     calc_sum (cur_y, cur_dark, center_y, &weight_sum, &data_sum);
 
 __inline void calc_sum (float8 cur_y, float8 cur_dark, float8 center_y, float8 *weight_sum, float8 *data_sum)
@@ -48,24 +48,24 @@ __kernel void kernel_bi_filter (
         y2 = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_y, sampler, (int2)(pos_x, pos_y - PATCH_RADIUS + i)))));
         dark1 = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_dark, sampler, (int2)(pos_x - 1, pos_y - PATCH_RADIUS + i)))));
         dark2 = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_dark, sampler, (int2)(pos_x, pos_y - PATCH_RADIUS + i)))));
-        CALC_SUM (y1.s1234567, y2.s0, dark1.s1234567, dark2.s0);
-        CALC_SUM (y1.s234567, y2.s01, dark1.s234567, dark2.s01);
-        CALC_SUM (y1.s34567, y2.s012, dark1.s34567, dark2.s012);
-        CALC_SUM (y1.s4567, y2.s0123, dark1.s4567, dark2.s0123);
-        CALC_SUM (y1.s567, y2.s01234, dark1.s567, dark2.s01234);
-        CALC_SUM (y1.s67, y2.s012345, dark1.s67, dark2.s012345);
-        CALC_SUM (y1.s7, y2.s0123456, dark1.s7, dark2.s0123456);
-        CALC_SUM (y2.s0123, y2.s4567, dark2.s0123, dark2.s4567);
+        CALC_SUM (y1.s1234, y1.s567, y2.s0, dark1.s1234, dark1.s567, dark2.s0);
+        CALC_SUM (y1.s2345, y1.s67, y2.s01, dark1.s2345, dark1.s67, dark2.s01);
+        CALC_SUM (y1.s3456, y1.s7, y2.s012, dark1.s3456, dark1.s7, dark2.s012);
+        CALC_SUM (y1.s4567, y2.s01, y2.s23, dark1.s4567, dark2.s01, dark2.s23);
+        CALC_SUM (y1.s567, y2.s0123, y2.s4, dark1.s567, dark2.s0123, dark2.s4);
+        CALC_SUM (y1.s67, y2.s0123, y2.s45, dark1.s67, dark2.s0123, dark2.s45);
+        CALC_SUM (y1.s7, y2.s0123, y2.s456, dark1.s7, dark2.s0123, dark2.s456);
+        CALC_SUM (y2.s0123, y2.s45, y2.s67, dark2.s0123, dark2.s45, dark2.s67);
 
         y1 = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_y, sampler, (int2)(pos_x + 1, pos_y - PATCH_RADIUS + i)))));
         dark1 = convert_float8(as_uchar8(convert_ushort4(read_imageui(input_dark, sampler, (int2)(pos_x + 1, pos_y - PATCH_RADIUS + i)))));
-        CALC_SUM (y2.s1234567, y1.s0, dark2.s1234567, dark1.s0);
-        CALC_SUM (y2.s234567, y1.s01, dark2.s234567, dark1.s01);
-        CALC_SUM (y2.s34567, y1.s012, dark2.s34567, dark1.s012);
-        CALC_SUM (y2.s4567, y1.s0123, dark2.s4567, dark1.s0123);
-        CALC_SUM (y2.s567, y1.s01234, dark2.s567, dark1.s01234);
-        CALC_SUM (y2.s67, y1.s012345, dark2.s67, dark1.s012345);
-        CALC_SUM (y2.s7, y1.s0123456, dark2.s7, dark1.s0123456);
+        CALC_SUM (y2.s1234, y2.s567, y1.s0, dark2.s1234, dark2.s567, dark1.s0);
+        CALC_SUM (y2.s2345, y2.s67, y1.s01, dark2.s2345, dark2.s67, dark1.s01);
+        CALC_SUM (y2.s3456, y2.s7, y1.s012, dark2.s3456, dark2.s7, dark1.s012);
+        CALC_SUM (y2.s4567, y1.s01, y1.s23, dark2.s4567, dark1.s01, dark1.s23);
+        CALC_SUM (y2.s567, y1.s0123, y1.s4, dark2.s567, dark1.s0123, dark1.s4);
+        CALC_SUM (y2.s67, y1.s0123, y1.s45, dark2.s67, dark1.s0123, dark1.s45);
+        CALC_SUM (y2.s7, y1.s0123, y1.s456, dark2.s7, dark1.s0123, dark1.s456);
     }
 
     float8 out_data = data_sum / weight_sum;
