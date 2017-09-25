@@ -18,6 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
+#include "cl_utils.h"
 #include "cl_memory.h"
 #include "drm_display.h"
 #include "cl_image_bo_buffer.h"

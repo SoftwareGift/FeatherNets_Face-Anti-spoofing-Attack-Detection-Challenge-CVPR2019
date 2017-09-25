@@ -139,6 +139,7 @@ private:
     uint32_t                         _output_width;
     uint32_t                         _output_height;
     uint32_t                         _map_width, _map_height;
+    uint32_t                         _map_aligned_width;
     float                            _uint_x, _uint_y;
     SmartPtr<CLImage>                _input[CLNV12PlaneMax];
     SmartPtr<CLImage>                _output[CLNV12PlaneMax];

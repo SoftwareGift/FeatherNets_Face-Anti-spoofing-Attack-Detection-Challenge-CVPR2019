@@ -353,17 +353,18 @@ PyramidLayer::bind_buf_to_layer0 (
 
             cl_desc.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
             cl_desc.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[i_plane]) / divider_vert[i_plane];
-            uint32_t row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) * cl_desc.width;
+            uint32_t row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) *
+                                     XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
             uint32_t size = row_pitch * cl_desc.height;
             SmartPtr<CLBuffer> cl_buf = new CLBuffer (context, size);
             XCAM_ASSERT (cl_buf.ptr () && cl_buf->is_valid ());
             cl_desc.row_pitch = row_pitch;
             this->blend_image[i_plane][ReconstructImageIndex] = new CLImage2D (context, cl_desc, 0, cl_buf);
-            XCAM_ASSERT (this->blend_image[i_plane][ReconstructImageIndex].ptr ());
         } else {
             this->blend_image[i_plane][ReconstructImageIndex] =
                 convert_to_climage (context, output, cl_desc, out_info.offsets[i_plane]);
         }
+        XCAM_ASSERT (this->blend_image[i_plane][ReconstructImageIndex].ptr ());
     }
 
 }
@@ -437,7 +438,8 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
             cl_desc_set.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[plane]) / divider_vert[plane];
 
             //gauss y image created by cl buffer
-            row_pitch = CLImage::calculate_pixel_bytes (cl_desc_set.format) * cl_desc_set.width;
+            row_pitch = CLImage::calculate_pixel_bytes (cl_desc_set.format) *
+                            XCAM_ALIGN_UP (cl_desc_set.width, XCAM_CL_IMAGE_ALIGNMENT_X);
             size = row_pitch * cl_desc_set.height;
             cl_buf = new CLBuffer (context, size);
             XCAM_ASSERT (cl_buf.ptr () && cl_buf->is_valid ());
@@ -449,7 +451,8 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
 
         cl_desc_set.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
         cl_desc_set.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[plane]) / divider_vert[plane];
-        row_pitch = CLImage::calculate_pixel_bytes (cl_desc_set.format) * cl_desc_set.width;
+        row_pitch = CLImage::calculate_pixel_bytes (cl_desc_set.format) *
+                        XCAM_ALIGN_UP (cl_desc_set.width, XCAM_CL_IMAGE_ALIGNMENT_X);
         size = row_pitch * cl_desc_set.height;
         cl_buf = new CLBuffer (context, size);
         XCAM_ASSERT (cl_buf.ptr () && cl_buf->is_valid ());
@@ -652,17 +655,21 @@ CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
     XCAM_ASSERT (_seam_pos_offset_x + _seam_pos_valid_width <= _seam_width);
 
     XCAM_ASSERT (layer0.blend_width > 0 && layer0.blend_height > 0);
-    uint32_t image_diff_size = sizeof (uint8_t) * _seam_width * _seam_height;
+    cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
+    cl_desc.format.image_channel_order = CL_RGBA;
+    cl_desc.width = _seam_width / 8;
+    cl_desc.height = _seam_height;
+    cl_desc.row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) *
+                            XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+
+    uint32_t image_diff_size = cl_desc.row_pitch * _seam_height;
     SmartPtr<CLBuffer> cl_diff_buf = new CLBuffer (context, image_diff_size);
     XCAM_FAIL_RETURN (
         ERROR,
         cl_diff_buf.ptr () && cl_diff_buf->is_valid (),
         XCAM_RETURN_ERROR_CL,
         "CLPyramidBlender init seam buffer failed to create image_difference buffers");
-    cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
-    cl_desc.format.image_channel_order = CL_RGBA;
-    cl_desc.width = _seam_width / 8;
-    cl_desc.height = _seam_height;
+
     _image_diff = new CLImage2D (context, cl_desc, 0, cl_diff_buf);
     XCAM_FAIL_RETURN (
         ERROR,
@@ -684,15 +691,18 @@ CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
     uint32_t mask_width = XCAM_ALIGN_UP(_seam_width, XCAM_CL_BLENDER_ALIGNMENT_X);
     uint32_t mask_height = XCAM_ALIGN_UP(_seam_height, 2);
     for (uint32_t i = 0; i < _layers; ++i) {
-        uint32_t mask_size = sizeof (SEAM_MASK_TYPE) * mask_width * mask_height;
-        SmartPtr<CLBuffer> cl_buf0 = new CLBuffer (context, mask_size);
-        SmartPtr<CLBuffer> cl_buf1 = new CLBuffer (context, mask_size);
-        XCAM_ASSERT (cl_buf0.ptr () && cl_buf0->is_valid () && cl_buf1.ptr () && cl_buf1->is_valid ());
         cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
         cl_desc.format.image_channel_order = CL_RGBA;
         cl_desc.width = mask_width / 8;
         cl_desc.height = mask_height;
-        cl_desc.row_pitch = sizeof (SEAM_MASK_TYPE) * mask_width;
+        cl_desc.row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) *
+                                XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+
+        uint32_t mask_size = cl_desc.row_pitch * mask_height;
+        SmartPtr<CLBuffer> cl_buf0 = new CLBuffer (context, mask_size);
+        SmartPtr<CLBuffer> cl_buf1 = new CLBuffer (context, mask_size);
+        XCAM_ASSERT (cl_buf0.ptr () && cl_buf0->is_valid () && cl_buf1.ptr () && cl_buf1->is_valid ());
+
         _pyramid_layers[i].seam_mask[CLSeamMaskTmp] = new CLImage2D (context, cl_desc, 0, cl_buf0);
         _pyramid_layers[i].seam_mask[CLSeamMaskCoeff] = new CLImage2D (context, cl_desc, 0, cl_buf1);
         XCAM_FAIL_RETURN (

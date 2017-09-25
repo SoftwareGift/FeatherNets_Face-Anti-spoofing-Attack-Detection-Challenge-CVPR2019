@@ -26,6 +26,8 @@
 #include "ocl/cl_memory.h"
 #include "ocl/cl_video_buffer.h"
 
+#define XCAM_CL_IMAGE_ALIGNMENT_X 4
+
 namespace XCam {
 
 bool write_image (SmartPtr<CLImage> image, const char *file_name);

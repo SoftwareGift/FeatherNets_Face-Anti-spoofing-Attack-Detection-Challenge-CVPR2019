@@ -92,6 +92,7 @@ CLGeoMapHandler::CLGeoMapHandler (const SmartPtr<CLContext> &context)
     , _output_height (0)
     , _map_width (0)
     , _map_height (0)
+    , _map_aligned_width (0)
     , _uint_x (0.0f)
     , _uint_y (0.0f)
     , _geo_map_normalized (false)
@@ -135,9 +136,15 @@ CLGeoMapHandler::set_map_data (GeoPos *data, uint32_t width, uint32_t height)
         WARNING, ret == XCAM_RETURN_NO_ERROR, false,
         "CLGeoMapKernel map buffer failed");
 
-    for (uint32_t i = 0; i < width * height; ++i) {
-        map_ptr [i * GEO_MAP_CHANNEL] = data [i].x;
-        map_ptr [i * GEO_MAP_CHANNEL + 1] = data [i].y;
+    uint32_t start, idx;
+    for (uint32_t h = 0; h < height; ++h) {
+        for (uint32_t w = 0; w < width; ++w) {
+            start = (h * _map_aligned_width + w) * GEO_MAP_CHANNEL;
+            idx = h * width + w;
+
+            map_ptr [start] = data [idx].x;
+            map_ptr [start + 1] = data [idx].y;
+        }
     }
     _geo_map->enqueue_unmap ((void *&)map_ptr);
     _geo_map_normalized = false;
@@ -152,8 +159,9 @@ CLGeoMapHandler::check_geo_map_buf (uint32_t width, uint32_t height)
         return true; // geo memory already created
     }
 
-    uint32_t pitch = width * GEO_MAP_CHANNEL * sizeof (float); // 4 channel for CL_RGBA, but only use RG
-    uint32_t size = pitch * height;
+    uint32_t aligned_width = XCAM_ALIGN_UP (width, XCAM_CL_IMAGE_ALIGNMENT_X);  // 4 channel for CL_RGBA, but only use RG
+    uint32_t row_pitch = aligned_width * GEO_MAP_CHANNEL * sizeof (float);
+    uint32_t size = row_pitch * height;
     SmartPtr<CLContext> context = get_context ();
     XCAM_ASSERT (context.ptr ());
     _geo_map = new CLBuffer (context, size);
@@ -169,7 +177,7 @@ CLGeoMapHandler::check_geo_map_buf (uint32_t width, uint32_t height)
     cl_geo_desc.format.image_channel_order = CL_RGBA; // CL_FLOAT need co-work with CL_RGBA
     cl_geo_desc.width = width;
     cl_geo_desc.height = height;
-    cl_geo_desc.row_pitch = pitch;
+    cl_geo_desc.row_pitch = row_pitch;
     _geo_image = new CLImage2D (context, cl_geo_desc, 0, _geo_map);
     if (!_geo_image.ptr () || !_geo_image->is_valid ()) {
         XCAM_LOG_ERROR ("CLGeoMapKernel convert geo map buffer to image2d failed.");
@@ -180,6 +188,7 @@ CLGeoMapHandler::check_geo_map_buf (uint32_t width, uint32_t height)
 
     _map_width = width;
     _map_height = height;
+    _map_aligned_width = aligned_width;
     return true;
 }
 
@@ -188,7 +197,9 @@ bool
 CLGeoMapHandler::normalize_geo_map (uint32_t image_w, uint32_t image_h)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    uint32_t size = _map_width * _map_height * GEO_MAP_CHANNEL * sizeof (float);
+
+    uint32_t row_pitch = _map_aligned_width * GEO_MAP_CHANNEL * sizeof (float);  // 4 channel for CL_RGBA, but only use RG
+    uint32_t size = row_pitch * _map_height;
     float *map_ptr = NULL;
 
     XCAM_ASSERT (image_w && image_h);
@@ -198,16 +209,19 @@ CLGeoMapHandler::normalize_geo_map (uint32_t image_w, uint32_t image_h)
 
     ret = _geo_map->enqueue_map ((void *&)map_ptr, 0, size);
     XCAM_FAIL_RETURN (WARNING, ret == XCAM_RETURN_NO_ERROR, false, "CLGeoMapKernel map buffer failed");
-    for (uint32_t i = 0; i < _map_width * _map_height; ++i) {
-        map_ptr [i * GEO_MAP_CHANNEL] /= image_w;      // x
-        map_ptr [i * GEO_MAP_CHANNEL + 1] /= image_h;  //y
+    uint32_t idx = 0;
+    for (uint32_t h = 0; h < _map_height; ++h) {
+        for (uint32_t w = 0; w < _map_width; ++w) {
+            idx = (h * _map_aligned_width + w) * GEO_MAP_CHANNEL;
+
+            map_ptr [idx] /= image_w;
+            map_ptr [idx + 1] /= image_h;
+        }
     }
     _geo_map->enqueue_unmap ((void *&)map_ptr);
 
     return true;
 }
-
-
 
 XCamReturn
 CLGeoMapHandler::prepare_buffer_pool_video_info (
