@@ -193,7 +193,7 @@ int main (int argc, char *argv[])
     SmartPtr<VideoBuffer> video_buf;
     SmartPtr<SmartAnalyzer> smart_analyzer;
     SmartPtr<CLPostImageProcessor> cl_post_processor;
-    SmartPtr<BufferPool> drm_buf_pool;
+    SmartPtr<BufferPool> buf_pool;
 
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
     uint32_t image_width = 1920;
@@ -366,7 +366,6 @@ int main (int argc, char *argv[])
     SmartPtr<MainPipeManager> pipe_manager = new MainPipeManager ();
     pipe_manager->set_image_width (image_width);
     pipe_manager->set_image_height (image_height);
-    pipe_manager->enable_display (need_display);
     pipe_manager->set_display_mode (display_mode);
 
     SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
@@ -402,25 +401,29 @@ int main (int argc, char *argv[])
         cl_post_processor->set_scaler_factor (640.0 / image_width);
     }
 
-    if (need_display) {
-        cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
-    }
     pipe_manager->add_image_processor (cl_post_processor);
+
+    buf_info.init (pixel_format, image_width, image_height);
+    buf_pool = new CLVideoBufferPool ();
+    XCAM_ASSERT (buf_pool.ptr ());
+    if (!buf_pool->set_video_info (buf_info) || !buf_pool->reserve (DEFAULT_FPT_BUF_COUNT)) {
+        XCAM_LOG_ERROR ("init buffer pool failed");
+        return -1;
+    }
+
+    if (need_display) {
+        need_display = false;
+        XCAM_LOG_WARNING ("CLVideoBuffer doesn't support local preview, disable local preview now");
+
+        // cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+    }
+    pipe_manager->enable_display (need_display);
 
     ret = pipe_manager->start ();
     CHECK (ret, "pipe manager start failed");
 
-    buf_info.init (pixel_format, image_width, image_height);
-    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-    drm_buf_pool = new DrmBoBufferPool (display);
-    XCAM_ASSERT (drm_buf_pool.ptr ());
-    if (!drm_buf_pool->set_video_info (buf_info) || !drm_buf_pool->reserve (DEFAULT_FPT_BUF_COUNT)) {
-        XCAM_LOG_ERROR ("init drm buffer pool failed");
-        return -1;
-    }
-
     while (!is_stop) {
-        video_buf = drm_buf_pool->get_buffer (drm_buf_pool);
+        video_buf = buf_pool->get_buffer (buf_pool);
         XCAM_ASSERT (video_buf.ptr ());
 
         ret = read_buf (video_buf, input_fp);

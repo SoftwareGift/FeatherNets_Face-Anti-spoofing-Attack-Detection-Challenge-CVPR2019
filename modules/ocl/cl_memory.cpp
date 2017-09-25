@@ -163,6 +163,43 @@ CLBuffer::init_buffer (
     return true;
 }
 
+CLSubBuffer::CLSubBuffer (
+    const SmartPtr<CLContext> &context, SmartPtr<CLBuffer> main_buf,
+    cl_mem_flags flags, uint32_t offset, uint32_t size)
+    : CLBuffer (context)
+    , _main_buf (main_buf)
+    , _flags (flags)
+    , _size (size)
+{
+    init_sub_buffer (context, main_buf, flags, offset, size);
+}
+
+bool
+CLSubBuffer::init_sub_buffer (
+    const SmartPtr<CLContext> &context,
+    SmartPtr<CLBuffer> main_buf,
+    cl_mem_flags flags,
+    uint32_t offset,
+    uint32_t size)
+{
+    cl_mem sub_mem = NULL;
+    cl_mem main_mem = main_buf->get_mem_id ();
+    XCAM_FAIL_RETURN (ERROR, main_mem != NULL, false, "get memory from main image failed");
+
+    cl_buffer_region region;
+    region.origin = offset;
+    region.size = size;
+
+    sub_mem = context->create_sub_buffer (main_mem, region, flags);
+    if (sub_mem == NULL) {
+        XCAM_LOG_WARNING ("CLBuffer create sub buffer failed");
+        return false;
+    }
+
+    set_mem_id (sub_mem);
+    return true;
+}
+
 XCamReturn
 CLBuffer::enqueue_read (
     void *ptr, uint32_t offset, uint32_t size,

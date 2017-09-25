@@ -78,20 +78,16 @@ CLVideoBufferData::unmap ()
 }
 
 CLVideoBuffer::CLVideoBuffer (
-    const VideoBufferInfo &info, const SmartPtr<CLVideoBufferData> &data)
+    const SmartPtr<CLContext> &context, const VideoBufferInfo &info, const SmartPtr<CLVideoBufferData> &data)
     : BufferProxy (info, data)
+    , CLBuffer (context)
 {
     XCAM_ASSERT (data.ptr ());
-}
 
-cl_mem &
-CLVideoBuffer::get_mem_id ()
-{
-    SmartPtr<BufferData> data = get_buffer_data ();
-    SmartPtr<CLVideoBufferData> cl_data = data.dynamic_cast_ptr<CLVideoBufferData> ();
-    XCAM_ASSERT (cl_data.ptr ());
-
-    return cl_data->get_mem_id ();
+    SmartPtr<CLBuffer> cl_buf = data->get_cl_buffer ();
+    XCAM_ASSERT (cl_buf.ptr ());
+    set_mem_id (cl_buf->get_mem_id (), false);
+    set_buf_size (cl_buf->get_buf_size ());
 }
 
 SmartPtr<CLBuffer>
@@ -140,11 +136,12 @@ CLVideoBufferPool::allocate_data (const VideoBufferInfo &buffer_info)
 SmartPtr<BufferProxy>
 CLVideoBufferPool::create_buffer_from_data (SmartPtr<BufferData> &data)
 {
+    SmartPtr<CLContext> context = CLDevice::instance ()->get_context ();
     const VideoBufferInfo & info = get_video_info ();
     SmartPtr<CLVideoBufferData> cl_data = data.dynamic_cast_ptr<CLVideoBufferData> ();
     XCAM_ASSERT (cl_data.ptr ());
 
-    SmartPtr<CLVideoBuffer> buf = new CLVideoBuffer (info, cl_data);
+    SmartPtr<CLVideoBuffer> buf = new CLVideoBuffer (context, info, cl_data);
     XCAM_ASSERT (buf.ptr ());
 
     return buf;

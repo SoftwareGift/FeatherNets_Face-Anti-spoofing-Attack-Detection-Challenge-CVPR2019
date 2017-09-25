@@ -90,7 +90,7 @@ CLImageHandler::CLImageHandler (const SmartPtr<CLContext> &context, const char *
     : _name (NULL)
     , _enable (true)
     , _context (context)
-    , _buf_pool_type (CLImageHandler::CLBoPoolType)
+    , _buf_pool_type (CLImageHandler::CLVideoPoolType)
     , _disable_buf_pool (false)
     , _buf_pool_size (XCAM_CL_IMAGE_HANDLER_DEFAULT_BUF_NUM)
     , _buf_swap_flags ((uint32_t)(SwappedBuffer::OrderY0Y1) | (uint32_t)(SwappedBuffer::OrderUV0UV1))
@@ -164,11 +164,11 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
         "CLImageHandler(%s) failed to get drm dispay", XCAM_STR (_name));
 
     SmartPtr<BufferPool> buffer_pool;
-    if (_buf_pool_type == CLImageHandler::CLVideoPoolType)
+    if (_buf_pool_type == CLImageHandler::CLVideoPoolType) {
         buffer_pool = new CLVideoBufferPool ();
-    else if (_buf_pool_type == CLImageHandler::DrmBoPoolType)
+    } else if (_buf_pool_type == CLImageHandler::DrmBoPoolType) {
         buffer_pool = new DrmBoBufferPool (display);
-    else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
+    } else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
         buffer_pool = new CLBoBufferPool (display, get_context ());
     }
 

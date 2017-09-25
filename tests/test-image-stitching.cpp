@@ -332,13 +332,12 @@ int main (int argc, char *argv[])
 #if HAVE_OPENCV
     image_360->set_feature_match_ocl (fm_ocl);
 #endif
-    image_360->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_360->set_pool_type (CLImageHandler::CLVideoPoolType);
 
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
     for (int i = 0; i < input_count; i++) {
-        SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-        buf_pool[i] = new DrmBoBufferPool (display);
+        buf_pool[i] = new CLVideoBufferPool ();
         XCAM_ASSERT (buf_pool[i].ptr ());
         buf_pool[i]->set_video_info (input_buf_info);
         if (!buf_pool[i]->reserve (6)) {

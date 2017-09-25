@@ -47,6 +47,7 @@ class CLContext {
     friend class CLKernel;
     friend class CLMemory;
     friend class CLBuffer;
+    friend class CLSubBuffer;
     friend class CLVaBuffer;
     friend class CLImage;
     friend class CLVaImage;
@@ -119,7 +120,13 @@ private:
     void destroy_mem (cl_mem mem_id);
 
     // Buffer
-    cl_mem create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr);
+    cl_mem create_buffer (uint32_t size, cl_mem_flags flags, void *host_ptr);
+
+    cl_mem create_sub_buffer (
+        cl_mem main_mem,
+        cl_buffer_region region,
+        cl_mem_flags flags = CL_MEM_READ_WRITE);
+
     XCamReturn enqueue_read_buffer (
         cl_mem buf_id, void *ptr,
         uint32_t offset, uint32_t size,

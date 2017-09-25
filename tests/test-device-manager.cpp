@@ -648,7 +648,6 @@ int main (int argc, char *argv[])
     device_manager->set_frame_save (save_frames);
     device_manager->set_frame_width (frame_width);
     device_manager->set_frame_height (frame_height);
-    device_manager->enable_display (need_display);
     device_manager->set_display_mode (display_mode);
 
     if (!device.ptr ())  {
@@ -840,8 +839,13 @@ int main (int argc, char *argv[])
         }
 
         if (need_display) {
-            cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+            need_display = false;
+            XCAM_LOG_WARNING ("CLVideoBuffer doesn't support local preview, disable local preview now");
+
+            // cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
         }
+        device_manager->enable_display (need_display);
+
         device_manager->add_image_processor (cl_post_processor);
     }
 #endif

@@ -115,8 +115,13 @@ public:
         CLEventList &event_waits = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
-    uint32_t get_buf_size () {
+    uint32_t get_buf_size () const {
         return _size;
+    }
+
+protected:
+    void set_buf_size (uint32_t size) {
+        _size = size;
     }
 
 private:
@@ -129,6 +134,36 @@ private:
 private:
     cl_mem_flags    _flags;
     uint32_t        _size;
+};
+
+class CLSubBuffer
+    : public CLBuffer
+{
+protected:
+    explicit CLSubBuffer (const SmartPtr<CLContext> &context);
+
+public:
+    explicit CLSubBuffer (
+        const SmartPtr<CLContext> &context,
+        SmartPtr<CLBuffer> main_buf,
+        cl_mem_flags flags = CL_MEM_READ_WRITE,
+        uint32_t offset = 0,
+        uint32_t size = 0);
+
+private:
+    bool init_sub_buffer (
+        const SmartPtr<CLContext> &context,
+        SmartPtr<CLBuffer> main_buf,
+        cl_mem_flags flags,
+        uint32_t offset,
+        uint32_t size);
+
+    XCAM_DEAD_COPY (CLSubBuffer);
+
+private:
+    SmartPtr<CLBuffer>   _main_buf;
+    cl_mem_flags         _flags;
+    uint32_t             _size;
 };
 
 class CLVaBuffer

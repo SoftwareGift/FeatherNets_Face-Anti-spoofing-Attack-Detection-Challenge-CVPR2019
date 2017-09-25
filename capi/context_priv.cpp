@@ -58,8 +58,7 @@ ContextBase::ContextBase (HandleType type)
     , _alloc_out_buf (false)
 {
     if (!_inbuf_pool.ptr()) {
-        SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-        _inbuf_pool = new DrmBoBufferPool (display);
+        _inbuf_pool = new CLVideoBufferPool ();
         XCAM_ASSERT (_inbuf_pool.ptr ());
     }
 }

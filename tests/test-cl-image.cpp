@@ -496,12 +496,9 @@ int main (int argc, char *argv[])
     }
 
     input_buf_info.init (input_format, width, height);
-    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-    SmartPtr<DrmBoBufferPool> bo_buf_pool = new DrmBoBufferPool (display);
-    XCAM_ASSERT (bo_buf_pool.ptr ());
-    bo_buf_pool->set_swap_flags (
-        SwappedBuffer::SwapY | SwappedBuffer::SwapUV, SwappedBuffer::OrderY0Y1 | SwappedBuffer::OrderUV0UV1);
-    buf_pool = bo_buf_pool;
+
+    buf_pool = new CLVideoBufferPool ();
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     buf_pool->set_video_info (input_buf_info);
     if (!buf_pool->reserve (6)) {
         XCAM_LOG_ERROR ("init buffer pool failed");
@@ -544,7 +541,7 @@ int main (int argc, char *argv[])
     XCAM_LOG_INFO ("processed %d buffers successfully", buf_count);
 
     if (enable_psnr) {
-        buf_pool = new DrmBoBufferPool (display);
+        buf_pool = new CLVideoBufferPool ();
         XCAM_ASSERT (buf_pool.ptr ());
         buf_pool->set_video_info (input_buf_info);
         if (!buf_pool->reserve (6)) {

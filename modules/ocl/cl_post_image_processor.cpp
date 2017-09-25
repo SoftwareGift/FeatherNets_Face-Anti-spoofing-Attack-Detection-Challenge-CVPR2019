@@ -245,7 +245,7 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create retinex handler failed");
     _retinex->enable_handler (_defog_mode == CLPostImageProcessor::DefogRetinex);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
@@ -258,7 +258,7 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create defog handler failed");
     _defog_dcp->enable_handler (_defog_mode == CLPostImageProcessor::DefogDarkChannelPrior);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
@@ -273,7 +273,7 @@ CLPostImageProcessor::create_handlers ()
                 _tnr.ptr (),
                 XCAM_RETURN_ERROR_CL,
                 "CLPostImageProcessor create tnr handler failed");
-            image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+            image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
             image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
             add_handler (image_handler);
             break;
@@ -298,7 +298,7 @@ CLPostImageProcessor::create_handlers ()
             XCAM_RETURN_ERROR_CL,
             "CLPostImageProcessor create wavelet denoise handler failed");
         _wavelet->enable_handler (true);
-        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
         image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
         add_handler (image_handler);
         break;
@@ -312,7 +312,7 @@ CLPostImageProcessor::create_handlers ()
             XCAM_RETURN_ERROR_CL,
             "CLPostImageProcessor create new wavelet denoise handler failed");
         _newwavelet->enable_handler (true);
-        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
         image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
         add_handler (image_handler);
         break;
@@ -340,7 +340,7 @@ CLPostImageProcessor::create_handlers ()
             _3d_denoise.ptr (),
             XCAM_RETURN_ERROR_CL,
             "CL3aImageProcessor create 3D noise reduction handler failed");
-        image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+        image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
         image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
         image_handler->enable_handler (true);
         add_handler (image_handler);
@@ -356,7 +356,7 @@ CLPostImageProcessor::create_handlers ()
         "CLPostImageProcessor create scaler handler failed");
     _scaler->set_scaler_factor (_scaler_factor, _scaler_factor);
     _scaler->set_buffer_callback (_stats_callback);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->enable_handler (_enable_scaler);
     add_handler (image_handler);
 
@@ -369,7 +369,7 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create wire frame handler failed");
     _wireframe->enable_handler (_enable_wireframe);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
     add_handler (image_handler);
 
@@ -382,7 +382,7 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create image warp handler failed");
     _image_warp->enable_handler (_enable_image_warp);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
@@ -395,7 +395,7 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create video stabilizer failed");
     _video_stab->enable_handler (false);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     add_handler (image_handler);
 
@@ -413,7 +413,7 @@ CLPostImageProcessor::create_handlers ()
 #if HAVE_OPENCV
     _stitch->set_feature_match_ocl (_stitch_fm_ocl);
 #endif
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     image_handler->enable_handler (_enable_stitch);
     add_handler (image_handler);
@@ -428,7 +428,7 @@ CLPostImageProcessor::create_handlers ()
         "CLPostImageProcessor create csc handler failed");
     _csc->enable_handler (_out_sample_type == OutSampleRGB);
     _csc->set_output_format (_output_fourcc);
-    image_handler->set_pool_type (CLImageHandler::DrmBoPoolType);
+    image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_DEFAULT_POOL_SIZE);
     add_handler (image_handler);
 

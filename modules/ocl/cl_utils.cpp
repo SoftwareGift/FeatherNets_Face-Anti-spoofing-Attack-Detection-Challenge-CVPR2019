@@ -85,7 +85,18 @@ convert_to_climage (
 
     SmartPtr<CLVideoBuffer> cl_video_buf = buf.dynamic_cast_ptr<CLVideoBuffer> ();
     if (cl_video_buf.ptr ()) {
-        SmartPtr<CLBuffer> cl_buf = cl_video_buf->get_cl_buffer ();
+        SmartPtr<CLBuffer> cl_buf;
+
+        if (offset == 0) {
+            cl_buf = cl_video_buf;
+        } else {
+            uint32_t row_pitch = CLImage::calculate_pixel_bytes (desc.format) *
+                                     XCAM_ALIGN_UP (desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+            uint32_t size = row_pitch * desc.height;
+
+            cl_buf = new CLSubBuffer (context, cl_video_buf, flags, offset, size);
+        }
+
         cl_image = new CLImage2D (context, desc, flags, cl_buf);
     } else {
         SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();

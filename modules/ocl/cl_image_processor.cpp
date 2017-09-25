@@ -156,14 +156,7 @@ XCamReturn
 CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-
-    SmartPtr<VideoBuffer> drm_bo_in = display->convert_to_drm_bo_buf (display, input);
-    XCAM_FAIL_RETURN (
-        WARNING,
-        drm_bo_in.ptr (),
-        XCAM_RETURN_ERROR_MEM,
-        "CL image processor can't handle this buffer, maybe type error");
+    XCAM_ASSERT (input.ptr ());
 
     // Always set to NULL,  output buf should be handled in CLBufferNotifyThread
     output = NULL;
@@ -182,7 +175,7 @@ CLImageProcessor::process_buffer (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBu
 
     SmartPtr<PriorityBuffer> p_buf = new PriorityBuffer;
     p_buf->set_seq_num (_seq_num++);
-    p_buf->data = drm_bo_in;
+    p_buf->data = input;
     p_buf->handler = *(_handlers.begin ());
 
     XCAM_FAIL_RETURN (

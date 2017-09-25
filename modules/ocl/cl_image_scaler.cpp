@@ -219,8 +219,7 @@ CLImageScaler::prepare_scaler_buf (const VideoBufferInfo &video_info, SmartPtr<V
 
         scaler_video_info.init (video_info.format, new_width, new_height);
 
-        SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-        _scaler_buf_pool = new DrmBoBufferPool (display);
+        _scaler_buf_pool = new CLVideoBufferPool ();
         XCAM_ASSERT (_scaler_buf_pool.ptr ());
         _scaler_buf_pool->set_video_info (scaler_video_info);
         _scaler_buf_pool->reserve (6);

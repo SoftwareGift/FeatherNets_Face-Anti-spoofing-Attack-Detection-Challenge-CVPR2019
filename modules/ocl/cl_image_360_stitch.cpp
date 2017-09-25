@@ -598,8 +598,7 @@ CLImage360Stitch::create_buffer_pool (SmartPtr<BufferPool> &buf_pool, uint32_t w
     buf_info.init (V4L2_PIX_FMT_NV12, width, height,
                    XCAM_ALIGN_UP (width, 16), XCAM_ALIGN_UP (height, 16));
 
-    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-    buf_pool = new DrmBoBufferPool (display);
+    buf_pool = new CLVideoBufferPool ();
     XCAM_ASSERT (buf_pool.ptr ());
     buf_pool->set_video_info (buf_info);
     if (!buf_pool->reserve (6)) {

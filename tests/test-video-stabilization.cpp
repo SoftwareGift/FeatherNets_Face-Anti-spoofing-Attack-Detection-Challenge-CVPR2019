@@ -208,8 +208,7 @@ int main (int argc, char *argv[])
     context = CLDevice::instance ()->get_context ();
     video_stab = create_cl_video_stab_handler (context).dynamic_cast_ptr<CLVideoStabilizer> ();
     XCAM_ASSERT (video_stab.ptr ());
-
-    video_stab->set_pool_type (CLImageHandler::DrmBoPoolType);
+    video_stab->set_pool_type (CLImageHandler::CLVideoPoolType);
 
     /*
         Color CameraIntrinsics:
@@ -239,8 +238,7 @@ int main (int argc, char *argv[])
 
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
-    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-    buf_pool = new DrmBoBufferPool (display);
+    buf_pool = new CLVideoBufferPool ();
     XCAM_ASSERT (buf_pool.ptr ());
     buf_pool->set_video_info (input_buf_info);
     if (!buf_pool->reserve (36)) {

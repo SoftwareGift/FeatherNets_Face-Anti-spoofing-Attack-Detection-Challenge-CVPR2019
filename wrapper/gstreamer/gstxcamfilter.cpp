@@ -571,6 +571,13 @@ gst_xcam_filter_start (GstBaseTransform *trans)
     pipe_manager->add_image_processor (image_processor);
     pipe_manager->set_image_processor (image_processor);
 
+    xcamfilter->buf_pool = new CLVideoBufferPool ();
+    XCAM_ASSERT (xcamfilter->buf_pool.ptr ());
+    if (xcamfilter->copy_mode == COPY_MODE_DMA) {
+        XCAM_LOG_WARNING ("CLVideoBuffer doesn't support DMA copy mode, switch to CPU copy mode");
+        xcamfilter->copy_mode = COPY_MODE_CPU;
+    }
+
     if (xcamfilter->copy_mode == COPY_MODE_DMA) {
         xcamfilter->allocator = gst_dmabuf_allocator_new ();
         if (!xcamfilter->allocator) {
@@ -578,10 +585,6 @@ gst_xcam_filter_start (GstBaseTransform *trans)
             return false;
         }
     }
-
-    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-    xcamfilter->buf_pool = new DrmBoBufferPool (display);
-    XCAM_ASSERT (xcamfilter->buf_pool.ptr ());
 
     return true;
 }

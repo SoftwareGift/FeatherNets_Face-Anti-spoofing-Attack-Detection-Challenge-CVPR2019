@@ -199,6 +199,7 @@ CLCscImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vi
 
         SmartPtr<CLImage> image_uv;
         if(_csc_type == CL_CSC_TYPE_NV12TORGBA) {
+            in_desc.height /= 2;
             image_uv = convert_to_climage (context, input, in_desc, in_video_info.offsets[1]);
             args.push_back (new CLMemArgument (image_uv));
 
@@ -208,6 +209,7 @@ CLCscImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vi
         }
 
         if (_csc_type == CL_CSC_TYPE_RGBATONV12) {
+            out_desc.height /= 2;
             image_uv = convert_to_climage (context, output, out_desc, out_video_info.offsets[1]);
             args.push_back (new CLMemArgument (image_uv));
             args.push_back (new CLMemArgument (matrix_buffer));

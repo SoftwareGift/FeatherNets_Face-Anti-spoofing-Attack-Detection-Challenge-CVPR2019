@@ -536,7 +536,7 @@ CLContext::destroy_mem (cl_mem mem_id)
 }
 
 cl_mem
-CLContext::create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr)
+CLContext::create_buffer (uint32_t size, cl_mem_flags flags, void *host_ptr)
 {
     cl_mem mem_id = NULL;
     cl_int errcode = CL_SUCCESS;
@@ -554,6 +554,25 @@ CLContext::create_buffer (uint32_t size, cl_mem_flags  flags, void *host_ptr)
         NULL,
         "create cl buffer failed");
     return mem_id;
+}
+
+cl_mem
+CLContext::create_sub_buffer (
+    cl_mem main_mem,
+    cl_buffer_region region,
+    cl_mem_flags flags)
+{
+    cl_mem sub_mem = NULL;
+    cl_int errcode = CL_SUCCESS;
+
+    sub_mem = clCreateSubBuffer (main_mem, flags, CL_BUFFER_CREATE_TYPE_REGION, &region, &errcode);
+    XCAM_FAIL_RETURN (
+        WARNING,
+        errcode == CL_SUCCESS,
+        NULL,
+        "create sub buffer failed");
+
+    return sub_mem;
 }
 
 XCamReturn

@@ -64,15 +64,16 @@ private:
 
 class CLVideoBuffer
     : public BufferProxy
+    , public CLBuffer
 {
     friend class CLVideoBufferPool;
 
 public:
+    explicit CLVideoBuffer (
+        const SmartPtr<CLContext> &context, const VideoBufferInfo &info, const SmartPtr<CLVideoBufferData> &data);
     virtual ~CLVideoBuffer () {}
 
-    cl_mem &get_mem_id ();
     SmartPtr<CLBuffer> get_cl_buffer ();
-
     SmartPtr<X3aStats> find_3a_stats ();
 
 protected:
