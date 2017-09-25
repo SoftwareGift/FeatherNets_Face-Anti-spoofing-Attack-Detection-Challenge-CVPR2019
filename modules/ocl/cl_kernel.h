@@ -124,6 +124,7 @@ private:
 
     static KernelMap      _kernel_map;
     static Mutex          _kernel_map_mutex;
+    static const char    *_kernel_cache_path;
 
 private:
     char                 *_name;

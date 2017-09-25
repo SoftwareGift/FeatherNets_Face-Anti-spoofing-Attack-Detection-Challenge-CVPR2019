@@ -21,6 +21,9 @@
 #include "cl_kernel.h"
 #include "cl_context.h"
 #include "cl_device.h"
+#include "file_handle.h"
+
+#include <sys/stat.h>
 
 #define ENABLE_DEBUG_KERNEL 0
 
@@ -30,6 +33,18 @@ namespace XCam {
 
 CLKernel::KernelMap CLKernel::_kernel_map;
 Mutex CLKernel::_kernel_map_mutex;
+
+static char*
+default_cache_path () {
+    static char path[XCAM_MAX_STR_SIZE] = {0};
+    snprintf (
+        path, XCAM_MAX_STR_SIZE - 1,
+        "%s/%s", std::getenv ("HOME"), ".xcam/");
+
+    return path;
+}
+
+const char* CLKernel::_kernel_cache_path = default_cache_path ();
 
 CLKernel::CLKernel (const SmartPtr<CLContext> &context, const char *name)
     : _name (NULL)
@@ -109,21 +124,98 @@ CLKernel::build_kernel (const XCamKernelInfo& info, const char* options)
         XCAM_STR(options));
     key = key_str;
 
+    char temp_filename[XCAM_MAX_STR_SIZE] = {0};
+    char cache_filename[XCAM_MAX_STR_SIZE] = {0};
+    FileHandle temp_file;
+    FileHandle cache_file;
+    size_t read_cache_size = 0;
+    size_t write_cache_size = 0;
+    uint8_t *kernel_cache = NULL;
+    bool load_cache = false;
+    struct timeval ts;
+
+    const char* cache_path = std::getenv ("XCAM_CL_KERNEL_CACHE_PATH");
+    if (NULL == cache_path) {
+        cache_path = _kernel_cache_path;
+    }
+
+    snprintf (
+        cache_filename, XCAM_MAX_STR_SIZE - 1,
+        "%s/%s",
+        cache_path, key_str);
+
     {
         SmartLock locker (_kernel_map_mutex);
+
         i_kernel = _kernel_map.find (key);
         if (i_kernel == _kernel_map.end ()) {
             SmartPtr<CLContext>  context = get_context ();
             single_kernel = new CLKernel (context, info.kernel_name);
             XCAM_ASSERT (single_kernel.ptr ());
-            ret = single_kernel->load_from_source (info.kernel_body, strlen (info.kernel_body), NULL, NULL, options);
-            XCAM_FAIL_RETURN (
-                ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
-                "build kernel(%s) from source failed", key_str);
-            //kernel_map.insert (std::make_pair (key, single_kernel));
-            _kernel_map[key] = single_kernel;
-        } else
+
+            if (access (cache_path, F_OK) == -1) {
+                mkdir (cache_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            }
+
+            ret = cache_file.open (cache_filename, "r");
+            if (ret == XCAM_RETURN_NO_ERROR) {
+                cache_file.get_file_size (read_cache_size);
+                if (read_cache_size > 0) {
+                    kernel_cache = (uint8_t*) xcam_malloc0 (sizeof (uint8_t) * (read_cache_size + 1));
+                    if (NULL != kernel_cache) {
+                        cache_file.read_file (kernel_cache, read_cache_size);
+                        cache_file.close ();
+
+                        ret = single_kernel->load_from_binary (kernel_cache, read_cache_size);
+                        xcam_free (kernel_cache);
+                        kernel_cache = NULL;
+
+                        XCAM_FAIL_RETURN (
+                            ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+                            "build kernel(%s) from binary failed", key_str);
+
+                        load_cache = true;
+                    }
+                }
+            } else {
+                XCAM_LOG_DEBUG ("open kernel cache file to read failed ret(%d)", ret);
+            }
+
+            if (load_cache == false) {
+                ret = single_kernel->load_from_source (info.kernel_body, strlen (info.kernel_body), &kernel_cache, &write_cache_size, options);
+                XCAM_FAIL_RETURN (
+                    ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+                    "build kernel(%s) from source failed", key_str);
+            }
+
+            _kernel_map.insert (std::make_pair (key, single_kernel));
+            //_kernel_map[key] = single_kernel;
+        } else {
             single_kernel = i_kernel->second;
+        }
+    }
+
+    if (load_cache == false && NULL != kernel_cache) {
+        gettimeofday (&ts, NULL);
+        snprintf (
+            temp_filename, XCAM_MAX_STR_SIZE - 1,
+            "%s." XCAM_TIMESTAMP_FORMAT,
+            cache_filename, XCAM_TIMESTAMP_ARGS (XCAM_TIMEVAL_2_USEC (ts)));
+
+        ret = temp_file.open (temp_filename, "wb");
+        if (ret == XCAM_RETURN_NO_ERROR) {
+            ret = temp_file.write_file (kernel_cache, write_cache_size);
+            temp_file.close ();
+            if (ret == XCAM_RETURN_NO_ERROR && write_cache_size > 0) {
+                rename (temp_filename, cache_filename);
+            } else {
+                remove (temp_filename);
+            }
+        } else {
+            XCAM_LOG_ERROR ("open kernel cache file to write failed ret(%d)", ret);
+        }
+        xcam_free (kernel_cache);
+        kernel_cache = NULL;
     }
 
     XCAM_FAIL_RETURN (
