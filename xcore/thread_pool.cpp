@@ -136,6 +136,13 @@ ThreadPool::set_threads (uint32_t min, uint32_t max)
     return true;
 }
 
+bool
+ThreadPool::is_running ()
+{
+    SmartLock locker(_mutex);
+    return _running;
+}
+
 XCamReturn
 ThreadPool::start ()
 {

@@ -39,22 +39,8 @@
 
 namespace XCam {
 
-class WorkChain
-    : public RefObj
-{
-public:
-    virtual ~WorkChain () {}
-    bool set_next (const SmartPtr<WorkChain>& next);
-    const SmartPtr<WorkChain> &get_next () const {
-        return _next;
-    }
-
-protected:
-    SmartPtr<WorkChain> _next;
-};
-
 class Worker
-    : public WorkChain
+    : public RefObj
 {
 public:
     struct Arguments

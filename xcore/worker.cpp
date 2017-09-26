@@ -22,13 +22,6 @@
 
 namespace XCam {
 
-bool
-WorkChain::set_next (const SmartPtr<WorkChain>& next)
-{
-    _next = next;
-    return true;
-}
-
 Worker::Worker (const char *name, const SmartPtr<Callback> &cb)
     : _name (NULL)
     , _callback (cb)

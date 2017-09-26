@@ -54,6 +54,7 @@ public:
     const char *get_name () const {
         return _name;
     }
+    bool is_running ();
 
     XCamReturn start ();
     XCamReturn stop ();

@@ -42,7 +42,7 @@ namespace XCam {
 class ImageHandler;
 
 class ImageHandler
-    : public WorkChain
+    : public RefObj
 {
 public:
     struct Parameters {
@@ -73,11 +73,6 @@ public:
 public:
     explicit ImageHandler (const char* name);
     virtual ~ImageHandler ();
-
-    bool set_first_worker (const SmartPtr<Worker> &worker);
-    const SmartPtr<Worker> &get_first_worker () const {
-        return _fist_worker;
-    }
 
     bool set_callback (SmartPtr<Callback> cb) {
         _callback = cb;
@@ -110,7 +105,6 @@ private:
     XCAM_DEAD_COPY (ImageHandler);
 
 private:
-    SmartPtr<Worker>        _fist_worker;
     SmartPtr<Callback>      _callback;
     SmartPtr<BufferPool>    _allocator;
     char                   *_name;

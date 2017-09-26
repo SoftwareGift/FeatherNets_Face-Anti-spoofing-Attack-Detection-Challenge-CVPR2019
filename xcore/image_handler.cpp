@@ -44,32 +44,6 @@ ImageHandler::set_allocator (const SmartPtr<BufferPool> &allocator)
     return true;
 }
 
-bool
-ImageHandler::set_first_worker (const SmartPtr<Worker> &worker)
-{
-    XCAM_ASSERT (worker.ptr ());
-    XCAM_FAIL_RETURN (
-        ERROR, !_fist_worker.ptr (), false,
-        "image_handler(%s) set first worker failed. it's already exist(%s)",
-        XCAM_STR(get_name()), XCAM_STR(_fist_worker->get_name ()));
-
-#if 0
-    SmartPtr<Worker> current = worker;
-    while (current.ptr ()) {
-        if (current.)
-            current.set_callback (this);
-        SmartPtr<WorkChain> chain = current->get_next ();
-        current = chain->dynamic_cast_ptr<Worker> ();
-        if (chain.ptr ()) {
-            XCAM_ASSERT (chain.ptr ());
-        }
-    }
-#endif
-
-    _fist_worker = worker;
-    return true;
-}
-
 XCamReturn
 ImageHandler::finish ()
 {
@@ -83,17 +57,6 @@ ImageHandler::terminate ()
     if (_allocator.ptr ())
         _allocator->stop ();
 
-    SmartPtr<Worker> current = _fist_worker;
-    while (current.ptr ()) {
-        current->set_callback (NULL);
-        SmartPtr<WorkChain> next = current->get_next ();
-        current->set_next (NULL);
-        current = next.dynamic_cast_ptr<Worker> ();
-        if (next.ptr ()) {
-            XCAM_ASSERT (next.ptr ());
-        }
-    }
-    _fist_worker.release ();
     return XCAM_RETURN_NO_ERROR;
 }
 
