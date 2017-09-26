@@ -56,7 +56,7 @@ public:
     explicit SoftHandler (const char* name);
     ~SoftHandler ();
 
-    bool set_threads (uint32_t num);
+    bool set_threads (const SmartPtr<ThreadPool> &pool);
     bool set_out_video_info (const VideoBufferInfo &info);
 
     // derive from ImageHandler

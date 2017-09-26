@@ -84,9 +84,6 @@ SoftHandler::SoftHandler (const char* name)
     , _wip_buf_count (0)
 {
     set_allocator (new SoftVideoBufAllocator);
-    char thrds_name[XCAM_MAX_STR_SIZE];
-    snprintf (thrds_name, XCAM_MAX_STR_SIZE, "t-pool-%s", XCAM_STR(name));
-    _threads = new ThreadPool (thrds_name);
 }
 
 SoftHandler::~SoftHandler ()
@@ -94,9 +91,10 @@ SoftHandler::~SoftHandler ()
 }
 
 bool
-SoftHandler::set_threads (uint32_t num)
+SoftHandler::set_threads (const SmartPtr<ThreadPool> &pool)
 {
-    return _threads->set_threads (num, num);
+    _threads = pool;
+    return true;
 }
 
 bool
@@ -126,7 +124,7 @@ SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param
         _need_configure = false;
     }
 
-    if (_threads.ptr ()) {
+    if (_threads.ptr () && !_threads->is_running ()) {
         ret = _threads->start ();
         XCAM_FAIL_RETURN (
             ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
