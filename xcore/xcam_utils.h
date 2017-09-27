@@ -30,6 +30,8 @@
 extern "C" {
 #include <linux/videodev2.h>
 }
+#include <cinttypes>
+
 namespace XCam {
 
 static const int64_t InvalidTimestamp = INT64_C(-1);

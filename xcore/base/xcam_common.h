@@ -30,7 +30,6 @@
 #include <assert.h>
 #include <pthread.h>
 #include <math.h>
-#include <inttypes.h>
 #include <base/xcam_defs.h>
 
 XCAM_BEGIN_DECLARE
