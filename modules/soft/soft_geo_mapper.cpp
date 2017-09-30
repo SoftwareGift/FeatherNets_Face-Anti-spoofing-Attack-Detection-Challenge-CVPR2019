@@ -69,7 +69,7 @@ SoftGeoMapper::~SoftGeoMapper ()
 }
 
 bool
-SoftGeoMapper::set_lookup_table (GeoData *data, uint32_t width, uint32_t height)
+SoftGeoMapper::set_lookup_table (const GeoData *data, uint32_t width, uint32_t height)
 {
     XCAM_FAIL_RETURN(
         ERROR, width > 1 && height > 1 && data, false,
@@ -85,7 +85,7 @@ SoftGeoMapper::set_lookup_table (GeoData *data, uint32_t width, uint32_t height)
 
     for (uint32_t i = 0; i < height; ++i) {
         Float2 *ret = _lookup_table->get_buf_ptr (0, i);
-        GeoData *line = &data[i * width];
+        const GeoData *line = &data[i * width];
         for (uint32_t j = 0; j < width; ++j) {
             ret[j].x = line [j].x;
             ret[j].y = line [j].y;
@@ -174,6 +174,7 @@ SoftGeoMapper::start_remap_task (const SmartPtr<ImageHandler::Parameters> &param
     _map_task->set_local_size (local_size);
     _map_task->set_global_size (global_size);
 
+    param->in_buf.release ();
     return _map_task->work (args);
 }
 
