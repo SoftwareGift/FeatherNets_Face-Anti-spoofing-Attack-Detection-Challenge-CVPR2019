@@ -47,8 +47,8 @@ AC_ARG_ENABLE(profiling,
 
 AC_ARG_ENABLE(drm,
     AS_HELP_STRING([--enable-drm],
-                   [enable drm buffer, @<:@default=yes@:>@]),
-    [], [enable_drm="yes"])
+                   [enable drm buffer, @<:@default=no@:>@]),
+    [], [enable_drm="no"])
 
 AC_ARG_ENABLE([aiq],
     AS_HELP_STRING([--enable-aiq],
@@ -378,6 +378,7 @@ AC_CONFIG_FILES([Makefile
 
 AC_OUTPUT
 
+if test "$HAVE_LIBDRM" -eq 1; then have_drm="yes"; else have_drm="no"; fi
 if test "$USE_LOCAL_AIQ" -eq 1; then use_local_aiq="yes"; else  use_local_aiq="no"; fi
 if test "$USE_LOCAL_ATOMISP" -eq 1; then use_local_atomisp="yes"; else  use_local_atomisp="no"; fi
 if test "$HAVE_LIBCL" -eq 1; then have_libcl="yes"; else  have_libcl="no"; fi
@@ -389,6 +390,7 @@ echo "
      version                    : $XCAM_VERSION
      enable debug               : $enable_debug
      enable profiling           : $enable_profiling
+     enable drm lib             : $have_drm
      build GStreamer plugin     : $enable_gst
      build aiq analyzer         : $enable_aiq
      use local aiq              : $use_local_aiq

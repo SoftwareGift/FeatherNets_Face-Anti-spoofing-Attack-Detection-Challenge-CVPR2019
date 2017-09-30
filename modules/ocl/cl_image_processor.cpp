@@ -21,7 +21,6 @@
 #include "cl_context.h"
 #include "cl_device.h"
 #include "cl_image_handler.h"
-#include "drm_display.h"
 #include "cl_demo_handler.h"
 #include "xcam_thread.h"
 

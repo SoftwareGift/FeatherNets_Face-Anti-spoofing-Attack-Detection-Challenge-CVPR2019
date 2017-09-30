@@ -50,9 +50,7 @@ private:
 private:
     char                        *_raw_path;
     FILE                        *_raw;
-#if HAVE_LIBDRM
     SmartPtr<BufferPool>         _buf_pool;
-#endif
 };
 
 };

@@ -25,7 +25,6 @@
 #include <getopt.h>
 #include "ocl/cl_device.h"
 #include "ocl/cl_context.h"
-#include "drm_display.h"
 #include "image_file_handle.h"
 #include "ocl/cl_fisheye_handler.h"
 #include "ocl/cl_image_360_stitch.h"

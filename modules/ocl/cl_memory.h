@@ -23,7 +23,12 @@
 
 #include "ocl/cl_context.h"
 #include "ocl/cl_event.h"
+#include "video_buffer.h"
+#if HAVE_LIBDRM
 #include "drm_bo_buffer.h"
+#endif
+
+#include <unistd.h>
 
 namespace XCam {
 
@@ -166,6 +171,7 @@ private:
     uint32_t             _size;
 };
 
+#if HAVE_LIBDRM
 class CLVaBuffer
     : public CLBuffer
 {
@@ -182,7 +188,7 @@ private:
 private:
     SmartPtr<DrmBoBuffer>   _bo;
 };
-
+#endif
 
 class CLImage
     : public CLMemory
@@ -221,6 +227,7 @@ private:
     CLImageDesc  _image_desc;
 };
 
+#if HAVE_LIBDRM
 class CLVaImage
     : public CLImage
 {
@@ -251,6 +258,7 @@ private:
     SmartPtr<DrmBoBuffer>   _bo;
     cl_libva_image          _va_image_info;
 };
+#endif
 
 class CLImage2D
     : public CLImage

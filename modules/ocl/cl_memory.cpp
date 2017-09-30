@@ -20,8 +20,9 @@
 
 #include "cl_utils.h"
 #include "cl_memory.h"
-#include "drm_display.h"
+#if HAVE_LIBDRM
 #include "cl_image_bo_buffer.h"
+#endif
 
 namespace XCam {
 
@@ -258,6 +259,7 @@ CLBuffer::enqueue_map (
     return ret;
 }
 
+#if HAVE_LIBDRM
 CLVaBuffer::CLVaBuffer (
     const SmartPtr<CLContext> &context,
     SmartPtr<DrmBoBuffer> &bo)
@@ -293,6 +295,7 @@ CLVaBuffer::init_va_buffer (const SmartPtr<CLContext> &context, SmartPtr<DrmBoBu
     set_mem_id (mem_id);
     return true;
 }
+#endif
 
 CLImage::CLImage (const SmartPtr<CLContext> &context)
     : CLMemory (context)
@@ -565,6 +568,7 @@ CLImage::enqueue_map (
     return ret;
 }
 
+#if HAVE_LIBDRM
 CLVaImage::CLVaImage (
     const SmartPtr<CLContext> &context,
     SmartPtr<DrmBoBuffer> &bo,
@@ -693,7 +697,7 @@ CLVaImage::init_va_image (
     _va_image_info = va_image_info;
     return true;
 }
-
+#endif
 
 CLImage2D::CLImage2D (
     const SmartPtr<CLContext> &context,

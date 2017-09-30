@@ -36,7 +36,6 @@ xcam_ocl_sources = \
     cl_memory.cpp                      \
     cl_event.cpp                       \
     cl_utils.cpp                       \
-    cl_image_bo_buffer.cpp             \
     cl_image_handler.cpp               \
     cl_image_processor.cpp             \
     cl_3a_image_processor.cpp          \
@@ -83,6 +82,10 @@ xcam_ocl_sources += cv_feature_match.cpp
 xcam_ocl_sources += cv_image_deblurring.cpp
 endif
 
+if HAVE_LIBDRM
+xcam_ocl_sources += cl_image_bo_buffer.cpp
+endif
+
 libxcam_ocl_la_SOURCES = \
     $(xcam_ocl_sources)    \
     $(NULL)
@@ -112,7 +115,6 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_memory.h                     \
     cl_kernel.h                     \
     cl_utils.h                      \
-    cl_image_bo_buffer.h            \
     cl_image_handler.h              \
     cl_image_processor.h            \
     priority_buffer_queue.h         \
@@ -157,6 +159,10 @@ nobase_libxcam_oclinclude_HEADERS += cv_edgetaper.h
 nobase_libxcam_oclinclude_HEADERS += cv_wiener_filter.h
 nobase_libxcam_oclinclude_HEADERS += cv_feature_match.h
 nobase_libxcam_oclinclude_HEADERS += cv_image_deblurring.h
+endif
+
+if HAVE_LIBDRM
+nobase_libxcam_oclinclude_HEADERS += cl_image_bo_buffer.h
 endif
 
 libxcam_ocl_la_LIBTOOLFLAGS = --tag=disable-static

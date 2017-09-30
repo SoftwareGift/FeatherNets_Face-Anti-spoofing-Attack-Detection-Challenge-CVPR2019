@@ -20,7 +20,10 @@
 
 #include "xcam_utils.h"
 #include "base/xcam_buffer.h"
+#include "video_buffer.h"
+#if HAVE_LIBDRM
 #include "drm_bo_buffer.h"
+#endif
 
 namespace XCam {
 
@@ -129,6 +132,7 @@ SmartBufferPriv::buf_get_fd (XCamVideoBuffer *data)
 void *
 SmartBufferPriv::buf_get_bo (XCamVideoBufferIntel *data)
 {
+#if HAVE_LIBDRM
     SmartBufferPriv *buf = (SmartBufferPriv*) data;
     XCAM_ASSERT (buf->_buf_ptr.ptr ());
 
@@ -140,6 +144,12 @@ SmartBufferPriv::buf_get_bo (XCamVideoBufferIntel *data)
         "get DrmBoBuffer failed");
 
     return bo_buf->get_bo ();
+#else
+    XCAM_LOG_ERROR ("VideoBuffer doesn't support DrmBoBuffer");
+
+    XCAM_UNUSED (data);
+    return NULL;
+#endif
 }
 
 XCamVideoBuffer *

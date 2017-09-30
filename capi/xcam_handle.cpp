@@ -22,6 +22,7 @@
 #include <xcam_handle.h>
 #include <dma_video_buffer.h>
 #include "context_priv.h"
+#include <stdarg.h>
 
 using namespace XCam;
 
@@ -138,6 +139,7 @@ xcam_handle_set_parameters (
 SmartPtr<VideoBuffer>
 external_buf_to_drm_buf (XCamVideoBuffer *buf)
 {
+#if HAVE_LIBDRM
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
     SmartPtr<DmaVideoBuffer> dma_buf;
     SmartPtr<VideoBuffer> drm_buf;
@@ -155,6 +157,12 @@ external_buf_to_drm_buf (XCamVideoBuffer *buf)
 
     video_buf = drm_buf;
     return video_buf;
+#else
+    XCAM_LOG_ERROR ("VideoBuffer doesn't support drm buf");
+
+    XCAM_UNUSED (buf);
+    return NULL;
+#endif
 }
 
 SmartPtr<VideoBuffer>

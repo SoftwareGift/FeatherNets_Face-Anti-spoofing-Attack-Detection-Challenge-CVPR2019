@@ -23,7 +23,6 @@
 #include "test_common.h"
 #include "test_inline.h"
 #include "image_file_handle.h"
-#include "drm_bo_buffer.h"
 #include "ocl/cl_device.h"
 #include "ocl/cl_context.h"
 #include "ocl/cl_demo_handler.h"

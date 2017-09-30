@@ -19,7 +19,9 @@
  */
 
 #include "fake_poll_thread.h"
+#if HAVE_LIBDRM
 #include "drm_bo_buffer.h"
+#endif
 
 #define DEFAULT_FPT_BUF_COUNT 4
 

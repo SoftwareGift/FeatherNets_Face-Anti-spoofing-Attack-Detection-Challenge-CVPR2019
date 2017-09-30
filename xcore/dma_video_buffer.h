@@ -21,7 +21,8 @@
 #define XCAM_DMA_VIDEO_BUFFER_H
 
 #include "xcam_utils.h"
-#include "drm_bo_buffer.h"
+#include "video_buffer.h"
+#include <unistd.h>
 
 namespace XCam {
 

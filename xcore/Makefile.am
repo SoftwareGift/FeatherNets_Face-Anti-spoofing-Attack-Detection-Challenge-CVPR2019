@@ -123,13 +123,13 @@ nobase_libxcam_coreinclude_HEADERS = \
     xcam_utils.h                   \
     xcam_obj_debug.h               \
     buffer_pool.h                  \
-    drm_bo_buffer.h                \
     meta_data.h                    \
     vec_mat.h                      \
     $(NULL)
 
 if HAVE_LIBDRM
 nobase_libxcam_coreinclude_HEADERS += \
+    drm_bo_buffer.h    \
     drm_display.h      \
     drm_v4l2_buffer.h  \
     $(NULL)

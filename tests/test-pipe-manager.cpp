@@ -75,9 +75,11 @@ public:
         _enable_display = value;
     }
 
+#if HAVE_LIBDRM
     void set_display_mode (DrmDisplayMode mode) {
         _display->set_display_mode (mode);
     }
+#endif
 
 protected:
     virtual void post_buffer (const SmartPtr<VideoBuffer> &buf);
@@ -87,7 +89,9 @@ private:
     uint32_t              _image_width;
     uint32_t              _image_height;
     bool                  _enable_display;
+#if HAVE_LIBDRM
     SmartPtr<DrmDisplay>  _display;
+#endif
     XCAM_OBJ_PROFILING_DEFINES;
 };
 
@@ -122,7 +126,10 @@ MainPipeManager::display_buf (const SmartPtr<VideoBuffer> &data)
     CHECK (ret, "display failed on framebuf set");
     ret = _display->render_buffer (buf);
     CHECK (ret, "display failed on rendering");
+#else
+    XCAM_UNUSED (data);
 #endif
+
     return 0;
 }
 
@@ -199,7 +206,9 @@ int main (int argc, char *argv[])
     uint32_t image_width = 1920;
     uint32_t image_height = 1080;
     bool need_display = false;
+#if HAVE_LIBDRM
     DrmDisplayMode display_mode = DRM_DISPLAY_MODE_PRIMARY;
+#endif
     const char *input_path = NULL;
     FileFP input_fp;
 
@@ -322,6 +331,7 @@ int main (int argc, char *argv[])
             break;
         }
         case 'P': {
+#if HAVE_LIBDRM
             XCAM_ASSERT (optarg);
             if (!strcmp (optarg, "primary"))
                 display_mode = DRM_DISPLAY_MODE_PRIMARY;
@@ -331,10 +341,18 @@ int main (int argc, char *argv[])
                 print_help (bin_name);
                 return -1;
             }
+#else
+            XCAM_LOG_WARNING ("preview is not supported");
+#endif
             break;
         }
         case 'p': {
+#if HAVE_LIBDRM
             need_display = true;
+#else
+            XCAM_LOG_WARNING ("preview is not supported, disable preview now");
+            need_display = false;
+#endif
             break;
         }
         case 'h':
@@ -358,15 +376,9 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    if (need_display && !DrmDisplay::set_preview (need_display)) {
-        need_display = false;
-        XCAM_LOG_WARNING ("set preview failed, disable local preview now");
-    }
-
     SmartPtr<MainPipeManager> pipe_manager = new MainPipeManager ();
     pipe_manager->set_image_width (image_width);
     pipe_manager->set_image_height (image_height);
-    pipe_manager->set_display_mode (display_mode);
 
     SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
     if (!smart_handlers.empty () ) {
@@ -414,9 +426,22 @@ int main (int argc, char *argv[])
     if (need_display) {
         need_display = false;
         XCAM_LOG_WARNING ("CLVideoBuffer doesn't support local preview, disable local preview now");
+    }   
 
-        // cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
-    }
+    if (need_display) {
+#if HAVE_LIBDRM
+        if (DrmDisplay::set_preview (need_display)) {
+            pipe_manager->set_display_mode (display_mode);
+            cl_post_processor->set_output_format (V4L2_PIX_FMT_XBGR32);
+        } else {
+            need_display = false;
+            XCAM_LOG_WARNING ("set preview failed, disable local preview now");
+        }
+#else
+        XCAM_LOG_WARNING ("preview is not supported, disable preview now");
+        need_display = false;
+#endif
+    }   
     pipe_manager->enable_display (need_display);
 
     ret = pipe_manager->start ();

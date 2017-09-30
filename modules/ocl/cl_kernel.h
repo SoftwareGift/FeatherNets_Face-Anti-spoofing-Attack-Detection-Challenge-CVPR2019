@@ -23,11 +23,13 @@
 
 #include "xcam_utils.h"
 #include "smartptr.h"
+#include "xcam_mutex.h"
 #include "ocl/cl_event.h"
 #include "ocl/cl_argument.h"
 
 #include <CL/cl.h>
 #include <string>
+#include <unistd.h>
 
 #define XCAM_CL_KERNEL_FUNC_SOURCE_BEGIN(func)  \
     const char func##_body []=

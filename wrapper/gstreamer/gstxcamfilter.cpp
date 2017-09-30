@@ -898,12 +898,14 @@ gst_xcam_filter_before_transform (GstBaseTransform *trans, GstBuffer *buffer)
     SmartPtr<VideoBuffer> video_buf;
     gint dma_fd = get_dmabuf_fd (buffer);
     if (dma_fd >= 0) {
+#if HAVE_LIBDRM
         SmartPtr<DrmBoBufferPool> bo_buf_pool = buf_pool.dynamic_cast_ptr<DrmBoBufferPool> ();
         SmartPtr<DrmDisplay> display = bo_buf_pool->get_drm_display ();
         VideoBufferInfo info = bo_buf_pool->get_video_info ();
 
         SmartPtr<VideoBuffer> dma_buf = new DmaGstBuffer (info, dma_fd, buffer);
         video_buf = display->convert_to_drm_bo_buf (display, dma_buf);
+#endif
         if (!video_buf.ptr ()) {
             XCAM_LOG_ERROR ("xcamfilter convert to drm bo buffer failed");
             return;

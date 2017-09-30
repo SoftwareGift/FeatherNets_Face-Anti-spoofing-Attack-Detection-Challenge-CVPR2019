@@ -23,7 +23,6 @@
 #include "cl_retinex_handler.h"
 #include <algorithm>
 #include "cl_device.h"
-#include "cl_image_bo_buffer.h"
 
 namespace XCam {
 
@@ -228,7 +227,6 @@ XCamReturn
 CLRetinexImageHandler::prepare_scaler_buf (const VideoBufferInfo &video_info)
 {
     if (!_scaler_buf_pool.ptr ()) {
-        SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
         SmartPtr<CLContext> context = get_context ();
         VideoBufferInfo scaler_video_info;
         uint32_t new_width = XCAM_ALIGN_UP ((uint32_t)(video_info.width * _scaler_factor), 8);
@@ -236,8 +234,7 @@ CLRetinexImageHandler::prepare_scaler_buf (const VideoBufferInfo &video_info)
 
         scaler_video_info.init (video_info.format, new_width, new_height);
 
-        XCAM_ASSERT (display.ptr ());
-        _scaler_buf_pool = new CLBoBufferPool (display, context);
+        _scaler_buf_pool = new CLVideoBufferPool ();
         XCAM_ASSERT (_scaler_buf_pool.ptr ());
         _scaler_buf_pool->set_video_info (scaler_video_info);
         _scaler_buf_pool->reserve (XCAM_RETINEX_MAX_SCALE + 1);

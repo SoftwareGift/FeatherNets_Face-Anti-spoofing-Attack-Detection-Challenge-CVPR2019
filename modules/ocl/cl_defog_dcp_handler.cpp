@@ -22,7 +22,6 @@
 #include "cl_defog_dcp_handler.h"
 #include <algorithm>
 #include "cl_device.h"
-#include "cl_image_bo_buffer.h"
 
 enum {
     KernelDarkChannel = 0,
@@ -204,10 +203,13 @@ CLDefogRecoverKernel::get_max_value (SmartPtr<VideoBuffer> &buf)
     SmartPtr<CLVideoBuffer> cl_buf = buf.dynamic_cast_ptr<CLVideoBuffer> ();
     if (cl_buf.ptr ()) {
         stats = cl_buf->find_3a_stats ();
-    } else {
+    }
+#if HAVE_LIBDRM
+    else {
         SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
         stats = bo_buf->find_3a_stats ();
     }
+#endif
 
     _max_r = 230.0f;
     _max_g = 230.0f;

@@ -28,7 +28,6 @@
 #include "ocl/cl_blender.h"
 #include "image_file_handle.h"
 #include "ocl/cl_video_stabilizer.h"
-#include "drm_display.h"
 #include "dma_video_buffer.h"
 
 #if HAVE_OPENCV

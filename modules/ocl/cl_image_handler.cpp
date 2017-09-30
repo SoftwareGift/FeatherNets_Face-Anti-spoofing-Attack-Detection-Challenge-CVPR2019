@@ -19,9 +19,11 @@
  */
 
 #include "cl_image_handler.h"
+#if HAVE_LIBDRM
 #include "drm_display.h"
-#include "cl_device.h"
 #include "cl_image_bo_buffer.h"
+#endif
+#include "cl_device.h"
 #include "swapped_buffer.h"
 
 namespace XCam {
@@ -115,6 +117,7 @@ CLImageHandler::enable_buf_pool_swap_flags (
     uint32_t flags,
     uint32_t init_order)
 {
+#if HAVE_LIBDRM
     _buf_swap_flags = flags;
     _buf_swap_init_order = init_order;
 
@@ -128,6 +131,13 @@ CLImageHandler::enable_buf_pool_swap_flags (
         return false;
     }
     return true;
+#else
+    XCAM_LOG_ERROR ("CLImageHandler doesn't support swapping flags");
+
+    XCAM_UNUSED (flags);
+    XCAM_UNUSED (init_order);
+    return false;
+#endif
 }
 
 bool
@@ -156,22 +166,26 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
     if (_buf_pool.ptr ())
         return XCAM_RETURN_ERROR_PARAM;
 
-    SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-    XCAM_FAIL_RETURN(
-        WARNING,
-        display.ptr (),
-        XCAM_RETURN_ERROR_CL,
-        "CLImageHandler(%s) failed to get drm dispay", XCAM_STR (_name));
-
     SmartPtr<BufferPool> buffer_pool;
     if (_buf_pool_type == CLImageHandler::CLVideoPoolType) {
         buffer_pool = new CLVideoBufferPool ();
-    } else if (_buf_pool_type == CLImageHandler::DrmBoPoolType) {
-        buffer_pool = new DrmBoBufferPool (display);
-    } else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
-        buffer_pool = new CLBoBufferPool (display, get_context ());
     }
+#if HAVE_LIBDRM
+    else {
+        SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
+        XCAM_FAIL_RETURN(
+            WARNING,
+            display.ptr (),
+            XCAM_RETURN_ERROR_CL,
+            "CLImageHandler(%s) failed to get drm dispay", XCAM_STR (_name));
 
+        if (_buf_pool_type == CLImageHandler::DrmBoPoolType) {
+            buffer_pool = new DrmBoBufferPool (display);
+        } else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
+            buffer_pool = new CLBoBufferPool (display, get_context ());
+        }
+    }
+#endif
     XCAM_FAIL_RETURN(
         WARNING,
         buffer_pool.ptr (),
@@ -475,6 +489,7 @@ CLCloneImageHandler::CLCloneImageHandler (const SmartPtr<CLContext> &context, co
 XCamReturn
 CLCloneImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
+#if HAVE_LIBDRM
     XCAM_FAIL_RETURN (
         ERROR,
         _clone_flags != (uint32_t)(SwappedBuffer::SwapNone),
@@ -496,6 +511,13 @@ CLCloneImageHandler::prepare_output_buf (SmartPtr<VideoBuffer> &input, SmartPtr<
 
     output = swapped_buf;
     return XCAM_RETURN_NO_ERROR;
+#else
+    XCAM_LOG_ERROR ("CLCloneImageHandler doesn't support DrmBoBuffer");
+
+    XCAM_UNUSED (input);
+    XCAM_UNUSED (output);
+    return XCAM_RETURN_ERROR_PARAM;
+#endif
 }
 
 };

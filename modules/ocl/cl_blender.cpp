@@ -20,7 +20,6 @@
 
 #include "cl_blender.h"
 #include "cl_device.h"
-#include "cl_image_bo_buffer.h"
 
 namespace XCam {
 

@@ -27,7 +27,9 @@
 #include "ocl/cl_blender.h"
 #include "image_file_handle.h"
 #include "ocl/cl_geo_map_handler.h"
+#if HAVE_LIBDRM
 #include "drm_display.h"
+#endif
 #include "dma_video_buffer.h"
 
 using namespace XCam;
@@ -99,7 +101,7 @@ geo_correct_image (
     return 0;
 }
 
-#if ENABLE_DMA_TEST
+#if (ENABLE_DMA_TEST) && (HAVE_LIBDRM)
 static SmartPtr<VideoBuffer>
 dma_buf_to_xcam_buf (
     SmartPtr<DrmDisplay> display, int dma_fd,
@@ -257,7 +259,7 @@ int main (int argc, char *argv[])
     input_buf_info0.init (input_format, input_width0, input_height);
     input_buf_info1.init (input_format, input_width1, input_height);
     output_buf_info.init (input_format, output_width, output_height);
-#if ENABLE_DMA_TEST
+#if (ENABLE_DMA_TEST) && (HAVE_LIBDRM)
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
     buf_pool0 = new DrmBoBufferPool (display);
     buf_pool1 = new DrmBoBufferPool (display);
@@ -281,7 +283,7 @@ int main (int argc, char *argv[])
     blender = create_pyramid_blender (context, 2, true, enable_seam).dynamic_cast_ptr<CLBlender> ();
     XCAM_ASSERT (blender.ptr ());
 
-#if ENABLE_DMA_TEST
+#if (ENABLE_DMA_TEST) && (HAVE_LIBDRM)
     int dma_fd0 = 30, dma_fd1 = 31, dma_fd_out = 32;
     input_buf_info0.init (
         input_format, input_width0, input_height, XCAM_ALIGN_UP (input_width0, 16), XCAM_ALIGN_UP(input_height, 16));

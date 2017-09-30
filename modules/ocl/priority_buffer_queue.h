@@ -23,7 +23,6 @@
 
 #include "xcam_utils.h"
 #include "safe_list.h"
-#include "drm_bo_buffer.h"
 #include "ocl/cl_image_handler.h"
 
 namespace XCam {

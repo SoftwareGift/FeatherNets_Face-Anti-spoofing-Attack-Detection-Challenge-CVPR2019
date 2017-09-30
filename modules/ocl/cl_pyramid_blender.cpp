@@ -22,7 +22,6 @@
 #include <algorithm>
 #include "xcam_obj_debug.h"
 #include "cl_device.h"
-#include "cl_image_bo_buffer.h"
 #include "cl_utils.h"
 
 #if CL_PYRAMID_ENABLE_DUMP

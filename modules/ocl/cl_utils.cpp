@@ -64,10 +64,15 @@ convert_to_clbuffer (
     SmartPtr<CLVideoBuffer> cl_video_buf = buf.dynamic_cast_ptr<CLVideoBuffer> ();
     if (cl_video_buf.ptr ()) {
         cl_buf = cl_video_buf->get_cl_buffer ();
-    } else {
+    }
+#if HAVE_LIBDRM
+    else {
         SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
         cl_buf = new CLVaBuffer (context, bo_buf);
     }
+#else
+    XCAM_UNUSED (context);
+#endif
 
     XCAM_FAIL_RETURN (WARNING, cl_buf.ptr (), NULL, "convert to clbuffer failed");
     return cl_buf;
@@ -98,10 +103,13 @@ convert_to_climage (
         }
 
         cl_image = new CLImage2D (context, desc, flags, cl_buf);
-    } else {
+    }
+#if HAVE_LIBDRM
+    else {
         SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
         cl_image = new CLVaImage (context, bo_buf, desc, offset);
     }
+#endif
 
     XCAM_FAIL_RETURN (WARNING, cl_image.ptr (), NULL, "convert to climage failed");
     return cl_image;
