@@ -10,6 +10,7 @@ xcam_interface_sources =               \
     feature_match.cpp                  \
     blender.cpp                        \
     geo_mapper.cpp                     \
+    stitcher.cpp                       \
    $(NULL)
 
 libxcam_interface_la_SOURCES =         \
@@ -37,6 +38,7 @@ nobase_libxcam_interfaceinclude_HEADERS =  \
     feature_match.h                    \
     blender.h                          \
     geo_mapper.h                       \
+    stitcher.h                         \
     $(NULL)
 
 libxcam_interface_la_LIBTOOLFLAGS = --tag=disable-static
