@@ -28,6 +28,7 @@
 #include "ocl/cl_blender.h"
 #if HAVE_OPENCV
 #include "ocl/cv_feature_match.h"
+#include "ocl/cv_capi_feature_match.h"
 #endif
 
 namespace XCam {
@@ -125,7 +126,7 @@ private:
     CLFisheyeParams             _fisheye[XCAM_STITCH_FISHEYE_MAX_NUM];
     SmartPtr<CLBlender>         _blender[XCAM_STITCH_FISHEYE_MAX_NUM];
 #if HAVE_OPENCV
-    SmartPtr<CVFeatureMatch>    _feature_match[XCAM_STITCH_FISHEYE_MAX_NUM];
+    SmartPtr<FeatureMatch>      _feature_match[XCAM_STITCH_FISHEYE_MAX_NUM];
 #endif
 
     uint32_t                    _output_width;

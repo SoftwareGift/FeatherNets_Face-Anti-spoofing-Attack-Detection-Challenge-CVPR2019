@@ -704,23 +704,22 @@ CLImage360Stitch::execute_done (SmartPtr<VideoBuffer> &output)
     return CLMultiImageHandler::execute_done (output);
 }
 
-#if HAVE_OPENCV
 static void
-convert_to_cv_rect (Rect xcam_rect, cv::Rect &cv_rect)
+convert_to_stitch_rect (Rect xcam_rect, Rect &stitch_rect)
 {
-    cv_rect.x = xcam_rect.pos_x;
-    cv_rect.y = xcam_rect.pos_y + xcam_rect.height / 3;
-    cv_rect.width = xcam_rect.width;
-    cv_rect.height = xcam_rect.height / 3;
+    stitch_rect.pos_x = xcam_rect.pos_x;
+    stitch_rect.pos_y = xcam_rect.pos_y + xcam_rect.height / 3;
+    stitch_rect.width = xcam_rect.width;
+    stitch_rect.height = xcam_rect.height / 3;
 }
 
 static void
-convert_to_xcam_rect (cv::Rect cv_rect, Rect &xcam_rect)
+convert_to_xcam_rect (Rect stitch_rect, Rect &xcam_rect)
 {
-    xcam_rect.pos_x = cv_rect.x;
-    xcam_rect.width = cv_rect.width;
+    xcam_rect.pos_x = stitch_rect.pos_x;
+    xcam_rect.width = stitch_rect.width;
 }
-#endif
+
 
 XCamReturn
 CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
@@ -730,13 +729,13 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
 
     if (handler.ptr () == _fisheye[_fisheye_num - 1].handler.ptr ()) {
         int idx_next = 1;
-        cv::Rect crop_left, crop_right;
+        Rect crop_left, crop_right;
 
         for (int i = 0; i < _fisheye_num; i++) {
             idx_next = (i == (_fisheye_num - 1)) ? 0 : (i + 1);
 
-            convert_to_cv_rect (_img_merge_info[i].right, crop_left);
-            convert_to_cv_rect (_img_merge_info[idx_next].left, crop_right);
+            convert_to_stitch_rect (_img_merge_info[i].right, crop_left);
+            convert_to_stitch_rect (_img_merge_info[idx_next].left, crop_right);
 
             _feature_match[i]->optical_flow_feature_match (
                 _fisheye[i].buf, _fisheye[idx_next].buf, crop_left, crop_right, _fisheye[i].width);

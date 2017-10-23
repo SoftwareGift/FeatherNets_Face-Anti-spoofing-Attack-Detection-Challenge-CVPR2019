@@ -26,62 +26,15 @@ namespace XCam {
 #define XCAM_CV_FM_DEBUG 0
 #define XCAM_CV_OF_DRAW_SCALE 2
 
-#if XCAM_CV_FM_DEBUG
-static XCamReturn
-dump_buffer (SmartPtr<VideoBuffer> buffer, char *dump_name)
-{
-    ImageFileHandle file;
-
-    XCamReturn ret = file.open (dump_name, "wb");
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_ERROR ("open %s failed", dump_name);
-        return ret;
-    }
-
-    ret = file.write_buf (buffer);
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_ERROR ("write buffer to %s failed", dump_name);
-        file.close ();
-        return ret;
-    }
-
-    file.close ();
-
-    return XCAM_RETURN_NO_ERROR;
-}
-#endif
-
 CVFeatureMatch::CVFeatureMatch ()
     : CVBaseClass()
-    , _x_offset (0.0f)
-    , _mean_offset (0.0f)
-    , _valid_count (0)
-    , _fm_idx (-1)
-    , _frame_num (0)
+    , FeatureMatch()
 {
-}
-
-void
-CVFeatureMatch::set_config (CVFMConfig config)
-{
-    _config = config;
-}
-
-CVFMConfig
-CVFeatureMatch::get_config ()
-{
-    return _config;
-}
-
-void
-CVFeatureMatch::set_fm_index (int idx)
-{
-    _fm_idx = idx;
 }
 
 bool
 CVFeatureMatch::get_crop_image (
-    SmartPtr<VideoBuffer> buffer, cv::Rect img_crop, cv::UMat &img)
+    SmartPtr<VideoBuffer> buffer, Rect crop_rect, cv::UMat &img)
 {
     SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_context, buffer);
     VideoBufferInfo info = buffer->get_video_info ();
@@ -94,7 +47,7 @@ CVFeatureMatch::get_crop_image (
         return false;
     }
 
-    img = umat (img_crop);
+    img = umat (cv::Rect(crop_rect.pos_x, crop_rect.pos_y, crop_rect.width, crop_rect.height));
 
     return true;
 }
@@ -145,62 +98,6 @@ CVFeatureMatch::get_valid_offsets (
         XCAM_UNUSED (img0_size);
 #endif
     }
-}
-
-bool
-CVFeatureMatch::get_mean_offset (std::vector<float> offsets, float sum, int &count, float &mean_offset)
-{
-    if (count < _config.min_corners)
-        return false;
-
-    mean_offset = sum / count;
-
-#if XCAM_CV_FM_DEBUG
-    XCAM_LOG_INFO (
-        "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
-        mean_offset, 0.0f, 0, count);
-#endif
-
-    bool ret = true;
-    float delta = 20.0f;//mean_offset;
-    float pre_mean_offset = mean_offset;
-    for (int try_times = 1; try_times < 4; ++try_times) {
-        int recur_count = 0;
-        sum = 0.0f;
-
-        for (size_t i = 0; i < offsets.size (); ++i) {
-            if (fabs (offsets[i] - mean_offset) >= 8.0f)
-                continue;
-            sum += offsets[i];
-            ++recur_count;
-        }
-
-        if (recur_count < _config.min_corners) {
-            ret = false;
-            break;
-        }
-
-        mean_offset = sum / recur_count;
-#if XCAM_CV_FM_DEBUG
-        XCAM_LOG_INFO (
-            "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
-            mean_offset, pre_mean_offset, try_times, recur_count);
-#endif
-
-        if (mean_offset == pre_mean_offset && recur_count == count)
-            return true;
-
-        if (fabs (mean_offset - pre_mean_offset) > fabs (delta) * 1.2f) {
-            ret = false;
-            break;
-        }
-
-        delta = mean_offset - pre_mean_offset;
-        pre_mean_offset = mean_offset;
-        count = recur_count;
-    }
-
-    return ret;
 }
 
 void
@@ -269,31 +166,8 @@ CVFeatureMatch::calc_of_match (
 }
 
 void
-CVFeatureMatch::adjust_stitch_area (int dst_width, float &x_offset, cv::Rect &stitch0, cv::Rect &stitch1)
-{
-    if (fabs (x_offset) < 5.0f)
-        return;
-
-    int last_overlap_width = stitch1.x + stitch1.width + (dst_width - (stitch0.x + stitch0.width));
-    // int final_overlap_width = stitch1.x + stitch1.width + (dst_width - (stitch0.x - x_offset + stitch0.width));
-    int final_overlap_width = last_overlap_width + x_offset;
-    final_overlap_width = XCAM_ALIGN_AROUND (final_overlap_width, 8);
-    XCAM_ASSERT (final_overlap_width >= _config.sitch_min_width);
-    int center = final_overlap_width / 2;
-    XCAM_ASSERT (center > _config.sitch_min_width / 2);
-
-    stitch1.x = XCAM_ALIGN_AROUND (center - _config.sitch_min_width / 2, 8);
-    stitch1.width = _config.sitch_min_width;
-    stitch0.x = dst_width - final_overlap_width + stitch1.x;
-    stitch0.width = _config.sitch_min_width;
-
-    float delta_offset = final_overlap_width - last_overlap_width;
-    x_offset -= delta_offset;
-}
-
-void
 CVFeatureMatch::detect_and_match (
-    cv::InputArray img_left, cv::InputArray img_right, cv::Rect &crop_left, cv::Rect &crop_right,
+    cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
     int &valid_count, float &mean_offset, float &x_offset, int dst_width)
 {
     std::vector<float> err;
@@ -319,6 +193,7 @@ CVFeatureMatch::detect_and_match (
 
     calc_of_match (img_left, img_right, corner_left, corner_right,
                    status, err, valid_count, mean_offset, x_offset);
+
     adjust_stitch_area (dst_width, x_offset, crop_left, crop_right);
 
 #if XCAM_CV_FM_DEBUG
@@ -331,14 +206,14 @@ CVFeatureMatch::detect_and_match (
 void
 CVFeatureMatch::optical_flow_feature_match (
     SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
-    cv::Rect &left_img_crop, cv::Rect &right_img_crop, int dst_width)
+    Rect &left_crop_rect, Rect &right_crop_rect, int dst_width)
 {
     cv::UMat left_umat, right_umat;
     cv::Mat left_mat, right_mat;
     cv::_InputArray left_img, right_img;
 
-    if (!get_crop_image (left_buf, left_img_crop, left_umat)
-            || !get_crop_image (right_buf, right_img_crop, right_umat))
+    if (!get_crop_image (left_buf, left_crop_rect, left_umat)
+            || !get_crop_image (right_buf, right_crop_rect, right_umat))
         return;
 
     if (_use_ocl) {
@@ -352,7 +227,7 @@ CVFeatureMatch::optical_flow_feature_match (
         right_img = cv::_InputArray (right_mat);
     }
 
-    detect_and_match (left_img, right_img, left_img_crop, right_img_crop,
+    detect_and_match (left_img, right_img, left_crop_rect, right_crop_rect,
                       _valid_count, _mean_offset, _x_offset, dst_width);
 
 #if XCAM_CV_FM_DEBUG

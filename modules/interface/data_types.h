@@ -32,6 +32,7 @@ struct Rect {
     int32_t width, height;
 
     Rect () : pos_x (0), pos_y (0), width (0), height (0) {}
+    Rect (int32_t x, int32_t y, int32_t w, int32_t h) : pos_x (x), pos_y (y), width (w), height (h) {}
 };
 
 struct ImageCropInfo {

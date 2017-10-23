@@ -1,5 +1,5 @@
 /*
- * cv_feature_match.h - optical flow feature match
+ * cv_capi_feature_match.h - optical flow feature match
  *
  *  Copyright (c) 2016-2017 Intel Corporation
  *
@@ -17,10 +17,11 @@
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
  * Author: Yinhang Liu <yinhangx.liu@intel.com>
+ * Author: Zong Wei <wei.zong@intel.com>
  */
 
-#ifndef XCAM_CV_FEATURE_MATCH_H
-#define XCAM_CV_FEATURE_MATCH_H
+#ifndef CV_CAPI_FEATURE_MATCH_H
+#define CV_CAPI_FEATURE_MATCH_H
 
 #include <base/xcam_common.h>
 #include <base/xcam_buffer.h>
@@ -28,60 +29,54 @@
 #include <smartptr.h>
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
-#include "ocl/cv_base_class.h"
 #include "ocl/feature_match.h"
-#include "interface/data_types.h"
-
-#include <ocl/cl_context.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_memory.h>
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/ocl.hpp>
 
 namespace XCam {
 
-class CVFeatureMatch
-    : public CVBaseClass
-    , public FeatureMatch
+class CVCapiFeatureMatch
+    : public FeatureMatch
 {
 public:
-    explicit CVFeatureMatch ();
+    explicit CVCapiFeatureMatch ();
 
     void optical_flow_feature_match (
         SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
         Rect &left_img_crop, Rect &right_img_crop, int dst_width);
 
     void set_ocl (bool use_ocl) {
-        CVBaseClass::set_ocl (use_ocl);
+        XCAM_UNUSED (use_ocl);
     }
     bool is_ocl_path () {
-        return CVBaseClass::is_ocl_path ();
+        return false;
     }
 
 protected:
-    bool get_crop_image (SmartPtr<VideoBuffer> buffer, Rect crop_rect, cv::UMat &img);
+    bool get_crop_image (SmartPtr<VideoBuffer> buffer, Rect crop_rect, std::vector<char> &crop_image, CvMat &img);
 
-    void add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
-    void get_valid_offsets (cv::InputOutputArray out_image, cv::Size img0_size,
-                            std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
-                            std::vector<uchar> status, std::vector<float> error,
+    void add_detected_data (CvArr* image, std::vector<CvPoint2D32f> &corners);
+    void get_valid_offsets (CvArr* out_image, CvSize img0_size,
+                            std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,
+                            std::vector<char> status, std::vector<float> error,
                             std::vector<float> &offsets, float &sum, int &count);
 
-    void calc_of_match (cv::InputArray image0, cv::InputArray image1,
-                        std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
-                        std::vector<uchar> &status, std::vector<float> &error,
+    void calc_of_match (CvArr* image0, CvArr* image1,
+                        std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,
+                        std::vector<char> &status, std::vector<float> &error,
                         int &last_count, float &last_mean_offset, float &out_x_offset);
 
     void detect_and_match (
-        cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
+        CvArr* img_left, CvArr* img_right, Rect &crop_left, Rect &crop_right,
         int &valid_count, float &mean_offset, float &x_offset, int dst_width);
 
 private:
-    XCAM_DEAD_COPY (CVFeatureMatch);
+    XCAM_DEAD_COPY (CVCapiFeatureMatch);
 
+    std::vector<char> _left_crop_image;
+    std::vector<char> _right_crop_image;
 };
 
 }
 
-#endif // XCAM_CV_FEATURE_MATCH_H
+#endif // CV_CAPI_FEATURE_MATCH_H
