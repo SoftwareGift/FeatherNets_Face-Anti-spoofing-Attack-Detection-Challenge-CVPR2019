@@ -58,6 +58,7 @@ public:
 
     bool set_threads (const SmartPtr<ThreadPool> &pool);
     bool set_out_video_info (const VideoBufferInfo &info);
+    bool enable_allocator (bool enable);
 
     // derive from ImageHandler
     virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &param, bool sync);
@@ -86,6 +87,7 @@ private:
     VideoBufferInfo         _out_video_info;
     SmartPtr<SyncMeta>      _cur_sync;
     bool                    _need_configure;
+    bool                    _enable_allocator;
     SafeList<Parameters>    _params;
     mutable std::atomic<int32_t>  _wip_buf_count;
 };

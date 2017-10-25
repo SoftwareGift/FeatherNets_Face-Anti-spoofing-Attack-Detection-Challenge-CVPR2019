@@ -81,9 +81,9 @@ SyncMeta::is_error () const
 SoftHandler::SoftHandler (const char* name)
     : ImageHandler (name)
     , _need_configure (true)
+    , _enable_allocator (true)
     , _wip_buf_count (0)
 {
-    set_allocator (new SoftVideoBufAllocator);
 }
 
 SoftHandler::~SoftHandler ()
@@ -105,23 +105,31 @@ SoftHandler::set_out_video_info (const VideoBufferInfo &info)
     return true;
 }
 
+bool
+SoftHandler::enable_allocator (bool enable)
+{
+    _enable_allocator = enable;
+    return true;
+}
+
 XCamReturn
 SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param)
 {
+    XCAM_UNUSED (param);
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     XCAM_ASSERT (_need_configure);
-    if (!param->out_buf.ptr ()) { // correct?
+    if (_enable_allocator) {
         XCAM_FAIL_RETURN (
-            ERROR, _out_video_info.width > 0 && _out_video_info.height > 0, XCAM_RETURN_ERROR_PARAM,
+            ERROR, _out_video_info.is_valid (), XCAM_RETURN_ERROR_PARAM,
             "soft_hander(%s) configure resource failed before reserver buffer since out video info was not set",
             XCAM_STR (get_name ()));
 
+        set_allocator (new SoftVideoBufAllocator);
         ret = reserve_buffers (_out_video_info, DEFAULT_SOFT_BUF_COUNT);
         XCAM_FAIL_RETURN (
             ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
             "soft_hander(%s) configure resource failed in reserving buffers", XCAM_STR (get_name ()));
-        _need_configure = false;
     }
 
     if (_threads.ptr () && !_threads->is_running ()) {
@@ -130,6 +138,7 @@ SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param
             ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
             "soft_hander(%s) configure resource failed when starting threads", XCAM_STR (get_name ()));
     }
+    _need_configure = false;
 
     return ret;
 }
@@ -152,7 +161,12 @@ SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bo
             "soft_hander(%s) configure resource failed", XCAM_STR (get_name ()));
     }
 
-    if (!param->out_buf.ptr () && _out_video_info.is_valid ()) {
+    if (!param->out_buf.ptr ()) {
+        XCAM_FAIL_RETURN (
+            ERROR, _enable_allocator, XCAM_RETURN_ERROR_PARAM,
+            "soft_hander:%s param->out_buf is null, need allocate outside or enable allocator.",
+            XCAM_STR (get_name ()));
+
         param->out_buf = get_free_buf ();
         XCAM_FAIL_RETURN (
             ERROR, param->out_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
