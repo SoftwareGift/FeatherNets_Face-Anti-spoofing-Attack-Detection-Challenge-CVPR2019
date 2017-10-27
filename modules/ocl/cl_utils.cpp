@@ -63,7 +63,7 @@ convert_to_clbuffer (
 
     SmartPtr<CLVideoBuffer> cl_video_buf = buf.dynamic_cast_ptr<CLVideoBuffer> ();
     if (cl_video_buf.ptr ()) {
-        cl_buf = cl_video_buf->get_cl_buffer ();
+        cl_buf = cl_video_buf;
     }
 #if HAVE_LIBDRM
     else {
