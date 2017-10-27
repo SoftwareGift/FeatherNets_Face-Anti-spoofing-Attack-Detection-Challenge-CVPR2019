@@ -25,15 +25,14 @@ namespace XCam {
 
 CVBaseClass::CVBaseClass ()
 {
-    SmartPtr<CVContext> cv_context = CVContext::instance();
-    _use_ocl = cv_context->use_ocl ();
-    _context = cv_context->get_context ();
+    SmartPtr<CVContext> _cv_context = CVContext::instance ();
+    _use_ocl = cv::ocl::useOpenCL ();
 }
 
 bool
 CVBaseClass::convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image)
 {
-    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_context, buffer);
+    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_cv_context->get_cl_context (), buffer);
     VideoBufferInfo info = buffer->get_video_info ();
     cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 

@@ -36,7 +36,7 @@ bool
 CVFeatureMatch::get_crop_image (
     SmartPtr<VideoBuffer> buffer, Rect crop_rect, cv::UMat &img)
 {
-    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_context, buffer);
+    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_cv_context->get_cl_context (), buffer);
     VideoBufferInfo info = buffer->get_video_info ();
     cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 

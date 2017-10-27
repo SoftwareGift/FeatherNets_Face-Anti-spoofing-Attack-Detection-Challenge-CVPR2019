@@ -45,13 +45,7 @@ class CVContext
 public:
     static SmartPtr<CVContext> instance ();
 
-    bool is_inited () {
-        return _is_ocl_inited;
-    }
-    bool use_ocl () {
-        return _use_ocl;
-    }
-    SmartPtr<CLContext> get_context () {
+    SmartPtr<CLContext> get_cl_context () {
         return _context;
     }
     ~CVContext();
@@ -62,9 +56,7 @@ private:
     static Mutex                _init_mutex;
     static SmartPtr<CVContext>  _instance;
 
-    bool                        _is_ocl_inited;
     SmartPtr<CLContext>         _context;
-    bool                        _use_ocl;
 
     XCAM_DEAD_COPY (CVContext);
 

@@ -34,7 +34,7 @@ CVContext::instance ()
     if (_instance.ptr())
         return _instance;
 
-    _instance = new CVContext();
+    _instance = new CVContext ();
     _instance->init_opencv_ocl ();
     return _instance;
 }
@@ -48,25 +48,11 @@ CVContext::init_opencv_ocl ()
     cl_device_id device_id = CLDevice::instance()->get_device_id ();
     cl_context _context_id = _context->get_context_id ();
     cv::ocl::attachContext (platform_name, platform_id, _context_id, device_id);
-    _is_ocl_inited = true;
-
-    if (!cv::ocl::useOpenCL ()) {
-        cv::ocl::setUseOpenCL (false);
-
-        if (_use_ocl) {
-            XCAM_LOG_WARNING ("cv context: change to non-ocl mode");
-            _use_ocl = false;
-        }
-
-        return;
-    }
-
-    cv::ocl::setUseOpenCL (_use_ocl);
+    cv::ocl::setUseOpenCL (cv::ocl::haveOpenCL());
+    XCAM_LOG_DEBUG("Use OpenCL is:  %s", cv::ocl::haveOpenCL() ? "true" : "false");
 }
 
 CVContext::CVContext ()
-    : _is_ocl_inited (false)
-    , _use_ocl (false)
 {
 
 }

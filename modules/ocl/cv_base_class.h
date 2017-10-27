@@ -54,7 +54,7 @@ public:
 
 protected:
     XCAM_DEAD_COPY (CVBaseClass);
-    SmartPtr<CLContext>  _context;
+    SmartPtr<CVContext>  _cv_context;
     bool                 _use_ocl;
 };
 
