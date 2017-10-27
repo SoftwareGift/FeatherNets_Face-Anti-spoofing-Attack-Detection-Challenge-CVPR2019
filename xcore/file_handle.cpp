@@ -134,8 +134,12 @@ FileHandle::read_file (void *buf, const size_t &size)
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     if (fread (buf, 1, size, _fp) != size) {
-        XCAM_LOG_ERROR ("read file failed, size doesn't match");
-        ret = XCAM_RETURN_ERROR_FILE;
+        if (end_of_file ()) {
+            ret = XCAM_RETURN_BYPASS;
+        } else {
+            XCAM_LOG_ERROR ("read file failed, size doesn't match");
+            ret = XCAM_RETURN_ERROR_FILE;
+        }
     }
 
     return ret;
