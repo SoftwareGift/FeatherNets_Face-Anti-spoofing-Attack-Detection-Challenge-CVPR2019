@@ -43,10 +43,10 @@ class BowlDataConfig
 {
 
 public:
-    explicit BowlDataConfig();  
+    explicit BowlDataConfig();
 
-    uint32_t image_height;
-    uint32_t image_heightZ0;
+    uint32_t wall_image_height;
+    uint32_t ground_image_height;
 
     float a, b, c;
     float angle_start, angle_end;
@@ -68,10 +68,10 @@ public:
 
     IntrinsicParameter get_intrinsic_param();
     ExtrinsicParameter get_extrinsic_param();
- 
+
 private:
     XCAM_DEAD_COPY (CVSurViewFisheyeDewarp);
-   
+
     virtual void cal_image_coord(MapTable cam_coord, MapTable &image_coord);
 
     void cal_world_coord(uint32_t x, uint32_t y, MapTable &world_coord, uint32_t image_w, const BowlDataConfig &bowl_config);
@@ -89,7 +89,7 @@ class CVPolyFisheyeDewarp : public CVSurViewFisheyeDewarp
 {
 
 public:
-    explicit CVPolyFisheyeDewarp ();    
+    explicit CVPolyFisheyeDewarp ();
 
     void cal_image_coord(MapTable cam_coord, MapTable &image_coord);
 

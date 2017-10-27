@@ -64,6 +64,7 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _stitch_width (0)
     , _stitch_height (0)
     , _stitch_res_mode (0)
+    , _surround_mode (SphereView)
 {
     XCAM_LOG_DEBUG ("CLPostImageProcessor constructed");
 }
@@ -402,7 +403,7 @@ CLPostImageProcessor::create_handlers ()
     /* image stitch */
     image_handler =
         create_image_360_stitch (context, _stitch_enable_seam, _stitch_scale_mode,
-                                 _stitch_fisheye_map, _stitch_lsc, (StitchResMode) _stitch_res_mode);
+                                 _stitch_fisheye_map, _stitch_lsc, (SurroundMode) _surround_mode, (StitchResMode) _stitch_res_mode);
     _stitch = image_handler.dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_FAIL_RETURN (
         WARNING,

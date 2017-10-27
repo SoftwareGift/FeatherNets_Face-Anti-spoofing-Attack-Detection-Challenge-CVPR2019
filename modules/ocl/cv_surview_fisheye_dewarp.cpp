@@ -24,8 +24,8 @@ namespace XCam {
 
 BowlDataConfig::BowlDataConfig()
 {
-    image_height = 480;
-    image_heightZ0 = 320;
+    wall_image_height = 480;
+    ground_image_height = 320;
     angle_start = PI / 2;
     angle_end = 3 * PI / 2;
 
@@ -74,7 +74,7 @@ CVSurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, ui
     MapTable world_coord(3);
     MapTable cam_coord(3);
     MapTable cam_world_coord(3);
-    MapTable image_coord(2);    
+    MapTable image_coord(2);
 
     uint32_t scale_factor_w = image_w / table_w;
     uint32_t scale_factor_h = image_h / table_h;
@@ -90,9 +90,9 @@ CVSurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, ui
             cal_image_coord(cam_coord, image_coord);
 
             map_table[row * table_w * 2 + col * 2] = image_coord[0];
-            map_table[row * table_w * 2 + col * 2 + 1] = image_coord[1];           
+            map_table[row * table_w * 2 + col * 2 + 1] = image_coord[1];
         }
-    }    
+    }
 }
 
 void
@@ -105,14 +105,14 @@ CVSurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_
     float b = bowl_config.b;
     float c = bowl_config.c;
 
-    float z_step = 3000.0f / bowl_config.image_height;
+    float z_step = 3000.0f / bowl_config.wall_image_height;
     float angle_step = fabs(bowl_config.angle_end - bowl_config.angle_start) / image_w;
 
-    if(y < bowl_config.image_height) {
+    if(y < bowl_config.wall_image_height) {
         world_z = 1500.0f - y * z_step;
-        angle = bowl_config.angle_start - x * angle_step; 
+        angle = bowl_config.angle_start - x * angle_step;
         float r2 = 1 - world_z * world_z / (c * c);
-        
+
         if(angle == PI / 2) {
             world_x = 0.0f;
             world_y = sqrt(r2 * b * b);
@@ -131,11 +131,12 @@ CVSurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_
         a = a * sqrt(1 - world_z * world_z / (c * c));
         b = b * sqrt(1 - world_z * world_z / (c * c));
 
-        float step_a = (a - 920.0f) / bowl_config.image_heightZ0;
-        float step_b = (b - 920.0f) / bowl_config.image_heightZ0;
+        float ratio_ab = b / a;
 
-        a = a - (y - bowl_config.image_height) * step_a;
-        b = b - (y - bowl_config.image_height) * step_b;
+        float step_a = (a - 920.0f) / bowl_config.ground_image_height;
+
+        a = a - (y - bowl_config.wall_image_height) * step_a;
+        b = a * ratio_ab;
 
         angle = bowl_config.angle_start - x * angle_step;
 
@@ -154,7 +155,7 @@ CVSurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_
         }
     }
 
-    world_coord[0] = world_x - 2000.0f;
+    world_coord[0] = world_x - 2250.0f;
     world_coord[1] = world_y;
     world_coord[2] = world_z + 1500.0f;
 }
@@ -162,9 +163,9 @@ CVSurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_
 void
 CVSurViewFisheyeDewarp::cal_cam_world_coord(MapTable world_coord, MapTable &cam_world_coord)
 {
-    cv::Matx44f rotation_mat = generate_rotation_matrix(_extrinsic_param.roll * PI / 180, 
-                                                        _extrinsic_param.pitch * PI / 180, 
-                                                        _extrinsic_param.yaw * PI / 180);
+    cv::Matx44f rotation_mat = generate_rotation_matrix(_extrinsic_param.roll * PI / 180,
+                               _extrinsic_param.pitch * PI / 180,
+                               _extrinsic_param.yaw * PI / 180);
     cv::Matx44f rotation_tran_mat(rotation_mat);
     rotation_tran_mat(0, 3) = _extrinsic_param.trans_x;
     rotation_tran_mat(1, 3) = _extrinsic_param.trans_y;
@@ -181,20 +182,20 @@ CVSurViewFisheyeDewarp::cal_cam_world_coord(MapTable world_coord, MapTable &cam_
 cv::Matx44f
 CVSurViewFisheyeDewarp::generate_rotation_matrix(float roll, float pitch, float yaw)
 {
-    cv::Matx44f matrix_x(1.0, 0.0, 0.0, 0.0, 
-                        0.0, cos(roll), -sin(roll), 0.0,
-                        0.0, sin(roll), cos(roll), 0.0,
-                        0.0, 0.0, 0.0, 1.0);
+    cv::Matx44f matrix_x(1.0, 0.0, 0.0, 0.0,
+                         0.0, cos(roll), -sin(roll), 0.0,
+                         0.0, sin(roll), cos(roll), 0.0,
+                         0.0, 0.0, 0.0, 1.0);
 
-    cv::Matx44f matrix_y(cos(pitch), 0.0, sin(pitch), 0.0, 
-                        0.0, 1.0, 0.0, 0.0, 
-                        -sin(pitch), 0.0, cos(pitch), 0.0,
-                        0.0, 0.0, 0.0, 1.0);
+    cv::Matx44f matrix_y(cos(pitch), 0.0, sin(pitch), 0.0,
+                         0.0, 1.0, 0.0, 0.0,
+                         -sin(pitch), 0.0, cos(pitch), 0.0,
+                         0.0, 0.0, 0.0, 1.0);
 
     cv::Matx44f matrix_z(cos(yaw), -sin(yaw), 0.0, 0.0,
-                        sin(yaw), cos(yaw), 0.0, 0.0,
-                        0.0, 0.0, 1.0, 0.0,
-                        0.0, 0.0, 0.0, 1.0);
+                         sin(yaw), cos(yaw), 0.0, 0.0,
+                         0.0, 0.0, 1.0, 0.0,
+                         0.0, 0.0, 0.0, 1.0);
 
     return matrix_z * matrix_y * matrix_x;
 }
@@ -210,6 +211,8 @@ CVSurViewFisheyeDewarp::world_coord2cam(MapTable cam_world_coord, MapTable &cam_
 void
 CVSurViewFisheyeDewarp::cal_image_coord(MapTable cam_coord, MapTable &image_coord)
 {
+    image_coord[0] = cam_coord[0];
+    image_coord[1] = cam_coord[1];
 }
 
 void

@@ -145,6 +145,7 @@ private:
     uint32_t                                  _stitch_width;
     uint32_t                                  _stitch_height;
     uint32_t                                  _stitch_res_mode;
+    uint32_t                                  _surround_mode;
 };
 
 };

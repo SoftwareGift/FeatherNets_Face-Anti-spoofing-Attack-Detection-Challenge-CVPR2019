@@ -26,6 +26,11 @@
 #include "ocl/cl_image_handler.h"
 #include "ocl/cl_geo_map_handler.h"
 
+#if HAVE_OPENCV
+#include "ocl/cv_surview_fisheye_dewarp.h"
+#include "ocl/cv_calibration_parser.h"
+#endif
+
 namespace XCam {
 
 class CLFisheyeHandler;
@@ -48,7 +53,7 @@ class CLFisheyeHandler
 {
     friend class CLFisheye2GPSKernel;
 public:
-    explicit CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use_map, bool need_lsc);
+    explicit CLFisheyeHandler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc);
     virtual ~CLFisheyeHandler();
 
     void set_output_size (uint32_t width, uint32_t height);
@@ -63,6 +68,28 @@ public:
 
     void set_lsc_table (float *table, uint32_t table_size);
     void set_lsc_gray_threshold (float min_threshold, float max_threshold);
+
+    void set_bowl_config(const BowlDataConfig bowl_data_config) {
+        _bowl_data_config = bowl_data_config;
+    }
+    const BowlDataConfig &get_bowl_config() {
+        return _bowl_data_config;
+    }
+
+    void set_intrinsic_param(const IntrinsicParameter intrinsic_param) {
+        _intrinsic_param = intrinsic_param;
+    }
+    const IntrinsicParameter &get_intrinsic_param() {
+        return _intrinsic_param;
+    }
+
+    void set_extrinsic_param(const ExtrinsicParameter extrinsic_param) {
+        _extrinsic_param = extrinsic_param;
+    }
+    const ExtrinsicParameter &get_extrinsic_param() {
+        return _extrinsic_param;
+    }
+
 
 protected:
     // derived from CLImageHandler
@@ -117,6 +144,14 @@ private:
     uint32_t                         _lsc_array_size;
     float                            _gray_threshold[2];  // [min_gray_threshold, max_gray_threshold]
     float                            *_lsc_array;
+
+    BowlDataConfig                   _bowl_data_config;
+
+    IntrinsicParameter               _intrinsic_param;
+    ExtrinsicParameter               _extrinsic_param;
+
+    SurroundMode                     _surround_mode;
+
     SmartPtr<CLImage>                _geo_table;
     SmartPtr<CLImage>                _lsc_table;
     SmartPtr<CLImage>                _input[CLNV12PlaneMax];
@@ -124,7 +159,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map = false, bool need_lsc = false);
+create_fisheye_handler (const SmartPtr<CLContext> &context, SurroundMode surround_mode = SphereView, bool use_map = false, bool need_lsc = false);
 
 }
 

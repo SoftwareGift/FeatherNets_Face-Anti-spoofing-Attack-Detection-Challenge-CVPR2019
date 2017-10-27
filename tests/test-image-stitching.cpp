@@ -89,6 +89,7 @@ void usage(const char* arg0)
             "\t--output-w          optional, output width, default: 1920\n"
             "\t--output-h          optional, output width, default: 960\n"
             "\t--res-mode          optional, image resolution mode, select from [1080p/1080p4/4k], default: 1080p\n"
+            "\t--surround-mode     optional, stitching surround mode, select from [sphere, bowl], default: sphere\n"
             "\t--scale-mode        optional, image scaling mode, select from [local/global], default: local\n"
             "\t--enable-seam       optional, enable seam finder in blending area, default: no\n"
             "\t--enable-fisheyemap optional, enable fisheye map, default: no\n"
@@ -128,6 +129,7 @@ int main (int argc, char *argv[])
     bool enable_lsc = false;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
     StitchResMode res_mode = StitchRes1080P;
+    SurroundMode surround_mode = BowlView;
 
 #if HAVE_OPENCV
     bool fm_ocl = false;
@@ -150,6 +152,7 @@ int main (int argc, char *argv[])
         {"output-w", required_argument, NULL, 'W'},
         {"output-h", required_argument, NULL, 'H'},
         {"res-mode", required_argument, NULL, 'R'},
+        {"surround-mode", required_argument, NULL, 'r'},
         {"scale-mode", required_argument, NULL, 'c'},
         {"enable-seam", no_argument, NULL, 'S'},
         {"enable-fisheyemap", no_argument, NULL, 'F'},
@@ -199,6 +202,16 @@ int main (int argc, char *argv[])
                 res_mode = StitchRes4K;
             else {
                 XCAM_LOG_ERROR ("incorrect resolution mode");
+                return -1;
+            }
+            break;
+        case 'r':
+            if (!strcasecmp (optarg, "sphere"))
+                surround_mode = SphereView;
+            else if(!strcasecmp (optarg, "bowl"))
+                surround_mode = BowlView;
+            else {
+                XCAM_LOG_ERROR ("incorrect surround mode");
                 return -1;
             }
             break;
@@ -307,6 +320,8 @@ int main (int argc, char *argv[])
     printf ("output height:\t\t%d\n", output_height);
     printf ("resolution mode:\t%s\n",
             res_mode == StitchRes1080P ? "1080P" : (res_mode == StitchRes1080P4 ? "1080P4" : "4K"));
+    printf ("surround mode: \t%s\n",
+            surround_mode == SphereView ? "sphere view" : "bowl view");
     printf ("scale mode:\t\t%s\n", scale_mode == CLBlenderScaleLocal ? "local" : "global");
     printf ("seam mask:\t\t%s\n", enable_seam ? "true" : "false");
     printf ("fisheye map:\t\t%s\n", enable_fisheye_map ? "true" : "false");
@@ -325,7 +340,7 @@ int main (int argc, char *argv[])
     image_360 =
         create_image_360_stitch (
             context, enable_seam, scale_mode,
-            enable_fisheye_map, enable_lsc, res_mode, fisheye_num, all_in_one).dynamic_cast_ptr<CLImage360Stitch> ();
+            enable_fisheye_map, enable_lsc, surround_mode, res_mode, fisheye_num, all_in_one).dynamic_cast_ptr<CLImage360Stitch> ();
     XCAM_ASSERT (image_360.ptr ());
     image_360->set_output_size (output_width, output_height);
 #if HAVE_OPENCV

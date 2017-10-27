@@ -128,13 +128,14 @@ CLFisheye2GPSKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, bool use_map, bool need_lsc)
+CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc)
     : CLImageHandler (context, "CLFisheyeHandler")
     , _output_width (0)
     , _output_height (0)
     , _range_longitude (180.0f)
     , _range_latitude (180.0f)
     , _map_factor (DEFAULT_FISHEYE_TABLE_SCALE)
+    , _surround_mode (surround_mode)
     , _use_map (use_map)
     , _need_lsc (need_lsc ? 1 : 0)
     , _lsc_array_size (0)
@@ -374,44 +375,72 @@ CLFisheyeHandler::generate_fisheye_table (
         ERROR, _geo_table.ptr () && _geo_table->is_valid (),
         XCAM_RETURN_ERROR_MEM, "[%s] check geo map buffer failed", get_name ());
 
-    CLArgList args;
-    CLWorkSize work_size;
+    if(_surround_mode == BowlView) {
+        BowlDataConfig bowl_data_config = get_bowl_config();
+        IntrinsicParameter intrinsic_param = get_intrinsic_param();
+        ExtrinsicParameter extrinsic_param = get_extrinsic_param();
 
-    FisheyeInfo fisheye_arg1 = fisheye_info;
-    fisheye_arg1.wide_angle = degree2radian (fisheye_info.wide_angle);
-    fisheye_arg1.rotate_angle = degree2radian (fisheye_info.rotate_angle);
-    args.push_back (new CLArgumentT<FisheyeInfo> (fisheye_arg1));
+        std::vector<float> map_table(table_width * table_height * 2);
+        CVPolyFisheyeDewarp fd;
+        fd.set_intrinsic_param(intrinsic_param);
+        fd.set_extrinsic_param(extrinsic_param);
 
-    float fisheye_image_size[2];
-    fisheye_image_size[0] = fisheye_width;
-    fisheye_image_size[1] = fisheye_height;
-    args.push_back (new CLArgumentTArray<float, 2> (fisheye_image_size));
-    args.push_back (new CLMemArgument (_geo_table));
+        fd.fisheye_dewarp(map_table, table_width, table_height, output_width, output_height, bowl_data_config);
 
-    float radian_per_pixel[2];
-    radian_per_pixel[0] = degree2radian (longitude / table_width);
-    radian_per_pixel[1] = degree2radian (latitude / table_height);
-    args.push_back (new CLArgumentTArray<float, 2> (radian_per_pixel));
+        float *map_ptr = NULL;
+        size_t origin[3] = {0, 0, 0};
+        size_t region[3] = {table_width, table_height, 1};
+        size_t row_pitch;
+        size_t slice_pitch;
+        XCamReturn ret = _geo_table->enqueue_map ((void *&)map_ptr, origin, region, &row_pitch, &slice_pitch, CL_MEM_READ_WRITE);
+        XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
 
-    float table_center[2];
-    table_center[0] = table_width / 2.0f;
-    table_center[1] = table_height / 2.0f;
-    args.push_back (new CLArgumentTArray<float, 2> (table_center));
+        for (uint32_t row = 0; row < table_height; row++) {
+            for(uint32_t col = 0; col < table_width; col++) {
+                map_ptr[row * row_pitch / 4 + col * 4] = map_table[row * table_width * 2 + col * 2] / fisheye_width;
+                map_ptr[row * row_pitch / 4 + col * 4 + 1] = map_table[row * table_width * 2 + col * 2 + 1] / fisheye_height;
+            }
+        }
+        _geo_table->enqueue_unmap ((void *&)map_ptr);
+    } else {
+        CLArgList args;
+        CLWorkSize work_size;
 
-    work_size.dim = 2;
-    work_size.local[0] = 8;
-    work_size.local[1] = 4;
-    work_size.global[0] = XCAM_ALIGN_UP (table_width, work_size.local[0]);
-    work_size.global[1] = XCAM_ALIGN_UP (table_height, work_size.local[1]);
+        FisheyeInfo fisheye_arg1 = fisheye_info;
+        fisheye_arg1.wide_angle = degree2radian (fisheye_info.wide_angle);
+        fisheye_arg1.rotate_angle = degree2radian (fisheye_info.rotate_angle);
+        args.push_back (new CLArgumentT<FisheyeInfo> (fisheye_arg1));
 
-    XCAM_FAIL_RETURN (
-        ERROR, table_kernel->set_arguments (args, work_size) == XCAM_RETURN_NO_ERROR,
-        XCAM_RETURN_ERROR_CL, "kernel_fisheye_table set arguments failed");
+        float fisheye_image_size[2];
+        fisheye_image_size[0] = fisheye_width;
+        fisheye_image_size[1] = fisheye_height;
+        args.push_back (new CLArgumentTArray<float, 2> (fisheye_image_size));
+        args.push_back (new CLMemArgument (_geo_table));
 
-    XCAM_FAIL_RETURN (
-        ERROR, table_kernel->execute (table_kernel, true) == XCAM_RETURN_NO_ERROR,
-        XCAM_RETURN_ERROR_CL, "[%s] execute kernel_fisheye_table failed", get_name ());
+        float radian_per_pixel[2];
+        radian_per_pixel[0] = degree2radian (longitude / table_width);
+        radian_per_pixel[1] = degree2radian (latitude / table_height);
+        args.push_back (new CLArgumentTArray<float, 2> (radian_per_pixel));
 
+        float table_center[2];
+        table_center[0] = table_width / 2.0f;
+        table_center[1] = table_height / 2.0f;
+        args.push_back (new CLArgumentTArray<float, 2> (table_center));
+
+        work_size.dim = 2;
+        work_size.local[0] = 8;
+        work_size.local[1] = 4;
+        work_size.global[0] = XCAM_ALIGN_UP (table_width, work_size.local[0]);
+        work_size.global[1] = XCAM_ALIGN_UP (table_height, work_size.local[1]);
+
+        XCAM_FAIL_RETURN (
+            ERROR, table_kernel->set_arguments (args, work_size) == XCAM_RETURN_NO_ERROR,
+            XCAM_RETURN_ERROR_CL, "kernel_fisheye_table set arguments failed");
+
+        XCAM_FAIL_RETURN (
+            ERROR, table_kernel->execute (table_kernel, true) == XCAM_RETURN_NO_ERROR,
+            XCAM_RETURN_ERROR_CL, "[%s] execute kernel_fisheye_table failed", get_name ());
+    }
     //dump_geo_table (_geo_table);
 
     return XCAM_RETURN_NO_ERROR;
@@ -556,12 +585,12 @@ create_fishey_gps_kernel (const SmartPtr<CLContext> &context, SmartPtr<CLFisheye
 }
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (const SmartPtr<CLContext> &context, bool use_map, bool need_lsc)
+create_fisheye_handler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc)
 {
     SmartPtr<CLFisheyeHandler> handler;
     SmartPtr<CLImageKernel> kernel;
 
-    handler = new CLFisheyeHandler (context, use_map, need_lsc);
+    handler = new CLFisheyeHandler (context, surround_mode, use_map, need_lsc);
     XCAM_ASSERT (handler.ptr ());
 
     if (use_map) {

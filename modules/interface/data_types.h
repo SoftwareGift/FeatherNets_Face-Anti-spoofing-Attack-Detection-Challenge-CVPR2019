@@ -27,6 +27,11 @@
 
 namespace XCam {
 
+enum SurroundMode {
+    SphereView = 0,
+    BowlView = 1
+};
+
 struct Rect {
     int32_t pos_x, pos_y;
     int32_t width, height;

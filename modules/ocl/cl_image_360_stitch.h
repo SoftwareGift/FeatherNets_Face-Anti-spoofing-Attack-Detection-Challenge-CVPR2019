@@ -66,8 +66,8 @@ class CLImage360Stitch
 {
 public:
     explicit CLImage360Stitch (
-        const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode,
-        int fisheye_num, bool all_in_one_img);
+        const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, SurroundMode surround_mode,
+        StitchResMode res_mode, int fisheye_num, bool all_in_one_img);
 
     bool set_stitch_info (StitchInfo stitch_info);
     StitchInfo get_stitch_info ();
@@ -78,6 +78,9 @@ public:
 
     bool set_fisheye_handler (SmartPtr<CLFisheyeHandler> fisheye, int index);
     bool set_blender (SmartPtr<CLBlender> blender, int idx);
+
+    void set_fisheye_intrinsic (IntrinsicParameter intrinsic_param, int index);
+    void set_fisheye_extrinsic (ExtrinsicParameter extrinsic_param, int index);
 
     bool set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1);
     const Rect &get_image_overlap (int img_idx, int num) {
@@ -139,6 +142,7 @@ private:
     SmartPtr<VideoBuffer>       _scale_global_input;
     SmartPtr<VideoBuffer>       _scale_global_output;
 
+    SurroundMode                _surround_mode;
     StitchResMode               _res_mode;
 
     bool                        _is_stitch_inited;
@@ -154,6 +158,7 @@ create_image_360_stitch (
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal,
     bool fisheye_map = false,
     bool need_lsc = false,
+    SurroundMode surround_mode = SphereView,
     StitchResMode res_mode = StitchRes1080P,
     int fisheye_num = 2,
     bool all_in_one_img = true);

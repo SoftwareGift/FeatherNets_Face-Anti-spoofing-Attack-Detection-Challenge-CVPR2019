@@ -51,7 +51,7 @@ CalibrationParser::parse_intrinsic_param(char *file_body, IntrinsicParameter &in
             CHECK_NULL(line_str);
             tok_str = strtok_r(line_str, str_tokens, &tok_endptr);
         }
-    
+
         line_str = strtok_r(NULL, line_tokens, &line_endptr);
         CHECK_NULL(line_str);
         tok_str = strtok_r(line_str, str_tokens, &tok_endptr);
@@ -62,7 +62,7 @@ CalibrationParser::parse_intrinsic_param(char *file_body, IntrinsicParameter &in
         }
         intrinsic_param.poly_length = strtol(tok_str, NULL, 10);
 
-        for(int i = 0; i < intrinsic_param.poly_length; i++) {
+        for(uint32_t i = 0; i < intrinsic_param.poly_length; i++) {
             tok_str = strtok_r(NULL, str_tokens, &tok_endptr);
             CHECK_NULL(tok_str);
             intrinsic_param.poly_coeff.push_back(strtof(tok_str, NULL));
@@ -174,7 +174,7 @@ CalibrationParser::parse_extrinsic_param(char *file_body, ExtrinsicParameter &ex
             tok_str = strtok_r(line_str, str_tokens, &tok_endptr);
         }
         extrinsic_param.yaw = strtof(tok_str, NULL);
-     } while(0);
+    } while(0);
 
     return XCAM_RETURN_NO_ERROR;
 }

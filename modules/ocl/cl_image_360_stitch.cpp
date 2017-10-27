@@ -180,25 +180,25 @@ get_default_stitch_info (StitchResMode res_mode)
         break;
     }
     case StitchRes1080P4: {
-        stitch_info.merge_width[0] = 96;
-        stitch_info.merge_width[1] = 96;
-        stitch_info.merge_width[2] = 96;
-        stitch_info.merge_width[3] = 96;
+        stitch_info.merge_width[0] = 224;
+        stitch_info.merge_width[1] = 128;
+        stitch_info.merge_width[2] = 128;
+        stitch_info.merge_width[3] = 64;
 
-        stitch_info.crop[0].left = 16;
-        stitch_info.crop[0].right = 16;
+        stitch_info.crop[0].left = 128;
+        stitch_info.crop[0].right = 48;
         stitch_info.crop[0].top = 0;
         stitch_info.crop[0].bottom = 0;
-        stitch_info.crop[1].left = 16;
+        stitch_info.crop[1].left = 160;
         stitch_info.crop[1].right = 16;
         stitch_info.crop[1].top = 0;
         stitch_info.crop[1].bottom = 0;
-        stitch_info.crop[2].left = 16;
-        stitch_info.crop[2].right = 16;
+        stitch_info.crop[2].left = 208;
+        stitch_info.crop[2].right = 496;
         stitch_info.crop[2].top = 0;
         stitch_info.crop[2].bottom = 0;
-        stitch_info.crop[3].left = 16;
-        stitch_info.crop[3].right = 16;
+        stitch_info.crop[3].left = 48;
+        stitch_info.crop[3].right = 136;
         stitch_info.crop[3].top = 0;
         stitch_info.crop[3].bottom = 0;
 
@@ -259,13 +259,14 @@ get_default_stitch_info (StitchResMode res_mode)
 }
 
 CLImage360Stitch::CLImage360Stitch (
-    const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, StitchResMode res_mode,
-    int fisheye_num, bool all_in_one_img)
+    const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, SurroundMode surround_mode,
+    StitchResMode res_mode, int fisheye_num, bool all_in_one_img)
     : CLMultiImageHandler (context, "CLImage360Stitch")
     , _context (context)
     , _output_width (0)
     , _output_height (0)
     , _scale_mode (scale_mode)
+    , _surround_mode (surround_mode)
     , _res_mode (res_mode)
     , _is_stitch_inited (false)
     , _fisheye_num (fisheye_num)
@@ -329,6 +330,18 @@ CLImage360Stitch::set_blender (SmartPtr<CLBlender> blender, int idx)
     return add_image_handler (handler);
 }
 
+void
+CLImage360Stitch::set_fisheye_intrinsic (IntrinsicParameter intrinsic_param, int index)
+{
+    _fisheye[index].handler->set_intrinsic_param(intrinsic_param);
+}
+
+void
+CLImage360Stitch::set_fisheye_extrinsic (ExtrinsicParameter extrinsic_param, int index)
+{
+    _fisheye[index].handler->set_extrinsic_param(extrinsic_param);
+}
+
 bool
 CLImage360Stitch::set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1)
 {
@@ -370,30 +383,70 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
 {
     const VideoBufferInfo &out_info = output->get_video_info ();
 
-    uint32_t fisheye_width_sum = out_info.width;
-    for (int i = 0; i < _fisheye_num; i++) {
-        fisheye_width_sum += _stitch_info.merge_width[i] + _stitch_info.crop[i].left + _stitch_info.crop[i].right;
-    }
-    _fisheye[0].width = fisheye_width_sum / _fisheye_num;
-    _fisheye[0].width = XCAM_ALIGN_UP (_fisheye[0].width, 16);
-    _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
-    XCAM_LOG_INFO (
-        "fisheye correction output size width:%d height:%d",
-        _fisheye[0].width, _fisheye[0].height);
+    if(_surround_mode == SphereView) {
+        uint32_t fisheye_width_sum = out_info.width;
+        for (int i = 0; i < _fisheye_num; i++) {
+            fisheye_width_sum += _stitch_info.merge_width[i] + _stitch_info.crop[i].left + _stitch_info.crop[i].right;
+        }
+        _fisheye[0].width = fisheye_width_sum / _fisheye_num;
+        _fisheye[0].width = XCAM_ALIGN_UP (_fisheye[0].width, 16);
+        _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
+        XCAM_LOG_INFO (
+            "fisheye correction output size width:%d height:%d",
+            _fisheye[0].width, _fisheye[0].height);
 
-    for (int i = 1; i < _fisheye_num; i++) {
-        _fisheye[i].width = _fisheye[0].width;
-        _fisheye[i].height = _fisheye[0].height;
-    }
+        for (int i = 1; i < _fisheye_num; i++) {
+            _fisheye[i].width = _fisheye[0].width;
+            _fisheye[i].height = _fisheye[0].height;
+        }
 
-    float max_dst_longitude, max_dst_latitude;
-    for (int i = 0; i < _fisheye_num; ++i) {
-        max_dst_latitude = (_stitch_info.fisheye_info[i].wide_angle > 180.0f) ?
-                           180.0f : _stitch_info.fisheye_info[i].wide_angle;
-        max_dst_longitude = max_dst_latitude * _fisheye[i].width / _fisheye[i].height;
+        float max_dst_longitude, max_dst_latitude;
+        for (int i = 0; i < _fisheye_num; ++i) {
+            max_dst_latitude = (_stitch_info.fisheye_info[i].wide_angle > 180.0f) ?
+                               180.0f : _stitch_info.fisheye_info[i].wide_angle;
+            max_dst_longitude = max_dst_latitude * _fisheye[i].width / _fisheye[i].height;
 
-        _fisheye[i].handler->set_dst_range (max_dst_longitude, max_dst_latitude);
-        _fisheye[i].handler->set_output_size (_fisheye[i].width, _fisheye[i].height);
+            _fisheye[i].handler->set_dst_range (max_dst_longitude, max_dst_latitude);
+            _fisheye[i].handler->set_output_size (_fisheye[i].width, _fisheye[i].height);
+        }
+    } else {
+        _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
+
+        float view_angle[XCAM_STITCH_FISHEYE_MAX_NUM];
+        float car_length = 4500.0f;
+        float max_z = 3000.0f;
+
+        for(int i = 0; i < _fisheye_num; i++) {
+            view_angle[i] = 120.0f / 360.0f * 2 * PI;
+            _fisheye[i].width = view_angle[i] / (2 * PI) * out_info.width;
+            _fisheye[i].width = XCAM_ALIGN_UP (_fisheye[i].width, 16);
+        }
+
+        XCAM_LOG_INFO (
+            "fisheye correction output size width:%d height:%d",
+            _fisheye[0].width, _fisheye[0].height);
+
+        BowlDataConfig bowl_data_config[XCAM_STITCH_FISHEYE_MAX_NUM];
+
+        float ground_length = bowl_data_config[0].a * sqrt(1 - (max_z / 2) * (max_z / 2) / (bowl_data_config[0].c * bowl_data_config[0].c)) - car_length / 2;
+        bowl_data_config[0].wall_image_height = (int)(max_z / (ground_length + max_z) * _fisheye[0].height);
+        bowl_data_config[0].ground_image_height = _fisheye[0].height - bowl_data_config[0].wall_image_height;
+
+        bowl_data_config[0].angle_start = view_angle[0] / 2;
+        bowl_data_config[0].angle_end = -view_angle[0] / 2;
+
+        for (int i = 1; i < _fisheye_num; i++) {
+            _fisheye[i].height = _fisheye[0].height;
+            bowl_data_config[i].wall_image_height = bowl_data_config[0].wall_image_height;
+            bowl_data_config[i].ground_image_height = bowl_data_config[0].ground_image_height;
+            bowl_data_config[i].angle_start = 2 * PI / _fisheye_num * (_fisheye_num - i) + view_angle[i] / 2;
+            bowl_data_config[i].angle_end = 2 * PI / _fisheye_num * (_fisheye_num - i) - view_angle[i] / 2;
+        }
+
+        for(int i = 0; i < _fisheye_num; i++) {
+            _fisheye[i].handler->set_bowl_config(bowl_data_config[i]);
+            _fisheye[i].handler->set_output_size (_fisheye[i].width, _fisheye[i].height);
+        }
     }
 }
 
@@ -781,19 +834,19 @@ create_blender_global_scale_kernel (
 SmartPtr<CLImageHandler>
 create_image_360_stitch (
     const SmartPtr<CLContext> &context, bool need_seam,
-    CLBlenderScaleMode scale_mode, bool fisheye_map, bool need_lsc, StitchResMode res_mode,
-    int fisheye_num, bool all_in_one_img)
+    CLBlenderScaleMode scale_mode, bool fisheye_map, bool need_lsc, SurroundMode surround_mode,
+    StitchResMode res_mode, int fisheye_num, bool all_in_one_img)
 {
     const int layer = 2;
     const bool need_uv = true;
     SmartPtr<CLFisheyeHandler> fisheye;
     SmartPtr<CLBlender> blender;
     SmartPtr<CLImage360Stitch> stitch = new CLImage360Stitch (
-        context, scale_mode, res_mode, fisheye_num, all_in_one_img);
+        context, scale_mode, surround_mode, res_mode, fisheye_num, all_in_one_img);
     XCAM_ASSERT (stitch.ptr ());
 
     for (int index = 0; index < fisheye_num; ++index) {
-        fisheye = create_fisheye_handler (context, fisheye_map, need_lsc).dynamic_cast_ptr<CLFisheyeHandler> ();
+        fisheye = create_fisheye_handler (context, surround_mode, fisheye_map, need_lsc).dynamic_cast_ptr<CLFisheyeHandler> ();
         XCAM_FAIL_RETURN (ERROR, fisheye.ptr (), NULL, "image_360_stitch create fisheye handler failed");
         fisheye->disable_buf_pool (true);
         stitch->set_fisheye_handler (fisheye, index);
