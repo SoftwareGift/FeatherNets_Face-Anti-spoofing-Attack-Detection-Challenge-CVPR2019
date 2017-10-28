@@ -34,7 +34,7 @@ write_image (SmartPtr<CLImage> image, const char *file_name)
     size_t row_pitch;
     size_t slice_pitch;
 
-    XCamReturn ret = image->enqueue_map (ptr, origin, region, &row_pitch, &slice_pitch, CL_MEM_READ_ONLY);
+    XCamReturn ret = image->enqueue_map (ptr, origin, region, &row_pitch, &slice_pitch, CL_MAP_READ);
     XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
     XCAM_ASSERT (ptr);
     XCAM_ASSERT (row_pitch == desc.row_pitch);

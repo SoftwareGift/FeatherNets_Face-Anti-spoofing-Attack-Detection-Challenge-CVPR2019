@@ -326,7 +326,7 @@ dump_geo_table (SmartPtr<CLImage> table)
     char name[1024];
     snprintf (name, 1024, "geo_table_x_%dx%d.x", desc.width, desc.height);
     FILE *fp = fopen (name, "wb");
-    XCamReturn ret = table->enqueue_map (ptr, origin, region, &row_pitch, &slice_pitch, CL_MEM_READ_ONLY);
+    XCamReturn ret = table->enqueue_map (ptr, origin, region, &row_pitch, &slice_pitch, CL_MAP_READ);
     XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
 
     for (uint32_t i = 0; i < desc.height; ++i) {
@@ -392,7 +392,7 @@ CLFisheyeHandler::generate_fisheye_table (
         size_t region[3] = {table_width, table_height, 1};
         size_t row_pitch;
         size_t slice_pitch;
-        XCamReturn ret = _geo_table->enqueue_map ((void *&)map_ptr, origin, region, &row_pitch, &slice_pitch, CL_MEM_READ_WRITE);
+        XCamReturn ret = _geo_table->enqueue_map ((void *&)map_ptr, origin, region, &row_pitch, &slice_pitch, CL_MAP_WRITE);
         XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
 
         for (uint32_t row = 0; row < table_height; row++) {

@@ -206,7 +206,7 @@ CL3AStatsCalculatorContext::copy_stats_out (const SmartPtr<CLBuffer> &stats_cl_b
     ret = stats_cl_buf->enqueue_map (
               buf_ptr,
               0, _stats_mem_size,
-              CL_MEM_READ_ONLY,
+              CL_MAP_READ,
               CLEvent::EmptyList,
               event);
     XCAM_FAIL_RETURN (WARNING, ret == XCAM_RETURN_NO_ERROR, NULL, "3a stats enqueue read buffer failed.");

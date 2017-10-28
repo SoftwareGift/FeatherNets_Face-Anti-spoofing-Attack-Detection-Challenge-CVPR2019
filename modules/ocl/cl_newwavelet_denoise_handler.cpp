@@ -187,7 +187,7 @@ CLWaveletNoiseEstimateKernel::estimate_noise_variance (const VideoBufferInfo & v
     ret = image->enqueue_map (buf_ptr,
                               origin, region,
                               &row_pitch, &slice_pitch,
-                              CL_MEM_READ_ONLY,
+                              CL_MAP_READ,
                               CLEvent::EmptyList,
                               map_event);
     if (ret != XCAM_RETURN_NO_ERROR) {
@@ -723,7 +723,7 @@ CLNewWaveletDenoiseImageHandler::dump_coeff (SmartPtr<CLImage> image, uint32_t c
     image->enqueue_map (buf_ptr,
                         origin, region,
                         &row_pitch, &slice_pitch,
-                        CL_MEM_READ_ONLY,
+                        CL_MAP_READ,
                         CLEvent::EmptyList,
                         map_event);
     XCAM_ASSERT (map_event->get_event_id ());

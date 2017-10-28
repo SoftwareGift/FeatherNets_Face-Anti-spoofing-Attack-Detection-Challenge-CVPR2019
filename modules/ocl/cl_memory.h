@@ -116,7 +116,7 @@ public:
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
     XCamReturn enqueue_map (
         void *&ptr, uint32_t offset, uint32_t size,
-        cl_map_flags map_flags = CL_MEM_READ_WRITE,
+        cl_map_flags map_flags = CL_MAP_READ | CL_MAP_WRITE,
         CLEventList &event_waits = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 
@@ -210,7 +210,7 @@ public:
         void *&ptr,
         size_t *origin, size_t *region,
         size_t *row_pitch, size_t *slice_pitch,
-        cl_map_flags map_flags = CL_MEM_READ_WRITE,
+        cl_map_flags map_flags = CL_MAP_READ | CL_MAP_WRITE,
         CLEventList &event_waits = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
 

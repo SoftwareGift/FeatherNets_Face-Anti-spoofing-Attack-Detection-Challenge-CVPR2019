@@ -745,7 +745,7 @@ CLPyramidBlender::fill_seam_mask ()
     if (_seam_mask_done)
         return XCAM_RETURN_NO_ERROR;
 
-    ret = _seam_sum_buf->enqueue_map ((void *&)sum_ptr, 0, sum_buf_size, CL_MEM_READ_ONLY);
+    ret = _seam_sum_buf->enqueue_map ((void *&)sum_ptr, 0, sum_buf_size, CL_MAP_READ);
     XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidBlender map seam_sum_buf failed");
 
     float min_sum = 9999999999.0f, tmp_sum;
@@ -771,12 +771,11 @@ CLPyramidBlender::fill_seam_mask ()
     size_t mask_region[3] = {mask_desc.width, mask_desc.height, 1};
     size_t mask_row_pitch;
     size_t mask_slice_pitch;
-    ret = seam_mask->enqueue_map (
-              (void *&)mask_ptr, mask_origin, mask_region,
-              &mask_row_pitch, &mask_slice_pitch, CL_MEM_READ_ONLY);
+    ret = seam_mask->enqueue_map ((void *&)mask_ptr, mask_origin, mask_region,
+                                  &mask_row_pitch, &mask_slice_pitch, CL_MAP_READ);
     XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidBlender map seam_mask failed");
     uint32_t mask_stride = mask_row_pitch / sizeof (SEAM_MASK_TYPE);
-    ret = _seam_pos_buf->enqueue_map ((void *&)pos_ptr, 0, pos_buf_size, CL_MEM_READ_ONLY);
+    ret = _seam_pos_buf->enqueue_map ((void *&)pos_ptr, 0, pos_buf_size, CL_MAP_READ);
     XCAM_FAIL_RETURN (ERROR, ret == XCAM_RETURN_NO_ERROR, ret, "CLPyramidBlender map seam_pos_buf failed");
     //printf ("***********min sum:%.3f, pos:%d, sum0:%.3f, sum1:%.3f\n", min_sum, pos, sum_ptr0[pos], sum_ptr1[pos]);
     for (i = _seam_height / 2 - 1; i >= 0; --i) {
@@ -1364,7 +1363,7 @@ CLPyramidBlender::dump_buffers ()
         const CLImageDesc &desc = images[i]->get_image_desc ();
         size_t origin[3] = {0, 0, 0};
         size_t region[3] = {desc.width, desc.height, 1};
-        XCamReturn ret = images[i]->enqueue_map ((void *&)ptr[i], origin, region, &row_pitch[i], &slice_pitch[i], CL_MEM_READ_ONLY);
+        XCamReturn ret = images[i]->enqueue_map ((void *&)ptr[i], origin, region, &row_pitch[i], &slice_pitch[i], CL_MAP_READ);
         XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
     }
     // offset UV, workaround of beignet
