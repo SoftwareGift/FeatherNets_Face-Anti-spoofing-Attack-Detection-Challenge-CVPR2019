@@ -1395,7 +1395,7 @@ CLPyramidBlender::dump_buffers ()
     desc = (image)->get_image_desc ();   \
     snprintf (filename, sizeof(filename), prefix "_L%d-%dx%d",            \
               layer, (image)->get_pixel_bytes () * desc.width, desc.height); \
-    write_image (image, filename)
+    dump_image (image, filename)
 
     // dump image data to file
     CLImageDesc desc;

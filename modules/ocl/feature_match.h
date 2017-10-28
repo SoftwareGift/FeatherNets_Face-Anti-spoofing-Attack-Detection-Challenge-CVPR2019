@@ -81,8 +81,6 @@ protected:
     int                  _valid_count;
     CVFMConfig           _config;
 
-private:
-
     // debug parameters
     int                  _fm_idx;
     uint                 _frame_num;

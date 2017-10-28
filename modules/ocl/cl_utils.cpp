@@ -19,11 +19,12 @@
  */
 
 #include "cl_utils.h"
+#include "image_file_handle.h"
 
 namespace XCam {
 
 bool
-write_image (SmartPtr<CLImage> image, const char *file_name)
+dump_image (SmartPtr<CLImage> image, const char *file_name)
 {
     XCAM_ASSERT (file_name);
 
@@ -51,6 +52,28 @@ write_image (SmartPtr<CLImage> image, const char *file_name)
     image->enqueue_unmap (ptr);
     fclose (fp);
     XCAM_LOG_INFO ("write image:%s\n", file_name);
+    return true;
+}
+
+bool
+dump_buffer (SmartPtr<VideoBuffer> buffer, char *file_name)
+{
+    ImageFileHandle file;
+
+    XCamReturn ret = file.open (file_name, "wb");
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("open %s failed", file_name);
+        return false;
+    }
+
+    ret = file.write_buf (buffer);
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("write buffer to %s failed", file_name);
+        file.close ();
+        return false;
+    }
+
+    file.close ();
     return true;
 }
 

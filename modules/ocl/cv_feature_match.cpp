@@ -199,7 +199,7 @@ CVFeatureMatch::detect_and_match (
 #if XCAM_CV_FM_DEBUG
     XCAM_LOG_INFO (
         "Stiching area: left_area(x:%d, width:%d), right_area(x:%d, width:%d)",
-        crop_left.x, crop_left.width, crop_right.x, crop_right.width);
+        crop_left.pos_x, crop_left.width, crop_right.pos_x, crop_right.width);
 #endif
 }
 
@@ -234,6 +234,7 @@ CVFeatureMatch::optical_flow_feature_match (
     XCAM_ASSERT (_fm_idx >= 0);
     char file_name[1024];
 
+#if 0
     VideoBufferInfo info = left_buf->get_video_info ();
     std::snprintf (file_name, 1023, "fm_in_%d_%d_%dx%d_0.nv12", info.width, info.height, _frame_num, _fm_idx);
     dump_buffer (left_buf, file_name);
@@ -241,20 +242,23 @@ CVFeatureMatch::optical_flow_feature_match (
     info = right_buf->get_video_info ();
     std::snprintf (file_name, 1023, "fm_in_%d_%d_%dx%d_1.nv12", info.width, info.height, _frame_num, _fm_idx);
     dump_buffer (right_buf, file_name);
+#endif
 
     cv::Mat mat;
     std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_%d_0.jpg", _frame_num, _fm_idx);
     convert_to_mat (left_buf, mat);
-    cv::line (mat, cv::Point(left_img_crop.x, 0), cv::Point(left_img_crop.x, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (mat, cv::Point(left_img_crop.x + left_img_crop.width, 0),
-              cv::Point(left_img_crop.x + left_img_crop.width, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::line (mat, cv::Point(left_crop_rect.pos_x, 0),
+              cv::Point(left_crop_rect.pos_x, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::line (mat, cv::Point(left_crop_rect.pos_x + left_crop_rect.width, 0),
+              cv::Point(left_crop_rect.pos_x + left_crop_rect.width, dst_width), cv::Scalar(0, 0, 255), 2);
     cv::imwrite (file_name, mat);
 
     std::snprintf (file_name, 1023, "fm_in_stitch_area_%d_%d_1.jpg", _frame_num, _fm_idx);
     convert_to_mat (right_buf, mat);
-    cv::line (mat, cv::Point(right_img_crop.x, 0), cv::Point(right_img_crop.x, dst_width), cv::Scalar(0, 0, 255), 2);
-    cv::line (mat, cv::Point(right_img_crop.x + right_img_crop.width, 0),
-              cv::Point(right_img_crop.x + right_img_crop.width, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::line (mat, cv::Point(right_crop_rect.pos_x, 0),
+              cv::Point(right_crop_rect.pos_x, dst_width), cv::Scalar(0, 0, 255), 2);
+    cv::line (mat, cv::Point(right_crop_rect.pos_x + right_crop_rect.width, 0),
+              cv::Point(right_crop_rect.pos_x + right_crop_rect.width, dst_width), cv::Scalar(0, 0, 255), 2);
     cv::imwrite (file_name, mat);
 
     XCAM_LOG_INFO ("Feature match: frame number:%d index:%d done", _frame_num, _fm_idx);

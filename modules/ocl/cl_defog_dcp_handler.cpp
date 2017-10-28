@@ -370,7 +370,7 @@ CLDefogDcpImageHandler::dump_buffer ()
     height = desc.height;
 
     snprintf (file_name, 1024, "dark-channel-map_%dx%d.y", width, height);
-    write_image (image, file_name);
+    dump_image (image, file_name);
 }
 
 static SmartPtr<CLDarkChannelKernel>

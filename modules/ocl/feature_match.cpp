@@ -25,31 +25,6 @@ namespace XCam {
 
 #define XCAM_FM_DEBUG 0
 
-#if XCAM_FM_DEBUG
-static XCamReturn
-dump_buffer (SmartPtr<VideoBuffer> buffer, char *dump_name)
-{
-    ImageFileHandle file;
-
-    XCamReturn ret = file.open (dump_name, "wb");
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_ERROR ("open %s failed", dump_name);
-        return ret;
-    }
-
-    ret = file.write_buf (buffer);
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_ERROR ("write buffer to %s failed", dump_name);
-        file.close ();
-        return ret;
-    }
-
-    file.close ();
-
-    return XCAM_RETURN_NO_ERROR;
-}
-#endif
-
 FeatureMatch::FeatureMatch ()
     : _x_offset (0.0f)
     , _mean_offset (0.0f)
