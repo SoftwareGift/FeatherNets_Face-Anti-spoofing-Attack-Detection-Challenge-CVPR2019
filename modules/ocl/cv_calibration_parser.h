@@ -59,6 +59,6 @@ private:
     XCAM_DEAD_COPY (CalibrationParser);
 };
 
-} 
+}
 
 #endif // XCAM_CV_CALIBRATION_PARSER_H
