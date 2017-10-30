@@ -22,18 +22,6 @@
 
 namespace XCam {
 
-BowlDataConfig::BowlDataConfig()
-{
-    wall_image_height = 480;
-    ground_image_height = 320;
-    angle_start = PI / 2;
-    angle_end = 3 * PI / 2;
-
-    a = 5050.0f;
-    b = 3656.7f;
-    c = 3003.4f;
-}
-
 CVSurViewFisheyeDewarp::CVSurViewFisheyeDewarp ()
     : CVBaseClass()
 {

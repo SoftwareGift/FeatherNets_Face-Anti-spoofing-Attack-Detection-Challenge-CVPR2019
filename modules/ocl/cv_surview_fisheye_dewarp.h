@@ -39,20 +39,6 @@
 
 namespace XCam {
 
-class BowlDataConfig
-{
-
-public:
-    explicit BowlDataConfig();
-
-    uint32_t wall_image_height;
-    uint32_t ground_image_height;
-
-    float a, b, c;
-    float angle_start, angle_end;
-
-};
-
 class CVSurViewFisheyeDewarp : public CVBaseClass
 {
 

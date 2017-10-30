@@ -82,6 +82,8 @@ public:
     void set_fisheye_intrinsic (IntrinsicParameter intrinsic_param, int index);
     void set_fisheye_extrinsic (ExtrinsicParameter extrinsic_param, int index);
 
+    const BowlDataConfig &get_fisheye_bowl_config (int index = 0);
+
     bool set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1);
     const Rect &get_image_overlap (int img_idx, int num) {
         XCAM_ASSERT (img_idx < _fisheye_num && num < 2);

@@ -22,6 +22,7 @@
 #define XCAM_CL_UTILS_H
 
 #include "xcam_utils.h"
+#include "interface/data_types.h"
 #include "ocl/cl_context.h"
 #include "ocl/cl_memory.h"
 #include "ocl/cl_video_buffer.h"
@@ -43,6 +44,15 @@ SmartPtr<CLImage> convert_to_climage (
     const CLImageDesc &desc,
     uint32_t offset = 0,
     cl_mem_flags flags = CL_MEM_READ_WRITE);
+
+XCamReturn convert_nv12_mem_to_video_buffer (
+    void *nv12_mem, uint32_t width, uint32_t height, uint32_t row_pitch, uint32_t offset_uv,
+    SmartPtr<VideoBuffer> &buf);
+
+XCamReturn get_bowl_view_data (
+    SmartPtr<VideoBuffer> &buf, const BowlDataConfig &config,
+    float x_pos, float y_pos, float z_pos,
+    float &y, float &u, float &v);
 
 }
 

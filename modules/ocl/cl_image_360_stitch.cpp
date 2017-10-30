@@ -342,6 +342,13 @@ CLImage360Stitch::set_fisheye_extrinsic (ExtrinsicParameter extrinsic_param, int
     _fisheye[index].handler->set_extrinsic_param(extrinsic_param);
 }
 
+const BowlDataConfig &
+CLImage360Stitch::get_fisheye_bowl_config (int index)
+{
+    XCAM_ASSERT (index < _fisheye_num);
+    return _fisheye[index].handler->get_bowl_config ();
+}
+
 bool
 CLImage360Stitch::set_image_overlap (const int idx, const Rect &overlap0, const Rect &overlap1)
 {
