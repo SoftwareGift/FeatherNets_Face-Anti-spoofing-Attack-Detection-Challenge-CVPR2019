@@ -1,5 +1,5 @@
 /*
- * cv_calibration_parser.h - parse fisheye calibration file
+ * calibration_parser.h - parse fisheye calibration file
  *
  *  Copyright (c) 2016-2017 Intel Corporation
  *
@@ -18,8 +18,8 @@
  * Author: Junkai Wu <junkai.wu@intel.com>
  */
 
-#ifndef XCAM_CV_CALIBRATION_PARSER_H
-#define XCAM_CV_CALIBRATION_PARSER_H
+#ifndef XCAM_CALIBRATION_PARSER_H
+#define XCAM_CALIBRATION_PARSER_H
 
 #include "xcam_utils.h"
 #include <vector>
@@ -61,4 +61,4 @@ private:
 
 }
 
-#endif // XCAM_CV_CALIBRATION_PARSER_H
+#endif // XCAM_CALIBRATION_PARSER_H

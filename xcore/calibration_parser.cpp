@@ -1,5 +1,5 @@
 /*
- * cv_calibration_parser.cpp - parse fisheye calibration file
+ * calibration_parser.cpp - parse fisheye calibration file
  *
  *  Copyright (c) 2016-2017 Intel Corporation
  *
@@ -18,7 +18,7 @@
  * Author: Junkai Wu <junkai.wu@intel.com>
  */
 
-#include "cv_calibration_parser.h"
+#include "calibration_parser.h"
 
 namespace XCam {
 

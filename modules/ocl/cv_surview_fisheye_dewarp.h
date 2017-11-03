@@ -28,7 +28,7 @@
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
 #include "cv_base_class.h"
-#include "cv_calibration_parser.h"
+#include "calibration_parser.h"
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>

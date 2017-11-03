@@ -82,7 +82,6 @@ xcam_ocl_sources += feature_match.cpp
 xcam_ocl_sources += cv_feature_match.cpp
 xcam_ocl_sources += cv_capi_feature_match.cpp
 xcam_ocl_sources += cv_image_deblurring.cpp
-xcam_ocl_sources += cv_calibration_parser.cpp
 xcam_ocl_sources += cv_surview_fisheye_dewarp.cpp
 endif
 
@@ -165,7 +164,6 @@ nobase_libxcam_oclinclude_HEADERS += feature_match.h
 nobase_libxcam_oclinclude_HEADERS += cv_feature_match.h
 nobase_libxcam_oclinclude_HEADERS += cv_capi_feature_match.h
 nobase_libxcam_oclinclude_HEADERS += cv_image_deblurring.h
-nobase_libxcam_oclinclude_HEADERS += cv_calibration_parser.h
 nobase_libxcam_oclinclude_HEADERS += cv_surview_fisheye_dewarp.h
 endif
 

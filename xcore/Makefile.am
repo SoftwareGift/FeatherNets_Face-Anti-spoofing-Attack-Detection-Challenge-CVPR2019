@@ -10,6 +10,7 @@ xcam_sources = \
     analyzer_loader.cpp                 \
     smart_analyzer_loader.cpp           \
     buffer_pool.cpp                     \
+    calibration_parser.cpp              \
     device_manager.cpp                  \
     pipe_manager.cpp                    \
     dma_video_buffer.cpp                \
@@ -95,6 +96,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     base/xcam_defs.h               \
     base/xcam_smart_description.h  \
     base/xcam_smart_result.h       \
+    calibration_parser.h           \
     device_manager.h               \
     dma_video_buffer.h             \
     file_handle.h                  \
