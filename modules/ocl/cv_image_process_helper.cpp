@@ -67,21 +67,15 @@ CVImageProcessHelper::get_auto_correlation (const cv::Mat &image)
 }
 
 void
-CVImageProcessHelper::compute_dft (const cv::Mat &image, cv::Mat *result)
+CVImageProcessHelper::compute_dft (const cv::Mat &image, cv::Mat &result)
 {
     cv::Mat padded;
     int m = cv::getOptimalDFTSize (image.rows);
     int n = cv::getOptimalDFTSize (image.cols);
     cv::copyMakeBorder (image, padded, 0, m - image.rows, 0, n - image.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
     cv::Mat planes[] = {cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32FC1)};
-    cv::Mat fimg;
-    cv::merge (planes, 2, fimg);
-    cv::dft (fimg, fimg);
-    cv::split (fimg, planes);
-    planes[0] = planes[0] (cv::Rect(0, 0, image.cols, image.rows));
-    planes[1] = planes[1] (cv::Rect(0, 0, image.cols, image.rows));
-    result[0] = planes[0].clone ();
-    result[1] = planes[1].clone ();
+    cv::merge (planes, 2, result);
+    cv::dft (result, result);
 }
 
 void
@@ -89,9 +83,7 @@ CVImageProcessHelper::compute_idft (cv::Mat *input, cv::Mat &result)
 {
     cv::Mat fimg;
     cv::merge (input, 2, fimg);
-    cv::Mat inverse;
-    cv::idft (fimg, inverse, cv::DFT_REAL_OUTPUT + cv::DFT_SCALE);
-    result = inverse.clone ();
+    cv::idft (fimg, result, cv::DFT_REAL_OUTPUT + cv::DFT_SCALE);
 }
 
 void

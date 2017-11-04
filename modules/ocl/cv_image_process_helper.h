@@ -47,7 +47,7 @@ class CVImageProcessHelper : public CVBaseClass
 public:
     explicit CVImageProcessHelper ();
 
-    void compute_dft (const cv::Mat &image, cv::Mat *result);
+    void compute_dft (const cv::Mat &image, cv::Mat &result);
     void compute_idft (cv::Mat *input, cv::Mat &result);
     void apply_constraints (cv::Mat &image, float threshold_min_value, float threshold_max_value = 255.0f, float min_value = 0.0f, float max_value = 255.0f);
     float get_snr (const cv::Mat &noisy, const cv::Mat &noiseless);

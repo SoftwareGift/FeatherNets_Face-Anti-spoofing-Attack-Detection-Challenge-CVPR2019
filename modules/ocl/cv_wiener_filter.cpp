@@ -35,14 +35,14 @@ CVWienerFilter::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &know
 {
     int image_w = blurred_image.size().width;
     int image_h = blurred_image.size().height;
-    cv::Mat y_ft[2];
+    cv::Mat y_ft;
     _helpers->compute_dft (blurred_image, y_ft);
 
     cv::Mat padded = cv::Mat::zeros(image_h, image_w, CV_32FC1);
     int padx = padded.cols - known.cols;
     int pady = padded.rows - known.rows;
     cv::copyMakeBorder (known, padded, 0, pady, 0, padx, cv::BORDER_CONSTANT, cv::Scalar::all(0));
-    cv::Mat padded_ft[2];
+    cv::Mat padded_ft;
     _helpers->compute_dft (padded, padded_ft);
 
     cv::Mat temp_unknown;
@@ -51,25 +51,20 @@ CVWienerFilter::wiener_filter (const cv::Mat &blurred_image, const cv::Mat &know
     unknown_ft[1] = cv::Mat::zeros(image_h, image_w, CV_32FC1);
 
     cv::Mat denominator;
-    cv::Mat padded_re;
-    cv::Mat padded_im;
-    cv::pow (padded_ft[0], 2, padded_re);
-    cv::pow (padded_ft[1], 2, padded_im);
-    denominator = padded_re + padded_im + cv::Scalar (noise_power);
+    cv::Mat denominator_splitted[] = {cv::Mat::zeros(blurred_image.size(), CV_32FC1), cv::Mat::zeros(blurred_image.size(), CV_32FC1)};
+    cv::mulSpectrums (padded_ft, padded_ft, denominator, 0, true);
+    cv::split (denominator, denominator_splitted);
+    denominator_splitted[0] = denominator_splitted[0](cv::Rect (0, 0, blurred_image.cols, blurred_image.rows));
+    denominator_splitted[0] += cv::Scalar (noise_power);
 
-    cv::Mat numerator_real;
-    cv::Mat numerator_im;
-    cv::Mat first_term;
-    cv::Mat second_term;
-    first_term = padded_ft[0].mul (y_ft[0]);
-    second_term = padded_ft[1].mul (y_ft[1]);
-    numerator_real = first_term + second_term;
-    first_term = padded_ft[0].mul (y_ft[1]);
-    second_term = padded_ft[1].mul (y_ft[0]);
-    numerator_im = first_term - second_term;
-    cv::divide (numerator_real, denominator, unknown_ft[0]);
-    cv::divide (numerator_im, denominator, unknown_ft[1]);
-
+    cv::Mat numerator;
+    cv::Mat numerator_splitted[] = {cv::Mat::zeros(blurred_image.size(), CV_32FC1), cv::Mat::zeros(blurred_image.size(), CV_32FC1)};
+    cv::mulSpectrums (y_ft, padded_ft, numerator, 0, true);
+    cv::split (numerator, numerator_splitted);
+    numerator_splitted[0] = numerator_splitted[0](cv::Rect (0, 0, blurred_image.cols, blurred_image.rows));
+    numerator_splitted[1] = numerator_splitted[1](cv::Rect (0, 0, blurred_image.cols, blurred_image.rows));
+    cv::divide (numerator_splitted[0], denominator_splitted[0], unknown_ft[0]);
+    cv::divide (numerator_splitted[1], denominator_splitted[0], unknown_ft[1]);
     _helpers->compute_idft (unknown_ft, temp_unknown);
     unknown = temp_unknown.clone();
 }
