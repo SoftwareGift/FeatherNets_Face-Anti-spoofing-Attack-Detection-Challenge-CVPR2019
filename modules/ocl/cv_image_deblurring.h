@@ -62,10 +62,10 @@ public:
     void set_config (CVIDConfig config);
     CVIDConfig get_config ();
 
-    void blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel);
+    void blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size = -1, float noise_power = -1.0f);
 
 private:
-    void blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat &kernel, int kernelSize, float noise_power);
+    void blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat &kernel, int kernel_size, float noise_power);
     int estimate_kernel_size (const cv::Mat &blurred);
     void crop_border (cv::Mat &image);
 

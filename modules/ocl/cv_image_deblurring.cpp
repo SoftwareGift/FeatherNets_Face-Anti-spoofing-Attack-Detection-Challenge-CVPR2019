@@ -152,19 +152,23 @@ CVImageDeblurring::estimate_kernel_size (const cv::Mat &image)
 }
 
 void
-CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel)
+CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size, float noise_power)
 {
     cv::Mat gray_blurred;
     cv::cvtColor (blurred, gray_blurred, CV_BGR2GRAY);
-    cv::Mat median_blurred;
-    medianBlur (gray_blurred, median_blurred, 3);
-    float noise_power = 1.0f / _helper->get_snr (gray_blurred, median_blurred);
-    XCAM_LOG_DEBUG("estimated inv snr %f", noise_power);
+    if (noise_power < 0) {
+        cv::Mat median_blurred;
+        medianBlur (gray_blurred, median_blurred, 3);
+        noise_power = 1.0f / _helper->get_snr (gray_blurred, median_blurred);
+        XCAM_LOG_DEBUG("estimated inv snr %f", noise_power);
+    }
+    if (kernel_size < 0) {
+        kernel_size = estimate_kernel_size (gray_blurred);
+        XCAM_LOG_DEBUG("estimated kernel size %d", kernel_size);
+    }
     std::vector<cv::Mat> blurred_rgb(3);
     cv::split(blurred, blurred_rgb);
     std::vector<cv::Mat> deblurred_rgb(3);
-    int kernel_size = estimate_kernel_size (gray_blurred);
-    XCAM_LOG_DEBUG("estimated kernel size %d", kernel_size);
     cv::Mat result_deblurred;
     cv::Mat result_kernel;
     blind_deblurring_one_channel (gray_blurred, result_kernel, kernel_size, noise_power);
