@@ -60,9 +60,15 @@ public:
 
     void set_fm_index (int idx);
 
+    void reset_offsets ();
+
     virtual void optical_flow_feature_match (
         SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
         Rect &left_crop_rect, Rect &right_crop_rect, int dst_width) = 0;
+
+    float get_current_left_offset_x () const {
+        return _x_offset;
+    }
 
     virtual void set_ocl (bool use_ocl) = 0;
     virtual bool is_ocl_path () = 0;

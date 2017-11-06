@@ -29,7 +29,7 @@
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
 #include "ocl/cv_base_class.h"
-#include "ocl/feature_match.h"
+#include "interface/feature_match.h"
 #include "interface/data_types.h"
 
 #include <ocl/cl_context.h>

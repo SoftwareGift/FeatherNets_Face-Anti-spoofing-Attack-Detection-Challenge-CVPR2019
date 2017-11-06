@@ -29,7 +29,7 @@
 #include <smartptr.h>
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
-#include "ocl/feature_match.h"
+#include "interface/feature_match.h"
 
 #include <opencv2/opencv.hpp>
 

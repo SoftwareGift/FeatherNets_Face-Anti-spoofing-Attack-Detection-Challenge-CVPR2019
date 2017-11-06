@@ -52,6 +52,13 @@ FeatureMatch::set_fm_index (int idx)
     _fm_idx = idx;
 }
 
+void
+FeatureMatch::reset_offsets ()
+{
+    _x_offset = 0.0f;
+    _mean_offset = 0.0f;
+}
+
 bool
 FeatureMatch::get_mean_offset (std::vector<float> offsets, float sum, int &count, float &mean_offset)
 {

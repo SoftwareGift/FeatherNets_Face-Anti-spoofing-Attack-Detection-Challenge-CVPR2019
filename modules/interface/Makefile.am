@@ -7,6 +7,7 @@ XCAM_INTERFACE_CXXFLAGS =              \
     $(NULL)
 
 xcam_interface_sources =               \
+    feature_match.cpp                  \
     blender.cpp                        \
     geo_mapper.cpp                     \
    $(NULL)
@@ -33,6 +34,7 @@ libxcam_interfaceincludedir = $(includedir)/xcam/interface
 
 nobase_libxcam_interfaceinclude_HEADERS =  \
     data_types.h                       \
+    feature_match.h                    \
     blender.h                          \
     geo_mapper.h                       \
     $(NULL)
