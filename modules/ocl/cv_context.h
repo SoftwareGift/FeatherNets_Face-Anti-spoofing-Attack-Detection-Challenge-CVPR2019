@@ -45,7 +45,7 @@ class CVContext
 public:
     static SmartPtr<CVContext> instance ();
 
-    SmartPtr<CLContext> get_cl_context () {
+    SmartPtr<CLContext> &get_cl_context () {
         return _context;
     }
     ~CVContext();
