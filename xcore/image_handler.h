@@ -62,6 +62,7 @@ public:
 
     class Callback {
     public:
+        Callback () {}
         virtual ~Callback () {}
         virtual void execute_status (
             const SmartPtr<ImageHandler> &handler, const SmartPtr<Parameters> &params, const XCamReturn error) = 0;
