@@ -140,645 +140,787 @@ public:
 
 };
 
-#define XCAM_VECT3_OPERATOR_VECT3(op)                         \
-    Vector3<T> operator op (const Vector3<T>& b) const {      \
-        return Vector3<T>(x op b.x, y op b.y, z op b.z);      \
-    }                                                         \
-    Vector3<T> &operator op##= (const Vector3<T>& b) {        \
-        x op##= b.x;  y op##= b.y; z op##= b.z; return *this; \
-    }
-
-#define XCAM_VECT3_OPERATOR_SCALER(op)                        \
-    Vector3<T> operator op (const T& b) const {               \
-        return Vector3<T>(x op b, y op b, z op b);            \
-    }                                                         \
-    Vector3<T> &operator op##= (const T& b) {                 \
-        x op##= b;  y op##= b; z op##= b; return *this;       \
-    }
-
-
-template<class T>
-class Vector3
+template<class T, uint32_t N>
+class VectorN
 {
 public:
 
-    T x;
-    T y;
-    T z;
+    VectorN ();
+    VectorN (T x);
+    VectorN (T x, T y);
+    VectorN (T x, T y, T z);
+    VectorN (T x, T y, T z, T w);
+    VectorN (VectorN<T, 3> vec3, T w);
 
-    Vector3 () : x(0), y(0), z(0) {};
-    Vector3 (T _x, T _y, T _z) : x(_x), y(_y), z(_z) {};
+    inline VectorN<T, N>& operator = (const VectorN<T, N>& rhs);
+    inline VectorN<T, N> operator - () const;
+    inline bool operator == (const VectorN<T, N>& rhs) const;
 
-    Vector3<T>& operator = (const Vector3<T>& rhs)
-    {
-        x = rhs.x;
-        y = rhs.y;
-        z = rhs.z;
-        return *this;
+    inline T& operator [] (uint32_t index) {
+        XCAM_ASSERT(index >= 0 && index < N);
+        return data[index];
+    }
+    inline const T& operator [] (uint32_t index) const {
+        XCAM_ASSERT(index >= 0 && index < N);
+        return data[index];
     }
 
-    inline Vector3<T> operator - () const {
-        return Vector3<T>(-x, -y, -z);
-    }
+    inline VectorN<T, N> operator + (const T rhs) const;
+    inline VectorN<T, N> operator - (const T rhs) const;
+    inline VectorN<T, N> operator * (const T rhs) const;
+    inline VectorN<T, N> operator / (const T rhs) const;
+    inline VectorN<T, N> operator += (const T rhs);
+    inline VectorN<T, N> operator -= (const T rhs);
+    inline VectorN<T, N> operator *= (const T rhs);
+    inline VectorN<T, N> operator /= (const T rhs);
 
-    XCAM_VECT3_OPERATOR_VECT3 (+)
-    XCAM_VECT3_OPERATOR_VECT3 (-)
-    XCAM_VECT3_OPERATOR_VECT3 (*)
-    XCAM_VECT3_OPERATOR_VECT3 ( / )
-    XCAM_VECT3_OPERATOR_SCALER (+)
-    XCAM_VECT3_OPERATOR_SCALER (-)
-    XCAM_VECT3_OPERATOR_SCALER (*)
-    XCAM_VECT3_OPERATOR_SCALER ( / )
+    inline VectorN<T, N> operator + (const VectorN<T, N>& rhs) const;
+    inline VectorN<T, N> operator - (const VectorN<T, N>& rhs) const;
+    inline VectorN<T, N> operator * (const VectorN<T, N>& rhs) const;
+    inline VectorN<T, N> operator / (const VectorN<T, N>& rhs) const;
+    inline VectorN<T, N> operator += (const VectorN<T, N>& rhs);
+    inline VectorN<T, N> operator -= (const VectorN<T, N>& rhs);
+    inline VectorN<T, N> operator *= (const VectorN<T, N>& rhs);
+    inline VectorN<T, N> operator /= (const VectorN<T, N>& rhs);
 
-    inline bool operator == (const Vector3<T>& rhs) const {
-        return (x == rhs.x) && (y == rhs.y) && (z == rhs.z);
-    }
+    template <typename NEW> inline
+    VectorN<NEW, N> convert_to () const;
 
-    template <typename New>
-    Vector3<New> convert_to () const {
-        Vector3<New> ret((New)(this->x), (New)(this->y), (New)(this->z));
-        return ret;
-    }
+    inline void zeros ();
+    inline void set (T x, T y);
+    inline void set (T x, T y, T z);
+    inline void set (T x, T y, T z, T w);
+    inline T magnitude () const;
+    inline float distance (const VectorN<T, N>& vec) const;
+    inline T dot (const VectorN<T, N>& vec) const;
+    inline VectorN<T, N> lerp (T weight, const VectorN<T, N>& vec) const;
 
-    inline void zeros () {
-        this->x = (T) 0;
-        this->y = (T) 0;
-        this->z = (T) 0;
-    }
-
-    inline void set (T _x, T _y, T _z) {
-        this->x = _x;
-        this->y = _y;
-        this->z = _z;
-    }
-
-    inline T magnitude () const {
-        return (T) sqrtf(x * x + y * y + z * z);
-    }
-
-    inline float distance (const Vector3<T>& vec) const {
-        return sqrtf((vec.x - x) * (vec.x - x) +
-                     (vec.y - y) * (vec.y - y) +
-                     (vec.z - z) * (vec.z - z));
-    }
-
-    inline T dot (const Vector3<T>& vec) const {
-        return (x * vec.x + y * vec.y + z * vec.z);
-    }
-
-    inline Vector3<T> cross (const Vector3<T>& vec) const {
-        return Vector3<T>(y * vec.z - z * vec.y, z * vec.x - x * vec.z, x * vec.y - y * vec.x);
-    }
-
-    inline Vector3<T> lerp (T weight, const Vector3<T>& vec) const {
-        return (*this) + (vec - (*this)) * weight;
-    }
-
-};
-
-#define XCAM_VECT4_OPERATOR_VECT4(op)                         \
-    Vector4<T> operator op (const Vector4<T>& b) const {      \
-        return Vector4<T>(x op b.x, y op b.y, z op b.z, w op b.w); \
-    }                                                         \
-    Vector4<T> &operator op##= (const Vector4<T>& b) {        \
-        x op##= b.x;  y op##= b.y; z op##= b.z; w op##= b.w; return *this; \
-    }
-
-#define XCAM_VECT4_OPERATOR_SCALER(op)                        \
-    Vector4<T> operator op (const T& b) const {               \
-        return Vector4<T>(x op b, y op b, z op b, w op b);    \
-    }                                                         \
-    Vector4<T> &operator op##= (const T& b) {                 \
-        x op##= b;  y op##= b; z op##= b; w op##= b; return *this; \
-    }
-
-
-template<class T>
-class Vector4
-{
-public:
-
-    T x;
-    T y;
-    T z;
-    T w;
-
-    Vector4 () : x(0), y(0), z(0), w(0) {};
-    Vector4 (T _x, T _y, T _z, T _w) : x(_x), y(_y), z(_z), w(_w) {};
-    Vector4 (Vector3<T> v, T _w) : x(v.x), y(v.y), z(v.z), w(_w) {};
-
-    inline Vector4<T>& operator = (const Vector4<T>& rhs)
-    {
-        x = rhs.x;
-        y = rhs.y;
-        z = rhs.z;
-        w = rhs.w;
-        return *this;
-    }
-
-    inline Vector4<T> operator - () const {
-        return Vector4<T>(-x, -y, -z, -w);
-    }
-
-    XCAM_VECT4_OPERATOR_VECT4 (+)
-    XCAM_VECT4_OPERATOR_VECT4 (-)
-    XCAM_VECT4_OPERATOR_VECT4 (*)
-    XCAM_VECT4_OPERATOR_VECT4 ( / )
-    XCAM_VECT4_OPERATOR_SCALER (+)
-    XCAM_VECT4_OPERATOR_SCALER (-)
-    XCAM_VECT4_OPERATOR_SCALER (*)
-    XCAM_VECT4_OPERATOR_SCALER ( / )
-
-    inline bool operator == (const Vector4<T>& rhs) const {
-        return (x == rhs.x) && (y == rhs.y) && (z == rhs.z) && (w == rhs.w);
-    }
-
-    template <typename New>
-    Vector4<New> convert_to () const {
-        Vector4<New> ret((New)(this->x), (New)(this->y), (New)(this->z), (New)(this->w));
-        return ret;
-    }
-
-    inline void zeros () {
-        this->x = (T) 0;
-        this->y = (T) 0;
-        this->z = (T) 0;
-        this->w = (T) 0;
-    }
-
-    inline void set (T _x, T _y, T _z, T _w) {
-        this->x = _x;
-        this->y = _y;
-        this->z = _z;
-        this->w = _w;
-    }
-
-    inline T magnitude () const {
-        return (T) sqrtf(x * x + y * y + z * z + w * w);
-    }
-
-    inline float distance (const Vector4<T>& vec) const {
-        return sqrtf((vec.x - x) * (vec.x - x) +
-                     (vec.y - y) * (vec.y - y) +
-                     (vec.z - z) * (vec.z - z) +
-                     (vec.w - w) * (vec.w - w));
-    }
-
-    inline T dot (const Vector4<T>& vec) const {
-        return (x * vec.x + y * vec.y + z * vec.z + w * vec.w);
-    }
-
-    inline Vector4<T> lerp (T weight, const Vector4<T>& vec) const {
-        return (*this) + (vec - (*this)) * weight;
-    }
+private:
+    T data[N];
 
 };
 
 
-template<class T>
-class Matrix3
+template<class T, uint32_t N> inline
+VectorN<T, N>::VectorN ()
 {
-public:
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] = 0;
+    }
+}
 
-    // column vectors
-    Vector3<T> v0;
-    Vector3<T> v1;
-    Vector3<T> v2;
+template<class T, uint32_t N> inline
+VectorN<T, N>::VectorN (T x) {
+    data[0] = x;
+}
 
-    Matrix3 () : v0(1, 0, 0), v1(0, 1, 0), v2(0, 0, 1) {};
-    Matrix3 (Vector3<T> a, Vector3<T> b, Vector3<T> c) : v0(a), v1(b), v2(c) {};
+template<class T, uint32_t N> inline
+VectorN<T, N>::VectorN (T x, T y) {
+    if (N >= 2) {
+        data[0] = x;
+        data[1] = y;
+    }
+}
 
-    inline void eye () {
-        v0.set(1, 0, 0);
-        v1.set(0, 1, 0);
-        v2.set(0, 0, 1);
+template<class T, uint32_t N> inline
+VectorN<T, N>::VectorN (T x, T y, T z) {
+    if (N >= 3) {
+        data[0] = x;
+        data[1] = y;
+        data[2] = z;
+    }
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N>::VectorN (T x, T y, T z, T w) {
+    if (N >= 4) {
+        data[0] = x;
+        data[1] = y;
+        data[2] = z;
+        data[3] = w;
+    }
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N>::VectorN (VectorN<T, 3> vec3, T w) {
+    if (N >= 4) {
+        data[0] = vec3.data[0];
+        data[1] = vec3.data[1];
+        data[2] = vec3.data[2];
+        data[3] = w;
+    }
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N>& VectorN<T, N>::operator = (const VectorN<T, N>& rhs) {
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] = rhs.data[i];
     }
 
-    inline void zeros () {
-        v0.zeros();
-        v1.zeros();
-        v2.zeros();
+    return *this;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator - () const {
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] = -data[i];
     }
 
-    inline T& at (int row, int col) {
-        XCAM_ASSERT(row >= 1 && row <= 3);
-        XCAM_ASSERT(col >= 1 && col <= 3);
+    return *this;
+}
 
-        if (col == 1 && row == 1) return v0.x;
-        else if (col == 1 && row == 2) return v0.y;
-        else if (col == 1 && row == 3) return v0.z;
-        else if (col == 2 && row == 1) return v1.x;
-        else if (col == 2 && row == 2) return v1.y;
-        else if (col == 2 && row == 3) return v1.z;
-        else if (col == 3 && row == 1) return v2.x;
-        else if (col == 3 && row == 2) return v2.y;
-        else if (col == 3 && row == 3) return v2.z;
-        else return v0.x;
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator + (const T rhs) const {
+    VectorN<T, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] + rhs;
     }
+    return result;
+}
 
-    inline T& operator () (int row, int col) {
-        XCAM_ASSERT(row >= 1 && row <= 3);
-        XCAM_ASSERT(col >= 1 && col <= 3);
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator - (const T rhs) const {
+    VectorN<T, N> result;
 
-        if (col == 1 && row == 1) return v0.x;
-        else if (col == 1 && row == 2) return v0.y;
-        else if (col == 1 && row == 3) return v0.z;
-        else if (col == 2 && row == 1) return v1.x;
-        else if (col == 2 && row == 2) return v1.y;
-        else if (col == 2 && row == 3) return v1.z;
-        else if (col == 3 && row == 1) return v2.x;
-        else if (col == 3 && row == 2) return v2.y;
-        else if (col == 3 && row == 3) return v2.z;
-        else return v0.x;
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] - rhs;
     }
+    return result;
+}
 
-    inline Matrix3<T>& operator = (const Matrix3<T>& rhs) {
-        v0 = rhs.v0;
-        v1 = rhs.v1;
-        v2 = rhs.v2;
-        return *this;
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator * (const T rhs) const {
+    VectorN<T, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] * rhs;
     }
+    return result;
+}
 
-    inline Matrix3<T> operator - () const {
-        return Matrix3<T>(-v0, -v1, -v2);
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator / (const T rhs) const {
+    VectorN<T, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] / rhs;
     }
+    return result;
+}
 
-    inline Matrix3<T> operator + (const Matrix3<T>& rhs) const {
-        return Matrix3<T>(v0 + rhs.v0, v1 + rhs.v1, v2 + rhs.v2);
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator += (const T rhs) {
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] += rhs;
     }
+    return *this;
+}
 
-    inline Matrix3<T> operator * (const T a) const {
-        return Matrix3<T>(v0 * a, v1 * a, v2 * a);
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator -= (const T rhs) {
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] -= rhs;
     }
+    return *this;
+}
 
-    inline Matrix3<T> operator * (const Matrix3<T>& rhs) const {
-
-        T m00 = Vector3<T>(v0.x, v1.x, v2.x).dot(rhs.v0);
-        T m01 = Vector3<T>(v0.x, v1.x, v2.x).dot(rhs.v1);
-        T m02 = Vector3<T>(v0.x, v1.x, v2.x).dot(rhs.v2);
-
-        T m10 = Vector3<T>(v0.y, v1.y, v2.y).dot(rhs.v0);
-        T m11 = Vector3<T>(v0.y, v1.y, v2.y).dot(rhs.v1);
-        T m12 = Vector3<T>(v0.y, v1.y, v2.y).dot(rhs.v2);
-
-        T m20 = Vector3<T>(v0.z, v1.z, v2.z).dot(rhs.v0);
-        T m21 = Vector3<T>(v0.z, v1.z, v2.z).dot(rhs.v1);
-        T m22 = Vector3<T>(v0.z, v1.z, v2.z).dot(rhs.v2);
-
-        return Matrix3<T>(Vector3<T>(m00, m10, m20),
-                          Vector3<T>(m01, m11, m21),
-                          Vector3<T>(m02, m12, m22));
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator *= (const T rhs) {
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] *= rhs;
     }
+    return *this;
+}
 
-    inline Vector3<T> operator * (const Vector3<T>& rhs) const {
-        return Vector3<T>(v0.x * rhs.x + v1.x * rhs.y + v2.x * rhs.z,
-                          v0.y * rhs.x + v1.y * rhs.y + v2.y * rhs.z,
-                          v0.z * rhs.x + v1.z * rhs.y + v2.z * rhs.z);
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator /= (const T rhs) {
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] /= rhs;
     }
+    return *this;
+}
 
-    inline Matrix3<T> transpose () {
-        Matrix3<T> ret;
-        for (int i = 1; i <= 3; i++)
-        {
-            for (int j = 1; j <= 3; j++)
-            {
-                ret.at(i, j) = at(j, i);
-            }
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator + (const VectorN<T, N>& rhs) const {
+    VectorN<T, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] + rhs.data[i];
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator - (const VectorN<T, N>& rhs) const {
+    VectorN<T, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] - rhs.data[i];
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator * (const VectorN<T, N>& rhs) const {
+    VectorN<T, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] * rhs.data[i];
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator / (const VectorN<T, N>& rhs) const {
+    VectorN<T, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result.data[i] = data[i] / rhs.data[i];
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator += (const VectorN<T, N>& rhs) {
+
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] += rhs.data[i];
+    }
+    return *this;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator -= (const VectorN<T, N>& rhs) {
+
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] -= rhs.data[i];
+    }
+    return *this;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator *= (const VectorN<T, N>& rhs) {
+
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] *= rhs.data[i];
+    }
+    return *this;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::operator /= (const VectorN<T, N>& rhs) {
+
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] /= rhs.data[i];
+    }
+    return *this;
+}
+
+template<class T, uint32_t N> inline
+bool VectorN<T, N>::operator == (const VectorN<T, N>& rhs) const {
+    for (uint32_t i = 0; i < N; i++) {
+        if (data[i] != rhs[i]) {
+            return false;
         }
-        return ret;
     }
+    return true;
+}
 
-    inline T det ()
-    {
-        return  at(1, 1) * at(2, 2) * at(3, 3) +
-                at(2, 1) * at(3, 2) * at(1, 3) +
-                at(3, 1) * at(1, 2) * at(2, 3) -
-                at(1, 1) * at(3, 2) * at(2, 3) -
-                at(2, 1) * at(1, 2) * at(3, 3) -
-                at(3, 1) * at(2, 2) * at(1, 3);
+template <class T, uint32_t N>
+template <typename NEW>
+VectorN<NEW, N> VectorN<T, N>::convert_to () const {
+    VectorN<NEW, N> result;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result[i] = (NEW)(this->data[i]);
     }
+    return result;
+}
 
-    inline Matrix3<T> inverse ()
-    {
-        Matrix3<T> ret;
-        ret(1, 1) = at(2, 2) * at(3, 3) - at(2, 3) * at(3, 2);
-        ret(2, 1) = at(2, 3) * at(3, 1) - at(2, 1) * at(3, 3);
-        ret(3, 1) = at(2, 1) * at(3, 2) - at(2, 2) * at(3, 1);
-        ret(1, 2) = at(1, 3) * at(3, 2) - at(1, 2) * at(3, 3);
-        ret(2, 2) = at(1, 1) * at(3, 3) - at(1, 3) * at(3, 1);
-        ret(3, 2) = at(1, 2) * at(3, 1) - at(1, 1) * at(3, 2);
-        ret(1, 3) = at(1, 2) * at(2, 3) - at(1, 3) * at(2, 2);
-        ret(2, 3) = at(1, 3) * at(2, 1) - at(1, 1) * at(2, 3);
-        ret(3, 3) = at(1, 1) * at(2, 2) - at(1, 2) * at(2, 1);
-        return ret * (1.0f / det());
+template <class T, uint32_t N> inline
+void VectorN<T, N>::zeros () {
+    for (uint32_t i = 0; i < N; i++) {
+        data[i] = (T)(0);
     }
+}
 
-};
+template<class T, uint32_t N> inline
+void VectorN<T, N>::set (T x, T y) {
+    if (N >= 2) {
+        data[0] = x;
+        data[1] = y;
+    }
+}
 
-template<class T>
-class Matrix4
+template<class T, uint32_t N> inline
+void VectorN<T, N>::set (T x, T y, T z) {
+    if (N >= 3) {
+        data[0] = x;
+        data[1] = y;
+        data[2] = z;
+    }
+}
+
+template<class T, uint32_t N> inline
+void VectorN<T, N>::set (T x, T y, T z, T w) {
+    if (N >= 4) {
+        data[0] - x;
+        data[1] = y;
+        data[2] = z;
+        data[3] = w;
+    }
+}
+
+template<class T, uint32_t N> inline
+T VectorN<T, N>::magnitude () const {
+    T result = 0;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result += (data[i] * data[i]);
+    }
+    return (T) sqrtf(result);
+}
+
+template<class T, uint32_t N> inline
+float VectorN<T, N>::distance (const VectorN<T, N>& vec) const {
+    T result = 0;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result += (vec.data[i] - data[i]) * (vec.data[i] - data[i]);
+    }
+    return sqrtf(result);
+}
+
+template<class T, uint32_t N> inline
+T VectorN<T, N>::dot (const VectorN<T, N>& vec) const {
+    T result = 0;
+
+    for (uint32_t i = 0; i < N; i++) {
+        result += (vec.data[i] * data[i]);
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> VectorN<T, N>::lerp (T weight, const VectorN<T, N>& vec) const {
+    return (*this) + (vec - (*this)) * weight;
+}
+
+// NxN matrix in row major order
+template<class T, uint32_t N>
+class MatrixN
 {
 public:
+    MatrixN ();
+    MatrixN (VectorN<T, 3> a, VectorN<T, 3> b, VectorN<T, 3> c);
+    MatrixN (VectorN<T, 4> a, VectorN<T, 4> b, VectorN<T, 4> c, VectorN<T, 4> d);
 
-    // column vectors
-    Vector4<T> v0;
-    Vector4<T> v1;
-    Vector4<T> v2;
-    Vector4<T> v3;
+    inline void zeros ();
+    inline void eye ();
 
-    Matrix4 () : v0(1, 0, 0, 0), v1(0, 1, 0, 0), v2(0, 0, 1, 0), v3(0, 0, 0, 1)  {};
-    Matrix4 (Vector4<T> a, Vector4<T> b, Vector4<T> c, Vector4<T> d) : v0(a), v1(b), v2(c), v3(d) {};
+    inline T& at (uint32_t row, uint32_t col) {
+        XCAM_ASSERT(row >= 0 && row < N);
+        XCAM_ASSERT(col >= 0 && col < N);
 
-    inline void eye () {
-        v0.set(1, 0, 0, 0);
-        v1.set(0, 1, 0, 0);
-        v2.set(0, 0, 1, 0);
-        v3.set(0, 0, 0, 1);
-    }
+        return data[row * N + col];
+    };
+    inline const T& at (uint32_t row, uint32_t col) const {
+        XCAM_ASSERT(row >= 0 && row < N);
+        XCAM_ASSERT(col >= 0 && col < N);
 
-    inline void zeros () {
-        v0.zeros();
-        v1.zeros();
-        v2.zeros();
-        v3.zeros();
-    }
+        return data[row * N + col];
+    };
 
-    inline T& at (int row, int col) {
-        XCAM_ASSERT(row >= 1 && row <= 4);
-        XCAM_ASSERT(col >= 1 && col <= 4);
+    inline T& operator () (uint32_t row, uint32_t col) {
+        return at (row, col);
+    };
+    inline const T& operator () (uint32_t row, uint32_t col) const {
+        return at (row, col);
+    };
 
-        if (col == 1 && row == 1) return v0.x;
-        else if (col == 1 && row == 2) return v0.y;
-        else if (col == 1 && row == 3) return v0.z;
-        else if (col == 1 && row == 4) return v0.w;
-        else if (col == 2 && row == 1) return v1.x;
-        else if (col == 2 && row == 2) return v1.y;
-        else if (col == 2 && row == 3) return v1.z;
-        else if (col == 2 && row == 4) return v1.w;
-        else if (col == 3 && row == 1) return v2.x;
-        else if (col == 3 && row == 2) return v2.y;
-        else if (col == 3 && row == 3) return v2.z;
-        else if (col == 3 && row == 4) return v2.w;
-        else if (col == 4 && row == 1) return v3.x;
-        else if (col == 4 && row == 2) return v3.y;
-        else if (col == 4 && row == 3) return v3.z;
-        else if (col == 4 && row == 4) return v3.w;
-        else return v0.x;
-    }
+    inline MatrixN<T, N>& operator = (const MatrixN<T, N>& rhs);
+    inline MatrixN<T, N> operator - () const;
+    inline MatrixN<T, N> operator + (const MatrixN<T, N>& rhs) const;
+    inline MatrixN<T, N> operator - (const MatrixN<T, N>& rhs) const;
+    inline MatrixN<T, N> operator * (const T a) const;
+    inline MatrixN<T, N> operator / (const T a) const;
+    inline VectorN<T, N> operator * (const VectorN<T, N>& rhs) const;
+    inline MatrixN<T, N> operator * (const MatrixN<T, N>& rhs) const;
+    inline MatrixN<T, N> transpose ();
+    inline MatrixN<T, N> inverse ();
+    inline T trace ();
 
-    inline T& operator () (int row, int col) {
-        XCAM_ASSERT(row >= 1 && row <= 4);
-        XCAM_ASSERT(col >= 1 && col <= 4);
+private:
+    inline MatrixN<T, 3> inverse (const MatrixN<T, 3>& mat);
+    inline MatrixN<T, 4> inverse (const MatrixN<T, 4>& mat);
 
-        if (col == 1 && row == 1) return v0.x;
-        else if (col == 1 && row == 2) return v0.y;
-        else if (col == 1 && row == 3) return v0.z;
-        else if (col == 1 && row == 4) return v0.w;
-        else if (col == 2 && row == 1) return v1.x;
-        else if (col == 2 && row == 2) return v1.y;
-        else if (col == 2 && row == 3) return v1.z;
-        else if (col == 2 && row == 4) return v1.w;
-        else if (col == 3 && row == 1) return v2.x;
-        else if (col == 3 && row == 2) return v2.y;
-        else if (col == 3 && row == 3) return v2.z;
-        else if (col == 3 && row == 4) return v2.w;
-        else if (col == 4 && row == 1) return v3.x;
-        else if (col == 4 && row == 2) return v3.y;
-        else if (col == 4 && row == 3) return v3.z;
-        else if (col == 4 && row == 4) return v3.w;
-        else return v0.x;
-    }
 
-    inline Matrix4<T>& operator = (const Matrix4<T>& rhs) {
-        v0 = rhs.v0;
-        v1 = rhs.v1;
-        v2 = rhs.v2;
-        v3 = rhs.v3;
-        return *this;
-    }
-
-    inline Matrix4<T> operator - () const {
-        return Matrix4<T>(-v0, -v1, -v2, -v3);
-    }
-
-    inline Matrix4<T> operator + (const Matrix4<T>& rhs) const {
-        return Matrix4<T>(v0 + rhs.v0, v1 + rhs.v1, v2 + rhs.v2, v3 + rhs.v3);
-    }
-
-    inline Matrix4<T> operator * (const T a) const {
-        return Matrix4<T>(v0 * a, v1 * a, v2 * a, v3 * a);
-    }
-
-    inline Matrix4<T> operator * (const Matrix4<T>& rhs) const {
-        T m00 = Vector4<T>(v0.x, v1.x, v2.x, v3.x).dot(rhs.v0);
-        T m01 = Vector4<T>(v0.x, v1.x, v2.x, v3.x).dot(rhs.v1);
-        T m02 = Vector4<T>(v0.x, v1.x, v2.x, v3.x).dot(rhs.v2);
-        T m03 = Vector4<T>(v0.x, v1.x, v2.x, v3.x).dot(rhs.v3);
-
-        T m10 = Vector4<T>(v0.y, v1.y, v2.y, v3.y).dot(rhs.v0);
-        T m11 = Vector4<T>(v0.y, v1.y, v2.y, v3.y).dot(rhs.v1);
-        T m12 = Vector4<T>(v0.y, v1.y, v2.y, v3.y).dot(rhs.v2);
-        T m13 = Vector4<T>(v0.y, v1.y, v2.y, v3.y).dot(rhs.v3);
-
-        T m20 = Vector4<T>(v0.z, v1.z, v2.z, v3.z).dot(rhs.v0);
-        T m21 = Vector4<T>(v0.z, v1.z, v2.z, v3.z).dot(rhs.v1);
-        T m22 = Vector4<T>(v0.z, v1.z, v2.z, v3.z).dot(rhs.v2);
-        T m23 = Vector4<T>(v0.z, v1.z, v2.z, v3.z).dot(rhs.v3);
-
-        T m30 = Vector4<T>(v0.w, v1.w, v2.w, v3.w).dot(rhs.v0);
-        T m31 = Vector4<T>(v0.w, v1.w, v2.w, v3.w).dot(rhs.v1);
-        T m32 = Vector4<T>(v0.w, v1.w, v2.w, v3.w).dot(rhs.v2);
-        T m33 = Vector4<T>(v0.w, v1.w, v2.w, v3.w).dot(rhs.v3);
-
-        return Matrix4<T>(Vector4<T>(m00, m10, m20, m30),
-                          Vector4<T>(m01, m11, m21, m31),
-                          Vector4<T>(m02, m12, m22, m32),
-                          Vector4<T>(m03, m13, m23, m33));
-    }
-
-    inline Vector4<T> operator * (const Vector4<T>& rhs) const {
-        return Vector4<T>(v0.x * rhs.x + v1.x * rhs.y + v2.x * rhs.z + v3.x * rhs.w,
-                          v0.y * rhs.x + v1.y * rhs.y + v2.y * rhs.z + v3.y * rhs.w,
-                          v0.z * rhs.x + v1.z * rhs.y + v2.z * rhs.z + v3.z * rhs.w,
-                          v0.w * rhs.x + v1.w * rhs.y + v2.w * rhs.z + v3.w * rhs.w);
-    }
-
-    inline Matrix4<T> transpose () {
-        Matrix4<T> ret;
-        for (int i = 1; i <= 4; i++)
-        {
-            for (int j = 1; j <= 4; j++)
-            {
-                ret.at(i, j) = at(j, i);
-            }
-        }
-        return ret;
-    }
-
-    inline T det()
-    {
-        return at(1, 4) * at(2, 3) * at(3, 2) * at(4, 1) -
-               at(1, 3) * at(2, 4) * at(3, 2) * at(4, 1) -
-               at(1, 4) * at(2, 2) * at(3, 3) * at(4, 1) +
-               at(1, 2) * at(2, 4) * at(3, 3) * at(4, 1) +
-               at(1, 3) * at(2, 2) * at(3, 4) * at(4, 1) -
-               at(1, 2) * at(2, 3) * at(3, 4) * at(4, 1) -
-               at(1, 4) * at(2, 3) * at(3, 1) * at(4, 2) +
-               at(1, 3) * at(2, 4) * at(3, 1) * at(4, 2) +
-               at(1, 4) * at(2, 1) * at(3, 3) * at(4, 2) -
-               at(1, 1) * at(2, 4) * at(3, 3) * at(4, 2) -
-               at(1, 3) * at(2, 1) * at(3, 4) * at(4, 2) +
-               at(1, 1) * at(2, 3) * at(3, 4) * at(4, 2) +
-               at(1, 4) * at(2, 2) * at(3, 1) * at(4, 3) -
-               at(1, 2) * at(2, 4) * at(3, 1) * at(4, 3) -
-               at(1, 4) * at(2, 1) * at(3, 2) * at(4, 3) +
-               at(1, 1) * at(2, 4) * at(3, 2) * at(4, 3) +
-               at(1, 2) * at(2, 1) * at(3, 4) * at(4, 3) -
-               at(1, 1) * at(2, 2) * at(3, 4) * at(4, 3) -
-               at(1, 3) * at(2, 2) * at(3, 1) * at(4, 4) +
-               at(1, 2) * at(2, 3) * at(3, 1) * at(4, 4) +
-               at(1, 3) * at(2, 1) * at(3, 2) * at(4, 4) -
-               at(1, 1) * at(2, 3) * at(3, 2) * at(4, 4) -
-               at(1, 2) * at(2, 1) * at(3, 3) * at(4, 4) +
-               at(1, 1) * at(2, 2) * at(3, 3) * at(4, 4);
-    }
-
-    inline Matrix4<T> inverse()
-    {
-        Matrix4<T> ret;
-
-        ret(1, 1) = at(2, 3) * at(3, 4) * at(4, 2) -
-                    at(2, 4) * at(3, 3) * at(4, 2) +
-                    at(2, 4) * at(3, 2) * at(4, 3) -
-                    at(2, 2) * at(3, 4) * at(4, 3) -
-                    at(2, 3) * at(3, 2) * at(4, 4) +
-                    at(2, 2) * at(3, 3) * at(4, 4);
-
-        ret(1, 2) = at(1, 4) * at(3, 3) * at(4, 2) -
-                    at(1, 3) * at(3, 4) * at(4, 2) -
-                    at(1, 4) * at(3, 2) * at(4, 3) +
-                    at(1, 2) * at(3, 4) * at(4, 3) +
-                    at(1, 3) * at(3, 2) * at(4, 4) -
-                    at(1, 2) * at(3, 3) * at(4, 4);
-
-        ret(1, 3) = at(1, 3) * at(2, 4) * at(4, 2) -
-                    at(1, 4) * at(2, 3) * at(4, 2) +
-                    at(1, 4) * at(2, 2) * at(4, 3) -
-                    at(1, 2) * at(2, 4) * at(4, 3) -
-                    at(1, 3) * at(2, 2) * at(4, 4) +
-                    at(1, 2) * at(2, 3) * at(4, 4);
-
-        ret(1, 4) = at(1, 4) * at(2, 3) * at(3, 2) -
-                    at(1, 3) * at(2, 4) * at(3, 2) -
-                    at(1, 4) * at(2, 2) * at(3, 3) +
-                    at(1, 2) * at(2, 4) * at(3, 3) +
-                    at(1, 3) * at(2, 2) * at(3, 4) -
-                    at(1, 2) * at(2, 3) * at(3, 4);
-
-        ret(2, 1) = at(2, 4) * at(3, 3) * at(4, 1) -
-                    at(2, 3) * at(3, 4) * at(4, 1) -
-                    at(2, 4) * at(3, 1) * at(4, 3) +
-                    at(2, 1) * at(3, 4) * at(4, 3) +
-                    at(2, 3) * at(3, 1) * at(4, 4) -
-                    at(2, 1) * at(3, 3) * at(4, 4);
-
-        ret(2, 2) = at(1, 3) * at(3, 4) * at(4, 1) -
-                    at(1, 4) * at(3, 3) * at(4, 1) +
-                    at(1, 4) * at(3, 1) * at(4, 3) -
-                    at(1, 1) * at(3, 4) * at(4, 3) -
-                    at(1, 3) * at(3, 1) * at(4, 4) +
-                    at(1, 1) * at(3, 3) * at(4, 4);
-
-        ret(2, 3) = at(1, 4) * at(2, 3) * at(4, 1) -
-                    at(1, 3) * at(2, 4) * at(4, 1) -
-                    at(1, 4) * at(2, 1) * at(4, 3) +
-                    at(1, 1) * at(2, 4) * at(4, 3) +
-                    at(1, 3) * at(2, 1) * at(4, 4) -
-                    at(1, 1) * at(2, 3) * at(4, 4);
-
-        ret(2, 4) = at(1, 3) * at(2, 4) * at(3, 1) -
-                    at(1, 4) * at(2, 3) * at(3, 1) +
-                    at(1, 4) * at(2, 1) * at(3, 3) -
-                    at(1, 1) * at(2, 4) * at(3, 3) -
-                    at(1, 3) * at(2, 1) * at(3, 4) +
-                    at(1, 1) * at(2, 3) * at(3, 4);
-
-        ret(3, 1) = at(2, 2) * at(3, 4) * at(4, 1) -
-                    at(2, 4) * at(3, 2) * at(4, 1) +
-                    at(2, 4) * at(3, 1) * at(4, 2) -
-                    at(2, 1) * at(3, 4) * at(4, 2) -
-                    at(2, 2) * at(3, 1) * at(4, 4) +
-                    at(2, 1) * at(3, 2) * at(4, 4);
-
-        ret(3, 2) = at(1, 4) * at(3, 2) * at(4, 1) -
-                    at(1, 2) * at(3, 4) * at(4, 1) -
-                    at(1, 4) * at(3, 1) * at(4, 2) +
-                    at(1, 1) * at(3, 4) * at(4, 2) +
-                    at(1, 2) * at(3, 1) * at(4, 4) -
-                    at(1, 1) * at(3, 2) * at(4, 4);
-
-        ret(3, 3) = at(1, 2) * at(2, 4) * at(4, 1) -
-                    at(1, 4) * at(2, 2) * at(4, 1) +
-                    at(1, 4) * at(2, 1) * at(4, 2) -
-                    at(1, 1) * at(2, 4) * at(4, 2) -
-                    at(1, 2) * at(2, 1) * at(4, 4) +
-                    at(1, 1) * at(2, 2) * at(4, 4);
-
-        ret(3, 4) = at(1, 4) * at(2, 2) * at(3, 1) -
-                    at(1, 2) * at(2, 4) * at(3, 1) -
-                    at(1, 4) * at(2, 1) * at(3, 2) +
-                    at(1, 1) * at(2, 4) * at(3, 2) +
-                    at(1, 2) * at(2, 1) * at(3, 4) -
-                    at(1, 1) * at(2, 2) * at(3, 4);
-
-        ret(4, 1) = at(2, 3) * at(3, 2) * at(4, 1) -
-                    at(2, 2) * at(3, 3) * at(4, 1) -
-                    at(2, 3) * at(3, 1) * at(4, 2) +
-                    at(2, 1) * at(3, 3) * at(4, 2) +
-                    at(2, 2) * at(3, 1) * at(4, 3) -
-                    at(2, 1) * at(3, 2) * at(4, 3);
-
-        ret(4, 2) = at(1, 2) * at(3, 3) * at(4, 1) -
-                    at(1, 3) * at(3, 2) * at(4, 1) +
-                    at(1, 3) * at(3, 1) * at(4, 2) -
-                    at(1, 1) * at(3, 3) * at(4, 2) -
-                    at(1, 2) * at(3, 1) * at(4, 3) +
-                    at(1, 1) * at(3, 2) * at(4, 3);
-
-        ret(4, 3) = at(1, 3) * at(2, 2) * at(4, 1) -
-                    at(1, 2) * at(2, 3) * at(4, 1) -
-                    at(1, 3) * at(2, 1) * at(4, 2) +
-                    at(1, 1) * at(2, 3) * at(4, 2) +
-                    at(1, 2) * at(2, 1) * at(4, 3) -
-                    at(1, 1) * at(2, 2) * at(4, 3);
-
-        ret(4, 4) = at(1, 2) * at(2, 3) * at(3, 1) -
-                    at(1, 3) * at(2, 2) * at(3, 1) +
-                    at(1, 3) * at(2, 1) * at(3, 2) -
-                    at(1, 1) * at(2, 3) * at(3, 2) -
-                    at(1, 2) * at(2, 1) * at(3, 3) +
-                    at(1, 1) * at(2, 2) * at(3, 3);
-
-        return ret * (1.0f / det());
-    }
-
+private:
+    T data[N * N];
 
 };
 
+// NxN matrix in row major order
+template<class T, uint32_t N>
+MatrixN<T, N>::MatrixN () {
+    eye ();
+}
+
+template<class T, uint32_t N>
+MatrixN<T, N>::MatrixN (VectorN<T, 3> a, VectorN<T, 3> b, VectorN<T, 3> c) {
+    if (N == 3) {
+        data[0]  = a[0];
+        data[1] = a[1];
+        data[2] = a[2];
+        data[3]  = b[0];
+        data[4] = b[1];
+        data[5] = b[2];
+        data[6]  = c[0];
+        data[7] = c[1];
+        data[8] = c[2];
+    } else {
+        eye ();
+    }
+}
+
+template<class T, uint32_t N>
+MatrixN<T, N>::MatrixN (VectorN<T, 4> a, VectorN<T, 4> b, VectorN<T, 4> c, VectorN<T, 4> d) {
+    if (N == 4) {
+        data[0]  = a[0];
+        data[1]  = a[1];
+        data[2]  = a[2];
+        data[3]  = a[3];
+        data[4]  = b[0];
+        data[5]  = b[1];
+        data[6]  = b[2];
+        data[7]  = b[3];
+        data[8]  = c[0];
+        data[9]  = c[1];
+        data[10] = c[2];
+        data[11] = c[3];
+        data[12] = d[0];
+        data[13] = d[1];
+        data[14] = d[2];
+        data[15] = d[3];
+    } else {
+        eye ();
+    }
+}
+
+template<class T, uint32_t N> inline
+void MatrixN<T, N>::zeros () {
+    for (uint32_t i = 0; i < N * N; i++) {
+        data[i] = 0;
+    }
+}
+
+template<class T, uint32_t N> inline
+void MatrixN<T, N>::eye () {
+    zeros ();
+    for (uint32_t i = 0; i < N; i++) {
+        data[i * N + i] = 1;
+    }
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N>& MatrixN<T, N>::operator = (const MatrixN<T, N>& rhs) {
+    for (uint32_t i = 0; i < N * N; i++) {
+        data[i] = rhs.data[i];
+    }
+    return *this;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::operator - () const {
+    MatrixN<T, N> result;
+    for (uint32_t i = 0; i < N * N; i++) {
+        result.data[i] = -data[i];
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::operator + (const MatrixN<T, N>& rhs) const {
+    MatrixN<T, N> result;
+    for (uint32_t i = 0; i < N * N; i++) {
+        result.data[i] = data[i] + rhs.data[i];
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::operator - (const MatrixN<T, N>& rhs) const {
+    MatrixN<T, N> result;
+    for (uint32_t i = 0; i < N * N; i++) {
+        result.data[i] = data[i] - rhs.data[i];
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::operator * (const T a) const {
+    MatrixN<T, N> result;
+    for (uint32_t i = 0; i < N * N; i++) {
+        result.data[i] = data[i] * a;
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::operator / (const T a) const {
+    MatrixN<T, N> result;
+    for (uint32_t i = 0; i < N * N; i++) {
+        result.data[i] = data[i] / a;
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::operator * (const MatrixN<T, N>& rhs) const {
+    MatrixN<T, N> result;
+    result.zeros ();
+
+    for (uint32_t i = 0; i < N; i++) {
+        for (uint32_t j = 0; j < N; j++) {
+            T element = 0;
+            for (uint32_t k = 0; k < N; k++) {
+                element += at(i, k) * rhs(k, j);
+            }
+            result(i, j) = element;
+        }
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+VectorN<T, N> MatrixN<T, N>::operator * (const VectorN<T, N>& rhs) const {
+    VectorN<T, N> result;
+    for (uint32_t i = 0; i < N; i++) {  // row
+        for (uint32_t j = 0; j < N; j++) {  // col
+            result.data[i] = data[i * N + j] * rhs.data[j];
+        }
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::transpose () {
+    MatrixN<T, N> result;
+    for (uint32_t i = 0; i < N; i++) {
+        for (uint32_t j = 0; j <= N; j++) {
+            result.data[i * N + j] = data[j * N + i];
+        }
+    }
+    return result;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, N> MatrixN<T, N>::inverse () {
+    MatrixN<T, N> result;
+
+    result = inverse (*this);
+    return result;
+}
+
+template<class T, uint32_t N> inline
+T MatrixN<T, N>::trace () {
+    T t = 0;
+    for ( uint32_t i = 0; i < N; i++ ) {
+        t += data(i, i);
+    }
+    return t;
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, 3> MatrixN<T, N>::inverse (const MatrixN<T, 3>& mat)
+{
+    MatrixN<T, 3> result;
+
+    T det = mat(0, 0) * mat(1, 1) * mat(2, 2) +
+            mat(1, 0) * mat(2, 1) * mat(0, 2) +
+            mat(2, 0) * mat(0, 1) * mat(1, 2) -
+            mat(0, 0) * mat(2, 1) * mat(1, 2) -
+            mat(1, 0) * mat(0, 1) * mat(2, 2) -
+            mat(2, 0) * mat(1, 1) * mat(0, 2);
+
+    result(0, 0) = mat(1, 1) * mat(2, 2) - mat(1, 2) * mat(2, 1);
+    result(1, 0) = mat(1, 2) * mat(2, 0) - mat(1, 0) * mat(2, 2);
+    result(2, 0) = mat(1, 0) * mat(2, 1) - mat(1, 1) * mat(2, 0);
+    result(0, 1) = mat(0, 2) * mat(2, 1) - mat(0, 1) * mat(2, 2);
+    result(1, 1) = mat(0, 0) * mat(2, 2) - mat(0, 2) * mat(2, 0);
+    result(2, 1) = mat(0, 1) * mat(2, 0) - mat(0, 0) * mat(2, 1);
+    result(0, 2) = mat(0, 1) * mat(1, 2) - mat(0, 2) * mat(1, 1);
+    result(1, 2) = mat(0, 2) * mat(1, 0) - mat(0, 0) * mat(1, 2);
+    result(2, 2) = mat(0, 0) * mat(1, 1) - mat(0, 1) * mat(1, 0);
+
+    return result * (1.0f / det);
+}
+
+template<class T, uint32_t N> inline
+MatrixN<T, 4> MatrixN<T, N>::inverse (const MatrixN<T, 4>& mat)
+{
+    MatrixN<T, 4> result;
+
+    T det =  mat(0, 3) * mat(1, 2) * mat(2, 1) * mat(3, 1) -
+             mat(0, 2) * mat(1, 3) * mat(2, 1) * mat(3, 1) -
+             mat(0, 3) * mat(1, 1) * mat(2, 2) * mat(3, 1) +
+             mat(0, 1) * mat(1, 3) * mat(2, 2) * mat(3, 1) +
+             mat(0, 2) * mat(1, 1) * mat(2, 3) * mat(3, 1) -
+             mat(0, 1) * mat(1, 2) * mat(2, 3) * mat(3, 1) -
+             mat(0, 3) * mat(1, 2) * mat(2, 0) * mat(3, 1) +
+             mat(0, 2) * mat(1, 3) * mat(2, 0) * mat(3, 1) +
+             mat(0, 3) * mat(1, 0) * mat(2, 2) * mat(3, 1) -
+             mat(0, 0) * mat(1, 3) * mat(2, 2) * mat(3, 1) -
+             mat(0, 2) * mat(1, 0) * mat(2, 3) * mat(3, 1) +
+             mat(0, 0) * mat(1, 2) * mat(2, 3) * mat(3, 1) +
+             mat(0, 3) * mat(1, 1) * mat(2, 0) * mat(3, 2) -
+             mat(0, 1) * mat(1, 3) * mat(2, 0) * mat(3, 2) -
+             mat(0, 3) * mat(1, 0) * mat(2, 1) * mat(3, 2) +
+             mat(0, 0) * mat(1, 3) * mat(2, 1) * mat(3, 2) +
+             mat(0, 1) * mat(1, 0) * mat(2, 3) * mat(3, 2) -
+             mat(0, 0) * mat(1, 1) * mat(2, 3) * mat(3, 2) -
+             mat(0, 2) * mat(1, 1) * mat(2, 0) * mat(3, 3) +
+             mat(0, 1) * mat(1, 2) * mat(2, 0) * mat(3, 3) +
+             mat(0, 2) * mat(1, 0) * mat(2, 1) * mat(3, 3) -
+             mat(0, 0) * mat(1, 2) * mat(2, 1) * mat(3, 3) -
+             mat(0, 1) * mat(1, 0) * mat(2, 2) * mat(3, 3) +
+             mat(0, 0) * mat(1, 1) * mat(2, 2) * mat(3, 3);
+
+    result(0, 0) = mat(1, 2) * mat(2, 3) * mat(3, 1) -
+                   mat(1, 3) * mat(2, 2) * mat(3, 1) +
+                   mat(1, 3) * mat(2, 1) * mat(3, 2) -
+                   mat(1, 1) * mat(2, 3) * mat(3, 2) -
+                   mat(1, 2) * mat(2, 1) * mat(3, 3) +
+                   mat(1, 1) * mat(2, 2) * mat(3, 3);
+
+    result(0, 1) = mat(0, 3) * mat(2, 2) * mat(3, 1) -
+                   mat(0, 2) * mat(2, 3) * mat(3, 1) -
+                   mat(0, 3) * mat(2, 1) * mat(3, 2) +
+                   mat(0, 1) * mat(2, 3) * mat(3, 2) +
+                   mat(0, 2) * mat(2, 1) * mat(3, 3) -
+                   mat(0, 1) * mat(2, 2) * mat(3, 3);
+
+    result(0, 2) = mat(0, 2) * mat(1, 3) * mat(3, 1) -
+                   mat(0, 3) * mat(1, 2) * mat(3, 1) +
+                   mat(0, 3) * mat(1, 1) * mat(3, 2) -
+                   mat(0, 1) * mat(1, 3) * mat(3, 2) -
+                   mat(0, 2) * mat(1, 1) * mat(3, 3) +
+                   mat(0, 1) * mat(1, 2) * mat(3, 3);
+
+    result(0, 3) = mat(0, 3) * mat(1, 2) * mat(2, 1) -
+                   mat(0, 2) * mat(1, 3) * mat(2, 1) -
+                   mat(0, 3) * mat(1, 1) * mat(2, 2) +
+                   mat(0, 1) * mat(1, 3) * mat(2, 2) +
+                   mat(0, 2) * mat(1, 1) * mat(2, 3) -
+                   mat(0, 1) * mat(1, 2) * mat(2, 3);
+
+    result(1, 0) = mat(1, 3) * mat(2, 2) * mat(3, 0) -
+                   mat(1, 2) * mat(2, 3) * mat(3, 0) -
+                   mat(1, 3) * mat(2, 0) * mat(3, 2) +
+                   mat(1, 0) * mat(2, 3) * mat(3, 2) +
+                   mat(1, 2) * mat(2, 0) * mat(3, 3) -
+                   mat(1, 0) * mat(2, 2) * mat(3, 3);
+
+    result(1, 1) = mat(0, 2) * mat(2, 3) * mat(3, 0) -
+                   mat(0, 3) * mat(2, 2) * mat(3, 0) +
+                   mat(0, 3) * mat(2, 0) * mat(3, 2) -
+                   mat(0, 0) * mat(2, 3) * mat(3, 2) -
+                   mat(0, 2) * mat(2, 0) * mat(3, 3) +
+                   mat(0, 0) * mat(2, 2) * mat(3, 3);
+
+    result(1, 2) = mat(0, 3) * mat(1, 2) * mat(3, 0) -
+                   mat(0, 2) * mat(1, 3) * mat(3, 0) -
+                   mat(0, 3) * mat(1, 0) * mat(3, 2) +
+                   mat(0, 0) * mat(1, 3) * mat(3, 2) +
+                   mat(0, 2) * mat(1, 0) * mat(3, 3) -
+                   mat(0, 0) * mat(1, 2) * mat(3, 3);
+
+    result(1, 3) = mat(0, 2) * mat(1, 3) * mat(2, 0) -
+                   mat(0, 3) * mat(1, 2) * mat(2, 0) +
+                   mat(0, 3) * mat(1, 0) * mat(2, 2) -
+                   mat(0, 0) * mat(1, 3) * mat(2, 2) -
+                   mat(0, 2) * mat(1, 0) * mat(2, 3) +
+                   mat(0, 0) * mat(1, 2) * mat(2, 3);
+
+    result(2, 0) = mat(1, 1) * mat(2, 3) * mat(3, 0) -
+                   mat(1, 3) * mat(2, 1) * mat(3, 0) +
+                   mat(1, 3) * mat(2, 0) * mat(3, 1) -
+                   mat(1, 0) * mat(2, 3) * mat(3, 1) -
+                   mat(1, 1) * mat(2, 0) * mat(3, 3) +
+                   mat(1, 0) * mat(2, 1) * mat(3, 3);
+
+    result(2, 1) = mat(0, 3) * mat(2, 1) * mat(3, 0) -
+                   mat(0, 1) * mat(2, 3) * mat(3, 0) -
+                   mat(0, 3) * mat(2, 0) * mat(3, 1) +
+                   mat(0, 0) * mat(2, 3) * mat(3, 1) +
+                   mat(0, 1) * mat(2, 0) * mat(3, 3) -
+                   mat(0, 0) * mat(2, 1) * mat(3, 3);
+
+    result(2, 2) = mat(0, 1) * mat(1, 3) * mat(3, 0) -
+                   mat(0, 3) * mat(1, 1) * mat(3, 0) +
+                   mat(0, 3) * mat(1, 0) * mat(3, 1) -
+                   mat(0, 0) * mat(1, 3) * mat(3, 1) -
+                   mat(0, 1) * mat(1, 0) * mat(3, 3) +
+                   mat(0, 0) * mat(1, 1) * mat(3, 3);
+
+    result(2, 3) = mat(0, 3) * mat(1, 1) * mat(2, 0) -
+                   mat(0, 1) * mat(1, 3) * mat(2, 0) -
+                   mat(0, 3) * mat(1, 0) * mat(2, 1) +
+                   mat(0, 0) * mat(1, 3) * mat(2, 1) +
+                   mat(0, 1) * mat(1, 0) * mat(2, 3) -
+                   mat(0, 0) * mat(1, 1) * mat(2, 3);
+
+    result(3, 0) = mat(1, 2) * mat(2, 1) * mat(3, 0) -
+                   mat(1, 1) * mat(2, 2) * mat(3, 0) -
+                   mat(1, 2) * mat(2, 0) * mat(3, 1) +
+                   mat(1, 0) * mat(2, 2) * mat(3, 1) +
+                   mat(1, 1) * mat(2, 0) * mat(3, 2) -
+                   mat(1, 0) * mat(2, 1) * mat(3, 2);
+
+    result(3, 1) = mat(1, 1) * mat(2, 2) * mat(3, 0) -
+                   mat(1, 2) * mat(2, 1) * mat(3, 0) +
+                   mat(1, 2) * mat(2, 0) * mat(3, 1) -
+                   mat(1, 0) * mat(2, 2) * mat(3, 1) -
+                   mat(1, 1) * mat(2, 0) * mat(3, 2) +
+                   mat(1, 0) * mat(2, 1) * mat(3, 2);
+
+    result(3, 2) = mat(0, 2) * mat(1, 1) * mat(3, 0) -
+                   mat(0, 1) * mat(1, 2) * mat(3, 0) -
+                   mat(0, 2) * mat(1, 0) * mat(3, 1) +
+                   mat(0, 0) * mat(1, 2) * mat(3, 1) +
+                   mat(0, 1) * mat(1, 0) * mat(3, 2) -
+                   mat(0, 0) * mat(1, 1) * mat(3, 2);
+
+    result(3, 3) = mat(0, 1) * mat(1, 2) * mat(2, 0) -
+                   mat(0, 2) * mat(1, 1) * mat(2, 0) +
+                   mat(0, 2) * mat(1, 0) * mat(2, 1) -
+                   mat(0, 0) * mat(1, 2) * mat(2, 1) -
+                   mat(0, 1) * mat(1, 0) * mat(2, 2) +
+                   mat(0, 0) * mat(1, 1) * mat(2, 2);
+
+    return result * (1.0f / det);
+}
+
+typedef VectorN<double, 2> Vec2d;
+typedef VectorN<double, 3> Vec3d;
+typedef VectorN<double, 4> Vec4d;
+typedef MatrixN<double, 3> Mat3d;
+typedef MatrixN<double, 4> Mat4d;
 
 template<class T>
 class Quaternion
 {
 public:
 
-    Vector3<T> v;
+    Vec3d v;
     T w;
 
     Quaternion () : v(0, 0, 0), w(0) {};
     Quaternion (const Quaternion<T>& q) : v(q.v), w(q.w) {};
 
-    Quaternion (const Vector3<T>& vec, T _w) : v(vec), w(_w) {};
-    Quaternion (const Vector4<T>& vec) : v(vec.x, vec.y, vec.z), w(vec.w) {};
+    Quaternion (const Vec3d& vec, T _w) : v(vec), w(_w) {};
+    Quaternion (const Vec4d& vec)  : v(vec[0], vec[1], vec[2]), w(vec[3]) {};
     Quaternion (T _x, T _y, T _z, T _w) : v(_x, _y, _z), w(_w) {};
 
     inline void reset () {
@@ -808,10 +950,10 @@ public:
 
     inline Quaternion<T> operator * (const Quaternion<T>& rhs) const {
         const Quaternion<T>& lhs = *this;
-        return Quaternion<T>(lhs.w * rhs.v.x + lhs.v.x * rhs.w + lhs.v.y * rhs.v.z - lhs.v.z * rhs.v.y,
-                             lhs.w * rhs.v.y - lhs.v.x * rhs.v.z + lhs.v.y * rhs.w + lhs.v.z * rhs.v.x,
-                             lhs.w * rhs.v.z + lhs.v.x * rhs.v.y - lhs.v.y * rhs.v.x + lhs.v.z * rhs.w,
-                             lhs.w * rhs.w - lhs.v.x * rhs.v.x - lhs.v.y * rhs.v.y - lhs.v.z * rhs.v.z);
+        return Quaternion<T>(lhs.w * rhs.v[0] + lhs.v[0] * rhs.w + lhs.v[1] * rhs.v[2] - lhs.v[2] * rhs.v[1],
+                             lhs.w * rhs.v[1] - lhs.v[0] * rhs.v[2] + lhs.v[1] * rhs.w + lhs.v[2] * rhs.v[0],
+                             lhs.w * rhs.v[2] + lhs.v[0] * rhs.v[1] - lhs.v[1] * rhs.v[0] + lhs.v[2] * rhs.w,
+                             lhs.w * rhs.w - lhs.v[0] * rhs.v[0] - lhs.v[1] * rhs.v[1] - lhs.v[2] * rhs.v[2]);
     }
 
     /*
@@ -820,7 +962,7 @@ public:
         |Qr| =  \/  Qr.Qr
     */
     inline T magnitude () const {
-        return (T) sqrtf(w * w + v.x * v.x + v.y * v.y + v.z * v.z);
+        return (T) sqrtf(w * w + v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     }
 
     inline void normalize ()
@@ -844,7 +986,7 @@ public:
 
     inline Quaternion<T> slerp(T r, const Quaternion<T>& quat) const {
         Quaternion<T> ret;
-        T cos_theta = w * quat.w + v.x * quat.v.x + v.y * quat.v.y + v.z * quat.v.z;
+        T cos_theta = w * quat.w + v[0] * quat.v[0] + v[1] * quat.v[1] + v[2] * quat.v[2];
         T theta = (T) acos(cos_theta);
         if (fabs(theta) < FLT_EPSILON)
         {
@@ -864,34 +1006,34 @@ public:
                 T r1 = (T) sin(r * theta) / sin_theta;
 
                 ret.w = w * r0 + quat.w * r1;
-                ret.v.x = v.x * r0 + quat.v.x * r1;
-                ret.v.y = v.y * r0 + quat.v.y * r1;
-                ret.v.z = v.z * r0 + quat.v.z * r1;
+                ret.v[0] = v[0] * r0 + quat.v[0] * r1;
+                ret.v[1] = v[1] * r0 + quat.v[1] * r1;
+                ret.v[2] = v[2] * r0 + quat.v[2] * r1;
             }
         }
         return ret;
     }
 
-    static Quaternion<T> create_quaternion (Vector3<T> axis, T angle_rad) {
+    static Quaternion<T> create_quaternion (Vec3d axis, T angle_rad) {
         T theta_over_two = angle_rad / (T) 2.0;
         T sin_theta_over_two = std::sin(theta_over_two);
         T cos_theta_over_two = std::cos(theta_over_two);
         return Quaternion<T>(axis * sin_theta_over_two, cos_theta_over_two);
     }
 
-    static Quaternion<T> create_quaternion (Vector3<T> euler) {
-        return create_quaternion(Vector3<T>(1, 0, 0), euler.x) *
-               create_quaternion(Vector3<T>(0, 1, 0), euler.y) *
-               create_quaternion(Vector3<T>(0, 0, 1), euler.z);
+    static Quaternion<T> create_quaternion (Vec3d euler) {
+        return create_quaternion(Vec3d(1, 0, 0), euler[0]) *
+               create_quaternion(Vec3d(0, 1, 0), euler[1]) *
+               create_quaternion(Vec3d(0, 0, 1), euler[2]);
     }
 
-    static Quaternion<T> create_quaternion (const Matrix3<T>& mat) {
+    static Quaternion<T> create_quaternion (const Mat3d& mat) {
         Quaternion<T> q;
 
         T trace, s;
-        T diag1 = mat(1, 1);
-        T diag2 = mat(2, 2);
-        T diag3 = mat(3, 3);
+        T diag1 = mat(0, 0);
+        T diag2 = mat(1, 1);
+        T diag3 = mat(2, 2);
 
         trace = diag1 + diag2 + diag3;
 
@@ -899,9 +1041,9 @@ public:
         {
             s = 2.0 * (T) sqrt(trace + 1.0);
             q.w = 0.25 * s;
-            q.v.x = (mat(3, 2) - mat(2, 3)) / s;
-            q.v.y = (mat(1, 3) - mat(3, 1)) / s;
-            q.v.z = (mat(2, 1) - mat(1, 2)) / s;
+            q.v[0] = (mat(2, 1) - mat(1, 2)) / s;
+            q.v[1] = (mat(0, 2) - mat(2, 0)) / s;
+            q.v[2] = (mat(1, 0) - mat(0, 1)) / s;
         }
         else
         {
@@ -909,44 +1051,44 @@ public:
 
             if (max_diag == 1)
             {
-                s = 2.0 * (T) sqrt(1.0 + mat(1, 1) - mat(2, 2) - mat(3, 3));
-                q.w = (mat(3, 2) - mat(2, 3)) / s;
-                q.v.x = 0.25 * s;
-                q.v.y = (mat(1, 2) + mat(2, 1)) / s;
-                q.v.z = (mat(1, 3) + mat(3, 1)) / s;
+                s = 2.0 * (T) sqrt(1.0 + mat(0, 0) - mat(1, 1) - mat(2, 2));
+                q.w = (mat(2, 1) - mat(1, 2)) / s;
+                q.v[0] = 0.25 * s;
+                q.v[1] = (mat(0, 1) + mat(1, 0)) / s;
+                q.v[2] = (mat(0, 2) + mat(2, 0)) / s;
             }
             else if (max_diag == 2)
             {
-                s = 2.0 * (T) sqrt(1.0 + mat(2, 2) - mat(1, 1) - mat(3, 3));
-                q.w = (mat(1, 3) - mat(3, 1)) / s;
-                q.v.x = (mat(1, 2) + mat(2, 1)) / s;
-                q.v.y = 0.25 * s;
-                q.v.z = (mat(2, 3) + mat(3, 2)) / s;
+                s = 2.0 * (T) sqrt(1.0 + mat(1, 1) - mat(0, 0) - mat(2, 2));
+                q.w = (mat(0, 2) - mat(2, 0)) / s;
+                q.v[0] = (mat(0, 1) + mat(1, 0)) / s;
+                q.v[1] = 0.25 * s;
+                q.v[2] = (mat(1, 2) + mat(2, 1)) / s;
             }
             else
             {
-                s = 2.0 * (T) sqrt(1.0 + mat(3, 3) - mat(1, 1) - mat(2, 2));
-                q.w = (mat(2, 1) - mat(1, 2)) / s;
-                q.v.x = (mat(1, 3) + mat(3, 1)) / s;
-                q.v.y = (mat(2, 3) + mat(3, 2)) / s;
-                q.v.z = 0.25 * s;
+                s = 2.0 * (T) sqrt(1.0 + mat(2, 2) - mat(0, 0) - mat(1, 1));
+                q.w = (mat(1, 0) - mat(0, 1)) / s;
+                q.v[0] = (mat(0, 2) + mat(2, 0)) / s;
+                q.v[1] = (mat(1, 2) + mat(2, 1)) / s;
+                q.v[2] = 0.25 * s;
             }
         }
 
         return q;
     }
 
-    inline Vector4<T> rotation_axis () {
-        Vector4<T> rot_axis;
+    inline Vec4d rotation_axis () {
+        Vec4d rot_axis;
 
         T cos_theta_over_two = w;
-        rot_axis.w = (T) std::acos( cos_theta_over_two ) * 2.0f;
+        rot_axis[4] = (T) std::acos( cos_theta_over_two ) * 2.0f;
 
         T sin_theta_over_two = (T) sqrt( 1.0 - cos_theta_over_two * cos_theta_over_two );
         if ( fabs( sin_theta_over_two ) < 0.0005 ) sin_theta_over_two = 1;
-        rot_axis.x = v.x / sin_theta_over_two;
-        rot_axis.y = v.y / sin_theta_over_two;
-        rot_axis.z = v.z / sin_theta_over_two;
+        rot_axis[0] = v[0] / sin_theta_over_two;
+        rot_axis[1] = v[1] / sin_theta_over_two;
+        rot_axis[2] = v[2] / sin_theta_over_two;
 
         return rot_axis;
     }
@@ -956,57 +1098,53 @@ public:
         theta=asin(2.*(Q(:,1).*Q(:,3)+Q(:,2).*Q(:,4)));
         phi=atan2(2.*(Q(:,3).*Q(:,4)-Q(:,1).*Q(:,2)),(Q(:,4).^2+Q(:,1).^2-Q(:,2).^2-Q(:,3).^2));
     */
-    inline Vector3<T> euler_angles () {
-        Vector3<T> euler;
+    inline Vec3d euler_angles () {
+        Vec3d euler;
 
         // atan2(2*(qx*qw-qy*qz) , qw2-qx2-qy2+qz2)
-        euler.x = atan2(2 * (v.x * w - v.y * v.z),
-                        w * w - v.x * v.x - v.y * v.y + v.z * v.z);
+        euler[0] = atan2(2 * (v[0] * w - v[1] * v[2]),
+                         w * w - v[0] * v[0] - v[1] * v[1] + v[2] * v[2]);
 
         // asin(2*(qx*qz + qy*qw)
-        euler.y = asin(2 * (v.x * v.z + v.y * w));
+        euler[1] = asin(2 * (v[0] * v[2] + v[1] * w));
 
         // atan2(2*(qz*qw- qx*qy) , qw2 + qx2 - qy2 - qz2)
-        euler.z = atan2(2 * (v.z * w - v.x * v.y),
-                        w * w + v.x * v.x - v.y * v.y - v.z * v.z);
+        euler[2] = atan2(2 * (v[2] * w - v[0] * v[1]),
+                         w * w + v[0] * v[0] - v[1] * v[1] - v[2] * v[2]);
 
         return euler;
     }
 
-    inline Matrix3<T> rotation_matrix () {
-        Matrix3<T> mat;
+    inline Mat3d rotation_matrix () {
+        Mat3d mat;
 
-        T xx = v.x * v.x;
-        T xy = v.x * v.y;
-        T xz = v.x * v.z;
-        T xw = v.x * w;
+        T xx = v[0] * v[0];
+        T xy = v[0] * v[1];
+        T xz = v[0] * v[2];
+        T xw = v[0] * w;
 
-        T yy = v.y * v.y;
-        T yz = v.y * v.z;
-        T yw = v.y * w;
+        T yy = v[1] * v[1];
+        T yz = v[1] * v[2];
+        T yw = v[1] * w;
 
-        T zz = v.z * v.z;
-        T zw = v.z * w;
+        T zz = v[2] * v[2];
+        T zw = v[2] * w;
 
-        mat(1, 1) = 1 - 2 * (yy + zz);
-        mat(1, 2) = 2 * (xy - zw);
-        mat(1, 3) = 2 * (xz + yw);
-        mat(2, 1) = 2 * (xy + zw);
-        mat(2, 2) = 1 - 2 * (xx + zz);
-        mat(2, 3) = 2 * (yz - xw);
-        mat(3, 1) = 2 * (xz - yw);
-        mat(3, 2) = 2 * (yz + xw);
-        mat(3, 3) = 1 - 2 * (xx + yy);
+        mat(0, 0) = 1 - 2 * (yy + zz);
+        mat(0, 1) = 2 * (xy - zw);
+        mat(0, 2) = 2 * (xz + yw);
+        mat(1, 0) = 2 * (xy + zw);
+        mat(1, 1) = 1 - 2 * (xx + zz);
+        mat(1, 2) = 2 * (yz - xw);
+        mat(2, 0) = 2 * (xz - yw);
+        mat(2, 1) = 2 * (yz + xw);
+        mat(2, 2) = 1 - 2 * (xx + yy);
 
         return mat;
     }
 };
 
-typedef Vector2<double> Vec2d;
-typedef Vector3<double> Vec3d;
-typedef Vector4<double> Vec4d;
-typedef Matrix3<double> Mat3d;
-typedef Matrix4<double> Mat4d;
+
 typedef Quaternion<double> Quaternd;
 
 }

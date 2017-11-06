@@ -158,6 +158,7 @@ CLVideoStabilizer::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vi
                         _filter_radius);
 
         proj_mat = stabilize_motion (cur_stabilized_pos, _motions);
+
         Mat3d proj_inv_mat = proj_mat.inverse ();
         warp_config.frame_id = _stabilized_frame_id;
         warp_config.frame_width = video_info_in.width;
@@ -165,7 +166,7 @@ CLVideoStabilizer::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vi
 
         for( int i = 0; i < 3; i++ ) {
             for (int j = 0; j < 3; j++) {
-                warp_config.proj_mat[i * 3 + j] = proj_inv_mat(i + 1, j + 1);
+                warp_config.proj_mat[i * 3 + j] = proj_inv_mat(i, j);
             }
         }
 

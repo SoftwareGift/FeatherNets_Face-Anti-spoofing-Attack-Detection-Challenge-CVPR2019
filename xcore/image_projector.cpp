@@ -103,39 +103,39 @@ ImageProjector::rotate_coordinate_system (
     Mat3d t_mat;
     if (axis_to_x == AXIS_X && axis_to_y == AXIS_MINUS_Z) {
         t_mat = Mat3d (Vec3d (1, 0, 0),
-                       Vec3d (0, 0, 1),
-                       Vec3d (0, -1, 0));
+                       Vec3d (0, 0, -1),
+                       Vec3d (0, 1, 0));
     } else if (axis_to_x == AXIS_X && axis_to_y == AXIS_MINUS_Y) {
         t_mat = Mat3d (Vec3d (1, 0, 0),
                        Vec3d (0, -1, 0),
                        Vec3d (0, 0, -1));
     } else if (axis_to_x == AXIS_X && axis_to_y == AXIS_Z) {
         t_mat = Mat3d (Vec3d (1, 0, 0),
-                       Vec3d (0, 0, -1),
-                       Vec3d (0, 1, 0));
+                       Vec3d (0, 0, 1),
+                       Vec3d (0, -1, 0));
     } else if (axis_to_x == AXIS_MINUS_Z && axis_to_y == AXIS_Y) {
-        t_mat = Mat3d (Vec3d (0, 0, 1),
+        t_mat = Mat3d (Vec3d (0, 0, -1),
                        Vec3d (0, 1, 0),
-                       Vec3d (-1, 0, 0));
+                       Vec3d (1, 0, 0));
     } else if (axis_to_x == AXIS_MINUS_X && axis_to_y == AXIS_Y) {
         t_mat = Mat3d (Vec3d (-1, 0, 0),
                        Vec3d (0, 1, 0),
                        Vec3d (0, 0, -1));
     } else if (axis_to_x == AXIS_Z && axis_to_y == AXIS_Y) {
-        t_mat = Mat3d (Vec3d (0, 0, -1),
+        t_mat = Mat3d (Vec3d (0, 0, 1),
                        Vec3d (0, 1, 0),
-                       Vec3d (1, 0, 0));
+                       Vec3d (-1, 0, 0));
     } else if (axis_to_x == AXIS_MINUS_Y && axis_to_y == AXIS_X) {
-        t_mat = Mat3d (Vec3d (0, 1, 0),
-                       Vec3d (-1, 0, 0),
+        t_mat = Mat3d (Vec3d (0, -1, 0),
+                       Vec3d (1, 0, 0),
                        Vec3d (0, 0, 1));
     } else if (axis_to_x == AXIS_MINUS_X && axis_to_y == AXIS_MINUS_Y) {
         t_mat = Mat3d (Vec3d (-1, 0, 0),
                        Vec3d (0, -1, 0),
                        Vec3d (0, 0, 1));
     } else if (axis_to_x == AXIS_Y && axis_to_y == AXIS_MINUS_X) {
-        t_mat = Mat3d (Vec3d (0, -1, 0),
-                       Vec3d (1, 0, 0),
+        t_mat = Mat3d (Vec3d (0, 1, 0),
+                       Vec3d (-1, 0, 0),
                        Vec3d (0, 0, 1));
     } else  {
         t_mat = Mat3d ();
@@ -230,15 +230,15 @@ ImageProjector::set_camera_intrinsics (
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    _intrinsics = Mat3d (Vec3d (focal_x, 0, 0),
-                         Vec3d (skew, focal_y, 0),
-                         Vec3d (offset_x, offset_y, 1));
+    _intrinsics = Mat3d (Vec3d (focal_x, skew, offset_x),
+                         Vec3d (0, focal_y, offset_y),
+                         Vec3d (0, 0, 1));
 
     XCAM_LOG_DEBUG("Intrinsic Matrix(3x3) \n");
     XCAM_LOG_DEBUG("intrinsic = [ %lf, %lf, %lf ; %lf, %lf, %lf ; %lf, %lf, %lf ] \n",
-                   _intrinsics(1, 1), _intrinsics(1, 2), _intrinsics(1, 3),
-                   _intrinsics(2, 1), _intrinsics(2, 2), _intrinsics(2, 3),
-                   _intrinsics(3, 1), _intrinsics(3, 2), _intrinsics(3, 3));
+                   _intrinsics(0, 0), _intrinsics(0, 1), _intrinsics(0, 2),
+                   _intrinsics(1, 0), _intrinsics(1, 1), _intrinsics(1, 2),
+                   _intrinsics(2, 0), _intrinsics(2, 1), _intrinsics(2, 2));
     return ret;
 }
 
@@ -262,9 +262,9 @@ ImageProjector::calc_camera_extrinsics (
 
     XCAM_LOG_DEBUG("Extrinsic Matrix(3x3) \n");
     XCAM_LOG_DEBUG("extrinsic = [ %lf, %lf, %lf; %lf, %lf, %lf; %lf, %lf, %lf ] \n",
-                   extrinsics(1, 1), extrinsics(1, 2), extrinsics(1, 3),
-                   extrinsics(2, 1), extrinsics(2, 2), extrinsics(2, 3),
-                   extrinsics(3, 1), extrinsics(3, 2), extrinsics(3, 3));
+                   extrinsics(0, 0), extrinsics(0, 1), extrinsics(0, 2),
+                   extrinsics(1, 0), extrinsics(1, 1), extrinsics(1, 2),
+                   extrinsics(2, 0), extrinsics(2, 1), extrinsics(2, 2));
 
     return extrinsics;
 }
@@ -309,9 +309,9 @@ ImageProjector::calc_camera_extrinsics (
 
     XCAM_LOG_DEBUG("Extrinsic Matrix(3x3) \n");
     XCAM_LOG_DEBUG("extrinsic = [ %lf, %lf, %lf; %lf, %lf, %lf; %lf, %lf, %lf ] \n",
-                   extrinsics(1, 1), extrinsics(1, 2), extrinsics(1, 3),
-                   extrinsics(2, 1), extrinsics(2, 2), extrinsics(2, 3),
-                   extrinsics(3, 1), extrinsics(3, 2), extrinsics(3, 3));
+                   extrinsics(0, 0), extrinsics(0, 1), extrinsics(0, 2),
+                   extrinsics(1, 0), extrinsics(1, 1), extrinsics(1, 2),
+                   extrinsics(2, 0), extrinsics(2, 1), extrinsics(2, 2));
 
     return extrinsics;
 }
