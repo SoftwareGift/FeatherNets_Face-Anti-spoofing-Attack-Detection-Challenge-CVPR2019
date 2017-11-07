@@ -57,6 +57,19 @@ inline bool xcam_ret_is_ok (XCamReturn err) {
     return err >= XCAM_RETURN_NO_ERROR;
 }
 
+//format to [0 ~ 360]
+inline float
+format_angle (float angle)
+{
+    if (angle < 0.0f)
+        angle += 360.0f;
+    if (angle >= 360.0f)
+        angle -= 360.0f;
+
+    XCAM_ASSERT (angle >= 0.0f && angle < 360.0f);
+    return angle;
+}
+
 inline double
 linear_interpolate_p2 (double value_start, double value_end,
                        double ref_start, double ref_end,

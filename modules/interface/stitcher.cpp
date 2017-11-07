@@ -26,19 +26,6 @@
 
 namespace XCam {
 
-//format to [0 ~ 360]
-static inline float
-format_angle (float angle)
-{
-    if (angle < 0.0f)
-        angle += 360.0f;
-    if (angle >= 360.0f)
-        angle -= 360.0f;
-
-    XCAM_ASSERT (angle >= 0.0f && angle < 360.0f);
-    return angle;
-}
-
 static inline bool
 merge_neighbor_area (
     const Stitcher::CopyArea &current,
@@ -101,6 +88,13 @@ Stitcher::Stitcher (uint32_t align_x, uint32_t align_y)
 
 Stitcher::~Stitcher ()
 {
+}
+
+bool
+Stitcher::set_bowl_config (const BowlDataConfig &config)
+{
+    _bowl_config = config;
+    return true;
 }
 
 bool

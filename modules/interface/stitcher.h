@@ -26,6 +26,7 @@
 #include "interface/data_types.h"
 #include <vector>
 #include "video_buffer.h"
+#include "calibration_parser.h"
 
 #define XCAM_STITCH_FISHEYE_MAX_NUM    6
 #define XCAM_STITCH_MAX_CAMERAS XCAM_STITCH_FISHEYE_MAX_NUM
@@ -58,8 +59,8 @@ struct ImageMergeInfo {
 class Stitcher;
 
 struct CalibrationInfo {
-    // extrinsic
-    // intrinsic
+    ExtrinsicParameter extrinsic;
+    IntrinsicParameter intrinsic;
 };
 
 struct RoundViewSlice {
@@ -123,6 +124,10 @@ public:
     static SmartPtr<Stitcher> create_ocl_stitcher ();
     static SmartPtr<Stitcher> create_soft_stitcher ();
 
+    bool set_bowl_config (const BowlDataConfig &config);
+    const BowlDataConfig &get_bowl_config () {
+        return _bowl_config;
+    }
     bool set_camera_num (uint32_t num);
     uint32_t get_camera_num () const {
         return _camera_num;
@@ -187,6 +192,7 @@ private:
     uint32_t                    _camera_num;
     CameraInfo                  _camera_info[XCAM_STITCH_MAX_CAMERAS];
     ImageOverlapInfo            _overlap_info[XCAM_STITCH_MAX_CAMERAS];
+    BowlDataConfig              _bowl_config;
     bool                        _is_overlap_set;
 
     //auto calculation
