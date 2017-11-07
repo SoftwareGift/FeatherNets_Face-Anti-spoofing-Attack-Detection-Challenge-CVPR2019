@@ -13,7 +13,6 @@ xcam_soft_sources =                  \
     soft_blender_tasks_priv.cpp      \
     soft_blender.cpp                 \
     soft_geo_mapper.cpp              \
-    soft_stitcher.cpp                \
    $(NULL)
 
 libxcam_soft_la_SOURCES =   \
@@ -43,7 +42,6 @@ nobase_libxcam_softinclude_HEADERS =   \
     soft_image.h                       \
     soft_blender.h                     \
     soft_geo_mapper.h                  \
-    soft_stitcher.h                    \
     $(NULL)
 
 noinst_HEADERS =                       \
