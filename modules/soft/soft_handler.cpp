@@ -150,8 +150,8 @@ SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bo
     SmartPtr<SyncMeta> sync_meta;
 
     XCAM_FAIL_RETURN (
-        ERROR, param.ptr () && param->in_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
-        "soft_hander(%s) execute buffer failed, params or input buffer is null",
+        ERROR, param.ptr (), XCAM_RETURN_ERROR_PARAM,
+        "soft_hander(%s) execute buffer failed, params is null",
         XCAM_STR (get_name ()));
 
     if (_need_configure) {
@@ -161,12 +161,7 @@ SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bo
             "soft_hander(%s) configure resource failed", XCAM_STR (get_name ()));
     }
 
-    if (!param->out_buf.ptr ()) {
-        XCAM_FAIL_RETURN (
-            ERROR, _enable_allocator, XCAM_RETURN_ERROR_PARAM,
-            "soft_hander:%s param->out_buf is null, need allocate outside or enable allocator.",
-            XCAM_STR (get_name ()));
-
+    if (!param->out_buf.ptr () && _enable_allocator) {
         param->out_buf = get_free_buf ();
         XCAM_FAIL_RETURN (
             ERROR, param->out_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
