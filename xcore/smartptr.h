@@ -188,7 +188,8 @@ public:
     }
 
 private:
-    void set_pointer (Obj *obj, RefObj *ref) {
+    template <typename ObjD>
+    void set_pointer (ObjD *obj, RefObj *ref) {
         if (!obj)
             return;
 
@@ -201,10 +202,11 @@ private:
         }
     }
 
-    void init_ref (Obj *obj)
+    template <typename ObjD>
+    void init_ref (ObjD *obj)
     {
         // consider is_base_of or dynamic_cast ?
-        typedef std::is_base_of<RefObj, Obj> BaseCheck;
+        typedef std::is_base_of<RefObj, ObjD> BaseCheck;
         _ref = generate_ref_count (obj, BaseCheck());
         XCAM_ASSERT (_ref);
     }
