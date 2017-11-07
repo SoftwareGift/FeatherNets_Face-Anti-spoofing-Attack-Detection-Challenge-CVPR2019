@@ -1,5 +1,5 @@
 /*
- * cv_surview_fisheye_dewarp.h - dewarp fisheye image for surround view
+ * surview_fisheye_dewarp.h - dewarp fisheye image for surround view
  *
  *  Copyright (c) 2016-2017 Intel Corporation
  *
@@ -18,8 +18,8 @@
  * Author: Junkai Wu <junkai.wu@intel.com>
  */
 
-#ifndef XCAM_CV_SURVIEW_FISHEYE_DEWARP_H
-#define XCAM_CV_SURVIEW_FISHEYE_DEWARP_H
+#ifndef XCAM_SURVIEW_FISHEYE_DEWARP_H
+#define XCAM_SURVIEW_FISHEYE_DEWARP_H
 
 #include <base/xcam_common.h>
 #include <base/xcam_buffer.h>
@@ -27,25 +27,19 @@
 #include <smartptr.h>
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
-#include "cv_base_class.h"
 #include "calibration_parser.h"
-
-#include <ocl/cl_context.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_memory.h>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/ocl.hpp>
+#include "vec_mat.h"
+#include "modules/interface/data_types.h"
 
 namespace XCam {
 
-class CVSurViewFisheyeDewarp : public CVBaseClass
+class SurViewFisheyeDewarp
 {
 
 public:
     typedef std::vector<float> MapTable;
 
-    explicit CVSurViewFisheyeDewarp ();
+    explicit SurViewFisheyeDewarp ();
 
     void fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint32_t table_h, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config);
 
@@ -56,7 +50,7 @@ public:
     ExtrinsicParameter get_extrinsic_param();
 
 private:
-    XCAM_DEAD_COPY (CVSurViewFisheyeDewarp);
+    XCAM_DEAD_COPY (SurViewFisheyeDewarp);
 
     virtual void cal_image_coord(MapTable cam_coord, MapTable &image_coord);
 
@@ -64,18 +58,18 @@ private:
     void cal_cam_world_coord(MapTable world_coord, MapTable &cam_world_coord);
     void world_coord2cam(MapTable cam_world_coord, MapTable &cam_coord);
 
-    cv::Matx44f generate_rotation_matrix(float roll, float pitch, float yaw);
+    Mat4f generate_rotation_matrix(float roll, float pitch, float yaw);
 
 private:
     IntrinsicParameter _intrinsic_param;
     ExtrinsicParameter _extrinsic_param;
 };
 
-class CVPolyFisheyeDewarp : public CVSurViewFisheyeDewarp
+class PolyFisheyeDewarp : public SurViewFisheyeDewarp
 {
 
 public:
-    explicit CVPolyFisheyeDewarp ();
+    explicit PolyFisheyeDewarp ();
 
     void cal_image_coord(MapTable cam_coord, MapTable &image_coord);
 
@@ -83,4 +77,4 @@ public:
 
 } // Adopt Scaramuzza's approach to calculate image coordinates from camera coordinates
 
-#endif // XCAM_CV_SURVIEW_FISHEYE_DEWARP_H
+#endif // XCAM_SURVIEW_FISHEYE_DEWARP_H

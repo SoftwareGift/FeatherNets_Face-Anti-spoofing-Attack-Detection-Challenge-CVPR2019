@@ -26,10 +26,7 @@
 #include "ocl/cl_image_handler.h"
 #include "ocl/cl_geo_map_handler.h"
 #include "calibration_parser.h"
-
-#if HAVE_OPENCV
-#include "ocl/cv_surview_fisheye_dewarp.h"
-#endif
+#include "surview_fisheye_dewarp.h"
 
 namespace XCam {
 

@@ -27,6 +27,7 @@ xcam_sources = \
     image_projector.cpp                 \
     image_file_handle.cpp               \
     poll_thread.cpp                     \
+    surview_fisheye_dewarp.cpp          \
     swapped_buffer.cpp                  \
     thread_pool.cpp                     \
     uvc_device.cpp                      \
@@ -108,6 +109,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     image_file_handle.h            \
     safe_list.h                    \
     smartptr.h                     \
+    surview_fisheye_dewarp.h       \
     swapped_buffer.h               \
     thread_pool.h                  \
     v4l2_buffer_proxy.h            \

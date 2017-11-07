@@ -135,11 +135,11 @@ CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, Surround
     , _range_longitude (180.0f)
     , _range_latitude (180.0f)
     , _map_factor (DEFAULT_FISHEYE_TABLE_SCALE)
-    , _surround_mode (surround_mode)
     , _use_map (use_map)
     , _need_lsc (need_lsc ? 1 : 0)
     , _lsc_array_size (0)
     , _lsc_array (NULL)
+    , _surround_mode (surround_mode)
 {
     xcam_mem_clear (_gray_threshold);
 }
@@ -381,7 +381,7 @@ CLFisheyeHandler::generate_fisheye_table (
         ExtrinsicParameter extrinsic_param = get_extrinsic_param();
 
         std::vector<float> map_table(table_width * table_height * 2);
-        CVPolyFisheyeDewarp fd;
+        PolyFisheyeDewarp fd;
         fd.set_intrinsic_param(intrinsic_param);
         fd.set_extrinsic_param(extrinsic_param);
 

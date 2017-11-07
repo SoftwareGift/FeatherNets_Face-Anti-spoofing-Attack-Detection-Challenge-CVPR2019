@@ -908,6 +908,12 @@ typedef VectorN<double, 4> Vec4d;
 typedef MatrixN<double, 3> Mat3d;
 typedef MatrixN<double, 4> Mat4d;
 
+typedef VectorN<float, 2> Vec2f;
+typedef VectorN<float, 3> Vec3f;
+typedef VectorN<float, 4> Vec4f;
+typedef MatrixN<float, 3> Mat3f;
+typedef MatrixN<float, 4> Mat4f;
+
 template<class T>
 class Quaternion
 {
