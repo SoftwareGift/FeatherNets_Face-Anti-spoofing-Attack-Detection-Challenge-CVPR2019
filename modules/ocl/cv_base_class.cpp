@@ -25,7 +25,8 @@ namespace XCam {
 
 CVBaseClass::CVBaseClass ()
 {
-    SmartPtr<CVContext> _cv_context = CVContext::instance ();
+    _cv_context = CVContext::instance ();
+    XCAM_ASSERT (_cv_context.ptr ());
     _use_ocl = cv::ocl::useOpenCL ();
 }
 

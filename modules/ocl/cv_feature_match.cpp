@@ -27,9 +27,10 @@ namespace XCam {
 #define XCAM_CV_OF_DRAW_SCALE 2
 
 CVFeatureMatch::CVFeatureMatch ()
-    : CVBaseClass()
-    , FeatureMatch()
+    : CVBaseClass ()
+    , FeatureMatch ()
 {
+    XCAM_ASSERT (_cv_context.ptr ());
 }
 
 bool
