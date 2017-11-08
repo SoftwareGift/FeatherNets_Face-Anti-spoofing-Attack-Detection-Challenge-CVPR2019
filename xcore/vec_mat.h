@@ -513,6 +513,7 @@ class MatrixN
 {
 public:
     MatrixN ();
+    MatrixN (VectorN<T, 2> a, VectorN<T, 2> b);
     MatrixN (VectorN<T, 3> a, VectorN<T, 3> b, VectorN<T, 3> c);
     MatrixN (VectorN<T, 4> a, VectorN<T, 4> b, VectorN<T, 4> c, VectorN<T, 4> d);
 
@@ -552,9 +553,9 @@ public:
     inline T trace ();
 
 private:
+    inline MatrixN<T, 2> inverse (const MatrixN<T, 2>& mat);
     inline MatrixN<T, 3> inverse (const MatrixN<T, 3>& mat);
     inline MatrixN<T, 4> inverse (const MatrixN<T, 4>& mat);
-
 
 private:
     T data[N * N];
@@ -565,6 +566,18 @@ private:
 template<class T, uint32_t N>
 MatrixN<T, N>::MatrixN () {
     eye ();
+}
+
+template<class T, uint32_t N>
+MatrixN<T, N>::MatrixN (VectorN<T, 2> a, VectorN<T, 2> b) {
+    if (N == 2) {
+        data[0] = a[0];
+        data[1] = a[1];
+        data[2] = b[0];
+        data[3] = b[1];
+    } else {
+        eye ();
+    }
 }
 
 template<class T, uint32_t N>
@@ -715,6 +728,7 @@ MatrixN<T, N> MatrixN<T, N>::transpose () {
     return result;
 }
 
+// if the matrix is non-invertible, return identity matrix
 template<class T, uint32_t N> inline
 MatrixN<T, N> MatrixN<T, N>::inverse () {
     MatrixN<T, N> result;
@@ -733,6 +747,25 @@ T MatrixN<T, N>::trace () {
 }
 
 template<class T, uint32_t N> inline
+MatrixN<T, 2> MatrixN<T, N>::inverse (const MatrixN<T, 2>& mat)
+{
+    MatrixN<T, 2> result;
+
+    T det = mat(0, 0) * mat(1, 1) - mat(0, 1) * mat(1, 0);
+
+    if (det == (T)0) {
+        return result;
+    }
+
+    result(0, 0) = mat(1, 1);
+    result(0, 1) = -mat(0, 1);
+    result(1, 0) = -mat(1, 0);
+    result(1, 1) = mat(0, 0);
+
+    return result * (1.0f / det);
+}
+
+template<class T, uint32_t N> inline
 MatrixN<T, 3> MatrixN<T, N>::inverse (const MatrixN<T, 3>& mat)
 {
     MatrixN<T, 3> result;
@@ -743,6 +776,10 @@ MatrixN<T, 3> MatrixN<T, N>::inverse (const MatrixN<T, 3>& mat)
             mat(0, 0) * mat(2, 1) * mat(1, 2) -
             mat(1, 0) * mat(0, 1) * mat(2, 2) -
             mat(2, 0) * mat(1, 1) * mat(0, 2);
+
+    if (det == (T)0) {
+        return result;
+    }
 
     result(0, 0) = mat(1, 1) * mat(2, 2) - mat(1, 2) * mat(2, 1);
     result(1, 0) = mat(1, 2) * mat(2, 0) - mat(1, 0) * mat(2, 2);
@@ -786,6 +823,10 @@ MatrixN<T, 4> MatrixN<T, N>::inverse (const MatrixN<T, 4>& mat)
              mat(0, 0) * mat(1, 2) * mat(2, 1) * mat(3, 3) -
              mat(0, 1) * mat(1, 0) * mat(2, 2) * mat(3, 3) +
              mat(0, 0) * mat(1, 1) * mat(2, 2) * mat(3, 3);
+
+    if (det == (T)0) {
+        return result;
+    }
 
     result(0, 0) = mat(1, 2) * mat(2, 3) * mat(3, 1) -
                    mat(1, 3) * mat(2, 2) * mat(3, 1) +
@@ -905,6 +946,7 @@ MatrixN<T, 4> MatrixN<T, N>::inverse (const MatrixN<T, 4>& mat)
 typedef VectorN<double, 2> Vec2d;
 typedef VectorN<double, 3> Vec3d;
 typedef VectorN<double, 4> Vec4d;
+typedef MatrixN<double, 2> Mat2d;
 typedef MatrixN<double, 3> Mat3d;
 typedef MatrixN<double, 4> Mat4d;
 
