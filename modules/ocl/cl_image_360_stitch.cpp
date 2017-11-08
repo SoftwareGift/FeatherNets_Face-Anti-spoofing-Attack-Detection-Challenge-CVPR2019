@@ -180,25 +180,25 @@ get_default_stitch_info (StitchResMode res_mode)
         break;
     }
     case StitchRes1080P4: {
-        stitch_info.merge_width[0] = 224;
-        stitch_info.merge_width[1] = 128;
-        stitch_info.merge_width[2] = 128;
-        stitch_info.merge_width[3] = 64;
+        stitch_info.merge_width[0] = 288;
+        stitch_info.merge_width[1] = 288;
+        stitch_info.merge_width[2] = 288;
+        stitch_info.merge_width[3] = 288;
 
-        stitch_info.crop[0].left = 128;
-        stitch_info.crop[0].right = 48;
+        stitch_info.crop[0].left = 0;
+        stitch_info.crop[0].right = 0;
         stitch_info.crop[0].top = 0;
         stitch_info.crop[0].bottom = 0;
-        stitch_info.crop[1].left = 160;
-        stitch_info.crop[1].right = 16;
+        stitch_info.crop[1].left = 0;
+        stitch_info.crop[1].right = 0;
         stitch_info.crop[1].top = 0;
         stitch_info.crop[1].bottom = 0;
-        stitch_info.crop[2].left = 208;
-        stitch_info.crop[2].right = 496;
+        stitch_info.crop[2].left = 0;
+        stitch_info.crop[2].right = 0;
         stitch_info.crop[2].top = 0;
         stitch_info.crop[2].bottom = 0;
-        stitch_info.crop[3].left = 48;
-        stitch_info.crop[3].right = 136;
+        stitch_info.crop[3].left = 0;
+        stitch_info.crop[3].right = 0;
         stitch_info.crop[3].top = 0;
         stitch_info.crop[3].bottom = 0;
 
@@ -423,11 +423,21 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
         float car_length = 4500.0f;
         float max_z = 3000.0f;
 
-        for(int i = 0; i < _fisheye_num; i++) {
-            view_angle[i] = 120.0f / 360.0f * 2 * PI;
-            _fisheye[i].width = view_angle[i] / (2 * PI) * out_info.width;
-            _fisheye[i].width = XCAM_ALIGN_UP (_fisheye[i].width, 16);
-        }
+        view_angle[0] = 68.0f / 360.0f * 2 * PI;
+        _fisheye[0].width = view_angle[0] / (2 * PI) * out_info.width;
+        _fisheye[0].width = XCAM_ALIGN_UP (_fisheye[0].width, 32);
+
+        view_angle[1] = 152.0f / 360.0f * 2 * PI;
+        _fisheye[1].width = view_angle[1] / (2 * PI) * out_info.width;
+        _fisheye[1].width = XCAM_ALIGN_UP (_fisheye[1].width, 32);
+
+        view_angle[2] = 68.0f / 360.0f * 2 * PI;
+        _fisheye[2].width = view_angle[2] / (2 * PI) * out_info.width;
+        _fisheye[2].width = XCAM_ALIGN_UP (_fisheye[2].width, 32);
+
+        view_angle[3] = 152.0f / 360.0f * 2 * PI;
+        _fisheye[3].width = view_angle[3] / (2 * PI) * out_info.width;
+        _fisheye[3].width = XCAM_ALIGN_UP (_fisheye[3].width, 32);
 
         XCAM_LOG_INFO (
             "fisheye correction output size width:%d height:%d",

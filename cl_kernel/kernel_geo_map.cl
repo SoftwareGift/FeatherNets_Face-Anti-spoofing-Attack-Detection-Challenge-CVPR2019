@@ -34,6 +34,10 @@ void get_geo_mapped_y (
             (min (table_pos.x, table_pos.y) < 0.0f) ||
             (max (table_pos.x, table_pos.y) > 1.0f);
         input_pos[i] = read_imagef (geo_table, sampler, table_pos).xy;
+        out_of_bound[i] =
+            out_of_bound[i] ||
+            (min (input_pos[i].x, input_pos[i].y) < 0.0f) ||
+            (max (input_pos[i].x, input_pos[i].y) > 1.0f);
         //need convert input_pos to (0.0 ~ 1.0)????
         output_data[i] = out_of_bound[i] ? CONST_DATA_Y : read_imagef (input, sampler, input_pos[i]).x;
         table_pos.x += step_x;
