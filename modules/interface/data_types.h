@@ -70,12 +70,12 @@ struct BowlDataConfig {
     uint32_t ground_image_height;
 
     float a, b, c;
-    float angle_start, angle_end;
+    float angle_start, angle_end; // angle degree
 
     BowlDataConfig ()
         : wall_image_height (480), ground_image_height (320)
         , a (5050.0f), b (3656.7f), c (3003.4f)
-        , angle_start (PI / 2.0f), angle_end (3.0f * PI / 2.0f)
+        , angle_start (90.0f), angle_end (270.0f)
     {}
 };
 

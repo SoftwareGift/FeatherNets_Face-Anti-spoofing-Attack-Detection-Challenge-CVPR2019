@@ -97,13 +97,13 @@ SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_co
 
     if(y < bowl_config.wall_image_height) {
         world_z = 1500.0f - y * z_step;
-        angle = bowl_config.angle_start - x * angle_step;
+        angle = degree2radian (bowl_config.angle_start - x * angle_step);
         float r2 = 1 - world_z * world_z / (c * c);
 
-        if(angle == PI / 2) {
+        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
             world_x = 0.0f;
             world_y = sqrt(r2 * b * b);
-        } else if (angle == PI * 3 / 2) {
+        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
             world_x = 0.0f;
             world_y = -sqrt(r2 * b * b);
         } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
@@ -125,12 +125,12 @@ SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_co
         a = a - (y - bowl_config.wall_image_height) * step_a;
         b = a * ratio_ab;
 
-        angle = bowl_config.angle_start - x * angle_step;
+        angle = degree2radian (bowl_config.angle_start - x * angle_step);
 
-        if(angle == PI / 2) {
+        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
             world_x = 0.0f;
             world_y = b;
-        } else if (angle == PI * 3 / 2) {
+        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
             world_x = 0.0f;
             world_y = -b;
         } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
@@ -150,9 +150,9 @@ SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_co
 void
 SurViewFisheyeDewarp::cal_cam_world_coord(MapTable world_coord, MapTable &cam_world_coord)
 {
-    Mat4f rotation_mat = generate_rotation_matrix(_extrinsic_param.roll * PI / 180,
-                         _extrinsic_param.pitch * PI / 180,
-                         _extrinsic_param.yaw * PI / 180);
+    Mat4f rotation_mat = generate_rotation_matrix( degree2radian (_extrinsic_param.roll),
+                         degree2radian (_extrinsic_param.pitch),
+                         degree2radian (_extrinsic_param.yaw));
     Mat4f rotation_tran_mat = rotation_mat;
     rotation_tran_mat(0, 3) = _extrinsic_param.trans_x;
     rotation_tran_mat(1, 3) = _extrinsic_param.trans_y;

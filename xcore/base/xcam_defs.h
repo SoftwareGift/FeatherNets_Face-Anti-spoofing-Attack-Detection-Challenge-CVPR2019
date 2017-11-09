@@ -82,10 +82,10 @@
 #define XCAM_BOOL2STR(value)  ((value) ? "true" : "false")
 
 #define XCAM_DOUBLE_EQUAL(a, b, tolerance)  \
-    (((a) >= ((b) - tolerance)) && ((a) <= ((b) + tolerance)))
+    (((a) >= ((b) - (tolerance))) && ((a) <= ((b) + (tolerance))))
 
 #define XCAM_DOUBLE_EQUAL_AROUND(a, b)  \
-    XCAM_DOUBLE_EQUAL(a, b, 0.000001)
+    XCAM_DOUBLE_EQUAL((a), (b), 0.000001)
 
 #define XCAM_GAMMA_TABLE_SIZE 256
 #define XCAM_MAX_STR_SIZE 4096

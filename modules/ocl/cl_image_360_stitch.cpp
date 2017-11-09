@@ -423,20 +423,20 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
         float car_length = 4500.0f;
         float max_z = 3000.0f;
 
-        view_angle[0] = 68.0f / 360.0f * 2 * PI;
-        _fisheye[0].width = view_angle[0] / (2 * PI) * out_info.width;
+        view_angle[0] = 68.0f;
+        _fisheye[0].width = view_angle[0] / 360.0f * out_info.width;
         _fisheye[0].width = XCAM_ALIGN_UP (_fisheye[0].width, 32);
 
-        view_angle[1] = 152.0f / 360.0f * 2 * PI;
-        _fisheye[1].width = view_angle[1] / (2 * PI) * out_info.width;
+        view_angle[1] = 152.0f;
+        _fisheye[1].width = view_angle[1] / 360.0f * out_info.width;
         _fisheye[1].width = XCAM_ALIGN_UP (_fisheye[1].width, 32);
 
-        view_angle[2] = 68.0f / 360.0f * 2 * PI;
-        _fisheye[2].width = view_angle[2] / (2 * PI) * out_info.width;
+        view_angle[2] = 68.0f;
+        _fisheye[2].width = view_angle[2] / 360.0f * out_info.width;
         _fisheye[2].width = XCAM_ALIGN_UP (_fisheye[2].width, 32);
 
-        view_angle[3] = 152.0f / 360.0f * 2 * PI;
-        _fisheye[3].width = view_angle[3] / (2 * PI) * out_info.width;
+        view_angle[3] = 152.0f;
+        _fisheye[3].width = view_angle[3] / 360.0f * out_info.width;
         _fisheye[3].width = XCAM_ALIGN_UP (_fisheye[3].width, 32);
 
         XCAM_LOG_INFO (
@@ -456,8 +456,9 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
             _fisheye[i].height = _fisheye[0].height;
             bowl_data_config[i].wall_image_height = bowl_data_config[0].wall_image_height;
             bowl_data_config[i].ground_image_height = bowl_data_config[0].ground_image_height;
-            bowl_data_config[i].angle_start = 2 * PI / _fisheye_num * (_fisheye_num - i) + view_angle[i] / 2;
-            bowl_data_config[i].angle_end = 2 * PI / _fisheye_num * (_fisheye_num - i) - view_angle[i] / 2;
+            float angle_center = 360.0f / _fisheye_num * (_fisheye_num - i);
+            bowl_data_config[i].angle_start = angle_center + view_angle[i] / 2;
+            bowl_data_config[i].angle_end = angle_center - view_angle[i] / 2;
         }
 
         for(int i = 0; i < _fisheye_num; i++) {
