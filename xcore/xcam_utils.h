@@ -31,6 +31,7 @@ extern "C" {
 #include <linux/videodev2.h>
 }
 #include <cinttypes>
+#include <smartptr.h>
 
 namespace XCam {
 
@@ -53,107 +54,25 @@ enum CLNV12PlaneIdx {
     CLNV12PlaneMax,
 };
 
-inline bool xcam_ret_is_ok (XCamReturn err) {
-    return err >= XCAM_RETURN_NO_ERROR;
-}
+double
+linear_interpolate_p2 (
+    double value_start, double value_end,
+    double ref_start, double ref_end,
+    double ref_curr);
 
-//format to [0 ~ 360]
-inline float
-format_angle (float angle)
-{
-    if (angle < 0.0f)
-        angle += 360.0f;
-    if (angle >= 360.0f)
-        angle -= 360.0f;
+double
+linear_interpolate_p4(
+    double value_lt, double value_rt,
+    double value_lb, double value_rb,
+    double ref_lt_x, double ref_rt_x,
+    double ref_lb_x, double ref_rb_x,
+    double ref_lt_y, double ref_rt_y,
+    double ref_lb_y, double ref_rb_y,
+    double ref_curr_x, double ref_curr_y);
 
-    XCAM_ASSERT (angle >= 0.0f && angle < 360.0f);
-    return angle;
-}
-
-inline double
-linear_interpolate_p2 (double value_start, double value_end,
-                       double ref_start, double ref_end,
-                       double ref_curr)
-{
-    double weight_start = 0;
-    double weight_end = 0;
-    double dist_start = 0;
-    double dist_end = 0;
-    double dist_sum = 0;
-    double value = 0;
-
-    dist_start = abs(ref_curr - ref_start);
-    dist_end = abs(ref_end - ref_curr);
-    dist_sum = dist_start + dist_end;
-
-    if (dist_start == 0) {
-        weight_start = 10000000.0;
-    } else {
-        weight_start = ((double)dist_sum / dist_start);
-    }
-
-    if (dist_end == 0) {
-        weight_end = 10000000.0;
-    } else {
-        weight_end = ((double)dist_sum / dist_end);
-    }
-
-    value = (value_start * weight_start + value_end * weight_end) / (weight_start + weight_end);
-    return value;
-}
-
-inline double
-linear_interpolate_p4(double value_lt, double value_rt,
-                      double value_lb, double value_rb,
-                      double ref_lt_x, double ref_rt_x,
-                      double ref_lb_x, double ref_rb_x,
-                      double ref_lt_y, double ref_rt_y,
-                      double ref_lb_y, double ref_rb_y,
-                      double ref_curr_x, double ref_curr_y)
-{
-    double weight_lt = 0;
-    double weight_rt = 0;
-    double weight_lb = 0;
-    double weight_rb = 0;
-    double dist_lt = 0;
-    double dist_rt = 0;
-    double dist_lb = 0;
-    double dist_rb = 0;
-    double dist_sum = 0;
-    double value = 0;
-
-    dist_lt = (double)abs(ref_curr_x - ref_lt_x) + (double)abs(ref_curr_y - ref_lt_y);
-    dist_rt = (double)abs(ref_curr_x - ref_rt_x) + (double)abs(ref_curr_y - ref_rt_y);
-    dist_lb = (double)abs(ref_curr_x - ref_lb_x) + (double)abs(ref_curr_y - ref_lb_y);
-    dist_rb = (double)abs(ref_curr_x - ref_rb_x) + (double)abs(ref_curr_y - ref_rb_y);
-    dist_sum = dist_lt + dist_rt + dist_lb + dist_rb;
-
-    if (dist_lt == 0) {
-        weight_lt = 10000000.0;
-    } else {
-        weight_lt = ((float)dist_sum / dist_lt);
-    }
-    if (dist_rt == 0) {
-        weight_rt = 10000000.0;
-    } else {
-        weight_rt = ((float)dist_sum / dist_rt);
-    }
-    if (dist_lb == 0) {
-        weight_lb = 10000000.0;
-    } else {
-        weight_lb = ((float)dist_sum / dist_lb);
-    }
-    if (dist_rb == 0) {
-        weight_rb = 10000000.0;
-    } else {
-        weight_rb = ((float)dist_sum / dist_rt);
-    }
-
-    value = (double)floor ( (value_lt * weight_lt + value_rt * weight_rt +
-                             value_lb * weight_lb + value_rb * weight_rb) /
-                            (weight_lt + weight_rt + weight_lb + weight_rb) + 0.5 );
-    return value;
-}
+class VideoBuffer;
+void dump_buf_perfix_path (const SmartPtr<VideoBuffer> buf, const char *prefix_name);
+void dump_video_buf (const SmartPtr<VideoBuffer> buf, const char *file_name);
 
 };
 

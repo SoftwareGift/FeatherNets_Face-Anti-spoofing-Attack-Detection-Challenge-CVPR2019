@@ -93,6 +93,25 @@ xcam_floor (uint32_t value, const uint32_t align) {
     return value / align * align;
 }
 
+// return true or false
+static inline int
+xcam_ret_is_ok (XCamReturn err) {
+    return err >= XCAM_RETURN_NO_ERROR;
+}
+
+//format to [0 ~ 360]
+static inline float
+format_angle (float angle)
+{
+    if (angle < 0.0f)
+        angle += 360.0f;
+    if (angle >= 360.0f)
+        angle -= 360.0f;
+
+    XCAM_ASSERT (angle >= 0.0f && angle < 360.0f);
+    return angle;
+}
+
 XCAM_END_DECLARE
 
 #endif //XCAM_COMMON_H

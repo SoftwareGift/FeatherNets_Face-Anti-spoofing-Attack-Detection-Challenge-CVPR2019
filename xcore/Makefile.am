@@ -46,6 +46,7 @@ xcam_sources = \
     xcam_common.cpp                     \
     xcam_buffer.cpp                     \
     xcam_thread.cpp                     \
+    xcam_utils.cpp                      \
     x3a_analyze_tuner.cpp               \
     x3a_ciq_tuning_handler.cpp          \
     x3a_ciq_tnr_tuning_handler.cpp      \

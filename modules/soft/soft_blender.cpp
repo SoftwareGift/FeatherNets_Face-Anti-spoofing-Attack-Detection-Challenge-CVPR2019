@@ -116,20 +116,7 @@ public:
 };
 
 #if DUMP_BLENDER
-static
-void dump_buf (const SmartPtr<VideoBuffer> buf, const char *name)
-{
-    char file_name[256];
-    XCAM_ASSERT (name);
-    XCAM_ASSERT (buf.ptr ());
-
-    const VideoBufferInfo &info = buf->get_video_info ();
-    snprintf (file_name, 256, "%s-%dx%d.nv12", name, info.width, info.height);
-
-    ImageFileHandle writer (file_name, "wb");
-    writer.write_buf (buf);
-    writer.close ();
-}
+#define dump_buf dump_buf_perfix_path
 
 template <class SoftImageT>
 static void
@@ -144,16 +131,17 @@ dump_soft (const SmartPtr<SoftImageT> &image, const char *name)
 }
 
 static
-void dump_buf (const SmartPtr<VideoBuffer> buf, const char *name, uint32_t level, uint32_t idx)
+void dump_level_buf (const SmartPtr<VideoBuffer> buf, const char *name, uint32_t level, uint32_t idx)
 {
     char file_name[256];
     XCAM_ASSERT (name);
     snprintf (file_name, 256, "%s-L%d-Idx%d", name, level, idx);
-    dump_buf (buf, file_name);
+    dump_buf_perfix_path (buf, file_name);
 }
 #else
 static void dump_buf (...) {}
 static void dump_soft (...) {}
+static void dump_level_buf (...) {}
 #endif
 
 SoftBlender::SoftBlender (const char *name)
@@ -622,7 +610,7 @@ SoftBlender::gauss_scale_done (
     if (!check_work_continue (param, error))
         return;
 
-    dump_buf (args->out_buf, "gauss-scale", level, idx);
+    dump_level_buf (args->out_buf, "gauss-scale", level, idx);
 
     ret = _priv_config->start_lap_task (param, level, idx, args->in_buf, args->out_buf);
     if (!xcam_ret_is_ok (ret)) {
@@ -658,7 +646,7 @@ SoftBlender::lap_done (
     if (!check_work_continue (param, error))
         return;
 
-    dump_buf (args->out_buf, "lap", level, idx);
+    dump_level_buf (args->out_buf, "lap", level, idx);
 
     ret = _priv_config->start_reconstruct_task_by_lap (param, args->out_buf, level, idx);
 
@@ -707,7 +695,7 @@ SoftBlender::reconstruct_done (
     if (!check_work_continue (param, error))
         return;
 
-    dump_buf (args->out_buf, "reconstruct", level, 0);
+    dump_level_buf (args->out_buf, "reconstruct", level, 0);
 
     if (level == 0) {
         work_well_done (param, error);
