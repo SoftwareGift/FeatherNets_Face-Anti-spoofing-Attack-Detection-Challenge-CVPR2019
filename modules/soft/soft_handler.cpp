@@ -31,7 +31,9 @@ class SyncMeta
     : public MetaBase
 {
 public:
-    SyncMeta () : _done (false) {}
+    SyncMeta ()
+        : _done (false)
+        , _error (XCAM_RETURN_NO_ERROR) {}
     void signal_done (XCamReturn err);
     void wakeup ();
     XCamReturn signal_wait_ret ();
