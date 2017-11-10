@@ -93,6 +93,7 @@ parse_camera_info (const char *path, uint32_t idx, uint32_t out_w, uint32_t out_
     CHECK (
         parser.parse_extrinsic_param (&context[0], info.calibration.extrinsic),
         "parse extrinsic params (%s)failed.", extrinsic_path);
+    info.calibration.extrinsic.trans_x += TEST_CAMERA_POSITION_OFFSET_X;
 
     info.slice_view.width = viewpoints_range[idx] / 360.0f * out_w;
     info.slice_view.width = XCAM_ALIGN_UP (info.slice_view.width, 32);
@@ -322,11 +323,11 @@ int main (int argc, char *argv[])
             stitcher->set_camera_info (i, cam_info[i]);
         }
         BowlDataConfig bowl;
-        bowl.wall_image_height = output_height * 1 / 3;
-        bowl.ground_image_height = output_height - bowl.wall_image_height;
-        bowl.a = 5000.0f;
-        bowl.b = 3600.0f;
-        bowl.c = 3000.0f;
+        bowl.wall_height = 3000.0f;
+        bowl.ground_length = 2000.0f;
+        //bowl.a = 5000.0f;
+        //bowl.b = 3600.0f;
+        //bowl.c = 3000.0f;
         bowl.angle_start = 0.0f;
         bowl.angle_end = 0.0f;
         stitcher->set_bowl_config (bowl);
