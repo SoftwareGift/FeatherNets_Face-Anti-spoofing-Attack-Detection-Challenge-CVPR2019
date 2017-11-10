@@ -326,20 +326,10 @@ StitcherImpl::fisheye_dewarp_to_table ()
 
         uint32_t out_width, out_height;
         _stitcher->get_output_size (out_width, out_height);
-        XCAM_FAIL_RETURN (
-            ERROR, bowl.ground_image_height + bowl.wall_image_height == out_height, XCAM_RETURN_ERROR_PARAM,
-            "stitcher:%s bowl height(ground_height:%d + wall_height%d) not equal to out_height:%d failed",
-            XCAM_STR (_stitcher->get_name ()),
-            bowl.ground_image_height, bowl.wall_image_height, out_height);
 
         _fisheye[i].dewarp->set_output_size (cam_info.slice_view.width, cam_info.slice_view.height);
-        //FIXME,  Fisheyedewarp need reverse angle
-        float tmp = bowl.angle_start;
-        bowl.angle_start = bowl.angle_end;
-        bowl.angle_end = tmp;
-        if (bowl.angle_end > bowl.angle_start)
-            bowl.angle_end -= 360.0f;
-        //
+        if (bowl.angle_end < bowl.angle_start)
+            bowl.angle_start -= 360.0f;
         XCAM_LOG_INFO (
             "soft-stitcher:%s camera(idx:%d) info (angle start:%.2f, range:%.2f), bowl info (angle start%.2f, end:%.2f)",
             XCAM_STR (_stitcher->get_name ()), i,
@@ -441,11 +431,11 @@ StitcherImpl::start_single_blender (
     _stitcher->get_output_size (out_width, out_height);
 
     blender->set_output_size (out_width, out_height);
+    blender->set_merge_window (overlap_info.out_area);
     blender->set_input_valid_area (overlap_info.left, 0);
     blender->set_input_valid_area (overlap_info.right, 1);
     blender->set_input_merge_area (overlap_info.left, 0);
     blender->set_input_merge_area (overlap_info.right, 1);
-    blender->set_merge_window (overlap_info.out_area);
     return blender->execute_buffer (param, false);
 }
 
@@ -598,6 +588,7 @@ SoftStitcher::dewarp_done (
     if (!check_work_continue (param, error))
         return;
 
+    XCAM_LOG_INFO ("soft-stitcher:%s camera(idx:%d) dewarp done", XCAM_STR (get_name ()), dewarp_param->idx);
     stitcher_dump_buf (dewarp_param->out_buf, dewarp_param->idx, "stitcher-dewarp");
 
     //start both blender and feature match
@@ -630,7 +621,7 @@ SoftStitcher::blender_done (
     }
 
     stitcher_dump_buf (blender_param->out_buf, blender_param->idx, "stitcher-blend");
-    XCAM_LOG_DEBUG ("blender:(%s) done", XCAM_STR (handler->get_name ()));
+    XCAM_LOG_INFO ("blender:(%s) overlap:%d done", XCAM_STR (handler->get_name ()), blender_param->idx);
 
     if (_impl->dec_task_count (param) == 0) {
         work_well_done (param, error);
