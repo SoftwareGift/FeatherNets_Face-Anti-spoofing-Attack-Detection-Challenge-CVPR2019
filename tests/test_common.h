@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#define TEST_CAMERA_POSITION_OFFSET_X 2000
+
 #undef CHECK_DECLARE
 #undef CHECK
 #undef CHECK_CONTINUE

@@ -141,6 +141,7 @@ parse_calibration_params (
 
         calib_parser.parse_intrinsic_param (intrinsic_file_str, intrinsic_param[index]);
         calib_parser.parse_extrinsic_param (extrinsic_file_str, extrinsic_param[index]);
+        extrinsic_param[index].trans_x += TEST_CAMERA_POSITION_OFFSET_X;
 
         xcam_free (intrinsic_file_str);
         xcam_free (extrinsic_file_str);
@@ -180,7 +181,7 @@ sample_get_bowl_view_data (SmartPtr<CLImage360Stitch> image_360, SmartPtr<VideoB
 {
     BowlDataConfig config = image_360->get_fisheye_bowl_config ();
 
-    float x_pos[6] = {-4000.0f, 4000.0f, 0.0f,     0.0f,    3000.0f,  2000.0f};
+    float x_pos[6] = { -4000.0f, 4000.0f, 0.0f,     0.0f,    3000.0f,  2000.0f};
     float y_pos[6] = {0.0f,     0.0f,    -2500.0f, 2500.0f, -2000.0f, 2000.0f};
     float z_pos[6] = {0.0f,     0.0f,    0.0f,     0.0f,    1000.0f,  3000.0f};
     float y, u, v;
