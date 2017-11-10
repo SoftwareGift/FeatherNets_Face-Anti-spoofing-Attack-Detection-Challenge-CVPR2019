@@ -63,6 +63,13 @@ SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint
     MapTable cam_world_coord(3);
     MapTable image_coord(2);
 
+    XCAM_LOG_DEBUG ("fisheye-dewarp:\n table(%dx%d), out_size(%dx%d)"
+                    "bowl(start:%.1f, end:%.1f, ground:%.2f, wall:%.2f, a:%.2f, b:%.2f, c:%.2f, center_z:%.2f )",
+                    table_w, table_h, image_w, image_h,
+                    bowl_config.angle_start, bowl_config.angle_end,
+                    bowl_config.wall_height, bowl_config.ground_length,
+                    bowl_config.a, bowl_config.b, bowl_config.c, bowl_config.center_z);
+
     uint32_t scale_factor_w = image_w / table_w;
     uint32_t scale_factor_h = image_h / table_h;
 
