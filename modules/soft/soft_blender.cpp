@@ -96,7 +96,7 @@ public:
     XCamReturn start_lap_task (
         const SmartPtr<ImageHandler::Parameters> &param,
         const uint32_t level, const SoftBlender::BufIdx idx,
-        const SmartPtr<VideoBuffer> &orig, const SmartPtr<VideoBuffer> &gauss);
+        const SmartPtr<GaussDownScale::Args> &scale_args);
     XCamReturn start_blend_task (
         const SmartPtr<ImageHandler::Parameters> &param,
         const SmartPtr<VideoBuffer> &buf,
@@ -248,8 +248,25 @@ SoftBlenderPriv::BlenderPrivConfig::start_scaler (
         XCAM_STR (_blender->get_name ()), level, (int)idx);
 
     SmartPtr<GaussDownScale::Args> args = new GaussDownScale::Args (param, level, idx, in_buf, out_buf);
-    args->in_luma = new UcharImage (in_buf, 0);
-    args->in_uv = new Uchar2Image (in_buf, 1);
+    if (level == 0) {
+        Rect in_area = _blender->get_input_merge_area (idx);
+        const VideoBufferInfo &buf_info = in_buf->get_video_info ();
+        if (in_area.width == 0 || in_area.height == 0) {
+            in_area.width = buf_info.width;
+            in_area.height = buf_info.height;
+        }
+        XCAM_ASSERT (in_area.pos_x % SOFT_BLENDER_ALIGNMENT_X == 0);
+        XCAM_ASSERT (in_area.pos_y % SOFT_BLENDER_ALIGNMENT_Y == 0);
+        args->in_luma = new UcharImage (
+            in_buf, in_area.width, in_area.height, buf_info.strides[0],
+            buf_info.offsets[0] + in_area.pos_x + in_area.pos_y * buf_info.strides[0]);
+        args->in_uv = new Uchar2Image (
+            in_buf, in_area.width / 2, in_area.height / 2, buf_info.strides[1],
+            buf_info.offsets[1] + in_area.pos_x +  buf_info.strides[1] * in_area.pos_y / 2);
+    } else {
+        args->in_luma = new UcharImage (in_buf, 0);
+        args->in_uv = new Uchar2Image (in_buf, 1);
+    }
     args->out_luma = new UcharImage (out_buf, 0);
     args->out_uv = new Uchar2Image (out_buf, 1);
 
@@ -274,10 +291,11 @@ XCamReturn
 SoftBlenderPriv::BlenderPrivConfig::start_lap_task (
     const SmartPtr<ImageHandler::Parameters> &param,
     const uint32_t level, const SoftBlender::BufIdx idx,
-    const SmartPtr<VideoBuffer> &orig, const SmartPtr<VideoBuffer> &gauss)
+    const SmartPtr<GaussDownScale::Args> &scale_args)
 {
     XCAM_ASSERT (level < pyr_levels);
     XCAM_ASSERT (idx < SoftBlender::BufIdxCount);
+    SmartPtr<VideoBuffer> gauss = scale_args->out_buf;
 
     SmartPtr<VideoBuffer> out_buf;
     if (level == 0) {
@@ -294,8 +312,8 @@ SoftBlenderPriv::BlenderPrivConfig::start_lap_task (
         XCAM_STR (_blender->get_name ()), level, (int)idx);
 
     SmartPtr<LaplaceTask::Args> args = new LaplaceTask::Args (param, level, idx, out_buf);
-    args->orig_luma = new UcharImage (orig, 0);
-    args->orig_uv = new Uchar2Image (orig, 1);
+    args->orig_luma = scale_args->in_luma;//new UcharImage (orig, 0);
+    args->orig_uv = scale_args->in_uv; //new Uchar2Image (orig, 1);
     args->gauss_luma = new UcharImage (gauss, 0);
     args->gauss_uv = new Uchar2Image (gauss, 1);
     args->out_luma = new UcharImage (out_buf, 0);
@@ -393,16 +411,33 @@ SoftBlenderPriv::BlenderPrivConfig::start_reconstruct_task (
     SmartPtr<VideoBuffer> out_buf;
     if (level == 0) {
         out_buf = args->get_param ()->out_buf;
+        XCAM_ASSERT (out_buf.ptr ());
         args->mask = orig_mask;
+
+        Rect out_area = _blender->get_merge_window ();
+        const VideoBufferInfo &out_info = out_buf->get_video_info ();
+        if (out_area.width == 0 || out_area.height == 0) {
+            out_area.width = out_info.width;
+            out_area.height = out_info.height;
+        }
+        XCAM_ASSERT (out_area.pos_x % SOFT_BLENDER_ALIGNMENT_X == 0);
+        XCAM_ASSERT (out_area.pos_y % SOFT_BLENDER_ALIGNMENT_Y == 0);
+        args->out_luma = new UcharImage (
+            out_buf, out_area.width, out_area.height, out_info.strides[0],
+            out_info.offsets[0] + out_area.pos_x + out_area.pos_y * out_info.strides[0]);
+        args->out_uv = new Uchar2Image (
+            out_buf, out_area.width / 2, out_area.height / 2, out_info.strides[1],
+            out_info.offsets[1] + out_area.pos_x + out_area.pos_y / 2 * out_info.strides[1]);
     } else {
         out_buf = pyr_layer[level - 1].overlap_pool->get_buffer ();
+        XCAM_FAIL_RETURN (
+            ERROR, out_buf.ptr (), XCAM_RETURN_ERROR_MEM,
+            "blender:(%s) start_reconstruct_task failed, out buffer is empty.", XCAM_STR (_blender->get_name ()));
         args->mask = pyr_layer[level - 1].coef_mask;
+        args->out_luma = new UcharImage (out_buf, 0);
+        args->out_uv = new Uchar2Image (out_buf, 1);
     }
-    XCAM_FAIL_RETURN (
-        ERROR, out_buf.ptr (), XCAM_RETURN_ERROR_MEM,
-        "blender:(%s) start_reconstruct_task failed, out buffer is empty.", XCAM_STR (_blender->get_name ()));
-    args->out_luma = new UcharImage (out_buf, 0);
-    args->out_uv = new Uchar2Image (out_buf, 1);
+
     args->out_buf = out_buf;
 
     SmartPtr<SoftWorker> worker = pyr_layer[level].recon_task;
@@ -526,6 +561,19 @@ SoftBlender::configure_resource (const SmartPtr<Parameters> &param)
         "blender:%s only support format(NV12) but input format is %s",
         XCAM_STR(get_name ()), xcam_fourcc_to_string (in0_info.format));
 
+    Rect in0_area, in1_area, out_area;
+    in0_area = get_input_merge_area (Idx0);
+    in1_area = get_input_merge_area (Idx1);
+    out_area = get_merge_window ();
+    XCAM_FAIL_RETURN (
+        ERROR,
+        in0_area.width == in1_area.width && in1_area.width == out_area.width &&
+        in0_area.height == in1_area.height && in1_area.height == out_area.height,
+        XCAM_RETURN_ERROR_PARAM,
+        "blender:%s input/output overlap area was not same. in0(w:%d,h:%d), in1(w:%d,h:%d), out(w:%d,h:%d)",
+        XCAM_STR(get_name ()), in0_area.width, in0_area.height,
+        in1_area.width, in1_area.height, out_area.width, out_area.height);
+
     VideoBufferInfo out_info;
     uint32_t out_width(0), out_height(0);
     get_output_size (out_width, out_height);
@@ -612,7 +660,7 @@ SoftBlender::gauss_scale_done (
 
     dump_level_buf (args->out_buf, "gauss-scale", level, idx);
 
-    ret = _priv_config->start_lap_task (param, level, idx, args->in_buf, args->out_buf);
+    ret = _priv_config->start_lap_task (param, level, idx, args);//args->in_buf, args->out_buf);
     if (!xcam_ret_is_ok (ret)) {
         work_broken (param, ret);
     }

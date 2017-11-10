@@ -131,8 +131,8 @@ GaussDownScale::work_range (const SmartPtr<Worker::Arguments> &base, const WorkR
         }
 
     //printf ("done\n");
-    XCAM_LOG_INFO ("GaussDownScale work on range:[x:%d, width:%d, y:%d, height:%d]",
-                   range.pos[0], range.pos_len[0], range.pos[1], range.pos_len[1]);
+    XCAM_LOG_DEBUG ("GaussDownScale work on range:[x:%d, width:%d, y:%d, height:%d]",
+                    range.pos[0], range.pos_len[0], range.pos[1], range.pos_len[1]);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -244,8 +244,8 @@ BlendTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
             out_uv->write_array_no_check<4> (uv_x, uv_y, uv_uc);
         }
 
-    XCAM_LOG_INFO ("BlendTask work on range:[x:%d, width:%d, y:%d, height:%d]",
-                   range.pos[0], range.pos_len[0], range.pos[1], range.pos_len[1]);
+    XCAM_LOG_DEBUG ("BlendTask work on range:[x:%d, width:%d, y:%d, height:%d]",
+                    range.pos[0], range.pos_len[0], range.pos[1], range.pos_len[1]);
 
     return XCAM_RETURN_NO_ERROR;
 }

@@ -68,8 +68,10 @@ UserThread::loop ()
     }
 
     SmartPtr<ThreadPool::UserData> data = _pool->_data_queue.pop ();
-    if (!data.ptr ())
+    if (!data.ptr ()) {
+        XCAM_LOG_DEBUG ("user thread get null data, need stop");
         return false;
+    }
 
     {
         SmartLock lock (_pool->_mutex);
@@ -229,6 +231,7 @@ ThreadPool::create_user_thread_unsafe ()
 XCamReturn
 ThreadPool::queue (const SmartPtr<UserData> &data)
 {
+    XCAM_ASSERT (data.ptr ());
     {
         SmartLock locker (_mutex);
         if (!_running)
