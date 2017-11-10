@@ -66,16 +66,18 @@ struct FisheyeInfo {
 };
 
 struct BowlDataConfig {
-    uint32_t wall_image_height;
-    uint32_t ground_image_height;
-
     float a, b, c;
     float angle_start, angle_end; // angle degree
 
+    float center_z;
+    float wall_height;
+    float ground_length;
+
     BowlDataConfig ()
-        : wall_image_height (480), ground_image_height (320)
-        , a (5050.0f), b (3656.7f), c (3003.4f)
+        : a (5050.0f), b (3656.7f), c (3003.4f)
         , angle_start (90.0f), angle_end (270.0f)
+        , center_z (1500.0f), wall_height (3000.0f)
+        , ground_length (2168.0f)
     {}
 };
 

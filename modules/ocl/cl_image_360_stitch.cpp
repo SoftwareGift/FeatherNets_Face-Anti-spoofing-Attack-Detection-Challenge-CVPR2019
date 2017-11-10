@@ -420,8 +420,6 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
         _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
 
         float view_angle[XCAM_STITCH_FISHEYE_MAX_NUM];
-        float car_length = 4500.0f;
-        float max_z = 3000.0f;
 
         view_angle[0] = 68.0f;
         _fisheye[0].width = view_angle[0] / 360.0f * out_info.width;
@@ -445,25 +443,23 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
 
         BowlDataConfig bowl_data_config[XCAM_STITCH_FISHEYE_MAX_NUM];
 
-        float ground_length = bowl_data_config[0].a * sqrt(1 - (max_z / 2) * (max_z / 2) / (bowl_data_config[0].c * bowl_data_config[0].c)) - car_length / 2;
-        bowl_data_config[0].wall_image_height = (int)(max_z / (ground_length + max_z) * _fisheye[0].height);
-        bowl_data_config[0].ground_image_height = _fisheye[0].height - bowl_data_config[0].wall_image_height;
-
-        bowl_data_config[0].angle_start = view_angle[0] / 2;
-        bowl_data_config[0].angle_end = -view_angle[0] / 2;
+        bowl_data_config[0].angle_start = -view_angle[0] / 2;
+        bowl_data_config[0].angle_end = view_angle[0] / 2;
 
         for (int i = 1; i < _fisheye_num; i++) {
             _fisheye[i].height = _fisheye[0].height;
-            bowl_data_config[i].wall_image_height = bowl_data_config[0].wall_image_height;
-            bowl_data_config[i].ground_image_height = bowl_data_config[0].ground_image_height;
             float angle_center = 360.0f / _fisheye_num * (_fisheye_num - i);
-            bowl_data_config[i].angle_start = angle_center + view_angle[i] / 2;
-            bowl_data_config[i].angle_end = angle_center - view_angle[i] / 2;
+            bowl_data_config[i].angle_start = angle_center - view_angle[i] / 2;
+            bowl_data_config[i].angle_end = angle_center + view_angle[i] / 2;
         }
 
         for(int i = 0; i < _fisheye_num; i++) {
             _fisheye[i].handler->set_bowl_config(bowl_data_config[i]);
             _fisheye[i].handler->set_output_size (_fisheye[i].width, _fisheye[i].height);
+        }
+
+        for(int i = 0; i < _fisheye_num; i++) {
+            _stitch_info.merge_width[i] = XCAM_ALIGN_UP((uint32_t)(20.0f / 360.0f * out_info.width), 32);
         }
     }
 }

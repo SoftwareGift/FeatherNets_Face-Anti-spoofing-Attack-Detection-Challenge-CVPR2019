@@ -54,7 +54,7 @@ private:
 
     virtual void cal_image_coord(MapTable cam_coord, MapTable &image_coord);
 
-    void cal_world_coord(uint32_t x, uint32_t y, MapTable &world_coord, uint32_t image_w, const BowlDataConfig &bowl_config);
+    void cal_world_coord(uint32_t x, uint32_t y, MapTable &world_coord, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config);
     void cal_cam_world_coord(MapTable world_coord, MapTable &cam_world_coord);
     void world_coord2cam(MapTable cam_world_coord, MapTable &cam_coord);
 

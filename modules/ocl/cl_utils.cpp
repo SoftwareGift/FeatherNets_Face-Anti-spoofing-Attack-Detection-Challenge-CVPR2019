@@ -139,7 +139,7 @@ convert_to_climage (
             cl_buf = cl_video_buf;
         } else {
             uint32_t row_pitch = CLImage::calculate_pixel_bytes (desc.format) *
-                                     XCAM_ALIGN_UP (desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+                                 XCAM_ALIGN_UP (desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
             uint32_t size = row_pitch * desc.height;
 
             cl_buf = new CLSubBuffer (context, cl_video_buf, flags, offset, size);
@@ -254,9 +254,6 @@ transform_x_coordinate (
     clamp (x_trans, 0.0f, info.width - 1.0f);
 }
 
-static const float wall_height_mm = 3000.0f;
-static const float min_semimajor = 920.0f;
-
 static void
 transform_y_coordinate (
     const VideoBufferInfo &info,
@@ -264,21 +261,25 @@ transform_y_coordinate (
     float x_pos, float y_pos, float z_pos,
     float &y_trans)
 {
+    uint32_t wall_image_height = config.wall_height / (config.wall_height + config.ground_length) * info.height;
+    uint32_t ground_image_height = info.height - wall_image_height;
+
     if (z_pos > 0.0f) {
-        y_trans = (wall_height_mm - z_pos) * config.wall_image_height / wall_height_mm;
-        clamp (y_trans, 0.0f, config.wall_image_height - 1.0f);
+        y_trans = (config.wall_height - z_pos) * wall_image_height / config.wall_height;
+        clamp (y_trans, 0.0f, wall_image_height - 1.0f);
     } else {
         float max_semimajor = config.a *
-                sqrt (1 - (wall_height_mm / 2.0f) * (wall_height_mm / 2.0f) / (config.c * config.c));
+                              sqrt (1 - config.center_z * config.center_z / (config.c * config.c));
+        float min_semimajor = max_semimajor - config.ground_length;
         XCAM_ASSERT (max_semimajor > min_semimajor);
-        float step = config.ground_image_height / (max_semimajor - min_semimajor);
+        float step = ground_image_height / (max_semimajor - min_semimajor);
 
         float axis_ratio = config.a / config.b;
         float cur_semimajor = sqrt (x_pos * x_pos + y_pos * y_pos * axis_ratio * axis_ratio);
         clamp (cur_semimajor, min_semimajor, max_semimajor);
 
-        y_trans = (max_semimajor - cur_semimajor) * step + config.wall_image_height;
-        clamp (y_trans, config.wall_image_height, info.height - 1.0f);
+        y_trans = (max_semimajor - cur_semimajor) * step + wall_image_height;
+        clamp (y_trans, wall_image_height, info.height - 1.0f);
     }
 }
 
