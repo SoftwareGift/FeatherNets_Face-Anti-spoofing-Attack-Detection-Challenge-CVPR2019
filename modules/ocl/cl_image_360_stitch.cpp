@@ -448,7 +448,7 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
 
         for (int i = 1; i < _fisheye_num; i++) {
             _fisheye[i].height = _fisheye[0].height;
-            float angle_center = 360.0f / _fisheye_num * (_fisheye_num - i);
+            float angle_center = 360.0f / _fisheye_num * i;
             bowl_data_config[i].angle_start = angle_center - view_angle[i] / 2;
             bowl_data_config[i].angle_end = angle_center + view_angle[i] / 2;
         }

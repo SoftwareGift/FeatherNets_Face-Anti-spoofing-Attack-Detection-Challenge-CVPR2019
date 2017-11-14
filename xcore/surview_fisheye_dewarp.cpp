@@ -107,21 +107,21 @@ SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_co
 
     if(y < wall_image_height) {
         world_z = bowl_config.wall_height - bowl_config.center_z - y * z_step;
-        angle = degree2radian (bowl_config.angle_end - x * angle_step);
+        angle = degree2radian (bowl_config.angle_start + x * angle_step);
         float r2 = 1 - world_z * world_z / (c * c);
 
         if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
             world_x = 0.0f;
-            world_y = sqrt(r2 * b * b);
+            world_y = -sqrt(r2 * b * b);
         } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
             world_x = 0.0f;
-            world_y = -sqrt(r2 * b * b);
+            world_y = sqrt(r2 * b * b);
         } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
             world_x = sqrt(r2 * a * a * b * b / (b * b + a * a * tan(angle) * tan(angle)));
-            world_y = world_x * tan(angle);
+            world_y = -world_x * tan(angle);
         } else {
             world_x = -sqrt(r2 * a * a * b * b / (b * b + a * a * tan(angle) * tan(angle)));
-            world_y = world_x * tan(angle);
+            world_y = -world_x * tan(angle);
         }
     } else {
         world_z = -bowl_config.center_z;
@@ -135,20 +135,20 @@ SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_co
         b = b - (y - wall_image_height) * step_b;
         a = b / ratio_ab;
 
-        angle = degree2radian (bowl_config.angle_end - x * angle_step);
+        angle = degree2radian (bowl_config.angle_start + x * angle_step);
 
         if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
             world_x = 0.0f;
-            world_y = b;
+            world_y = -b;
         } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
             world_x = 0.0f;
-            world_y = -b;
+            world_y = b;
         } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
             world_x = a * b / sqrt(b * b + a * a * tan(angle) * tan(angle));
-            world_y = world_x * tan(angle);
+            world_y = -world_x * tan(angle);
         } else {
             world_x = -a * b / sqrt(b * b + a * a * tan(angle) * tan(angle));
-            world_y = world_x * tan(angle);
+            world_y = -world_x * tan(angle);
         }
     }
 
