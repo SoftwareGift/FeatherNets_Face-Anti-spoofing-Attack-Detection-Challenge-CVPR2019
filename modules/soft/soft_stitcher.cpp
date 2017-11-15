@@ -24,6 +24,7 @@
 #include "soft_video_buf_allocator.h"
 #include "interface/feature_match.h"
 #include "surview_fisheye_dewarp.h"
+#include "soft_copy_task.h"
 #include <map>
 
 #define SOFT_STITCHER_ALIGNMENT_X 8
@@ -56,6 +57,7 @@ namespace SoftSitcherPriv {
 
 DECLARE_HANDLER_CALLBACK (CbGeoMap, SoftStitcher, dewarp_done);
 DECLARE_HANDLER_CALLBACK (CbBlender, SoftStitcher, blender_done);
+DECLARE_WORK_CALLBACK (CbCopyTask, SoftStitcher, copy_task_done);
 
 struct BlenderParam
     : SoftBlender::BlenderParam
@@ -84,6 +86,19 @@ struct HandlerParam
 
     HandlerParam (uint32_t i)
         : idx (i)
+    {}
+};
+
+struct StitcherCopyArgs
+    : XCamSoftTasks::CopyTask::Args
+{
+    uint32_t idx;
+
+    StitcherCopyArgs (
+        uint32_t i,
+        const SmartPtr<ImageHandler::Parameters> &param)
+        : XCamSoftTasks::CopyTask::Args (param)
+        , idx (i)
     {}
 };
 
@@ -118,6 +133,16 @@ struct FisheyeDewarp {
         const CameraInfo &cam_info, const BowlDataConfig &bowl);
 };
 
+struct Copier {
+    SmartPtr<XCamSoftTasks::CopyTask>    copy_task;
+    Stitcher::CopyArea                   copy_area;
+
+    XCamReturn start_copy_task (
+        const SmartPtr<ImageHandler::Parameters> &param,
+        const uint32_t idx, const SmartPtr<VideoBuffer> &buf);
+};
+typedef std::vector<Copier>    Copiers;
+
 class StitcherImpl {
     friend class XCam::SoftStitcher;
 
@@ -150,10 +175,12 @@ public:
 
 private:
     XCamReturn init_fisheye (uint32_t idx);
+    XCamReturn init_copier (Stitcher::CopyArea area);
 
 private:
     FisheyeDewarp           _fisheye [XCAM_STITCH_MAX_CAMERAS];
     Overlap                 _overlaps [XCAM_STITCH_MAX_CAMERAS];
+    Copiers                 _copiers;
     SmartPtr<BufferPool>    _dewarp_pool;
 
     Mutex                   _map_mutex;
@@ -254,11 +281,35 @@ StitcherImpl::init_fisheye (uint32_t idx)
 }
 
 XCamReturn
+StitcherImpl::init_copier (Stitcher::CopyArea area)
+{
+    XCAM_FAIL_RETURN (
+        ERROR,
+        area.in_idx != INVALID_INDEX &&
+        area.in_area.width == area.out_area.width && area.in_area.height == area.out_area.height,
+        XCAM_RETURN_ERROR_PARAM,
+        "stitcher: copy area (idx:%d) is invalid", area.in_idx);
+
+    SmartPtr<Worker::Callback> copy_cb = new CbCopyTask (_stitcher);
+    XCAM_ASSERT (copy_cb.ptr ());
+
+    Copier copier;
+    copier.copy_task = new XCamSoftTasks::CopyTask (copy_cb);
+    XCAM_ASSERT (copier.copy_task.ptr ());
+    copier.copy_area = area;
+    _copiers.push_back (copier);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 StitcherImpl::init_config (uint32_t count)
 {
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
     SmartPtr<ImageHandler::Callback> blender_cb = new CbBlender (_stitcher);
     for (uint32_t i = 0; i < count; ++i) {
-        XCamReturn ret = init_fisheye (i);
+        ret = init_fisheye (i);
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (ret), ret,
             "stitcher:%s init fisheye failed, idx:%d.", XCAM_STR (_stitcher->get_name ()), i);
@@ -273,6 +324,21 @@ StitcherImpl::init_config (uint32_t count)
         XCAM_ASSERT (_overlaps[i].blender.ptr ());
         _overlaps[i].blender->set_callback (blender_cb);
         _overlaps[i].param_map.clear ();
+    }
+
+    Stitcher::CopyAreaArray areas = _stitcher->get_copy_area ();
+    uint32_t size = areas.size ();
+    for (uint32_t i = 0; i < size; ++i) {
+        XCAM_LOG_DEBUG ("soft-stitcher:copy area (idx:%d) input area(%d, %d, %d, %d) output area(%d, %d, %d, %d)",
+            areas[i].in_idx,
+            areas[i].in_area.pos_x, areas[i].in_area.pos_y, areas[i].in_area.width, areas[i].in_area.height,
+            areas[i].out_area.pos_x, areas[i].out_area.pos_y, areas[i].out_area.width, areas[i].out_area.height);
+
+        XCAM_ASSERT (areas[i].in_idx < size);
+        ret = init_copier (areas[i]);
+        XCAM_FAIL_RETURN (
+            ERROR, xcam_ret_is_ok (ret), ret,
+            "soft-stitcher::%s init copier failed, idx:%d.", XCAM_STR (_stitcher->get_name ()), i);
     }
 
     return XCAM_RETURN_NO_ERROR;
@@ -503,11 +569,58 @@ StitcherImpl::start_overlap_tasks (
 }
 
 XCamReturn
+Copier::start_copy_task (
+    const SmartPtr<ImageHandler::Parameters> &param,
+    const uint32_t idx, const SmartPtr<VideoBuffer> &buf)
+{
+    XCAM_ASSERT (copy_task.ptr ());
+
+    SmartPtr<VideoBuffer> in_buf = buf, out_buf = param->out_buf;
+    const VideoBufferInfo &in_info = in_buf->get_video_info ();
+    const VideoBufferInfo &out_info = out_buf->get_video_info ();
+
+    SmartPtr<StitcherCopyArgs> args = new StitcherCopyArgs (idx, param);
+    args->in_luma = new UcharImage (
+        in_buf, copy_area.in_area.width, copy_area.in_area.height, in_info.strides[0],
+        in_info.offsets[0] + copy_area.in_area.pos_x + copy_area.in_area.pos_y * in_info.strides[0]);
+    args->in_uv = new Uchar2Image (
+        in_buf, copy_area.in_area.width / 2, copy_area.in_area.height / 2, in_info.strides[0],
+        in_info.offsets[1] + copy_area.in_area.pos_x + copy_area.in_area.pos_y / 2 * in_info.strides[1]);
+
+    args->out_luma = new UcharImage (
+        out_buf, copy_area.out_area.width, copy_area.out_area.height, out_info.strides[0],
+        out_info.offsets[0] + copy_area.out_area.pos_x + copy_area.out_area.pos_y * out_info.strides[0]);
+    args->out_uv = new Uchar2Image (
+        out_buf, copy_area.out_area.width / 2, copy_area.out_area.height / 2, out_info.strides[0],
+        out_info.offsets[1] + copy_area.out_area.pos_x + copy_area.out_area.pos_y / 2 * out_info.strides[1]);
+
+    uint32_t thread_x = 1, thread_y = 4;
+    WorkSize global_size (1, xcam_ceil (copy_area.in_area.height, 2) / 2);
+    WorkSize local_size (
+        xcam_ceil (global_size.value[0], thread_x) / thread_x,
+        xcam_ceil (global_size.value[1], thread_y) / thread_y);
+
+    copy_task->set_local_size (local_size);
+    copy_task->set_global_size (global_size);
+
+    return copy_task->work (args);
+}
+
+XCamReturn
 StitcherImpl::start_copy_tasks (
     const SmartPtr<SoftStitcher::StitcherParam> &param,
     const uint32_t idx, const SmartPtr<VideoBuffer> &buf)
 {
-    //TODO add copy tasks
+    uint32_t size = _stitcher->get_copy_area ().size ();
+    for (uint32_t i = 0; i < size; ++i) {
+        if(_copiers[i].copy_area.in_idx == idx) {
+            XCamReturn ret = _copiers[i].start_copy_task (param, idx, buf);
+            XCAM_FAIL_RETURN (
+                ERROR, xcam_ret_is_ok (ret), ret,
+                "soft-stitcher:%s start copy task failed, idx:%d", XCAM_STR (_stitcher->get_name ()), idx);
+        }
+    }
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -566,7 +679,7 @@ SoftStitcher::start_task_count (const SmartPtr<SoftStitcher::StitcherParam> &par
     }
 
     int32_t count = get_camera_num ();
-    //count += get_copy_area ().size ();
+    count += get_copy_area ().size ();
 
     XCAM_LOG_DEBUG ("stitcher :%s start task count :%d", XCAM_STR(get_name ()), count);
     _impl->_task_counts.insert (std::make_pair((void*)param.ptr(), count));
@@ -628,19 +741,37 @@ SoftStitcher::blender_done (
     }
 }
 
+void
+SoftStitcher::copy_task_done (
+    const SmartPtr<Worker> &worker,
+    const SmartPtr<Worker::Arguments> &base,
+    const XCamReturn error)
+{
+    XCAM_ASSERT (worker.ptr ());
+    SmartPtr<SoftSitcherPriv::StitcherCopyArgs> args = base.dynamic_cast_ptr<SoftSitcherPriv::StitcherCopyArgs> ();
+    XCAM_ASSERT (args.ptr ());
+    const SmartPtr<SoftStitcher::StitcherParam> param =
+        args->get_param ().dynamic_cast_ptr<SoftStitcher::StitcherParam> ();
+    XCAM_ASSERT (param.ptr ());
+
+    if (!check_work_continue (param, error)) {
+        _impl->remove_task_count (param);
+        return;
+    }
+    XCAM_LOG_INFO ("soft-stitcher:%s camera(idx:%d) copy done", XCAM_STR (get_name ()), args->idx);
+
+    if (_impl->dec_task_count (param) == 0) {
+        work_well_done (param, error);
+    }
+}
+
 XCamReturn
 SoftStitcher::configure_resource (const SmartPtr<Parameters> &param)
 {
     XCAM_UNUSED (param);
     XCAM_ASSERT (_impl.ptr ());
 
-    uint32_t camera_count = get_camera_num ();
-    XCamReturn ret = _impl->init_config (camera_count);
-    XCAM_FAIL_RETURN (
-        ERROR, xcam_ret_is_ok (ret), ret,
-        "soft-stitcher:%s initialize private config failed", XCAM_STR (get_name ()));
-
-    ret = estimate_coarse_crops ();
+    XCamReturn ret = estimate_coarse_crops ();
     XCAM_FAIL_RETURN (
         ERROR, xcam_ret_is_ok (ret), ret,
         "soft-stitcher:%s estimate coarse crops failed", XCAM_STR (get_name ()));
@@ -654,6 +785,17 @@ SoftStitcher::configure_resource (const SmartPtr<Parameters> &param)
     XCAM_FAIL_RETURN (
         ERROR, xcam_ret_is_ok (ret), ret,
         "soft-stitcher:%s estimake coarse overlap failed", XCAM_STR (get_name ()));
+
+    ret = update_copy_areas ();
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), ret,
+        "soft-stitcher:%s update copy areas failed", XCAM_STR (get_name ()));
+
+    uint32_t camera_count = get_camera_num ();
+    ret = _impl->init_config (camera_count);
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), ret,
+        "soft-stitcher:%s initialize private config failed", XCAM_STR (get_name ()));
 
     ret = _impl->fisheye_dewarp_to_table ();
     XCAM_FAIL_RETURN (

@@ -32,6 +32,8 @@
 #define XCAM_STITCH_MAX_CAMERAS XCAM_STITCH_FISHEYE_MAX_NUM
 #define XCAM_STITCH_MIN_SEAM_WIDTH 56
 
+#define INVALID_INDEX (uint32_t)(-1)
+
 namespace XCam {
 
 enum StitchResMode {
@@ -115,6 +117,10 @@ public:
         uint32_t in_idx;
         Rect     in_area;
         Rect     out_area;
+
+        CopyArea ()
+            : in_idx (INVALID_INDEX)
+        {}
     };
     typedef std::vector<CopyArea>  CopyAreaArray;
 

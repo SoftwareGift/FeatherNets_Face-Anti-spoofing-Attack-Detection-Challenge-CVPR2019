@@ -51,7 +51,7 @@ split_area_by_out (
     const Stitcher::CopyArea &area, const uint32_t round_width,
     Stitcher::CopyArea &split_a,  Stitcher::CopyArea &split_b)
 {
-    XCAM_ASSERT (area.out_area.pos_x > 0 && area.out_area.pos_x < (int32_t)round_width);
+    XCAM_ASSERT (area.out_area.pos_x >= 0 && area.out_area.pos_x < (int32_t)round_width);
     XCAM_ASSERT (area.out_area.width > 0 && area.out_area.width < (int32_t)round_width);
     if (area.out_area.pos_x + area.out_area.width > (int32_t)round_width) {
         split_a = area;

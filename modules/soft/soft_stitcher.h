@@ -31,6 +31,7 @@ namespace SoftSitcherPriv {
 class StitcherImpl;
 class CbGeoMap;
 class CbBlender;
+class CbCopyTask;
 };
 
 class SoftStitcher
@@ -40,6 +41,7 @@ class SoftStitcher
     friend class SoftSitcherPriv::StitcherImpl;
     friend class SoftSitcherPriv::CbGeoMap;
     friend class SoftSitcherPriv::CbBlender;
+    friend class SoftSitcherPriv::CbCopyTask;
 
 public:
     struct StitcherParam
@@ -76,6 +78,9 @@ private:
     void blender_done (
         const SmartPtr<ImageHandler> &handler,
         const SmartPtr<ImageHandler::Parameters> &param, const XCamReturn error);
+    void copy_task_done (
+        const SmartPtr<Worker> &worker,
+        const SmartPtr<Worker::Arguments> &base, const XCamReturn error);
 
 private:
     SmartPtr<SoftSitcherPriv::StitcherImpl> _impl;
