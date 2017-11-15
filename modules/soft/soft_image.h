@@ -44,6 +44,8 @@ enum BorderType {
 template <typename T>
 class SoftImage
 {
+public:
+    typedef T Type;
 private:
     uint8_t    *_buf_ptr;
     uint32_t    _width;

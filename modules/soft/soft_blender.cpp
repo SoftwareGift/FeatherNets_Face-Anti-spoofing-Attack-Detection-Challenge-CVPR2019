@@ -86,7 +86,8 @@ public:
         , _blender (blender)
     {}
 
-    XCamReturn init_masks (uint32_t width, uint32_t height);
+    XCamReturn init_first_masks (uint32_t width, uint32_t height);
+    XCamReturn scale_down_masks (uint32_t level, uint32_t width, uint32_t height);
 
     XCamReturn start_scaler (
         const SmartPtr<ImageHandler::Parameters> &param,
@@ -120,11 +121,24 @@ public:
 
 template <class SoftImageT>
 static void
-dump_soft (const SmartPtr<SoftImageT> &image, const char *name)
+dump_soft (const SmartPtr<SoftImageT> &image, const char *name, int32_t level)
 {
     XCAM_ASSERT (image.ptr ());
     char file_name[256];
-    snprintf (file_name, 256, "%s-%dx%d.soft", name, image->get_width(), image->get_height());
+    if (level < 0)
+        snprintf (file_name, 256, "%s-%dx%d.soft", name, image->get_width(), image->get_height());
+    else
+        snprintf (file_name, 256, "%s-L%d-%dx%d.soft", name, level, image->get_width(), image->get_height());
+
+#if 0
+    typename SoftImageT::Type *ptr = image->get_buf_ptr (0, 0);
+    printf ("Print level:%d, line:0\n", level);
+    for (uint32_t i = 0; i < image->get_width (); ++i) {
+        printf ("%.1f ", (float)(ptr[i]));
+    }
+    printf ("\n");
+#endif
+
     SoftImageFile<SoftImageT> file(file_name, "wb");
     file.write_buf (image);
     file.close ();
@@ -183,50 +197,73 @@ SoftBlender::blend (
 }
 
 XCamReturn
-SoftBlenderPriv::BlenderPrivConfig::init_masks (uint32_t width, uint32_t height)
+SoftBlenderPriv::BlenderPrivConfig::init_first_masks (uint32_t width, uint32_t height)
 {
+    uint32_t aligned_width = XCAM_ALIGN_UP (width, SOFT_BLENDER_ALIGNMENT_X);
+
     orig_mask = new UcharImage (
-        width, height,
-        XCAM_ALIGN_UP (width, SOFT_BLENDER_ALIGNMENT_X));
+        width, height, aligned_width);
     XCAM_ASSERT (orig_mask.ptr ());
     XCAM_ASSERT (orig_mask->is_valid ());
+    std::vector<float> gauss_table;
+    std::vector<Uchar> mask_line;
+    uint32_t i = 0, j = 0;
 
-    uint32_t left = width / 2;
-    uint32_t right = XCAM_ALIGN_UP (width, SOFT_BLENDER_ALIGNMENT_X) - left;
+    uint32_t quater = width / 4;
+    XCAM_ASSERT (quater > 1);
+    get_gauss_table (quater, (quater + 1) / 4.0f, gauss_table, false);
+    for (i = 0; i < gauss_table.size (); ++i) {
+        float value = ((i < quater) ? (128.0f * (2.0f - gauss_table[i])) : (128.0f * gauss_table[i]));
+        value = XCAM_CLAMP (value, 0.0f, 255.0f);
+        gauss_table[i] = value;
+    }
+
+    mask_line.resize (aligned_width);
+    uint32_t gauss_start_pos = (width - gauss_table.size ()) / 2;
+    for (i = 0; i < gauss_start_pos; ++i) {
+        mask_line[i] = 255;
+    }
+    for (j = 0; j < gauss_table.size (); ++i, ++j) {
+        mask_line[i] = (Uchar)gauss_table[j];
+    }
+    for (; i < mask_line.size (); ++i) {
+        mask_line[i] = 0;
+    }
+
     for (uint32_t h = 0; h < height; ++h) {
         Uchar *ptr = orig_mask->get_buf_ptr (0, h);
-        memset (ptr, 255, left);
-        memset (ptr + left, 0, right);
+        memcpy (ptr, mask_line.data (), aligned_width);
     }
-    dump_soft (orig_mask, "orig_mask");
 
-    for (uint32_t i = 0; i < pyr_levels; ++i) {
-        width = (width + 1) / 2;
-        height = (height + 1) / 2;
-        pyr_layer[i].coef_mask = new UcharImage (
-            width, height,
-            XCAM_ALIGN_UP (width, SOFT_BLENDER_ALIGNMENT_X));
-        XCAM_ASSERT (pyr_layer[i].coef_mask.ptr ());
+    dump_soft (orig_mask, "mask_orig", -1);
 
-        SmartPtr<GaussScaleGray::Args> args = new GaussScaleGray::Args;
-        if (i == 0) {
-            args->in_luma = orig_mask;
-        } else {
-            args->in_luma = pyr_layer[i - 1].coef_mask;
-        }
-        args->out_luma = pyr_layer[i].coef_mask;
-        SmartPtr<GaussScaleGray> worker = new GaussScaleGray;
-        WorkSize size ((args->out_luma->get_width () + 1) / 2, (args->out_luma->get_height () + 1) / 2);
-        worker->set_local_size (size);
-        worker->set_global_size (size);
-        XCamReturn ret = worker->work (args);
-        XCAM_FAIL_RETURN (
-            ERROR, xcam_ret_is_ok (ret), ret,
-            "blender:(%s) first time scale coeff mask failed. level:%d",
-            XCAM_STR (_blender->get_name ()), i);
-    }
-    dump_soft (pyr_layer[pyr_levels - 1].coef_mask, "orig_last");
     return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+SoftBlenderPriv::BlenderPrivConfig::scale_down_masks (uint32_t level, uint32_t width, uint32_t height)
+{
+    XCAM_ASSERT (width % SOFT_BLENDER_ALIGNMENT_X == 0);
+    XCAM_ASSERT (height % SOFT_BLENDER_ALIGNMENT_Y == 0);
+
+    pyr_layer[level].coef_mask = new UcharImage (width, height);
+    XCAM_ASSERT (pyr_layer[level].coef_mask.ptr ());
+
+    SmartPtr<GaussScaleGray::Args> args = new GaussScaleGray::Args;
+    if (level == 0) {
+        args->in_luma = orig_mask;
+    } else {
+        args->in_luma = pyr_layer[level - 1].coef_mask;
+    }
+    args->out_luma = pyr_layer[level].coef_mask;
+    SmartPtr<GaussScaleGray> worker = new GaussScaleGray;
+    WorkSize size ((args->out_luma->get_width () + 1) / 2, (args->out_luma->get_height () + 1) / 2);
+    worker->set_local_size (size);
+    worker->set_global_size (size);
+    XCamReturn ret = worker->work (args);
+
+    dump_soft (pyr_layer[level].coef_mask, "mask", (int32_t)level);
+    return ret;
 }
 
 XCamReturn
@@ -603,7 +640,7 @@ SoftBlender::configure_resource (const SmartPtr<Parameters> &param)
     SmartPtr<Worker::Callback> reconst_cb = new CbReconstructTask (this);
     XCAM_ASSERT (gauss_scale_cb.ptr () && lap_cb.ptr () && reconst_cb.ptr ());
 
-    XCamReturn ret = _priv_config->init_masks (merge_size.width, merge_size.height);
+    XCamReturn ret = _priv_config->init_first_masks (merge_size.width, merge_size.height);
     XCAM_FAIL_RETURN (
         ERROR, xcam_ret_is_ok (ret), ret,
         "blender:%s init masks failed", XCAM_STR (get_name ()));
@@ -619,6 +656,11 @@ SoftBlender::configure_resource (const SmartPtr<Parameters> &param)
             ERROR, _priv_config->pyr_layer[i].overlap_pool->reserve (OVERLAP_POOL_SIZE), XCAM_RETURN_ERROR_MEM,
             "blender:%s reserve buffer pool(w:%d,h:%d) failed",
             XCAM_STR(get_name ()), overlap_info.width, overlap_info.height);
+
+        ret = _priv_config->scale_down_masks (i, merge_size.width, merge_size.height);
+        XCAM_FAIL_RETURN (
+            ERROR, xcam_ret_is_ok (ret), ret,
+            "blender:(%s) first time scale coeff mask failed. level:%d", XCAM_STR (get_name ()), i);
 
         _priv_config->pyr_layer[i].scale_task[SoftBlender::Idx0] = new GaussDownScale (gauss_scale_cb);
         XCAM_ASSERT (_priv_config->pyr_layer[i].scale_task[SoftBlender::Idx0].ptr ());

@@ -32,6 +32,7 @@ extern "C" {
 }
 #include <cinttypes>
 #include <smartptr.h>
+#include <vector>
 
 namespace XCam {
 
@@ -69,6 +70,9 @@ linear_interpolate_p4(
     double ref_lt_y, double ref_rt_y,
     double ref_lb_y, double ref_rb_y,
     double ref_curr_x, double ref_curr_y);
+
+void get_gauss_table (
+    uint32_t radius, float sigma, std::vector<float> &table, bool normalize = true);
 
 class VideoBuffer;
 void dump_buf_perfix_path (const SmartPtr<VideoBuffer> buf, const char *prefix_name);

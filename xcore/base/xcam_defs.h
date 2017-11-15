@@ -66,6 +66,8 @@
 
 #define XCAM_MAX(a, b)  ((a) > (b) ? (a) : (b))
 #define XCAM_MIN(a, b)  ((a) < (b) ? (a) : (b))
+#define XCAM_CLAMP(v, min, max)   \
+    (((v) < (min)) ? (min) : (((v) > (max)) ? (max) : (v)))
 
 #define XCAM_FAIL_RETURN(LEVEL, exp, ret, msg, ...)         \
     if (!(exp)) {                                           \

@@ -113,6 +113,30 @@ linear_interpolate_p4(
 }
 
 void
+get_gauss_table (uint32_t radius, float sigma, std::vector<float> &table, bool normalize)
+{
+    int i;
+    int scale = radius * 2 + 1;
+    float dis = 0.0f, sum = 1.0f;
+
+    //XCAM_ASSERT (scale < 512);
+    table.resize (scale);
+    table[radius] = 1.0f;
+
+    for (i = 0; i < radius; i++)  {
+        dis = ((float)i - radius) * ((float)i - radius);
+        table[i] = table[scale - i - 1] = exp(-dis / (2.0f * sigma * sigma));
+        sum += table[i] * 2.0f;
+    }
+
+    if (!normalize)
+        return;
+
+    for(i = 0; i < scale; i++)
+        table[i] /= sum;
+}
+
+void
 dump_buf_perfix_path (const SmartPtr<VideoBuffer> buf, const char *prefix_name)
 {
     char file_name[256];
