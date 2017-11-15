@@ -459,7 +459,7 @@ StitcherImpl::start_overlap_tasks (
             _overlaps[idx].param_map.erase (param.ptr ());
         }
 
-        param_b = _overlaps[pre_idx].find_blender_param_in_map (param, idx);
+        param_b = _overlaps[pre_idx].find_blender_param_in_map (param, pre_idx);
         param_b->in1_buf = buf;
         if (param_b->in_buf.ptr () && param_b->in1_buf.ptr ()) {
             prev_param = param_b;
