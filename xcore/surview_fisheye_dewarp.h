@@ -40,6 +40,7 @@ public:
     typedef std::vector<float> MapTable;
 
     explicit SurViewFisheyeDewarp ();
+    virtual ~SurViewFisheyeDewarp ();
 
     void fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint32_t table_h, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config);
 
@@ -71,6 +72,7 @@ class PolyFisheyeDewarp : public SurViewFisheyeDewarp
 public:
     explicit PolyFisheyeDewarp ();
 
+private:
     void cal_image_coord(MapTable cam_coord, MapTable &image_coord);
 
 };

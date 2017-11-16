@@ -25,6 +25,9 @@ namespace XCam {
 SurViewFisheyeDewarp::SurViewFisheyeDewarp ()
 {
 }
+SurViewFisheyeDewarp::~SurViewFisheyeDewarp ()
+{
+}
 
 PolyFisheyeDewarp::PolyFisheyeDewarp()
     : SurViewFisheyeDewarp()
