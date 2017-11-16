@@ -115,9 +115,8 @@ SoftHandler::enable_allocator (bool enable)
 }
 
 XCamReturn
-SoftHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param)
+SoftHandler::confirm_configured ()
 {
-    XCAM_UNUSED (param);
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     XCAM_ASSERT (_need_configure);
@@ -159,8 +158,13 @@ SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bo
     if (_need_configure) {
         ret = configure_resource (param);
         XCAM_FAIL_RETURN (
-            WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
+            WARNING, xcam_ret_is_ok (ret), ret,
             "soft_hander(%s) configure resource failed", XCAM_STR (get_name ()));
+
+        ret = confirm_configured ();
+        XCAM_FAIL_RETURN (
+            WARNING, xcam_ret_is_ok (ret), ret,
+            "soft_hander(%s) confirm configure failed", XCAM_STR (get_name ()));
     }
 
     if (!param->out_buf.ptr () && _enable_allocator) {

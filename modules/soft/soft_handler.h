@@ -66,7 +66,7 @@ public:
     virtual XCamReturn terminate ();
 
 protected:
-    virtual XCamReturn configure_resource (const SmartPtr<Parameters> &param);
+    virtual XCamReturn configure_resource (const SmartPtr<Parameters> &param) = 0;
     virtual XCamReturn start_work (const SmartPtr<Parameters> &param) = 0;
     //virtual SmartPtr<Worker::Arguments> get_first_worker_args (const SmartPtr<SoftWorker> &worker, SmartPtr<Parameters> &params) = 0;
     virtual void work_well_done (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
@@ -76,6 +76,7 @@ protected:
     bool check_work_continue (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
 
 private:
+    XCamReturn confirm_configured ();
     void param_ended (SmartPtr<ImageHandler::Parameters> param, XCamReturn err);
     static bool is_param_error (const SmartPtr<ImageHandler::Parameters> &param);
 

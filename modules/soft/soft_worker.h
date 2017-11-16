@@ -76,6 +76,7 @@ public:
 
     // derived from Worker
     virtual XCamReturn work (const SmartPtr<Arguments> &args);
+    virtual XCamReturn stop ();
 
 private:
     //new virtual functions

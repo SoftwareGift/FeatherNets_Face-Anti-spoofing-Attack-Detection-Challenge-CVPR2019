@@ -108,6 +108,9 @@ public:
         status_check (args, XCAM_RETURN_NO_ERROR);
         return XCAM_RETURN_NO_ERROR;
     }
+    XCamReturn stop () {
+        return XCAM_RETURN_NO_ERROR;
+    }
 };
 
 class UintTestHandler {

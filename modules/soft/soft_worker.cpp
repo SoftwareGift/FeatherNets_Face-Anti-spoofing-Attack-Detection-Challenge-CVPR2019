@@ -163,6 +163,13 @@ SoftWorker::set_local_size (const WorkSize &size)
 }
 
 XCamReturn
+SoftWorker::stop ()
+{
+    _threads->stop ();
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -190,7 +197,7 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
 
     if (!_threads.ptr ()) {
         char thr_name [XCAM_MAX_STR_SIZE];
-        snprintf (thr_name, XCAM_MAX_STR_SIZE, "%s-thread-pool", XCAM_STR(get_name ()));
+        snprintf (thr_name, XCAM_MAX_STR_SIZE, "%s-thrs", XCAM_STR(get_name ()));
         _threads = new ThreadPool (thr_name);
         XCAM_ASSERT (_threads.ptr ());
         _threads->set_threads (max_items, max_items + 1); //extra thread to process all_items_done

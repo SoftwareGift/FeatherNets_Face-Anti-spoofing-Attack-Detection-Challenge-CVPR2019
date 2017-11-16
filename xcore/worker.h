@@ -89,6 +89,7 @@ public:
     bool set_callback (const SmartPtr<Callback> &callback);
 
     virtual XCamReturn work (const SmartPtr<Arguments> &args) = 0;
+    virtual XCamReturn stop () = 0;
 
 protected:
     virtual void status_check (const SmartPtr<Arguments> &args, const XCamReturn error);
