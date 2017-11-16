@@ -49,11 +49,39 @@ XCamReturn convert_nv12_mem_to_video_buffer (
     void *nv12_mem, uint32_t width, uint32_t height, uint32_t row_pitch, uint32_t offset_uv,
     SmartPtr<VideoBuffer> &buf);
 
-XCamReturn get_bowl_view_data (
-    SmartPtr<VideoBuffer> &buf, const BowlDataConfig &config,
+XCamReturn bowl_view_coords_to_image (
+    const VideoBufferInfo& info,
+    const BowlDataConfig &config,
     float x_pos, float y_pos, float z_pos,
-    float &y, float &u, float &v);
+    float &x_trans, float &y_trans);
 
+XCamReturn
+generate_topview_map_table (
+    const VideoBufferInfo &stitch_info,
+    const BowlDataConfig &config,
+    std::vector<float> &map_table,
+    int width, int height);
+
+XCamReturn
+generate_rectifiedview_map_table (
+    const VideoBufferInfo &stitch_info,
+    const BowlDataConfig &config,
+    std::vector<float> &map_table,
+    float angle_start, float angle_end,
+    int width, int height);
+
+XCamReturn sample_generate_top_view (
+    SmartPtr<VideoBuffer> &stitch_buf,
+    SmartPtr<VideoBuffer> top_view_buf,
+    const BowlDataConfig &config,
+    std::vector<float> &map_table, int frame_id);
+
+XCamReturn sample_generate_rectified_view (
+    SmartPtr<VideoBuffer> &stitch_buf,
+    SmartPtr<VideoBuffer> rectified_view_buf,
+    const BowlDataConfig &config,
+    float angle_start, float angle_end,
+    std::vector<float> &map_table, int frame_id);
 }
 
 #endif //XCAM_CL_UTILS_H

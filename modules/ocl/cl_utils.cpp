@@ -192,53 +192,6 @@ convert_nv12_mem_to_video_buffer (
     return XCAM_RETURN_NO_ERROR;
 }
 
-/*
- *  P00 ------------- P01
- *  |         |         |
- *  | -- Pinterpoint -- |
- *  |         |         |
- *  P10 ------------- P11
- */
-static void
-weighting_interpolate (
-    const NV12Pixel &p00, const NV12Pixel &p01, const NV12Pixel &p10, const NV12Pixel &p11,
-    NV12Pixel &inter_point)
-{
-    float weight00 = 0.0f, weight01 = 0.0f, weight10 = 0.0f, weight11 = 0.0f;
-    if (p00.x_pos != p01.x_pos && p00.y_pos != p10.y_pos) {
-        weight00 = (p11.x_pos - inter_point.x_pos) * (p11.y_pos - inter_point.y_pos);
-        weight01 = (inter_point.x_pos - p10.x_pos) * (p10.y_pos - inter_point.y_pos);
-        weight10 = (p01.x_pos - inter_point.x_pos) * (inter_point.y_pos - p00.y_pos);
-        weight11 = (inter_point.x_pos - p00.x_pos) * (inter_point.y_pos - p00.y_pos);
-
-        inter_point.y = p00.y * weight00 +  p01.y * weight01 +  p10.y * weight10 +  p11.y * weight11;
-        inter_point.u = p00.u * weight00 +  p01.u * weight01 +  p10.u * weight10 +  p11.u * weight11;
-        inter_point.v = p00.v * weight00 +  p01.v * weight01 +  p10.v * weight10 +  p11.v * weight11;
-    } else if (p00.x_pos == p01.x_pos && p00.y_pos != p10.y_pos) {
-        weight00 = p10.y_pos - inter_point.y_pos;
-        weight10 = inter_point.y_pos - p00.y_pos;
-
-        inter_point.y = p00.y * weight00 +  p10.y * weight10;
-        inter_point.u = p00.u * weight00 +  p10.u * weight10;
-        inter_point.v = p00.v * weight00 +  p10.v * weight10;
-    } else if (p00.y_pos == p10.y_pos && p00.x_pos != p01.x_pos ) {
-        weight00 = p01.x_pos - inter_point.x_pos;
-        weight01 = inter_point.x_pos - p00.x_pos;
-
-        inter_point.y = p00.y * weight00 +  p01.y * weight01;
-        inter_point.u = p00.u * weight00 +  p01.u * weight01;
-        inter_point.v = p00.v * weight00 +  p01.v * weight01;
-    } else {
-        inter_point.y = p00.y;
-        inter_point.u = p00.u;
-        inter_point.v = p00.v;
-    }
-
-    clamp (inter_point.y, 0.0f, 255.0f);
-    clamp (inter_point.u, 0.0f, 255.0f);
-    clamp (inter_point.v, 0.0f, 255.0f);
-}
-
 static void
 transform_x_coordinate (
     const VideoBufferInfo &info,
@@ -246,8 +199,8 @@ transform_x_coordinate (
     float &x_trans)
 {
     float step = info.width / (2.0f * PI);
-    float offset_radian = (x_pos < 0.0f) ? PI : ((y_pos >= 0.0f) ? 0.0f : 2.0f * PI);
-    float arctan_radian = (x_pos != 0.0f) ? atan (y_pos / x_pos) : ((y_pos >= 0.0f) ? PI / 2.0f : -PI / 2.0f);
+    float offset_radian = (x_pos < 0.0f) ? PI : ((y_pos >= 0.0f) ? 2.0f * PI : 0.0f);
+    float arctan_radian = (x_pos != 0.0f) ? atan (-y_pos / x_pos) : ((y_pos >= 0.0f) ? -PI / 2.0f : PI / 2.0f);
 
     x_trans = arctan_radian + offset_radian;
     x_trans *= step;
@@ -268,14 +221,14 @@ transform_y_coordinate (
         y_trans = (config.wall_height - z_pos) * wall_image_height / config.wall_height;
         clamp (y_trans, 0.0f, wall_image_height - 1.0f);
     } else {
-        float max_semimajor = config.a *
+        float max_semimajor = config.b *
                               sqrt (1 - config.center_z * config.center_z / (config.c * config.c));
         float min_semimajor = max_semimajor - config.ground_length;
         XCAM_ASSERT (max_semimajor > min_semimajor);
         float step = ground_image_height / (max_semimajor - min_semimajor);
 
         float axis_ratio = config.a / config.b;
-        float cur_semimajor = sqrt (x_pos * x_pos + y_pos * y_pos * axis_ratio * axis_ratio);
+        float cur_semimajor = sqrt (x_pos * x_pos + y_pos * y_pos * axis_ratio * axis_ratio) / axis_ratio;
         clamp (cur_semimajor, min_semimajor, max_semimajor);
 
         y_trans = (max_semimajor - cur_semimajor) * step + wall_image_height;
@@ -283,69 +236,261 @@ transform_y_coordinate (
     }
 }
 
-static void
-transform_coordinates (
+XCamReturn
+bowl_view_coords_to_image (
     const VideoBufferInfo &info,
     const BowlDataConfig &config,
     float x_pos, float y_pos, float z_pos,
-    NV12Pixel &p00, NV12Pixel &p01, NV12Pixel &p10, NV12Pixel &p11, NV12Pixel &inter_point)
+    float &x_trans, float &y_trans)
 {
-    float x_trans, y_trans;
     transform_x_coordinate (info, x_pos, y_pos, x_trans);
     transform_y_coordinate (info, config, x_pos, y_pos, z_pos, y_trans);
 
-    inter_point.x_pos = x_trans;
-    inter_point.y_pos = y_trans;
-
-    p00.x_pos = (uint32_t)inter_point.x_pos;
-    p00.y_pos = (uint32_t)inter_point.y_pos;
-    p01.x_pos = (p00.x_pos == (info.width - 1.0f)) ? p00.x_pos : (p00.x_pos + 1.0f);
-    p01.y_pos = p00.y_pos;
-
-    p10.x_pos = p00.x_pos;
-    p10.y_pos = (p00.y_pos == (info.height - 1.0f)) ? p00.y_pos : (p00.y_pos + 1.0f);
-    p11.x_pos = (p00.x_pos == (info.width - 1.0f)) ? p00.x_pos : (p00.x_pos + 1.0f);
-    p11.y_pos = (p00.y_pos == (info.height - 1.0f)) ? p00.y_pos : (p00.y_pos + 1.0f);
-}
-
-static void
-fill_pixel_value (uint8_t *mem, const VideoBufferInfo &info, NV12Pixel &p)
-{
-    uint32_t y_pos = (uint32_t)p.y_pos;
-    uint32_t x_pos = (uint32_t)p.x_pos;
-
-    uint32_t pos = y_pos * info.strides[0] + x_pos;
-    p.y = mem[pos];
-
-    pos = info.offsets[1] + y_pos / 2 * info.strides[1] + XCAM_ALIGN_DOWN (x_pos, 2);
-    p.u = mem[pos];
-    p.v = mem[pos + 1];
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
-get_bowl_view_data (
-    SmartPtr<VideoBuffer> &buf, const BowlDataConfig &config,
-    float x_pos, float y_pos, float z_pos,
-    float &y, float &u, float &v)
+interpolate_pixel_value (
+    uint8_t* stitch_mem,
+    float image_coord_x, float image_coord_y,
+    float &y, float &u, float &v,
+    const VideoBufferInfo& stitch_info)
 {
-    const VideoBufferInfo info = buf->get_video_info ();
+    XCAM_ASSERT (image_coord_y < stitch_info.height && image_coord_x < stitch_info.width);
 
-    NV12Pixel p00, p01, p10, p11, inter_point;
-    transform_coordinates (info, config, x_pos, y_pos, z_pos, p00, p01, p10, p11, inter_point);
+    uint8_t y00, y01, y10, y11;
+    uint8_t u00, u01, u10, u11;
+    uint8_t v00, v01, v10, v11;
 
-    uint8_t *mem = buf->map ();
-    XCAM_FAIL_RETURN (ERROR, mem, XCAM_RETURN_ERROR_MEM, "map buffer failed");
+    uint32_t x0 = (uint32_t) image_coord_x;
+    uint32_t x1 = (x0 < stitch_info.width - 1) ? (x0 + 1) : x0;
+    uint32_t y0 = (uint32_t) image_coord_y;
+    uint32_t y1 = (y0 < stitch_info.height - 1) ? (y0 + 1) : y0;
 
-    fill_pixel_value (mem, info, p00);
-    fill_pixel_value (mem, info, p01);
-    fill_pixel_value (mem, info, p10);
-    fill_pixel_value (mem, info, p11);
-    buf->unmap ();
+    float rate00 = (x0 + 1 - image_coord_x) * (y0 + 1 - image_coord_y);
+    float rate01 = (x0 + 1 - image_coord_x) * (image_coord_y - y0);
+    float rate10 = (image_coord_x - x0) * (y0 + 1 - image_coord_y);
+    float rate11 = (image_coord_x - x0) * (image_coord_y - y0);
 
-    weighting_interpolate (p00, p01, p10, p11, inter_point);
-    y = inter_point.y;
-    u = inter_point.u;
-    v = inter_point.v;
+    y00 = stitch_mem[y0 * stitch_info.strides[0] + x0];
+    y01 = stitch_mem[y1 * stitch_info.strides[0] + x0];
+    y10 = stitch_mem[y0 * stitch_info.strides[0] + x1];
+    y11 = stitch_mem[y1 * stitch_info.strides[0] + x1];
+
+    u00 = stitch_mem[stitch_info.offsets[1] + y0 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x0, 2)];
+    u01 = stitch_mem[stitch_info.offsets[1] + y1 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x0, 2)];
+    u10 = stitch_mem[stitch_info.offsets[1] + y0 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x1, 2)];
+    u11 = stitch_mem[stitch_info.offsets[1] + y1 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x1, 2)];
+
+    v00 = stitch_mem[stitch_info.offsets[1] + y0 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x0, 2) + 1];
+    v01 = stitch_mem[stitch_info.offsets[1] + y1 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x0, 2) + 1];
+    v10 = stitch_mem[stitch_info.offsets[1] + y0 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x1, 2) + 1];
+    v11 = stitch_mem[stitch_info.offsets[1] + y1 / 2 * stitch_info.strides[1] + XCAM_ALIGN_DOWN (x1, 2) + 1];
+
+    y = y00 * rate00 + y01 * rate01 + y10 * rate10 + y11 * rate11;
+    u = u00 * rate00 + u01 * rate01 + u10 * rate10 + u11 * rate11;
+    v = v00 * rate00 + v01 * rate01 + v10 * rate10 + v11 * rate11;
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+map_to_specific_view (
+    uint8_t *specific_view_mem, uint8_t* stitch_mem,
+    uint32_t row, uint32_t col,
+    float image_coord_x, float image_coord_y,
+    const VideoBufferInfo& specific_view_info, const VideoBufferInfo& stitch_info)
+{
+    XCAM_ASSERT (row < specific_view_info.height && col < specific_view_info.width);
+
+    float y, u, v;
+
+    interpolate_pixel_value (stitch_mem, image_coord_x, image_coord_y, y, u, v, stitch_info);
+
+    uint32_t y_index = row * specific_view_info.strides[0] + col;
+    uint32_t u_index = specific_view_info.offsets[1] + row / 2 * specific_view_info.strides[1] + XCAM_ALIGN_DOWN (col, 2);
+
+    specific_view_mem[y_index] = (uint8_t)y;
+    specific_view_mem[u_index] = (uint8_t)u;
+    specific_view_mem[u_index + 1] = (uint8_t)v;
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+generate_topview_map_table (
+    const VideoBufferInfo &stitch_info,
+    const BowlDataConfig &config,
+    std::vector<float> &map_table,
+    int width, int height)
+{
+    int center_x = width / 2;
+    int center_y = height / 2;
+
+    float show_width_mm = 5000.0f;
+    float length_per_pixel = show_width_mm / height;
+
+    for(int row = 0; row < height; row++) {
+        for(int col = 0; col < width; col++) {
+            float world_x = (col - center_x) * length_per_pixel;
+            float world_y = (center_y - row) * length_per_pixel;
+            float world_z = 0.0f;
+
+            float image_coord_x, image_coord_y;
+            bowl_view_coords_to_image (stitch_info, config, world_x, world_y, world_z, image_coord_x, image_coord_y);
+
+            map_table[row * width * 2 + col * 2] = image_coord_x;
+            map_table[row * width * 2 + col * 2 + 1] = image_coord_y;
+        }
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+generate_rectifiedview_map_table (
+    const VideoBufferInfo &stitch_info,
+    const BowlDataConfig &config,
+    std::vector<float> &map_table,
+    float angle_start, float angle_end,
+    int width, int height)
+{
+    float center_x = width / 2;
+
+    float focal_plane_dist = 6000.0f;
+
+    float angle_center = (angle_start + angle_end) / 2.0f;
+    float theta = degree2radian((angle_end - angle_start)) / 2.0f;
+    float length_per_pixel_x = 2 * focal_plane_dist * tan (theta) / width;
+
+    float fov_up = degree2radian (20.0f);
+    float fov_down = degree2radian (35.0f);
+
+    float length_per_pixel_y = (focal_plane_dist * tan (fov_up) + focal_plane_dist * tan (fov_down)) / height;
+
+    float center_y = tan (fov_up) / (tan (fov_up) + tan (fov_down)) * height;
+
+    float world_x, world_y, world_z;
+    float plane_center_coords[3];
+
+    plane_center_coords[0] = focal_plane_dist * cos (degree2radian (angle_center));
+    plane_center_coords[1] = -focal_plane_dist * sin (degree2radian (angle_center));
+    plane_center_coords[2] = 0.0f;
+
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {
+            float plane_point_coords[3];
+            plane_point_coords[0] = (center_x - col) * length_per_pixel_x * cos (PI / 2 - degree2radian (angle_center)) + plane_center_coords[0];
+            plane_point_coords[1] = (center_x - col) * length_per_pixel_x * sin (PI / 2 - degree2radian (angle_center)) + plane_center_coords[1];
+            plane_point_coords[2] = (center_y - row) * length_per_pixel_y + plane_center_coords[2];
+
+            float rate_xz, rate_yz;
+            if (XCAM_DOUBLE_EQUAL_AROUND (plane_point_coords[2], 0.0f) && XCAM_DOUBLE_EQUAL_AROUND (plane_point_coords[1], 0.0f)) {
+                world_x = config.a;
+                world_y = 0;
+                world_z = 0;
+            } else if (XCAM_DOUBLE_EQUAL_AROUND (plane_point_coords[2], 0.0f)) {
+                world_z = 0.0f;
+
+                float rate_xy = plane_point_coords[0] / plane_point_coords[1];
+                float square_y = 1 / (rate_xy * rate_xy / (config.a * config.a) + 1 / (config.b * config.b));
+                world_y = (plane_point_coords[1] > 0) ? sqrt (square_y) : -sqrt (square_y);
+                world_x = rate_xy * world_y;
+            } else {
+                rate_xz = plane_point_coords[0] / plane_point_coords[2];
+                rate_yz = plane_point_coords[1] / plane_point_coords[2];
+
+                float square_z = 1 / (rate_xz * rate_xz / (config.a * config.a) + rate_yz * rate_yz / (config.b * config.b) + 1 / (config.c * config.c));
+                world_z = (plane_point_coords[2] > 0) ? sqrt (square_z) : -sqrt (square_z);
+                world_z = (world_z <= -config.center_z) ? -config.center_z : world_z;
+                world_x = rate_xz * world_z;
+                world_y = rate_yz * world_z;
+            }
+
+            world_z += config.center_z;
+
+            float image_coord_x, image_coord_y;
+            bowl_view_coords_to_image (stitch_info, config, world_x, world_y, world_z, image_coord_x, image_coord_y);
+
+            map_table[row * width * 2 + col * 2] = image_coord_x;
+            map_table[row * width * 2 + col * 2 + 1] = image_coord_y;
+        }
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+sample_generate_top_view (
+    SmartPtr<VideoBuffer> &stitch_buf,
+    SmartPtr<VideoBuffer> top_view_buf,
+    const BowlDataConfig &config,
+    std::vector<float> &map_table, int frame_id)
+{
+    const VideoBufferInfo top_view_info = top_view_buf->get_video_info ();
+    const VideoBufferInfo stitch_info = stitch_buf->get_video_info ();
+
+    int top_view_resolution_w = top_view_buf->get_video_info ().width;
+    int top_view_resolution_h = top_view_buf->get_video_info ().height;
+
+    if(frame_id == 0) {
+        generate_topview_map_table (stitch_info, config, map_table, top_view_resolution_w, top_view_resolution_h);
+    }
+
+    uint8_t *top_view_mem = NULL;
+    uint8_t *stitch_mem = NULL;
+    top_view_mem = top_view_buf->map ();
+    stitch_mem = stitch_buf->map ();
+
+    for(int row = 0; row < top_view_resolution_h; row++) {
+        for(int col = 0; col < top_view_resolution_w; col++) {
+            float image_coord_x = map_table[row * top_view_resolution_w * 2 + col * 2];
+            float image_coord_y = map_table[row * top_view_resolution_w * 2 + col * 2 + 1];
+
+            map_to_specific_view (top_view_mem, stitch_mem, row, col, image_coord_x, image_coord_y, top_view_info, stitch_info);
+        }
+    }
+
+    top_view_buf->unmap();
+    stitch_buf->unmap();
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+sample_generate_rectified_view (
+    SmartPtr<VideoBuffer> &stitch_buf,
+    SmartPtr<VideoBuffer> rectified_view_buf,
+    const BowlDataConfig &config,
+    float angle_start, float angle_end,
+    std::vector<float> &map_table, int frame_id)
+{
+    const VideoBufferInfo rectified_view_info = rectified_view_buf->get_video_info ();
+    const VideoBufferInfo stitch_info = stitch_buf->get_video_info ();
+
+    int rectified_view_resolution_w = rectified_view_buf->get_video_info ().width;
+    int rectified_view_resolution_h = rectified_view_buf->get_video_info ().height;
+
+    if(frame_id == 0) {
+        generate_rectifiedview_map_table (stitch_info, config, map_table, angle_start, angle_end, rectified_view_resolution_w, rectified_view_resolution_h);
+    }
+
+    uint8_t *rectified_view_mem = NULL;
+    uint8_t *stitch_mem = NULL;
+    rectified_view_mem = rectified_view_buf->map ();
+    stitch_mem = stitch_buf->map ();
+
+    for(int row = 0; row < rectified_view_resolution_h; row++) {
+        for(int col = 0; col < rectified_view_resolution_w; col++) {
+            float image_coord_x = map_table[row * rectified_view_resolution_w * 2 + col * 2];
+            float image_coord_y = map_table[row * rectified_view_resolution_w * 2 + col * 2 + 1];
+
+            map_to_specific_view (rectified_view_mem, stitch_mem, row, col, image_coord_x, image_coord_y, rectified_view_info, stitch_info);
+        }
+    }
+
+    rectified_view_buf->unmap();
+    stitch_buf->unmap();
 
     return XCAM_RETURN_NO_ERROR;
 }

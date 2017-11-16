@@ -74,10 +74,11 @@ struct BowlDataConfig {
     float ground_length;
 
     BowlDataConfig ()
-        : a (5050.0f), b (3656.7f), c (3003.4f)
+    //: a (5050.0f), b (3656.7f), c (3003.4f)
+        : a (6060.0f), b (4388.0f), c (3003.4f)
         , angle_start (90.0f), angle_end (270.0f)
         , center_z (1500.0f), wall_height (3000.0f)
-        , ground_length (2168.0f)
+        , ground_length (2801.0f) // (2168.0f)
     {}
 };
 

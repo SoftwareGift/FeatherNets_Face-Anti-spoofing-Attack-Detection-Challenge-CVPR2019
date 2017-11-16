@@ -45,6 +45,7 @@ using namespace XCam;
 static void dbg_write_image (
     SmartPtr<CLContext> context, SmartPtr<CLImage360Stitch> image_360,
     SmartPtr<VideoBuffer> input_bufs[], SmartPtr<VideoBuffer> output_buf,
+    SmartPtr<VideoBuffer> top_view_buf, SmartPtr<VideoBuffer> rectified_view_buf,
     bool all_in_one, int fisheye_num, int input_count);
 #endif
 
@@ -176,25 +177,6 @@ read_file_to_video_buffer (
     return XCAM_RETURN_NO_ERROR;
 }
 
-XCamReturn
-sample_get_bowl_view_data (SmartPtr<CLImage360Stitch> image_360, SmartPtr<VideoBuffer> &buf)
-{
-    BowlDataConfig config = image_360->get_fisheye_bowl_config ();
-
-    float x_pos[6] = { -4000.0f, 4000.0f, 0.0f,     0.0f,    3000.0f,  2000.0f};
-    float y_pos[6] = {0.0f,     0.0f,    -2500.0f, 2500.0f, -2000.0f, 2000.0f};
-    float z_pos[6] = {0.0f,     0.0f,    0.0f,     0.0f,    1000.0f,  3000.0f};
-    float y, u, v;
-
-    for (int i = 0; i < 6; i++) {
-        get_bowl_view_data (buf, config, x_pos[i], y_pos[i], z_pos[i], y, u, v);
-        printf ("bowl view data:  XYZ:%.2f, %.2f, %.2f  YUV:%.2f, %.2f, %.2f\n",
-                x_pos[i], y_pos[i], z_pos[i], y, u, v);
-    }
-
-    return XCAM_RETURN_NO_ERROR;
-}
-
 void usage(const char* arg0)
 {
     printf ("Usage:\n"
@@ -230,8 +212,8 @@ int main (int argc, char *argv[])
     SmartPtr<BufferPool> buf_pool[XCAM_STITCH_FISHEYE_MAX_NUM];
     ImageFileHandle file_in[XCAM_STITCH_FISHEYE_MAX_NUM];
     ImageFileHandle file_out;
-    SmartPtr<VideoBuffer> input_buf, output_buf;
-    VideoBufferInfo input_buf_info, output_buf_info;
+    SmartPtr<VideoBuffer> input_buf, output_buf, top_view_buf, rectified_view_buf;
+    VideoBufferInfo input_buf_info, output_buf_info, top_view_buf_info, rectified_view_buf_info;
     SmartPtr<CLImage360Stitch> image_360;
 
     uint32_t input_format = V4L2_PIX_FMT_NV12;
@@ -239,6 +221,12 @@ int main (int argc, char *argv[])
     uint32_t input_height = 1080;
     uint32_t output_height = 960;
     uint32_t output_width = output_height * 2;
+
+    uint32_t top_view_width = 1920;
+    uint32_t top_view_height = 1080;
+
+    uint32_t rectified_view_width = 1920;
+    uint32_t rectified_view_height = 1080;
 
     int loop = 1;
     bool enable_seam = false;
@@ -261,6 +249,8 @@ int main (int argc, char *argv[])
 
     const char *file_in_name[XCAM_STITCH_FISHEYE_MAX_NUM] = {NULL};
     const char *file_out_name = NULL;
+    const char *top_view_filename = "top_view.mp4";
+    const char *rectified_view_filename = "rectified_view.mp4";
 
     int input_count = 0;
 
@@ -479,6 +469,8 @@ int main (int argc, char *argv[])
 
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
+    top_view_buf_info.init (input_format, top_view_width, top_view_height);
+    rectified_view_buf_info.init (input_format, rectified_view_width, rectified_view_height);
     for (int i = 0; i < input_count; i++) {
         buf_pool[i] = new CLVideoBufferPool ();
         XCAM_ASSERT (buf_pool[i].ptr ());
@@ -489,6 +481,25 @@ int main (int argc, char *argv[])
         }
     }
 
+    SmartPtr<BufferPool> top_view_pool = new CLVideoBufferPool ();
+    XCAM_ASSERT (top_view_pool.ptr ());
+    top_view_pool->set_video_info (top_view_buf_info);
+    if (!top_view_pool->reserve (6)) {
+        XCAM_LOG_ERROR ("top-view-buffer pool reserve failed");
+        return -1;
+    }
+    top_view_buf = top_view_pool->get_buffer (top_view_pool);
+
+    SmartPtr<BufferPool> rectified_view_pool = new CLVideoBufferPool ();
+    XCAM_ASSERT (rectified_view_pool.ptr ());
+    rectified_view_pool->set_video_info (rectified_view_buf_info);
+    if (!rectified_view_pool->reserve (6)) {
+        XCAM_LOG_ERROR ("top-view-buffer pool reserve failed");
+        return -1;
+    }
+    rectified_view_buf = rectified_view_pool->get_buffer (rectified_view_pool);
+
+
     for (int i = 0; i < input_count; i++) {
         ret = file_in[i].open (file_in_name[i], "rb");
         CHECK (ret, "open %s failed", file_in_name[i]);
@@ -498,10 +509,24 @@ int main (int argc, char *argv[])
     init_opencv_ocl (context);
 
     cv::VideoWriter writer;
+    cv::VideoWriter top_view_writer;
+    cv::VideoWriter rectified_view_writer;
     if (need_save_output) {
         cv::Size dst_size = cv::Size (output_width, output_height);
         if (!writer.open (file_out_name, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
             XCAM_LOG_ERROR ("open file %s failed", file_out_name);
+            return -1;
+        }
+
+        dst_size = cv::Size (top_view_width, top_view_height);
+        if (!top_view_writer.open (top_view_filename, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
+            XCAM_LOG_ERROR ("open file %s failed", top_view_filename);
+            return -1;
+        }
+
+        dst_size = cv::Size (rectified_view_width, rectified_view_height);
+        if (!rectified_view_writer.open (rectified_view_filename, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
+            XCAM_LOG_ERROR ("open file %s failed", rectified_view_filename);
             return -1;
         }
     }
@@ -511,6 +536,11 @@ int main (int argc, char *argv[])
 #if (HAVE_OPENCV) && (XCAM_TEST_STITCH_DEBUG)
     SmartPtr<VideoBuffer> input_bufs[XCAM_STITCH_FISHEYE_MAX_NUM];
 #endif
+    int frame_id = 0;
+    std::vector<float> top_view_map_table (top_view_height * top_view_width * 2);
+    std::vector<float> rectified_view_map_table (rectified_view_height * rectified_view_width * 2);
+    float rectified_start_angle = -45.0f, rectified_end_angle = 45.0f;
+
     while (loop--) {
         for (int i = 0; i < input_count; i++) {
             ret = file_in[i].rewind ();
@@ -546,7 +576,10 @@ int main (int argc, char *argv[])
             ret = image_360->execute (input_buf, output_buf);
             CHECK (ret, "image_360 stitch execute failed");
 
-            // sample_get_bowl_view_data (image_360, output_buf);
+            BowlDataConfig config = image_360->get_fisheye_bowl_config ();
+            sample_generate_top_view (output_buf, top_view_buf, config, top_view_map_table, frame_id);
+            sample_generate_rectified_view (output_buf, rectified_view_buf, config, rectified_start_angle,
+                                            rectified_end_angle, rectified_view_map_table, frame_id);
 
 #if HAVE_OPENCV
             if (need_save_output) {
@@ -554,13 +587,22 @@ int main (int argc, char *argv[])
                 convert_to_mat (context, output_buf, out_mat);
                 writer.write (out_mat);
 
+                cv::Mat top_view_mat;
+                convert_to_mat (context, top_view_buf, top_view_mat);
+                top_view_writer.write (top_view_mat);
+
+                cv::Mat rectified_view_mat;
+                convert_to_mat (context, rectified_view_buf, rectified_view_mat);
+                rectified_view_writer.write (rectified_view_mat);
+
 #if XCAM_TEST_STITCH_DEBUG
-                dbg_write_image (context, image_360, input_bufs, output_buf, all_in_one, fisheye_num, input_count);
+                dbg_write_image (context, image_360, input_bufs, output_buf, top_view_buf, rectified_view_buf, all_in_one, fisheye_num, input_count);
 #endif
             } else
 #endif
                 ensure_gpu_buffer_done (output_buf);
 
+            frame_id++;
             FPS_CALCULATION (image_stitching, XCAM_OBJ_DUR_FRAME_NUM);
         } while (true);
     }
@@ -572,6 +614,7 @@ int main (int argc, char *argv[])
 static void dbg_write_image (
     SmartPtr<CLContext> context, SmartPtr<CLImage360Stitch> image_360,
     SmartPtr<VideoBuffer> input_bufs[], SmartPtr<VideoBuffer> output_buf,
+    SmartPtr<VideoBuffer> top_view_buf, SmartPtr<VideoBuffer> rectified_view_buf,
     bool all_in_one, int fisheye_num, int input_count)
 {
     cv::Mat mat;
@@ -600,6 +643,18 @@ static void dbg_write_image (
     cv::putText (mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
                  cv::Scalar(0, 0, 255), 2, 8, false);
     std::snprintf (file_name, 1023, "stitched_img_%d.jpg", frame_count);
+    cv::imwrite (file_name, mat);
+
+    convert_to_mat (context, top_view_buf, mat);
+    cv::putText (mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
+                 cv::Scalar(0, 0, 255), 2, 8, false);
+    std::snprintf (file_name, 1023, "top_view_img_%d.jpg", frame_count);
+    cv::imwrite (file_name, mat);
+
+    convert_to_mat (context, rectified_view_buf, mat);
+    cv::putText (mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
+                 cv::Scalar(0, 0, 255), 2, 8, false);
+    std::snprintf (file_name, 1023, "rectified_view_img_%d.jpg", frame_count);
     cv::imwrite (file_name, mat);
 
     frame_count++;
