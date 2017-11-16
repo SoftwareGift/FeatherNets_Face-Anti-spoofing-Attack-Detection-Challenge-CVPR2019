@@ -195,6 +195,16 @@ SoftGeoMapper::start_work (const SmartPtr<ImageHandler::Parameters> &param)
     return ret;
 };
 
+XCamReturn
+SoftGeoMapper::terminate ()
+{
+    if (_map_task.ptr ()) {
+        _map_task->stop ();
+        _map_task.release ();
+    }
+    return SoftHandler::terminate ();
+}
+
 void
 SoftGeoMapper::remap_task_done (
     const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error)

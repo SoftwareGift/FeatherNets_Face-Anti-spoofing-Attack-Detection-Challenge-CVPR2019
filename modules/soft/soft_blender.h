@@ -63,6 +63,9 @@ public:
 
     bool set_pyr_levels (uint32_t num);
 
+    //derived from SoftHandler
+    virtual XCamReturn terminate ();
+
     void gauss_scale_done (
         const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
     void lap_done (

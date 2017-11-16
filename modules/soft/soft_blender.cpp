@@ -112,6 +112,7 @@ public:
         const SmartPtr<VideoBuffer> &gauss,
         const uint32_t level);
     XCamReturn start_reconstruct_task (const SmartPtr<ReconstructTask::Args> &args, const uint32_t level);
+    XCamReturn stop ();
 };
 
 };
@@ -183,6 +184,13 @@ SoftBlender::set_pyr_levels (uint32_t num)
 }
 
 XCamReturn
+SoftBlender::terminate ()
+{
+    _priv_config->stop ();
+    return SoftHandler::terminate ();
+}
+
+XCamReturn
 SoftBlender::blend (
     const SmartPtr<VideoBuffer> &in0,
     const SmartPtr<VideoBuffer> &in1,
@@ -194,6 +202,43 @@ SoftBlender::blend (
         out_buf = param->out_buf;
     }
     return ret;
+}
+
+XCamReturn
+SoftBlenderPriv::BlenderPrivConfig::stop ()
+{
+    for (uint32_t i = 0; i < pyr_levels; ++i) {
+        if (pyr_layer[i].scale_task[SoftBlender::Idx0].ptr ()) {
+            pyr_layer[i].scale_task[SoftBlender::Idx0]->stop ();
+            pyr_layer[i].scale_task[SoftBlender::Idx0].release ();
+        }
+        if (pyr_layer[i].scale_task[SoftBlender::Idx1].ptr ()) {
+            pyr_layer[i].scale_task[SoftBlender::Idx1]->stop ();
+            pyr_layer[i].scale_task[SoftBlender::Idx1].release ();
+        }
+        if (pyr_layer[i].lap_task[SoftBlender::Idx0].ptr ()) {
+            pyr_layer[i].lap_task[SoftBlender::Idx0]->stop ();
+            pyr_layer[i].lap_task[SoftBlender::Idx0].release ();
+        }
+        if (pyr_layer[i].lap_task[SoftBlender::Idx1].ptr ()) {
+            pyr_layer[i].lap_task[SoftBlender::Idx1]->stop ();
+            pyr_layer[i].lap_task[SoftBlender::Idx0].release ();
+        }
+        if (pyr_layer[i].recon_task.ptr ()) {
+            pyr_layer[i].recon_task->stop ();
+            pyr_layer[i].recon_task.release ();
+        }
+
+        if (pyr_layer[i].overlap_pool.ptr ()) {
+            pyr_layer[i].overlap_pool->stop ();
+        }
+    }
+
+    if (last_level_blend.ptr ()) {
+        last_level_blend->stop ();
+        last_level_blend.release ();
+    }
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn
@@ -582,8 +627,8 @@ SoftBlender::start_work (const SmartPtr<ImageHandler::Parameters> &base)
         ERROR, xcam_ret_is_ok (ret), ret,
         "blender:%s start_work failed on idx1", XCAM_STR (get_name ()));
 
-    param->in_buf.release ();
-    param->in1_buf.release ();
+    //param->in_buf.release ();
+    //param->in1_buf.release ();
 
     return ret;
 };
