@@ -54,7 +54,7 @@ UserThread::started ()
 void
 UserThread::stopped ()
 {
-    XCAM_LOG_INFO ("thread(%s) stopped", XCAM_STR(get_name ()));
+    XCAM_LOG_DEBUG ("thread(%s, %p) stopped", XCAM_STR(get_name ()), this);
 }
 
 bool
@@ -69,7 +69,7 @@ UserThread::loop ()
 
     SmartPtr<ThreadPool::UserData> data = _pool->_data_queue.pop ();
     if (!data.ptr ()) {
-        XCAM_LOG_DEBUG ("user thread get null data, need stop");
+        XCAM_LOG_DEBUG ("user thread(%s) get null data, need stop", XCAM_STR (_pool->get_name ()));
         return false;
     }
 
@@ -205,6 +205,7 @@ ThreadPool::stop ()
         _free_threads = 0;
         _allocated_threads = 0;
     }
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -212,7 +213,7 @@ XCamReturn
 ThreadPool::create_user_thread_unsafe ()
 {
     char name[256];
-    snprintf (name, 255, "UT-%d", _allocated_threads);
+    snprintf (name, 255, "%s-%d", XCAM_STR (get_name()), _allocated_threads);
     SmartPtr<UserThread> thread = new UserThread (this, name);
     XCAM_ASSERT (thread.ptr ());
     XCAM_FAIL_RETURN (
