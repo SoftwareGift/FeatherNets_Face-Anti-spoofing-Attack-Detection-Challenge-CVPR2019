@@ -77,7 +77,7 @@ protected:
     ObjList           _obj_list;
     Mutex             _mutex;
     XCam::Cond        _new_obj_cond;
-    bool              _pop_paused;
+    volatile bool              _pop_paused;
 };
 
 
@@ -88,21 +88,21 @@ SafeList<OBj>::pop (int32_t timeout)
     SmartLock lock (_mutex);
     int code = 0;
 
-    if (_pop_paused)
-        return NULL;
-
-    if (_obj_list.empty()) {
+    while (!_pop_paused && _obj_list.empty() && code == 0) {
         if (timeout < 0)
             code = _new_obj_cond.wait(_mutex);
         else
             code = _new_obj_cond.timedwait(_mutex, timeout);
     }
 
+    if (_pop_paused)
+        return NULL;
+
     if (_obj_list.empty()) {
         if (code == ETIMEDOUT) {
             XCAM_LOG_DEBUG ("safe list pop timeout");
         } else {
-            XCAM_LOG_DEBUG ("safe list pop failed");
+            XCAM_LOG_ERROR ("safe list pop failed, code:%d", code);
         }
         return NULL;
     }
