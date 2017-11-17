@@ -21,12 +21,6 @@
 #ifndef XCAM_SURVIEW_FISHEYE_DEWARP_H
 #define XCAM_SURVIEW_FISHEYE_DEWARP_H
 
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
 #include "calibration_parser.h"
 #include "vec_mat.h"
 #include "modules/interface/data_types.h"
