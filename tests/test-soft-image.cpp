@@ -31,6 +31,11 @@
 
 #include <string>
 
+#define RUN_N(statement, loop, msg, ...) \
+    for (int i = 0; i < loop; ++i) {            \
+        CHECK (statement, msg, ## __VA_ARGS__); \
+    }
+
 #define FISHEYE_CONFIG_PATH "./"
 
 #define MAP_WIDTH 3
@@ -118,6 +123,7 @@ static void usage(const char* arg0)
             "\t--in-h              optional, input height, default: 1080\n"
             "\t--out-w             optional, output width, default: 1920\n"
             "\t--out-h             optional, output width, default: 960\n"
+            "\t--loop              optional, how many loops need to run, default: 1\n"
             "\t--help              usage\n",
             arg0);
 }
@@ -135,6 +141,7 @@ int main (int argc, char *argv[])
     uint32_t output_width = 1920; //output_height * 2;
     uint32_t output_height = 960; //960;
     SoftType type = SoftTypeNone;
+    int loop = 1;
 
     const struct option long_opts[] = {
         {"type", required_argument, NULL, 't'},
@@ -147,6 +154,7 @@ int main (int argc, char *argv[])
         {"in-h", required_argument, NULL, 'h'},
         {"out-w", required_argument, NULL, 'W'},
         {"out-h", required_argument, NULL, 'H'},
+        {"loop", required_argument, NULL, 'L'},
         {"help", no_argument, NULL, 'e'},
         {NULL, 0, NULL, 0},
     };
@@ -201,6 +209,9 @@ int main (int argc, char *argv[])
         case 'H':
             output_height = atoi(optarg);
             break;
+        case 'L':
+            loop = atoi(optarg);
+            break;
         default:
             XCAM_LOG_ERROR ("getopt_long return unknown value:%c", opt);
             usage (argv[0]);
@@ -235,6 +246,7 @@ int main (int argc, char *argv[])
     printf ("input height:\t\t%d\n", input_height);
     printf ("output width:\t\t%d\n", output_width);
     printf ("output height:\t\t%d\n", output_height);
+    printf ("loop count:\t\t%d\n", loop);
 
     VideoBufferInfo in_info;
     in_info.init (V4L2_PIX_FMT_NV12, input_width, input_height);
@@ -288,7 +300,7 @@ int main (int argc, char *argv[])
         merge_window.width = out_info.width;
         merge_window.height = out_info.height;
         blender->set_merge_window (merge_window);
-        CHECK (blender->blend (in0, in1, out), "blend in0/in1 to out buffer failed.");
+        RUN_N (blender->blend (in0, in1, out), loop, "blend in0/in1 to out buffer failed.");
         break;
     }
     case SoftTypeRemap: {
@@ -297,7 +309,7 @@ int main (int argc, char *argv[])
         mapper->set_output_size (output_width, output_height);
         mapper->set_lookup_table (map_table, MAP_WIDTH, MAP_HEIGHT);
         //mapper->set_factors ((output_width - 1.0f) / (MAP_WIDTH - 1.0f), (output_height - 1.0f) / (MAP_HEIGHT - 1.0f));
-        CHECK (mapper->remap (in0, out), "remap in0 to out buffer failed.");
+        RUN_N (mapper->remap (in0, out), loop, "remap in0 to out buffer failed.");
         break;
     }
     case SoftTypeStitch: {
@@ -332,7 +344,7 @@ int main (int argc, char *argv[])
         bowl.angle_end = 0.0f;
         stitcher->set_bowl_config (bowl);
         stitcher->set_output_size (output_width, output_height);
-        CHECK (stitcher->stitch_buffers (in_buffers, out), "stitcher buffers to out buffer failed.");
+        RUN_N (stitcher->stitch_buffers (in_buffers, out), loop, "stitcher buffers to out buffer failed.");
         break;
     }
 
