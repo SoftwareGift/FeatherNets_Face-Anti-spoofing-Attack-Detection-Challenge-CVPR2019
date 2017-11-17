@@ -60,6 +60,9 @@ public:
     explicit SoftStitcher (const char *name = "SoftStitcher");
     ~SoftStitcher ();
 
+    //derived from SoftHandler
+    virtual XCamReturn terminate ();
+
 protected:
     // interface derive from Stitcher
     XCamReturn stitch_buffers (const VideoBufferList &in_bufs, SmartPtr<VideoBuffer> &out_buf);

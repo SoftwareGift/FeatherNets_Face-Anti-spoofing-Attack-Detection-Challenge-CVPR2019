@@ -27,13 +27,18 @@
 #include "soft_copy_task.h"
 #include <map>
 
+#define ENABLE_FEATURE_MATCH HAVE_OPENCV
+
+#if ENABLE_FEATURE_MATCH
+#include "cv_capi_feature_match.h"
+#include <opencv2/core/ocl.hpp>
+#endif
+
 #define SOFT_STITCHER_ALIGNMENT_X 8
 #define SOFT_STITCHER_ALIGNMENT_Y 4
 
 #define MAP_FACTOR_X  16
 #define MAP_FACTOR_Y  16
-
-#define ENABLE_FEATURE_MATCH 0
 
 #define DUMP_STITCHER 1
 
@@ -125,7 +130,7 @@ struct Overlap {
 struct FisheyeDewarp {
     SmartPtr<SoftGeoMapper>      dewarp;
     SmartPtr<BufferPool>         buf_pool;
-    Factor                       left_factor, right_factor;
+    Factor                       left_match_factor, right_match_factor;
 
     bool set_dewarp_factor ();
     XCamReturn set_dewarp_geo_table (
@@ -166,6 +171,7 @@ public:
         const uint32_t idx, const SmartPtr<VideoBuffer> &buf);
 
     XCamReturn start_single_blender (const uint32_t idx, const SmartPtr<BlenderParam> &param);
+    XCamReturn stop ();
 
     XCamReturn fisheye_dewarp_to_table ();
     XCamReturn feature_match (
@@ -173,9 +179,12 @@ public:
         const SmartPtr<VideoBuffer> &right_buf,
         const uint32_t idx);
 
+    bool get_and_reset_feature_match_factors (uint32_t idx, Factor &left, Factor &right);
+
 private:
     XCamReturn init_fisheye (uint32_t idx);
-    XCamReturn init_copier (Stitcher::CopyArea area);
+    bool init_dewarp_factors (uint32_t idx);
+    XCamReturn create_copier (Stitcher::CopyArea area);
 
 private:
     FisheyeDewarp           _fisheye [XCAM_STITCH_MAX_CAMERAS];
@@ -190,31 +199,33 @@ private:
 };
 
 bool
-FisheyeDewarp::set_dewarp_factor ()
+StitcherImpl::init_dewarp_factors (uint32_t idx)
 {
     XCAM_FAIL_RETURN (
-        ERROR, dewarp.ptr (), false,
+        ERROR, _fisheye[idx].dewarp.ptr (), false,
         "FisheyeDewarp dewarp handler empty");
 
-    Factor cur_left_factor, cur_right_factor;
-    Factor unify_factor;
-    dewarp->get_factors (unify_factor.x, unify_factor.y);
-    cur_left_factor = cur_right_factor = unify_factor;
-    if (XCAM_DOUBLE_EQUAL_AROUND(cur_left_factor.x, 0.0f) ||
-            XCAM_DOUBLE_EQUAL_AROUND(cur_right_factor.x, 0.0f)) { // not started.
+    Factor match_left_factor, match_right_factor;
+    get_and_reset_feature_match_factors (idx, match_left_factor, match_right_factor);
+
+    Factor unify_factor, last_left_factor, last_right_factor;
+    _fisheye[idx].dewarp->get_factors (unify_factor.x, unify_factor.y);
+    last_left_factor = last_right_factor = unify_factor;
+    if (XCAM_DOUBLE_EQUAL_AROUND (unify_factor.x, 0.0f) ||
+            XCAM_DOUBLE_EQUAL_AROUND (unify_factor.y, 0.0f)) { // not started.
         return true;
     }
 
-    cur_left_factor.x *= left_factor.x;
-    cur_left_factor.y *= left_factor.y;
-    cur_right_factor.x *= right_factor.x;
-    cur_right_factor.y *= right_factor.y;
-    unify_factor.x = (cur_left_factor.x + cur_right_factor.x) / 2.0f;
-    unify_factor.y = (cur_left_factor.y + cur_right_factor.y) / 2.0f;
-    dewarp->set_factors (unify_factor.x, unify_factor.y);
+    Factor cur_left, cur_right;
+    cur_left.x = last_left_factor.x * match_left_factor.x;
+    cur_left.y = last_left_factor.y * match_left_factor.y;
+    cur_right.x = last_right_factor.x * match_right_factor.x;
+    cur_right.y = last_right_factor.y * match_right_factor.y;
 
-    left_factor.reset ();
-    right_factor.reset ();
+    unify_factor.x = (cur_left.x + cur_right.x) / 2.0f;
+    unify_factor.y = (cur_left.y + cur_right.y) / 2.0f;
+    _fisheye[idx].dewarp->set_factors (unify_factor.x, unify_factor.y);
+
     return true;
 }
 
@@ -253,6 +264,23 @@ FisheyeDewarp::set_dewarp_geo_table (SmartPtr<SoftGeoMapper> mapper, const Camer
     return XCAM_RETURN_NO_ERROR;
 }
 
+bool
+StitcherImpl::get_and_reset_feature_match_factors (uint32_t idx, Factor &left, Factor &right)
+{
+    uint32_t cam_num = _stitcher->get_camera_num ();
+    XCAM_FAIL_RETURN (
+        ERROR, idx < cam_num, false,
+        "get dewarp factor failed, idx(%d) > camera_num(%d)", idx, cam_num);
+
+    SmartLock locker (_map_mutex);
+    left = _fisheye[idx].left_match_factor;
+    right = _fisheye[idx].right_match_factor;
+
+    _fisheye[idx].left_match_factor.reset ();
+    _fisheye[idx].right_match_factor.reset ();
+    return true;
+}
+
 XCamReturn
 StitcherImpl::init_fisheye (uint32_t idx)
 {
@@ -281,7 +309,7 @@ StitcherImpl::init_fisheye (uint32_t idx)
 }
 
 XCamReturn
-StitcherImpl::init_copier (Stitcher::CopyArea area)
+StitcherImpl::create_copier (Stitcher::CopyArea area)
 {
     XCAM_FAIL_RETURN (
         ERROR,
@@ -330,12 +358,12 @@ StitcherImpl::init_config (uint32_t count)
     uint32_t size = areas.size ();
     for (uint32_t i = 0; i < size; ++i) {
         XCAM_LOG_DEBUG ("soft-stitcher:copy area (idx:%d) input area(%d, %d, %d, %d) output area(%d, %d, %d, %d)",
-            areas[i].in_idx,
-            areas[i].in_area.pos_x, areas[i].in_area.pos_y, areas[i].in_area.width, areas[i].in_area.height,
-            areas[i].out_area.pos_x, areas[i].out_area.pos_y, areas[i].out_area.width, areas[i].out_area.height);
+                        areas[i].in_idx,
+                        areas[i].in_area.pos_x, areas[i].in_area.pos_y, areas[i].in_area.width, areas[i].in_area.height,
+                        areas[i].out_area.pos_x, areas[i].out_area.pos_y, areas[i].out_area.width, areas[i].out_area.height);
 
         XCAM_ASSERT (areas[i].in_idx < size);
-        ret = init_copier (areas[i]);
+        ret = create_copier (areas[i]);
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (ret), ret,
             "soft-stitcher::%s init copier failed, idx:%d.", XCAM_STR (_stitcher->get_name ()), i);
@@ -415,13 +443,16 @@ XCamReturn
 StitcherImpl::start_dewarp_works (const SmartPtr<SoftStitcher::StitcherParam> &param)
 {
     uint32_t camera_num = _stitcher->get_camera_num ();
+    Factor cur_left, cur_right;
+
     for (uint32_t i = 0; i < camera_num; ++i) {
         SmartPtr<VideoBuffer> out_buf = _fisheye[i].buf_pool->get_buffer ();
         SmartPtr<HandlerParam> dewarp_params = new HandlerParam (i);
         dewarp_params->in_buf = param->in_bufs[i];
         dewarp_params->out_buf = out_buf;
         dewarp_params->stitch_param = param;
-        _fisheye[i].set_dewarp_factor ();
+
+        init_dewarp_factors (i);
         XCamReturn ret = _fisheye[i].dewarp->execute_buffer (dewarp_params, false);
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (ret), ret,
@@ -464,24 +495,31 @@ StitcherImpl::feature_match (
     _overlaps[idx].matcher->optical_flow_feature_match (
         left_buf, right_buf, left_ovlap, right_ovlap, left_buf_info.width);
     float left_offsetx = _overlaps[idx].matcher->get_current_left_offset_x ();
+    Factor left_factor, right_factor;
 
     uint32_t left_idx = idx;
     float center_x = (float) _stitcher->get_center (left_idx).slice_center_x;
     float feature_center_x = (float)left_ovlap.pos_x + (left_ovlap.width / 2.0f);
     float range = feature_center_x - center_x;
     XCAM_ASSERT (range > 1.0f);
-    _fisheye[left_idx].right_factor.x = (range + left_offsetx / 2.0f) / range;
-    _fisheye[left_idx].right_factor.y = 1.0;
-    XCAM_ASSERT (_fisheye[left_idx].right_factor.x > 0.0f && _fisheye[left_idx].right_factor.x < 2.0f);
+    right_factor.x = (range + left_offsetx / 2.0f) / range;
+    right_factor.y = 1.0;
+    XCAM_ASSERT (right_factor.x > 0.0f && right_factor.x < 2.0f);
 
     uint32_t right_idx = (idx + 1) % _stitcher->get_camera_num ();
     center_x = (float) _stitcher->get_center (right_idx).slice_center_x;
     feature_center_x = (float)right_ovlap.pos_x + (right_ovlap.width / 2.0f);
     range = center_x - feature_center_x;
     XCAM_ASSERT (range > 1.0f);
-    _fisheye[right_idx].left_factor.x = (range + left_offsetx / 2.0f) / range;
-    _fisheye[right_idx].left_factor.y = 1.0;
-    XCAM_ASSERT (_fisheye[right_idx].left_factor.x > 0.0f && _fisheye[right_idx].left_factor.x < 2.0f);
+    left_factor.x = (range + left_offsetx / 2.0f) / range;
+    left_factor.y = 1.0;
+    XCAM_ASSERT (left_factor.x > 0.0f && left_factor.x < 2.0f);
+
+    {
+        SmartLock locker (_map_mutex);
+        _fisheye[left_idx].right_match_factor = right_factor;
+        _fisheye[right_idx].left_match_factor = left_factor;
+    }
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -624,6 +662,39 @@ StitcherImpl::start_copy_tasks (
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+StitcherImpl::stop ()
+{
+    uint32_t cam_num = _stitcher->get_camera_num ();
+    for (uint32_t i = 0; i < cam_num; ++i) {
+        if (_fisheye[i].dewarp.ptr ()) {
+            _fisheye[i].dewarp->terminate ();
+            _fisheye[i].dewarp.release ();
+        }
+        if (_fisheye[i].buf_pool.ptr ()) {
+            _fisheye[i].buf_pool->stop ();
+        }
+
+        if (_overlaps[i].blender.ptr ()) {
+            _overlaps[i].blender->terminate ();
+            _overlaps[i].blender.release ();
+        }
+    }
+
+    for (Copiers::iterator i_copy = _copiers.begin (); i_copy != _copiers.end (); ++i_copy) {
+        Copier &copy = *i_copy;
+        if (copy.copy_task.ptr ()) {
+            copy.copy_task->stop ();
+            copy.copy_task.release ();
+        }
+    }
+
+    if (_dewarp_pool.ptr ()) {
+        _dewarp_pool->stop ();
+    }
+    return XCAM_RETURN_NO_ERROR;
+}
+
 };
 
 SoftStitcher::SoftStitcher (const char *name)
@@ -632,6 +703,9 @@ SoftStitcher::SoftStitcher (const char *name)
 {
     _impl = new SoftSitcherPriv::StitcherImpl (this);
     XCAM_ASSERT (_impl.ptr ());
+#if ENABLE_FEATURE_MATCH
+    cv::ocl::setUseOpenCL (false);
+#endif
 }
 
 SoftStitcher::~SoftStitcher ()
@@ -659,6 +733,13 @@ SoftStitcher::stitch_buffers (const VideoBufferList &in_bufs, SmartPtr<VideoBuff
         out_buf = param->out_buf;
     }
     return ret;
+}
+
+XCamReturn
+SoftStitcher::terminate ()
+{
+    _impl->stop ();
+    return SoftHandler::terminate ();
 }
 
 XCamReturn
@@ -838,9 +919,9 @@ SoftStitcher::start_work (const SmartPtr<Parameters> &base)
         ERROR, xcam_ret_is_ok (ret), XCAM_RETURN_ERROR_PARAM,
         "soft_stitcher:%s start dewarp works failed", XCAM_STR (get_name ()));
 
-    for (uint32_t i = 0; i < param->in_buf_num; ++i) {
-        param->in_bufs[i].release ();
-    }
+    //for (uint32_t i = 0; i < param->in_buf_num; ++i) {
+    //    param->in_bufs[i].release ();
+    //}
 
     return ret;
 }
