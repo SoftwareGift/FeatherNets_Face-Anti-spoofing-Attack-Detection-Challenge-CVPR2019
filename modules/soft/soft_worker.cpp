@@ -63,7 +63,6 @@ public:
         , _args (args)
         , _item (item)
         , _sync (sync)
-        , _error (XCAM_RETURN_NO_ERROR)
     {
     }
     virtual XCamReturn run ();
@@ -75,7 +74,6 @@ private:
     SmartPtr<Worker::Arguments>  _args;
     WorkSize                     _item;
     SmartPtr<ItemSynch>          _sync;
-    XCamReturn                   _error;
 };
 
 XCamReturn

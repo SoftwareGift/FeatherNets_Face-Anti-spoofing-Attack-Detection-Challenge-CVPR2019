@@ -115,8 +115,8 @@ linear_interpolate_p4(
 void
 get_gauss_table (uint32_t radius, float sigma, std::vector<float> &table, bool normalize)
 {
-    int i;
-    int scale = radius * 2 + 1;
+    uint32_t i;
+    uint32_t scale = radius * 2 + 1;
     float dis = 0.0f, sum = 1.0f;
 
     //XCAM_ASSERT (scale < 512);
