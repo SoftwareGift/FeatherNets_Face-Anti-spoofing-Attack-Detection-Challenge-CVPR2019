@@ -65,13 +65,11 @@ CVCapiFeatureMatch::add_detected_data (
     CvPoint2D32f* corner_points = &corners[0];
 
     cvGoodFeaturesToTrack (image, NULL, NULL, corner_points, &found_num, quality, min_dist);
-
-    corners.reserve (corners.size () + found_num);
-    for (size_t i = 0; i < (size_t)found_num; ++i) {
-        CvPoint2D32f &kp = corner_points[i];
-        corners.push_back (kp);
+    XCAM_ASSERT (found_num <= 300);
+    if (found_num < (int)corners.size ()) {
+        XCAM_LOG_DEBUG ("Detedt corners:%d, less than reserved size:%d\n", found_num, (int)corners.size ());
+        corners.resize (found_num);
     }
-
 }
 
 void

@@ -28,7 +28,6 @@
 #include "ocl/cl_blender.h"
 #if HAVE_OPENCV
 #include "ocl/cv_feature_match.h"
-#include "ocl/cv_capi_feature_match.h"
 #endif
 
 namespace XCam {
