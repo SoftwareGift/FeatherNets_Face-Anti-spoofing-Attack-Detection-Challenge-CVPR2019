@@ -52,7 +52,6 @@ endif
 endif
 
 TEST_BASE_LA +=  \
-    $(top_builddir)/modules/interface/libxcam_interface.la \
     $(top_builddir)/xcore/libxcam_core.la \
 	$(NULL)
 

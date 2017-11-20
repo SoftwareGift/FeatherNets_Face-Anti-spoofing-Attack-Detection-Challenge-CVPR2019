@@ -95,7 +95,6 @@ libxcam_ocl_la_CXXFLAGS = \
     $(NULL)
 
 libxcam_ocl_la_LIBADD = \
-    $(top_builddir)/modules/interface/libxcam_interface.la \
     $(top_builddir)/xcore/libxcam_core.la \
     $(XCAMOCL_LIBS)                       \
     $(NULL)

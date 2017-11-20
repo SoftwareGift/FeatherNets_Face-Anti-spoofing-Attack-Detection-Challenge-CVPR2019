@@ -52,6 +52,10 @@ xcam_sources = \
     x3a_ciq_tnr_tuning_handler.cpp      \
     x3a_ciq_bnr_ee_tuning_handler.cpp   \
     x3a_ciq_wavelet_tuning_handler.cpp  \
+    interface/feature_match.cpp         \
+    interface/blender.cpp               \
+    interface/geo_mapper.cpp            \
+    interface/stitcher.cpp              \
     $(NULL)
 
 if HAVE_LIBDRM
@@ -130,6 +134,11 @@ nobase_libxcam_coreinclude_HEADERS = \
     buffer_pool.h                  \
     meta_data.h                    \
     vec_mat.h                      \
+    interface/data_types.h         \
+    interface/feature_match.h      \
+    interface/blender.h            \
+    interface/geo_mapper.h         \
+    interface/stitcher.h           \
     $(NULL)
 
 if HAVE_LIBDRM

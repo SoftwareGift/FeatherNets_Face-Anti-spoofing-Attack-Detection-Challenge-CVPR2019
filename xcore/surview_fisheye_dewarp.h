@@ -23,7 +23,7 @@
 
 #include "calibration_parser.h"
 #include "vec_mat.h"
-#include "modules/interface/data_types.h"
+#include "interface/data_types.h"
 
 namespace XCam {
 
