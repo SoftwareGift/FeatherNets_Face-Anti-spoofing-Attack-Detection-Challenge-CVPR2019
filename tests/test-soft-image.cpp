@@ -32,8 +32,9 @@
 #include <string>
 
 #define RUN_N(statement, loop, msg, ...) \
-    for (int i = 0; i < loop; ++i) {            \
-        CHECK (statement, msg, ## __VA_ARGS__); \
+    for (int i = 0; i < loop; ++i) {                          \
+        CHECK (statement, msg, ## __VA_ARGS__);               \
+        FPS_CALCULATION (soft-image, XCAM_OBJ_DUR_FRAME_NUM); \
     }
 
 #define FISHEYE_CONFIG_PATH "./"
