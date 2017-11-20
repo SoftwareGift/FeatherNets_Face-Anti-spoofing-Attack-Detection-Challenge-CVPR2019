@@ -54,7 +54,7 @@ stitcher_dump_buf (const SmartPtr<VideoBuffer> buf, uint32_t idx, const char *pr
     dump_buf_perfix_path (buf, name);
 }
 #else
-static void stitcher_dump_buf (...) {}
+static void stitcher_dump_buf (const SmartPtr<VideoBuffer> buf, ...) { XCAM_UNUSED (buf); }
 #endif
 
 
