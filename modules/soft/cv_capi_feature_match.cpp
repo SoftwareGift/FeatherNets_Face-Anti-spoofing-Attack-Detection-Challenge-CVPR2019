@@ -46,7 +46,7 @@ CVCapiFeatureMatch::get_crop_image (
         }
     }
 
-    img = cvMat (crop_rect.width, crop_rect.height, CV_8UC1, (void*)&crop_image[0]);
+    img = cvMat (crop_rect.height, crop_rect.width, CV_8UC1, (void*)&crop_image[0]);
 
     return true;
 }
