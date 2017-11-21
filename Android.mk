@@ -1,8 +1,14 @@
 LOCAL_PATH:= $(call my-dir)
 
 XCAM_CFLAGS := -fPIC -W -Wall -D_REENTRANT -Wformat -Wno-unused-parameter -Wformat-security -fstack-protector
+XCAM_CFLAGS += -DANDROID
+
 ifeq ($(ENABLE_DEBUG), 1)
 XCAM_CFLAGS += -DDEBUG
+endif
+
+ifeq ($(ENABLE_OPENCV), 1)
+XCAM_CFLAGS += -DHAVE_OPENCV
 endif
 
 
@@ -13,6 +19,10 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libxcam
 LOCAL_MODULE_TAGS := optional
+
+ifeq ($(ENABLE_OPENCV), 1)
+LOCAL_STATIC_LIBRARIES := libcv libcxcore
+endif
 
 XCAM_XCORE_SRC_FILES := \
     xcore/buffer_pool.cpp \
@@ -45,12 +55,23 @@ XCAM_SOFT_SRC_FILES := \
     modules/soft/soft_worker.cpp \
     $(NULL)
 
+ifeq ($(ENABLE_OPENCV), 1)
+XCAM_SOFT_SRC_FILES += modules/soft/cv_capi_feature_match.cpp
+endif
+
 LOCAL_SRC_FILES := $(XCAM_XCORE_SRC_FILES) $(XCAM_SOFT_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/xcore \
     $(LOCAL_PATH)/modules \
     $(NULL)
+
+ifeq ($(ENABLE_OPENCV), 1)
+LOCAL_C_INCLUDES += \
+    external/opencv/cv/include/ \
+    external/opencv/cxcore/include \
+    $(NULL)
+endif
 
 LOCAL_CFLAGS := $(XCAM_CFLAGS)
 LOCAL_CPPFLAGS := $(LOCAL_CFLAGS) -frtti

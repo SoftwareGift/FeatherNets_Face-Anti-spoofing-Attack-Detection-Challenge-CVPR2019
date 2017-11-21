@@ -31,7 +31,9 @@
 
 #if ENABLE_FEATURE_MATCH
 #include "cv_capi_feature_match.h"
+#ifndef ANDROID
 #include <opencv2/core/ocl.hpp>
+#endif
 #endif
 
 #define SOFT_STITCHER_ALIGNMENT_X 8
@@ -704,7 +706,9 @@ SoftStitcher::SoftStitcher (const char *name)
     _impl = new SoftSitcherPriv::StitcherImpl (this);
     XCAM_ASSERT (_impl.ptr ());
 #if ENABLE_FEATURE_MATCH
+#ifndef ANDROID
     cv::ocl::setUseOpenCL (false);
+#endif
 #endif
 }
 

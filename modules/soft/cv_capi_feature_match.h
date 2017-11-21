@@ -23,15 +23,15 @@
 #ifndef CV_CAPI_FEATURE_MATCH_H
 #define CV_CAPI_FEATURE_MATCH_H
 
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
+#include "xcam_utils.h"
+#include "video_buffer.h"
 #include "interface/feature_match.h"
 
+#ifdef ANDROID
+#include <cv.h>
+#else
 #include <opencv2/opencv.hpp>
+#endif
 
 namespace XCam {
 
