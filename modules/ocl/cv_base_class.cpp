@@ -33,22 +33,29 @@ CVBaseClass::CVBaseClass ()
 bool
 CVBaseClass::convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image)
 {
-    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_cv_context->get_cl_context (), buffer);
-    VideoBufferInfo info = buffer->get_video_info ();
-    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
-
-    cv::UMat umat;
-    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
-    if (umat.empty ()) {
-        XCAM_LOG_ERROR ("convert buffer to UMat failed");
-        return false;
-    }
-
     cv::Mat mat;
-    umat.copyTo (mat);
-    if (mat.empty ()) {
-        XCAM_LOG_ERROR ("copy UMat to Mat failed");
-        return false;
+    VideoBufferInfo info = buffer->get_video_info ();
+    XCAM_FAIL_RETURN (WARNING, info.format == V4L2_PIX_FMT_NV12, false, "convert_to_mat only support NV12 format");
+
+    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_cv_context->get_cl_context (), buffer);
+    if (!cl_buffer.ptr ()) {
+        uint8_t *ptr = buffer->map ();
+        mat = cv::Mat (info.height * 3 / 2, info.width, CV_8UC1, ptr, info.strides[0]);
+    } else {
+        cl_mem cl_mem_id = cl_buffer->get_mem_id ();
+
+        cv::UMat umat;
+        cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
+        if (umat.empty ()) {
+            XCAM_LOG_ERROR ("convert buffer to UMat failed");
+            return false;
+        }
+
+        umat.copyTo (mat);
+        if (mat.empty ()) {
+            XCAM_LOG_ERROR ("copy UMat to Mat failed");
+            return false;
+        }
     }
 
     cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);

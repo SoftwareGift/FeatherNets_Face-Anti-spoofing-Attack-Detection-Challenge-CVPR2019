@@ -117,7 +117,7 @@ convert_to_clbuffer (
     XCAM_UNUSED (context);
 #endif
 
-    XCAM_FAIL_RETURN (WARNING, cl_buf.ptr (), NULL, "convert to clbuffer failed");
+    XCAM_FAIL_RETURN (DEBUG, cl_buf.ptr (), NULL, "convert to clbuffer failed");
     return cl_buf;
 }
 
