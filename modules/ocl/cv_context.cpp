@@ -52,6 +52,22 @@ CVContext::init_opencv_ocl ()
     XCAM_LOG_DEBUG("Use OpenCL is:  %s", cv::ocl::haveOpenCL() ? "true" : "false");
 }
 
+bool
+CVContext::enable_ocl (bool flag)
+{
+    if (flag && !cv::ocl::haveOpenCL()) {
+        return false;
+    }
+    cv::ocl::setUseOpenCL (flag);
+    return true;
+}
+
+bool
+CVContext::is_ocl_enabled () const
+{
+    return cv::ocl::useOpenCL ();
+}
+
 CVContext::CVContext ()
 {
 

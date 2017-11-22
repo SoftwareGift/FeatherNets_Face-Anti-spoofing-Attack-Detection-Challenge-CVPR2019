@@ -44,9 +44,7 @@ class CVBaseClass
 {
 public:
     explicit CVBaseClass ();
-    void set_ocl (bool use_ocl) {
-        _use_ocl = use_ocl;
-    }
+    bool set_ocl (bool use_ocl);
     bool is_ocl_path () {
         return _use_ocl;
     }
@@ -57,6 +55,9 @@ protected:
     SmartPtr<CVContext>  _cv_context;
     bool                 _use_ocl;
 };
+
+extern bool
+convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image);
 
 }
 

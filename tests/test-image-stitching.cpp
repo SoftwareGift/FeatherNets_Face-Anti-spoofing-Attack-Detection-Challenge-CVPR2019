@@ -40,49 +40,12 @@
 
 using namespace XCam;
 
-#if HAVE_OPENCV
 #if XCAM_TEST_STITCH_DEBUG
 static void dbg_write_image (
     SmartPtr<CLContext> context, SmartPtr<CLImage360Stitch> image_360,
     SmartPtr<VideoBuffer> input_bufs[], SmartPtr<VideoBuffer> output_buf,
     SmartPtr<VideoBuffer> top_view_buf, SmartPtr<VideoBuffer> rectified_view_buf,
     bool all_in_one, int fisheye_num, int input_count);
-#endif
-
-void
-init_opencv_ocl (SmartPtr<CLContext> context)
-{
-    cl_platform_id platform_id = CLDevice::instance()->get_platform_id ();
-    char *platform_name = CLDevice::instance()->get_platform_name ();
-    cl_device_id device_id = CLDevice::instance()->get_device_id ();
-    cl_context context_id = context->get_context_id ();
-    cv::ocl::attachContext (platform_name, platform_id, context_id, device_id);
-}
-
-bool
-convert_to_mat (SmartPtr<CLContext> context, SmartPtr<VideoBuffer> buffer, cv::Mat &image)
-{
-    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (context, buffer);
-    VideoBufferInfo info = buffer->get_video_info ();
-    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
-
-    cv::UMat umat;
-    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
-    if (umat.empty ()) {
-        XCAM_LOG_ERROR ("convert bo buffer to UMat failed");
-        return false;
-    }
-
-    cv::Mat mat;
-    umat.copyTo (mat);
-    if (mat.empty ()) {
-        XCAM_LOG_ERROR ("copy UMat to Mat failed");
-        return false;
-    }
-
-    cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);
-    return true;
-}
 #endif
 
 static bool
@@ -506,8 +469,6 @@ int main (int argc, char *argv[])
     }
 
 #if HAVE_OPENCV
-    init_opencv_ocl (context);
-
     cv::VideoWriter writer;
     cv::VideoWriter top_view_writer;
     cv::VideoWriter rectified_view_writer;
@@ -584,15 +545,15 @@ int main (int argc, char *argv[])
 #if HAVE_OPENCV
             if (need_save_output) {
                 cv::Mat out_mat;
-                convert_to_mat (context, output_buf, out_mat);
+                convert_to_mat (output_buf, out_mat);
                 writer.write (out_mat);
 
                 cv::Mat top_view_mat;
-                convert_to_mat (context, top_view_buf, top_view_mat);
+                convert_to_mat (top_view_buf, top_view_mat);
                 top_view_writer.write (top_view_mat);
 
                 cv::Mat rectified_view_mat;
-                convert_to_mat (context, rectified_view_buf, rectified_view_mat);
+                convert_to_mat (rectified_view_buf, rectified_view_mat);
                 rectified_view_writer.write (rectified_view_mat);
 
 #if XCAM_TEST_STITCH_DEBUG
@@ -627,7 +588,7 @@ static void dbg_write_image (
         if (!all_in_one)
             std::snprintf (file_name, 1023, "orig_fisheye_%d_%d.jpg", frame_count, i);
 
-        convert_to_mat (context, input_bufs[i], mat);
+        convert_to_mat (input_bufs[i], mat);
         int fisheye_per_frame = all_in_one ? fisheye_num : 1;
         for (int i = 0; i < fisheye_per_frame; i++) {
             cv::circle (mat, cv::Point(stitch_info.fisheye_info[i].center_x, stitch_info.fisheye_info[i].center_y),
@@ -639,19 +600,19 @@ static void dbg_write_image (
     char frame_str[1024];
     std::snprintf (frame_str, 1023, "%d", frame_count);
 
-    convert_to_mat (context, output_buf, mat);
+    convert_to_mat (output_buf, mat);
     cv::putText (mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
                  cv::Scalar(0, 0, 255), 2, 8, false);
     std::snprintf (file_name, 1023, "stitched_img_%d.jpg", frame_count);
     cv::imwrite (file_name, mat);
 
-    convert_to_mat (context, top_view_buf, mat);
+    convert_to_mat (top_view_buf, mat);
     cv::putText (mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
                  cv::Scalar(0, 0, 255), 2, 8, false);
     std::snprintf (file_name, 1023, "top_view_img_%d.jpg", frame_count);
     cv::imwrite (file_name, mat);
 
-    convert_to_mat (context, rectified_view_buf, mat);
+    convert_to_mat (rectified_view_buf, mat);
     cv::putText (mat, frame_str, cv::Point(120, 120), cv::FONT_HERSHEY_COMPLEX, 2.0,
                  cv::Scalar(0, 0, 255), 2, 8, false);
     std::snprintf (file_name, 1023, "rectified_view_img_%d.jpg", frame_count);

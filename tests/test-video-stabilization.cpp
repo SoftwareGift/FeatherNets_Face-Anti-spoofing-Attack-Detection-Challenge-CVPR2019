@@ -33,48 +33,12 @@
 #if HAVE_OPENCV
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
+#include "ocl/cv_base_class.h"
 #endif
 
 using namespace XCam;
 
 static int read_device_pose (const char *file, DevicePoseList &pose, uint32_t pose_size);
-
-#if HAVE_OPENCV
-void
-init_opencv_ocl (SmartPtr<CLContext> context)
-{
-    cl_platform_id platform_id = CLDevice::instance()->get_platform_id ();
-    char *platform_name = CLDevice::instance()->get_platform_name ();
-    cl_device_id device_id = CLDevice::instance()->get_device_id ();
-    cl_context context_id = context->get_context_id ();
-    cv::ocl::attachContext (platform_name, platform_id, context_id, device_id);
-}
-
-bool
-convert_to_mat (SmartPtr<CLContext> context, SmartPtr<VideoBuffer> buffer, cv::Mat &image)
-{
-    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (context, buffer);
-    VideoBufferInfo info = buffer->get_video_info ();
-    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
-
-    cv::UMat umat;
-    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height * 3 / 2, info.width, CV_8U, umat);
-    if (umat.empty ()) {
-        XCAM_LOG_ERROR ("convert bo buffer to UMat failed");
-        return false;
-    }
-
-    cv::Mat mat;
-    umat.copyTo (mat);
-    if (mat.empty ()) {
-        XCAM_LOG_ERROR ("copy UMat to Mat failed");
-        return false;
-    }
-
-    cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);
-    return true;
-}
-#endif
 
 static void
 usage(const char* arg0)
@@ -249,8 +213,6 @@ int main (int argc, char *argv[])
     CHECK (ret, "open %s failed", file_in_name);
 
 #if HAVE_OPENCV
-    init_opencv_ocl (context);
-
     cv::VideoWriter writer;
     if (need_save_output) {
         cv::Size dst_size = cv::Size (output_width, output_height);
@@ -296,7 +258,7 @@ int main (int argc, char *argv[])
 #if HAVE_OPENCV
             if (need_save_output) {
                 cv::Mat out_mat;
-                convert_to_mat (context, output_buf, out_mat);
+                convert_to_mat (output_buf, out_mat);
                 writer.write (out_mat);
             } else
 #endif

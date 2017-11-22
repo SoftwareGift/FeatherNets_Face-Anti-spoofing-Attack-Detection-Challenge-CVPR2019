@@ -49,6 +49,9 @@ public:
         return _context;
     }
     ~CVContext();
+    bool enable_ocl (bool flag);
+    bool is_ocl_enabled () const;
+
 private:
     CVContext ();
     void init_opencv_ocl ();
