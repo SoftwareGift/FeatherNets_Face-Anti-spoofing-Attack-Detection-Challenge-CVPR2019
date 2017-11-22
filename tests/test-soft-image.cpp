@@ -77,27 +77,12 @@ parse_camera_info (const char *path, uint32_t idx, uint32_t out_w, uint32_t out_
     snprintf (extrinsic_path, 1024, "%s/%s", path, exstrinsic_names[idx]);
 
     CalibrationParser parser;
-    size_t file_size = 0;
-    std::string context;
-    FileHandle file_reader (intrinsic_path, "r");
-
-    CHECK (file_reader.open (intrinsic_path, "r"), "open intrinsic file(%s) failed.", intrinsic_path );
-    CHECK (file_reader.get_file_size (file_size), "read intrinsic file(%s) failed.", intrinsic_path);
-    context.resize (file_size + 1);
-    CHECK (file_reader.read_file (&context[0], file_size), "read intrinsic file(%s) failed.", intrinsic_path);
-    file_reader.close ();
-
     CHECK (
-        parser.parse_intrinsic_param (&context[0], info.calibration.intrinsic),
+        parser.parse_intrinsic_file (intrinsic_path, info.calibration.intrinsic),
         "parse intrinsic params (%s)failed.", intrinsic_path);
 
-    CHECK (file_reader.open (extrinsic_path, "r"), "open extrinsic file(%s) failed.", extrinsic_path );
-    CHECK (file_reader.get_file_size (file_size), "read extrinsic file(%s) failed.", extrinsic_path);
-    context.resize (file_size + 1);
-    CHECK (file_reader.read_file (&context[0], file_size), "read extrinsic file(%s) failed.", extrinsic_path);
-    file_reader.close ();
     CHECK (
-        parser.parse_extrinsic_param (&context[0], info.calibration.extrinsic),
+        parser.parse_extrinsic_file (extrinsic_path, info.calibration.extrinsic),
         "parse extrinsic params (%s)failed.", extrinsic_path);
     info.calibration.extrinsic.trans_x += TEST_CAMERA_POSITION_OFFSET_X;
 
@@ -115,6 +100,7 @@ static void usage(const char* arg0)
     printf ("Usage:\n"
             "%s --type TYPE--input0 file0 --input1 file1 --output file\n"
             "\t--type              processing type, selected from: blend, remap, stitch, ...\n"
+            "\t--                  [stitch]: read calibration files from exported path $FISHEYE_CONFIG_PATH\n"
             "\t--input0            input image(NV12)\n"
             "\t--input1            input image(NV12)\n"
             "\t--input2            input image(NV12)\n"

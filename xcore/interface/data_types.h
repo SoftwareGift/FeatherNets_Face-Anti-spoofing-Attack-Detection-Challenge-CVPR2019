@@ -23,7 +23,6 @@
 #define XCAM_INTERFACE_DATA_TYPES_H
 
 #include "xcam_utils.h"
-#include "smartptr.h"
 
 namespace XCam {
 
@@ -79,6 +78,42 @@ struct BowlDataConfig {
         , angle_start (90.0f), angle_end (270.0f)
         , center_z (1500.0f), wall_height (3000.0f)
         , ground_length (2801.0f) // (2168.0f)
+    {}
+};
+
+#define XCAM_INTRINSIC_MAX_POLY_SIZE 16
+
+// current intrinsic parameters definition from Scaramuzza's approach
+struct IntrinsicParameter {
+    float xc;
+    float yc;
+    float c;
+    float d;
+    float e;
+    uint32_t poly_length;
+
+    float poly_coeff[XCAM_INTRINSIC_MAX_POLY_SIZE];
+
+    IntrinsicParameter ()
+        : xc (0.0f), yc (0.0f), c(0.0f), d (0.0f), e (0.0f), poly_length (0)
+    {
+        xcam_mem_clear (poly_coeff);
+    }
+};
+
+struct ExtrinsicParameter {
+    float trans_x;
+    float trans_y;
+    float trans_z;
+
+    // angle degree
+    float roll;
+    float pitch;
+    float yaw;
+
+    ExtrinsicParameter ()
+        : trans_x (0.0f), trans_y (0.0f), trans_z (0.0f)
+        , roll (0.0f), pitch (0.0f), yaw (0.0f)
     {}
 };
 

@@ -54,13 +54,7 @@ parse_calibration_params (
     ExtrinsicParameter extrinsic_param[],
     int fisheye_num)
 {
-    size_t file_size;
     CalibrationParser calib_parser;
-
-    FileHandle intrinsic_file_handler;
-    FileHandle extrinsic_file_handler;
-    char *extrinsic_file_str = NULL;
-    char *intrinsic_file_str = NULL;
 
     char intrinsic_path[1024], extrinsic_path[1024];
     for(int index = 0; index < fisheye_num; index++) {
@@ -88,27 +82,19 @@ parse_calibration_params (
 
         CHECK_ACCESS (intrinsic_path);
         CHECK_ACCESS (extrinsic_path);
-        intrinsic_file_handler.open (intrinsic_path, "r");
-        extrinsic_file_handler.open (extrinsic_path, "r");
 
-        intrinsic_file_handler.get_file_size (file_size);
-        intrinsic_file_str = (char *) xcam_malloc (file_size);
-        XCAM_ASSERT (intrinsic_file_str);
-        intrinsic_file_handler.read_file ((void *)intrinsic_file_str, file_size);
-        intrinsic_file_handler.close ();
+        if (!xcam_ret_is_ok (
+                    calib_parser.parse_intrinsic_file (intrinsic_path, intrinsic_param[index]))) {
+            XCAM_LOG_ERROR ("parse fisheye:%d intrinsic file:%s failed.", index, intrinsic_path);
+            return false;
+        }
+        if (!xcam_ret_is_ok (
+                    calib_parser.parse_extrinsic_file (extrinsic_path, extrinsic_param[index]))) {
+            XCAM_LOG_ERROR ("parse fisheye:%d extrinsic file:%s failed.", index, extrinsic_path);
+            return false;
+        }
 
-        extrinsic_file_handler.get_file_size (file_size);
-        extrinsic_file_str = (char *) xcam_malloc (file_size);
-        XCAM_ASSERT (extrinsic_file_str);
-        extrinsic_file_handler.read_file ((void *)extrinsic_file_str, file_size);
-        extrinsic_file_handler.close ();
-
-        calib_parser.parse_intrinsic_param (intrinsic_file_str, intrinsic_param[index]);
-        calib_parser.parse_extrinsic_param (extrinsic_file_str, extrinsic_param[index]);
         extrinsic_param[index].trans_x += TEST_CAMERA_POSITION_OFFSET_X;
-
-        xcam_free (intrinsic_file_str);
-        xcam_free (extrinsic_file_str);
     }
 
     return true;

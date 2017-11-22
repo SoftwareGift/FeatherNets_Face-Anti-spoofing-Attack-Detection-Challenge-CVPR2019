@@ -19,6 +19,7 @@
  */
 
 #include "calibration_parser.h"
+#include "file_handle.h"
 
 namespace XCam {
 
@@ -62,10 +63,16 @@ CalibrationParser::parse_intrinsic_param(char *file_body, IntrinsicParameter &in
         }
         intrinsic_param.poly_length = strtol(tok_str, NULL, 10);
 
+        XCAM_FAIL_RETURN (
+            ERROR, intrinsic_param.poly_length <= XCAM_INTRINSIC_MAX_POLY_SIZE,
+            XCAM_RETURN_ERROR_PARAM,
+            "intrinsic poly length:%d is larger than max_size:%d.",
+            intrinsic_param.poly_length, XCAM_INTRINSIC_MAX_POLY_SIZE);
+
         for(uint32_t i = 0; i < intrinsic_param.poly_length; i++) {
             tok_str = strtok_r(NULL, str_tokens, &tok_endptr);
             CHECK_NULL(tok_str);
-            intrinsic_param.poly_coeff.push_back(strtof(tok_str, NULL));
+            intrinsic_param.poly_coeff[i] = (strtof(tok_str, NULL));
         }
 
         line_str = strtok_r(NULL, line_tokens, &line_endptr);
@@ -177,6 +184,58 @@ CalibrationParser::parse_extrinsic_param(char *file_body, ExtrinsicParameter &ex
     } while(0);
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+CalibrationParser::parse_intrinsic_file(const char *file_path, IntrinsicParameter &intrinsic_param)
+{
+    XCAM_ASSERT (file_path);
+
+    FileHandle file_reader;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    std::vector<char> context;
+    size_t file_size = 0;
+
+    XCAM_FAIL_RETURN (
+        WARNING, xcam_ret_is_ok (ret = file_reader.open (file_path, "r")), ret,
+        "open intrinsic file(%s) failed.", file_path);
+    XCAM_FAIL_RETURN (
+        WARNING, xcam_ret_is_ok (ret = file_reader.get_file_size (file_size)), ret,
+        "read intrinsic file(%s) failed to get file size.", file_path);
+    context.resize (file_size + 1);
+    XCAM_FAIL_RETURN (
+        WARNING, xcam_ret_is_ok (ret = file_reader.read_file (&context[0], file_size)), ret,
+        "read intrinsic file(%s) failed, file size:%d.", file_path, (int)file_size);
+    file_reader.close ();
+    context[file_size] = '\0';
+
+    return parse_intrinsic_param (&context[0], intrinsic_param);
+}
+
+XCamReturn
+CalibrationParser::parse_extrinsic_file(const char *file_path, ExtrinsicParameter &extrinsic_param)
+{
+    XCAM_ASSERT (file_path);
+
+    FileHandle file_reader;
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    std::vector<char> context;
+    size_t file_size = 0;
+
+    XCAM_FAIL_RETURN (
+        WARNING, xcam_ret_is_ok (ret = file_reader.open (file_path, "r")), ret,
+        "open extrinsic file(%s) failed.", file_path);
+    XCAM_FAIL_RETURN (
+        WARNING, xcam_ret_is_ok (ret = file_reader.get_file_size (file_size)), ret,
+        "read extrinsic file(%s) failed to get file size.", file_path);
+    context.resize (file_size + 1);
+    XCAM_FAIL_RETURN (
+        WARNING, xcam_ret_is_ok (ret = file_reader.read_file (&context[0], file_size)), ret,
+        "read extrinsic file(%s) failed, file size:%d.", file_path, (int)file_size);
+    file_reader.close ();
+    context[file_size] = '\0';
+
+    return parse_extrinsic_param (&context[0], extrinsic_param);
 }
 
 }
