@@ -61,10 +61,10 @@ SurViewFisheyeDewarp::get_extrinsic_param()
 void
 SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint32_t table_h, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config)
 {
-    MapTable world_coord(3);
-    MapTable cam_coord(3);
-    MapTable cam_world_coord(3);
-    MapTable image_coord(2);
+    PointFloat3 world_coord;
+    PointFloat3 cam_coord;
+    PointFloat3 cam_world_coord;
+    PointFloat2 image_coord;
 
     XCAM_LOG_DEBUG ("fisheye-dewarp:\n table(%dx%d), out_size(%dx%d)"
                     "bowl(start:%.1f, end:%.1f, ground:%.2f, wall:%.2f, a:%.2f, b:%.2f, c:%.2f, center_z:%.2f )",
@@ -86,14 +86,13 @@ SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint
             world_coord2cam(cam_world_coord, cam_coord);
             cal_image_coord(cam_coord, image_coord);
 
-            map_table[row * table_w * 2 + col * 2] = image_coord[0];
-            map_table[row * table_w * 2 + col * 2 + 1] = image_coord[1];
+            map_table[row * table_w + col] = image_coord;
         }
     }
 }
 
 void
-SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_coord, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config)
+SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, PointFloat3 &world_coord, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config)
 {
     float world_x, world_y, world_z;
     float angle;
@@ -155,13 +154,13 @@ SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, MapTable &world_co
         }
     }
 
-    world_coord[0] = world_x;
-    world_coord[1] = world_y;
-    world_coord[2] = world_z + bowl_config.center_z;
+    world_coord.x = world_x;
+    world_coord.y = world_y;
+    world_coord.z = world_z + bowl_config.center_z;
 }
 
 void
-SurViewFisheyeDewarp::cal_cam_world_coord(MapTable world_coord, MapTable &cam_world_coord)
+SurViewFisheyeDewarp::cal_cam_world_coord(const PointFloat3 &world_coord, PointFloat3 &cam_world_coord)
 {
     Mat4f rotation_mat = generate_rotation_matrix( degree2radian (_extrinsic_param.roll),
                          degree2radian (_extrinsic_param.pitch),
@@ -171,16 +170,16 @@ SurViewFisheyeDewarp::cal_cam_world_coord(MapTable world_coord, MapTable &cam_wo
     rotation_tran_mat(1, 3) = _extrinsic_param.trans_y;
     rotation_tran_mat(2, 3) = _extrinsic_param.trans_z;
 
-    Mat4f world_coord_mat(Vec4f(1.0f, 0.0f, 0.0f, world_coord[0]),
-                          Vec4f(0.0f, 1.0f, 0.0f, world_coord[1]),
-                          Vec4f(0.0f, 0.0f, 1.0f, world_coord[2]),
+    Mat4f world_coord_mat(Vec4f(1.0f, 0.0f, 0.0f, world_coord.x),
+                          Vec4f(0.0f, 1.0f, 0.0f, world_coord.y),
+                          Vec4f(0.0f, 0.0f, 1.0f, world_coord.z),
                           Vec4f(0.0f, 0.0f, 0.0f, 1.0f));
 
     Mat4f cam_world_coord_mat = rotation_tran_mat.inverse() * world_coord_mat;
 
-    cam_world_coord[0] = cam_world_coord_mat(0, 3);
-    cam_world_coord[1] = cam_world_coord_mat(1, 3);
-    cam_world_coord[2] = cam_world_coord_mat(2, 3);
+    cam_world_coord.x = cam_world_coord_mat(0, 3);
+    cam_world_coord.y = cam_world_coord_mat(1, 3);
+    cam_world_coord.z = cam_world_coord_mat(2, 3);
 }
 
 Mat4f
@@ -205,25 +204,25 @@ SurViewFisheyeDewarp::generate_rotation_matrix(float roll, float pitch, float ya
 }
 
 void
-SurViewFisheyeDewarp::world_coord2cam(MapTable cam_world_coord, MapTable &cam_coord)
+SurViewFisheyeDewarp::world_coord2cam(const PointFloat3 &cam_world_coord, PointFloat3 &cam_coord)
 {
-    cam_coord[0] = -cam_world_coord[1];
-    cam_coord[1] = -cam_world_coord[2];
-    cam_coord[2] = -cam_world_coord[0];
+    cam_coord.x = -cam_world_coord.y;
+    cam_coord.y = -cam_world_coord.z;
+    cam_coord.z = -cam_world_coord.x;
 }
 
 void
-SurViewFisheyeDewarp::cal_image_coord(MapTable cam_coord, MapTable &image_coord)
+SurViewFisheyeDewarp::cal_image_coord(const PointFloat3 &cam_coord, PointFloat2 &image_coord)
 {
-    image_coord[0] = cam_coord[0];
-    image_coord[1] = cam_coord[1];
+    image_coord.x = cam_coord.x;
+    image_coord.y = cam_coord.y;
 }
 
 void
-PolyFisheyeDewarp::cal_image_coord(MapTable cam_coord, MapTable &image_coord)
+PolyFisheyeDewarp::cal_image_coord(const PointFloat3 &cam_coord, PointFloat2 &image_coord)
 {
-    float dist2center = sqrt(cam_coord[0] * cam_coord[0] + cam_coord[1] * cam_coord[1]);
-    float angle = atan(cam_coord[2] / dist2center);
+    float dist2center = sqrt(cam_coord.x * cam_coord.x + cam_coord.y * cam_coord.y);
+    float angle = atan(cam_coord.z / dist2center);
 
     float p = 1;
     float poly_sum = 0;
@@ -236,14 +235,14 @@ PolyFisheyeDewarp::cal_image_coord(MapTable cam_coord, MapTable &image_coord)
             p = p * angle;
         }
 
-        float image_x = cam_coord[0] * poly_sum / dist2center;
-        float image_y = cam_coord[1] * poly_sum / dist2center;
+        float image_x = cam_coord.x * poly_sum / dist2center;
+        float image_y = cam_coord.y * poly_sum / dist2center;
 
-        image_coord[0] = image_x * intrinsic_param.c + image_y * intrinsic_param.d + intrinsic_param.xc;
-        image_coord[1] = image_x * intrinsic_param.e + image_y + intrinsic_param.yc;
+        image_coord.x = image_x * intrinsic_param.c + image_y * intrinsic_param.d + intrinsic_param.xc;
+        image_coord.y = image_x * intrinsic_param.e + image_y + intrinsic_param.yc;
     } else {
-        image_coord[0] = intrinsic_param.xc;
-        image_coord[1] = intrinsic_param.yc;
+        image_coord.x = intrinsic_param.xc;
+        image_coord.y = intrinsic_param.yc;
     }
 } // Adopt Scaramuzza's approach to calculate image coordinates from camera coordinates
 

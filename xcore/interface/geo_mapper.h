@@ -25,18 +25,6 @@
 #include "interface/data_types.h"
 #include "video_buffer.h"
 
-XCAM_BEGIN_DECLARE
-
-typedef struct {
-    float x;
-    float y;
-    // z, w not used.
-    float z;
-    float w;
-} GeoData;
-
-XCAM_END_DECLARE
-
 namespace XCam {
 
 class GeoMapper
@@ -48,7 +36,7 @@ public:
     static SmartPtr<GeoMapper> create_soft_geo_mapper ();
 
     //2D table
-    virtual bool set_lookup_table (const GeoData *data, uint32_t width, uint32_t height) = 0;
+    virtual bool set_lookup_table (const PointFloat2 *data, uint32_t width, uint32_t height) = 0;
     bool set_factors (float x, float y);
     void get_factors (float &x, float &y) const {
         x = _factor_x;

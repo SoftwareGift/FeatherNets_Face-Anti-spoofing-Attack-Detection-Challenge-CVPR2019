@@ -117,6 +117,26 @@ struct ExtrinsicParameter {
     {}
 };
 
+template <typename T>
+struct Point2DT {
+    T x, y;
+    Point2DT () : x (0), y(0) {}
+    Point2DT (const T px, const T py) : x (px), y(py) {}
+};
+
+template <typename T>
+struct Point3DT {
+    T x, y, z;
+    Point3DT () : x (0), y(0), z(0) {}
+    Point3DT (const T px, const T py, const T pz) : x (px), y(py), z(pz) {}
+};
+
+typedef Point2DT<int32_t> PointInt2;
+typedef Point2DT<float> PointFloat2;
+
+typedef Point3DT<int32_t> PointInt3;
+typedef Point3DT<float> PointFloat3;
+
 }
 
 #endif //XCAM_INTERFACE_DATA_TYPES_H

@@ -56,7 +56,9 @@ stitcher_dump_buf (const SmartPtr<VideoBuffer> buf, uint32_t idx, const char *pr
     dump_buf_perfix_path (buf, name);
 }
 #else
-static void stitcher_dump_buf (const SmartPtr<VideoBuffer> buf, ...) { XCAM_UNUSED (buf); }
+static void stitcher_dump_buf (const SmartPtr<VideoBuffer> buf, ...) {
+    XCAM_UNUSED (buf);
+}
 #endif
 
 
@@ -243,25 +245,13 @@ FisheyeDewarp::set_dewarp_geo_table (SmartPtr<SoftGeoMapper> mapper, const Camer
     table_width = XCAM_ALIGN_UP (table_width, 4);
     table_height = cam_info.slice_view.height / MAP_FACTOR_Y;
     table_height = XCAM_ALIGN_UP (table_height, 2);
-    SurViewFisheyeDewarp::MapTable map_table(table_width * table_height * 2);
+    SurViewFisheyeDewarp::MapTable map_table(table_width * table_height);
     fd.fisheye_dewarp (
         map_table, table_width, table_height,
         cam_info.slice_view.width, cam_info.slice_view.height, bowl);
 
-    std::vector<GeoData> geo_data (table_width * table_height);
-
-    for (uint32_t row = 0; row < table_height; row++) {
-        for(uint32_t col = 0; col < table_width; col++) {
-            GeoData &data = geo_data[row * table_width + col];
-            data.x = map_table[row * table_width * 2 + col * 2];
-            data.y = map_table[row * table_width * 2 + col * 2 + 1];
-            data.z = 0.0f;
-            data.w = 0.0f;
-        }
-    }
-
     XCAM_FAIL_RETURN (
-        ERROR, mapper->set_lookup_table (geo_data.data (), table_width, table_height),
+        ERROR, mapper->set_lookup_table (map_table.data (), table_width, table_height),
         XCAM_RETURN_ERROR_UNKNOWN, "set fisheye dewarp lookup table failed");
     return XCAM_RETURN_NO_ERROR;
 }
@@ -409,7 +399,6 @@ StitcherImpl::dec_task_count (const SmartPtr<SoftStitcher::StitcherParam> &param
 XCamReturn
 StitcherImpl::fisheye_dewarp_to_table ()
 {
-    std::vector<GeoData> table;
     uint32_t camera_num = _stitcher->get_camera_num ();
     for (uint32_t i = 0; i < camera_num; ++i) {
         CameraInfo cam_info;

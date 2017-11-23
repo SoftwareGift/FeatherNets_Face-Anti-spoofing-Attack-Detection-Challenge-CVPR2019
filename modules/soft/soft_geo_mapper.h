@@ -39,7 +39,7 @@ public:
     SoftGeoMapper (const char *name = "SoftGeoMap");
     ~SoftGeoMapper ();
 
-    bool set_lookup_table (const GeoData *data, uint32_t width, uint32_t height);
+    bool set_lookup_table (const PointFloat2 *data, uint32_t width, uint32_t height);
 
     //derived from SoftHandler
     virtual XCamReturn terminate ();

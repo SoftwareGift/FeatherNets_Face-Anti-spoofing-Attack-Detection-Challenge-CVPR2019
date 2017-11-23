@@ -380,7 +380,7 @@ CLFisheyeHandler::generate_fisheye_table (
         IntrinsicParameter intrinsic_param = get_intrinsic_param();
         ExtrinsicParameter extrinsic_param = get_extrinsic_param();
 
-        std::vector<float> map_table(table_width * table_height * 2);
+        SurViewFisheyeDewarp::MapTable map_table(table_width * table_height * 2);
         PolyFisheyeDewarp fd;
         fd.set_intrinsic_param(intrinsic_param);
         fd.set_extrinsic_param(extrinsic_param);
@@ -397,8 +397,8 @@ CLFisheyeHandler::generate_fisheye_table (
 
         for (uint32_t row = 0; row < table_height; row++) {
             for(uint32_t col = 0; col < table_width; col++) {
-                map_ptr[row * row_pitch / 4 + col * 4] = map_table[row * table_width * 2 + col * 2] / fisheye_width;
-                map_ptr[row * row_pitch / 4 + col * 4 + 1] = map_table[row * table_width * 2 + col * 2 + 1] / fisheye_height;
+                map_ptr[row * row_pitch / 4 + col * 4] = map_table[row * table_width + col].x / fisheye_width;
+                map_ptr[row * row_pitch / 4 + col * 4 + 1] = map_table[row * table_width + col].y / fisheye_height;
             }
         }
         _geo_table->enqueue_unmap ((void *&)map_ptr);
