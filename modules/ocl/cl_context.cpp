@@ -94,7 +94,7 @@ CLContext::CLContext (SmartPtr<CLDevice> &device)
     , _device (device)
 {
     if (!init_context ()) {
-        XCAM_LOG_DEBUG ("CL init context failed");
+        XCAM_LOG_ERROR ("CL init context failed");
     }
 
     XCAM_LOG_DEBUG ("CLContext constructed");
@@ -164,7 +164,7 @@ CLContext::init_context ()
     XCAM_ASSERT (_context_id == NULL);
 
     if (!_device->is_inited()) {
-        XCAM_LOG_DEBUG ("create cl context failed since device ");
+        XCAM_LOG_ERROR ("create cl context failed since device is not initialized");
         return false;
     }
 
@@ -297,7 +297,7 @@ CLContext::create_cmd_queue (SmartPtr<CLContext> &self)
     cmd_queue_id = clCreateCommandQueue (_context_id, device_id, 0, &err_code);
 #endif
     if (err_code != CL_SUCCESS) {
-        XCAM_LOG_WARNING ("create CL command queue failed.");
+        XCAM_LOG_WARNING ("create CL command queue failed, errcode:%d", err_code);
         return NULL;
     }
 
@@ -371,14 +371,14 @@ CLContext::generate_kernel_id (
     if (gen_binary != NULL && binary_size != NULL) {
         error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARY_SIZES, sizeof (size_t) * 1, binary_size, NULL);
         if (error_code != CL_SUCCESS) {
-            XCAM_LOG_WARNING ("CL query binary sizes failed on %s", name);
+            XCAM_LOG_WARNING ("CL query binary sizes failed on %s, errcode:%d", name, error_code);
         }
 
         *gen_binary = (uint8_t *) xcam_malloc0 (sizeof (uint8_t) * (*binary_size));
 
         error_code = clGetProgramInfo (program.id, CL_PROGRAM_BINARIES, sizeof (uint8_t *) * 1, gen_binary, NULL);
         if (error_code != CL_SUCCESS) {
-            XCAM_LOG_WARNING ("CL query program binaries failed on %s", name);
+            XCAM_LOG_WARNING ("CL query program binaries failed on %s, errcode:%d", name, error_code);
         }
     }
 
@@ -502,7 +502,7 @@ CLContext::import_dma_image (const cl_import_image_info_intel &import_info)
         WARNING,
         errcode == CL_SUCCESS,
         NULL,
-        "import cl memory from dma image failed");
+        "import cl memory from dma image failed, errcode:%d", errcode);
 
     return mem_id;
 }
@@ -524,7 +524,7 @@ CLContext::create_image (
         WARNING,
         errcode == CL_SUCCESS,
         NULL,
-        "create cl image failed");
+        "create cl image failed, errcode:%d", errcode);
     return mem_id;
 }
 
@@ -552,7 +552,7 @@ CLContext::create_buffer (uint32_t size, cl_mem_flags flags, void *host_ptr)
         WARNING,
         errcode == CL_SUCCESS,
         NULL,
-        "create cl buffer failed");
+        "create cl buffer failed, errcode:%d", errcode);
     return mem_id;
 }
 
@@ -570,7 +570,7 @@ CLContext::create_sub_buffer (
         WARNING,
         errcode == CL_SUCCESS,
         NULL,
-        "create sub buffer failed");
+        "create sub buffer failed, errcode:%d", errcode);
 
     return sub_mem;
 }

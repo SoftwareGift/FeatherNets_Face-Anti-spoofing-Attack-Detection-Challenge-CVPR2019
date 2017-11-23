@@ -35,11 +35,13 @@ struct CLDevieInfo {
     uint32_t  max_work_item_dims;
     size_t    max_work_item_sizes [3];
     size_t    max_work_group_size;
+    uint32_t  image_pitch_alignment;
 
     CLDevieInfo ()
         : max_compute_unit (0)
         , max_work_item_dims (0)
         , max_work_group_size (0)
+        , image_pitch_alignment (4)
     {
         xcam_mem_clear (max_work_item_sizes);
     }

@@ -120,16 +120,18 @@ CLDevice::init ()
         //continue
         XCAM_LOG_WARNING ("cl get device info failed but continue");
     } else {
-        XCAM_LOG_DEBUG (
+        XCAM_LOG_INFO (
             "cl get device info,\n"
             "\tmax_compute_unit:%" PRIu32
             "\tmax_work_item_dims:%" PRIu32
             "\tmax_work_item_sizes:{%" PRIuS ", %" PRIuS ", %" PRIuS "}"
-            "\tmax_work_group_size:%" PRIuS,
+            "\tmax_work_group_size:%" PRIuS
+            "\timage_pitch_alignment:%" PRIu32,
             device_info.max_compute_unit,
             device_info.max_work_item_dims,
             device_info.max_work_item_sizes[0], device_info.max_work_item_sizes[1], device_info.max_work_item_sizes[2],
-            device_info.max_work_group_size);
+            device_info.max_work_group_size,
+            device_info.image_pitch_alignment);
     }
 
     // get platform name string length
@@ -172,6 +174,14 @@ CLDevice::query_device_info (cl_device_id device_id, CLDevieInfo &info)
     XCAM_CL_GET_DEVICE_INFO (CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, info.max_work_item_dims);
     XCAM_CL_GET_DEVICE_INFO (CL_DEVICE_MAX_WORK_ITEM_SIZES, info.max_work_item_sizes);
     XCAM_CL_GET_DEVICE_INFO (CL_DEVICE_MAX_WORK_GROUP_SIZE, info.max_work_group_size);
+    XCAM_CL_GET_DEVICE_INFO (CL_DEVICE_MAX_WORK_GROUP_SIZE, info.max_work_group_size);
+
+    cl_uint alignment = 0;
+    XCAM_CL_GET_DEVICE_INFO (CL_DEVICE_IMAGE_PITCH_ALIGNMENT, alignment);
+    if (alignment)
+        info.image_pitch_alignment = alignment;
+    else
+        info.image_pitch_alignment = 4;
     return true;
 }
 
@@ -184,7 +194,7 @@ CLDevice::create_default_context ()
 
     // init first cmdqueue
     if (context->is_valid () && !context->init_cmd_queue (context)) {
-        XCAM_LOG_DEBUG ("CL context init cmd queue failed");
+        XCAM_LOG_ERROR ("CL context init cmd queue failed");
     }
     _default_context = context;
     return true;
