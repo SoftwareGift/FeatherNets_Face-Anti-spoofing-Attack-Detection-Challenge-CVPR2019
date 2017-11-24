@@ -75,28 +75,6 @@ dump_image (SmartPtr<CLImage> image, const char *file_name)
     return true;
 }
 
-bool
-dump_buffer (SmartPtr<VideoBuffer> buffer, char *file_name)
-{
-    ImageFileHandle file;
-
-    XCamReturn ret = file.open (file_name, "wb");
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_ERROR ("open %s failed", file_name);
-        return false;
-    }
-
-    ret = file.write_buf (buffer);
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_ERROR ("write buffer to %s failed", file_name);
-        file.close ();
-        return false;
-    }
-
-    file.close ();
-    return true;
-}
-
 SmartPtr<CLBuffer>
 convert_to_clbuffer (
     const SmartPtr<CLContext> &context,

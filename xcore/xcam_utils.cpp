@@ -147,17 +147,27 @@ dump_buf_perfix_path (const SmartPtr<VideoBuffer> buf, const char *prefix_name)
     snprintf (
         file_name, 256, "%s-%dx%d.%s",
         prefix_name, info.width, info.height, xcam_fourcc_to_string (info.format));
+
     dump_video_buf (buf, file_name);
 }
 
-void
+bool
 dump_video_buf (const SmartPtr<VideoBuffer> buf, const char *file_name)
 {
+    ImageFileHandle file;
     XCAM_ASSERT (file_name);
-    XCAM_ASSERT (buf.ptr ());
-    ImageFileHandle writer (file_name, "wb");
-    writer.write_buf (buf);
-    writer.close ();
+
+    XCamReturn ret = file.open (file_name, "wb");
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), false,
+        "dump buffer failed when open file: %s", file_name);
+
+    ret = file.write_buf (buf);
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), false,
+        "dump buffer to file: %s failed", file_name);
+
+    return true;
 }
 
 }

@@ -76,7 +76,7 @@ void get_gauss_table (
 
 class VideoBuffer;
 void dump_buf_perfix_path (const SmartPtr<VideoBuffer> buf, const char *prefix_name);
-void dump_video_buf (const SmartPtr<VideoBuffer> buf, const char *file_name);
+bool dump_video_buf (const SmartPtr<VideoBuffer> buf, const char *file_name);
 
 };
 

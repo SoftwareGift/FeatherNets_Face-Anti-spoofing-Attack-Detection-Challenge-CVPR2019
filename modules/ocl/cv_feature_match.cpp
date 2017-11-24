@@ -238,11 +238,11 @@ CVFeatureMatch::optical_flow_feature_match (
 #if 0
     VideoBufferInfo info = left_buf->get_video_info ();
     std::snprintf (file_name, 1023, "fm_in_%d_%d_%dx%d_0.nv12", info.width, info.height, _frame_num, _fm_idx);
-    dump_buffer (left_buf, file_name);
+    dump_video_buf (left_buf, file_name);
 
     info = right_buf->get_video_info ();
     std::snprintf (file_name, 1023, "fm_in_%d_%d_%dx%d_1.nv12", info.width, info.height, _frame_num, _fm_idx);
-    dump_buffer (right_buf, file_name);
+    dump_video_buf (right_buf, file_name);
 #endif
 
     cv::Mat mat;

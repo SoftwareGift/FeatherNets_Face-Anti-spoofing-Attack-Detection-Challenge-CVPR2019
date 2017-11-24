@@ -32,7 +32,6 @@
 namespace XCam {
 
 bool dump_image (SmartPtr<CLImage> image, const char *file_name);
-bool dump_buffer (SmartPtr<VideoBuffer> buffer, char *file_name);
 
 SmartPtr<CLBuffer> convert_to_clbuffer (
     const SmartPtr<CLContext> &context,
