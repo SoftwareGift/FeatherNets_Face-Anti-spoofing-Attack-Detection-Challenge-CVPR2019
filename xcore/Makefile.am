@@ -47,11 +47,6 @@ xcam_sources = \
     xcam_buffer.cpp                     \
     xcam_thread.cpp                     \
     xcam_utils.cpp                      \
-    x3a_analyze_tuner.cpp               \
-    x3a_ciq_tuning_handler.cpp          \
-    x3a_ciq_tnr_tuning_handler.cpp      \
-    x3a_ciq_bnr_ee_tuning_handler.cpp   \
-    x3a_ciq_wavelet_tuning_handler.cpp  \
     interface/feature_match.cpp         \
     interface/blender.cpp               \
     interface/geo_mapper.cpp            \

@@ -29,6 +29,11 @@ xcam_isp_sources = \
     isp_config_translator.cpp   \
     x3a_isp_config.cpp          \
     sensor_descriptor.cpp       \
+    iq/x3a_analyze_tuner.cpp               \
+    iq/x3a_ciq_tuning_handler.cpp          \
+    iq/x3a_ciq_tnr_tuning_handler.cpp      \
+    iq/x3a_ciq_bnr_ee_tuning_handler.cpp   \
+    iq/x3a_ciq_wavelet_tuning_handler.cpp  \
     x3a_statistics_queue.cpp    \
     libtbd.c                    \
     xcam_cpf_reader.c           \
