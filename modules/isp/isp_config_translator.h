@@ -21,12 +21,10 @@
 #ifndef XCAM_ISP_CONFIG_TRANSLATOR_H
 #define XCAM_ISP_CONFIG_TRANSLATOR_H
 
-#include <base/xcam_common.h>
+#include <xcam_std.h>
 #include <linux/atomisp.h>
-#include "xcam_utils.h"
 #include "x3a_result.h"
 #include "sensor_descriptor.h"
-#include "smartptr.h"
 
 namespace XCam {
 

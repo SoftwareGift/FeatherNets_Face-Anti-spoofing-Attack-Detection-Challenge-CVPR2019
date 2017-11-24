@@ -21,9 +21,8 @@
 #ifndef XCAM_SWAPPED_BUFFER_H
 #define XCAM_SWAPPED_BUFFER_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "buffer_pool.h"
+#include <xcam_std.h>
+#include <buffer_pool.h>
 
 namespace XCam {
 

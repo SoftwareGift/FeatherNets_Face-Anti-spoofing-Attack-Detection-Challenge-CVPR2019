@@ -21,7 +21,7 @@
 #ifndef XCAM_VECTOR_MATRIX_H
 #define XCAM_VECTOR_MATRIX_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include <cmath>
 
 

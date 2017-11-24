@@ -23,12 +23,12 @@
 #ifndef XCAM_CL_BAYER_PIPE_HANDLER_H
 #define XCAM_CL_BAYER_PIPE_HANDLER_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_handler.h"
-#include "stats_callback_interface.h"
-#include "x3a_stats_pool.h"
-#include "ocl/cl_context.h"
-#include "ocl/cl_3a_stats_context.h"
+#include <xcam_std.h>
+#include <stats_callback_interface.h>
+#include <x3a_stats_pool.h>
+#include <ocl/cl_context.h>
+#include <ocl/cl_image_handler.h>
+#include <ocl/cl_3a_stats_context.h>
 
 #define XCAM_BNR_TABLE_SIZE 64
 

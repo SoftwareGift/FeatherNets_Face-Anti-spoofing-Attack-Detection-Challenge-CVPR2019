@@ -21,12 +21,11 @@
 #ifndef XCAM_CL_FISHEYE_HANDLER_H
 #define XCAM_CL_FISHEYE_HANDLER_H
 
-#include "xcam_utils.h"
-#include "interface/data_types.h"
-#include "ocl/cl_image_handler.h"
-#include "ocl/cl_geo_map_handler.h"
-#include "calibration_parser.h"
-#include "surview_fisheye_dewarp.h"
+#include <xcam_std.h>
+#include <interface/data_types.h>
+#include <ocl/cl_image_handler.h>
+#include <ocl/cl_geo_map_handler.h>
+#include <surview_fisheye_dewarp.h>
 
 namespace XCam {
 
@@ -96,8 +95,8 @@ protected:
     virtual XCamReturn execute_done (SmartPtr<VideoBuffer> &output);
 
     // derived from GeoKernelParamCallback
-    virtual SmartPtr<CLImage> get_geo_input_image (CLNV12PlaneIdx index);
-    virtual SmartPtr<CLImage> get_geo_output_image (CLNV12PlaneIdx index);
+    virtual SmartPtr<CLImage> get_geo_input_image (NV12PlaneIdx index);
+    virtual SmartPtr<CLImage> get_geo_output_image (NV12PlaneIdx index);
     virtual SmartPtr<CLImage> get_geo_map_table () {
         return _geo_table;
     }
@@ -108,12 +107,12 @@ protected:
     virtual float* get_lsc_gray_threshold ();
 
 private:
-    SmartPtr<CLImage> &get_input_image (CLNV12PlaneIdx index) {
-        XCAM_ASSERT (index < CLNV12PlaneMax);
+    SmartPtr<CLImage> &get_input_image (NV12PlaneIdx index) {
+        XCAM_ASSERT (index < NV12PlaneMax);
         return _input [index];
     }
-    SmartPtr<CLImage> &get_output_image (CLNV12PlaneIdx index) {
-        XCAM_ASSERT (index < CLNV12PlaneMax);
+    SmartPtr<CLImage> &get_output_image (NV12PlaneIdx index) {
+        XCAM_ASSERT (index < NV12PlaneMax);
         return _output [index];
     }
 
@@ -151,8 +150,8 @@ private:
 
     SmartPtr<CLImage>                _geo_table;
     SmartPtr<CLImage>                _lsc_table;
-    SmartPtr<CLImage>                _input[CLNV12PlaneMax];
-    SmartPtr<CLImage>                _output[CLNV12PlaneMax];
+    SmartPtr<CLImage>                _input[NV12PlaneMax];
+    SmartPtr<CLImage>                _output[NV12PlaneMax];
 };
 
 SmartPtr<CLImageHandler>

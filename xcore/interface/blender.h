@@ -21,9 +21,9 @@
 #ifndef XCAM_INTERFACE_BLENDER_H
 #define XCAM_INTERFACE_BLENDER_H
 
-#include "xcam_utils.h"
-#include "interface/data_types.h"
-#include "video_buffer.h"
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <interface/data_types.h>
 
 #define XCAM_BLENDER_IMAGE_NUM 2
 
@@ -70,12 +70,10 @@ public:
         return _alignment_y;
     }
 
-#if 1
     virtual XCamReturn blend (
         const SmartPtr<VideoBuffer> &in0,
         const SmartPtr<VideoBuffer> &in1,
         SmartPtr<VideoBuffer> &out_buf);
-#endif
 
 protected:
     bool auto_calc_merge_window (

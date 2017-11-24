@@ -21,8 +21,8 @@
 #ifndef XCAM_CL_KERNEL_ARGUMENT_H
 #define XCAM_CL_KERNEL_ARGUMENT_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_memory.h"
+#include <xcam_std.h>
+#include <ocl/cl_memory.h>
 
 namespace XCam {
 

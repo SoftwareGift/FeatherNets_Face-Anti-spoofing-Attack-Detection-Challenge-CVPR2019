@@ -19,6 +19,7 @@
  */
 
 #include "cl_video_stabilizer.h"
+#include "cl_utils.h"
 
 namespace XCam {
 

@@ -21,16 +21,13 @@
 #ifndef XCAM_CL_IMAGE_HANDLER_H
 #define XCAM_CL_IMAGE_HANDLER_H
 
-#include "xcam_utils.h"
-#include "swapped_buffer.h"
-#if HAVE_LIBDRM
-#include "drm_bo_buffer.h"
-#endif
-#include "ocl/cl_kernel.h"
-#include "ocl/cl_argument.h"
-#include "ocl/cl_memory.h"
-#include "ocl/cl_video_buffer.h"
-#include "x3a_result.h"
+#include <xcam_std.h>
+#include <swapped_buffer.h>
+#include <x3a_result.h>
+#include <ocl/cl_kernel.h>
+#include <ocl/cl_argument.h>
+#include <ocl/cl_memory.h>
+#include <ocl/cl_video_buffer.h>
 
 namespace XCam {
 

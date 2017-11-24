@@ -22,6 +22,7 @@
 #if HAVE_LIBDRM
 #include "drm_display.h"
 #include "cl_image_bo_buffer.h"
+#include "drm_bo_buffer.h"
 #endif
 #include "cl_device.h"
 #include "swapped_buffer.h"

@@ -22,15 +22,15 @@
 #include "test_inline.h"
 #include <unistd.h>
 #include <getopt.h>
-#include "ocl/cl_device.h"
-#include "ocl/cl_context.h"
-#include "ocl/cl_blender.h"
-#include "image_file_handle.h"
-#include "ocl/cl_geo_map_handler.h"
+#include <ocl/cl_device.h>
+#include <ocl/cl_context.h>
+#include <ocl/cl_blender.h>
+#include <image_file_handle.h>
+#include <ocl/cl_geo_map_handler.h>
 #if HAVE_LIBDRM
-#include "drm_display.h"
+#include <drm_display.h>
 #endif
-#include "dma_video_buffer.h"
+#include <dma_video_buffer.h>
 
 using namespace XCam;
 

@@ -21,9 +21,9 @@
 #ifndef XCAM_PRIORITY_BUFFER_QUEUE_H
 #define XCAM_PRIORITY_BUFFER_QUEUE_H
 
-#include "xcam_utils.h"
-#include "safe_list.h"
-#include "ocl/cl_image_handler.h"
+#include <xcam_std.h>
+#include <safe_list.h>
+#include <ocl/cl_image_handler.h>
 
 namespace XCam {
 

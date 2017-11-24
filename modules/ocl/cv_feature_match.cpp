@@ -20,6 +20,9 @@
  */
 
 #include "cv_feature_match.h"
+#include "xcam_obj_debug.h"
+#include "image_file_handle.h"
+#include "cl_utils.h"
 
 namespace XCam {
 

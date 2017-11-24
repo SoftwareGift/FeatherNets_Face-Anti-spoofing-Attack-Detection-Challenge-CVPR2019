@@ -21,9 +21,10 @@
 #ifndef XCAM_SMART_ANALYSIS_HANDLER_H
 #define XCAM_SMART_ANALYSIS_HANDLER_H
 
+#include <xcam_std.h>
 #include <base/xcam_smart_description.h>
 #include <map>
-#include "x3a_result_factory.h"
+#include <x3a_result_factory.h>
 
 namespace XCam {
 

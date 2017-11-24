@@ -22,7 +22,7 @@
 #ifndef XCAM_INTERFACE_DATA_TYPES_H
 #define XCAM_INTERFACE_DATA_TYPES_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 
 namespace XCam {
 

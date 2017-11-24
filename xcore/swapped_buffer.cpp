@@ -18,7 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "swapped_buffer.h"
 
 namespace XCam {

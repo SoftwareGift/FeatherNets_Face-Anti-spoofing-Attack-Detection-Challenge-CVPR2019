@@ -20,6 +20,8 @@
  */
 
 #include "cv_context.h"
+#include "cl_device.h"
+#include "cl_memory.h"
 
 namespace XCam {
 

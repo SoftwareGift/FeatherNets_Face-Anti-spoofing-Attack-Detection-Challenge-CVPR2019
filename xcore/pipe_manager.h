@@ -22,11 +22,10 @@
 #ifndef XCAM_PIPE_MANAGER_H
 #define XCAM_PIPE_MANAGER_H
 
-#include <base/xcam_common.h>
-#include "smartptr.h"
-#include "smart_analyzer.h"
-#include "x3a_image_process_center.h"
-#include "stats_callback_interface.h"
+#include <xcam_std.h>
+#include <smart_analyzer.h>
+#include <x3a_image_process_center.h>
+#include <stats_callback_interface.h>
 
 namespace XCam {
 

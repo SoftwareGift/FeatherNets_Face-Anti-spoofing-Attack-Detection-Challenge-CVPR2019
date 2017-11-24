@@ -23,11 +23,11 @@
 #include "test_inline.h"
 #include <unistd.h>
 #include <getopt.h>
-#include "ocl/cl_device.h"
-#include "ocl/cl_context.h"
-#include "ocl/cl_blender.h"
-#include "image_file_handle.h"
-#include "ocl/cv_image_deblurring.h"
+#include <image_file_handle.h>
+#include <ocl/cl_device.h>
+#include <ocl/cl_context.h>
+#include <ocl/cl_blender.h>
+#include <ocl/cv_image_deblurring.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
 

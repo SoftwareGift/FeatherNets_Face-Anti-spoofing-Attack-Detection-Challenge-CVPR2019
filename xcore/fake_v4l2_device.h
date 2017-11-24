@@ -21,7 +21,7 @@
 #ifndef XCAM_FAKE_V4L2_DEVICE_H
 #define XCAM_FAKE_V4L2_DEVICE_H
 
-#include "v4l2_device.h"
+#include <v4l2_device.h>
 
 namespace XCam {
 

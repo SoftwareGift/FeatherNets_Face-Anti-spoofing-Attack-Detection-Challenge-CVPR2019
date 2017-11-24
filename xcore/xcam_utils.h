@@ -1,7 +1,7 @@
 /*
  * xcam_utils.h - xcam utilities
  *
- *  Copyright (c) 2014-2015 Intel Corporation
+ *  Copyright (c) 2014-2017 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,39 +21,9 @@
 #ifndef XCAM_UTILS_H
 #define XCAM_UTILS_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <base/xcam_common.h>
-#include <xcam_obj_debug.h>
-extern "C" {
-#include <linux/videodev2.h>
-}
-#include <cinttypes>
-#include <smartptr.h>
-#include <vector>
+#include <xcam_std.h>
 
 namespace XCam {
-
-static const int64_t InvalidTimestamp = INT64_C(-1);
-
-enum CLWaveletBasis {
-    CL_WAVELET_DISABLED = 0,
-    CL_WAVELET_HAT,
-    CL_WAVELET_HAAR,
-};
-
-enum CLImageChannel {
-    CL_IMAGE_CHANNEL_Y = 1,
-    CL_IMAGE_CHANNEL_UV = 1 << 1,
-};
-
-enum CLNV12PlaneIdx {
-    CLNV12PlaneY = 0,
-    CLNV12PlaneUV,
-    CLNV12PlaneMax,
-};
 
 double
 linear_interpolate_p2 (

@@ -21,8 +21,8 @@
 #ifndef XCAM_CL_MULTI_IMAGE_HANDLER_H
 #define XCAM_CL_MULTI_IMAGE_HANDLER_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_handler.h"
+#include <xcam_std.h>
+#include <ocl/cl_image_handler.h>
 
 namespace XCam {
 

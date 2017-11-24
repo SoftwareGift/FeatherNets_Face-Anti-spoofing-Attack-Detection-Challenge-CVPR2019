@@ -21,12 +21,12 @@
 #ifndef XCAM_CL_3A_CALCULATOR_H
 #define XCAM_CL_3A_CALCULATOR_H
 
-#include "xcam_utils.h"
-#include "x3a_stats_pool.h"
-#include "stats_callback_interface.h"
-#include "ocl/cl_image_handler.h"
-#include "ocl/cl_memory.h"
-#include "ocl/cl_3a_stats_context.h"
+#include <xcam_std.h>
+#include <x3a_stats_pool.h>
+#include <stats_callback_interface.h>
+#include <ocl/cl_image_handler.h>
+#include <ocl/cl_memory.h>
+#include <ocl/cl_3a_stats_context.h>
 
 namespace XCam {
 

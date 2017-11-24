@@ -21,10 +21,10 @@
 #ifndef XCAM_CL_DEFOG_DCP_HANLDER_H
 #define XCAM_CL_DEFOG_DCP_HANLDER_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_handler.h"
-#include "base/xcam_3a_result.h"
-#include "x3a_stats_pool.h"
+#include <xcam_std.h>
+#include <base/xcam_3a_result.h>
+#include <x3a_stats_pool.h>
+#include <ocl/cl_image_handler.h>
 
 #define XCAM_DEFOG_DC_ORIGINAL      0
 #define XCAM_DEFOG_DC_MIN_FILTER_V  1

@@ -21,9 +21,9 @@
 #ifndef XCAM_INTERFACE_GEO_MAPPER_H
 #define XCAM_INTERFACE_GEO_MAPPER_H
 
-#include "xcam_utils.h"
-#include "interface/data_types.h"
-#include "video_buffer.h"
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <interface/data_types.h>
 
 namespace XCam {
 

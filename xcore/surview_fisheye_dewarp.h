@@ -21,9 +21,9 @@
 #ifndef XCAM_SURVIEW_FISHEYE_DEWARP_H
 #define XCAM_SURVIEW_FISHEYE_DEWARP_H
 
-#include "calibration_parser.h"
-#include "vec_mat.h"
-#include "interface/data_types.h"
+#include <xcam_std.h>
+#include <vec_mat.h>
+#include <interface/data_types.h>
 
 namespace XCam {
 

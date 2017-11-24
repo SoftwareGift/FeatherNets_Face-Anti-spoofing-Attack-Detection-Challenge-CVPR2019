@@ -21,7 +21,7 @@
 #ifndef XCAM_ISP_IMAGE_PROCESSOR_H
 #define XCAM_ISP_IMAGE_PROCESSOR_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "image_processor.h"
 
 namespace XCam {

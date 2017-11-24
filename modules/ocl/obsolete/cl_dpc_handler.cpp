@@ -17,7 +17,7 @@
  *
  * Author: Shincy Tu <shincy.tu@intel.com>
  */
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "cl_dpc_handler.h"
 
 namespace XCam {

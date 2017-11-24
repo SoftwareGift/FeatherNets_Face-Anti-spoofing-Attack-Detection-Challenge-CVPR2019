@@ -21,11 +21,11 @@
 #ifndef XCAM_SOFT_COPY_TASK_H
 #define XCAM_SOFT_COPY_TASK_H
 
-#include "xcam_utils.h"
-#include "soft/soft_worker.h"
-#include "soft/soft_handler.h"
-#include "soft/soft_image.h"
-#include "interface/stitcher.h"
+#include <xcam_std.h>
+#include <soft/soft_worker.h>
+#include <soft/soft_handler.h>
+#include <soft/soft_image.h>
+#include <interface/stitcher.h>
 
 namespace XCam {
 

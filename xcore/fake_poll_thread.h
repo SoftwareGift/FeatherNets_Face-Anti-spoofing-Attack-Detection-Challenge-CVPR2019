@@ -21,7 +21,8 @@
 #ifndef XCAM_FAKE_POLL_THREAD_H
 #define XCAM_FAKE_POLL_THREAD_H
 
-#include "poll_thread.h"
+#include <xcam_std.h>
+#include <poll_thread.h>
 
 namespace XCam {
 

@@ -21,9 +21,9 @@
 #ifndef XCAM_IMAGE_FILE_HANDLE_H
 #define XCAM_IMAGE_FILE_HANDLE_H
 
-#include "xcam_utils.h"
-#include "file_handle.h"
-#include "video_buffer.h"
+#include <xcam_std.h>
+#include <file_handle.h>
+#include <video_buffer.h>
 
 namespace XCam {
 

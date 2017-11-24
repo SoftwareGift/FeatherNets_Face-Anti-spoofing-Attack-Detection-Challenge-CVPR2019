@@ -21,9 +21,9 @@
 #ifndef XCAM_3A_ANALYZER_SIMPLE_H
 #define XCAM_3A_ANALYZER_SIMPLE_H
 
-#include "xcam_utils.h"
-#include "x3a_analyzer.h"
-#include "x3a_stats_pool.h"
+#include <xcam_std.h>
+#include <x3a_analyzer.h>
+#include <x3a_stats_pool.h>
 
 namespace XCam {
 

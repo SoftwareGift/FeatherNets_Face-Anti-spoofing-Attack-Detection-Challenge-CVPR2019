@@ -21,11 +21,11 @@
 #ifndef XCAM_CL_VIDEO_STABILIZER_H
 #define XCAM_CL_VIDEO_STABILIZER_H
 
-#include "xcam_utils.h"
-#include "meta_data.h"
-#include "vec_mat.h"
-#include "image_projector.h"
-#include "ocl/cl_image_warp_handler.h"
+#include <xcam_std.h>
+#include <meta_data.h>
+#include <vec_mat.h>
+#include <image_projector.h>
+#include <ocl/cl_image_warp_handler.h>
 
 namespace XCam {
 

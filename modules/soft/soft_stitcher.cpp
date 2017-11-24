@@ -25,6 +25,7 @@
 #include "interface/feature_match.h"
 #include "surview_fisheye_dewarp.h"
 #include "soft_copy_task.h"
+#include "xcam_utils.h"
 #include <map>
 
 #define ENABLE_FEATURE_MATCH HAVE_OPENCV

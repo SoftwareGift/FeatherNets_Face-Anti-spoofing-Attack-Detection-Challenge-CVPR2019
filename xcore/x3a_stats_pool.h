@@ -21,8 +21,8 @@
 #ifndef XCAM_3A_STATS_POOL_H
 #define XCAM_3A_STATS_POOL_H
 
-#include "xcam_utils.h"
-#include "buffer_pool.h"
+#include <xcam_std.h>
+#include <buffer_pool.h>
 #include <base/xcam_3a_stats.h>
 
 namespace XCam {

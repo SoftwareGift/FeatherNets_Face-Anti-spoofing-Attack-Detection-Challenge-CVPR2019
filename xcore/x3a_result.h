@@ -21,8 +21,7 @@
 #ifndef XCAM_3A_RESULT_H
 #define XCAM_3A_RESULT_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
+#include <xcam_std.h>
 #include <base/xcam_3a_result.h>
 #include <base/xcam_smart_result.h>
 #include <list>
@@ -114,7 +113,7 @@ public:
         set_ptr ((void*) _result);
         _result->head.type = (XCam3aResultType) type;
         _result->head.process_type = _process_type;
-        _result->head.version = XCAM_VERSION;
+        _result->head.version = xcam_version ();
     }
     ~X3aStandardResultT () {
         xcam_free (_result);

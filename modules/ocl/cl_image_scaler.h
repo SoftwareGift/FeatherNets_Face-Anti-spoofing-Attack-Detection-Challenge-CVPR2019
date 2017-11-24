@@ -21,10 +21,10 @@
 #ifndef XCAM_CL_IMAGE_SCALER_H
 #define XCAM_CL_IMAGE_SCALER_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_handler.h"
-#include "ocl/cl_memory.h"
-#include "stats_callback_interface.h"
+#include <xcam_std.h>
+#include <ocl/cl_image_handler.h>
+#include <ocl/cl_memory.h>
+#include <stats_callback_interface.h>
 
 namespace XCam {
 

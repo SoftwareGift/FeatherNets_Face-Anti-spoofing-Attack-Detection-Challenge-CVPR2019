@@ -19,7 +19,7 @@
  */
 
 #include <base/xcam_3a_description.h>
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "x3a_analyzer_aiq.h"
 #include "x3a_statistics_queue.h"
 #include "aiq3a_utils.h"

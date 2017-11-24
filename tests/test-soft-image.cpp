@@ -20,15 +20,14 @@
 
 #include "test_common.h"
 #include "test_inline.h"
-#include "buffer_pool.h"
-#include "image_handler.h"
-#include "image_file_handle.h"
-#include "soft/soft_video_buf_allocator.h"
-#include "interface/blender.h"
-#include "interface/geo_mapper.h"
-#include "interface/stitcher.h"
-#include "calibration_parser.h"
-
+#include <buffer_pool.h>
+#include <image_handler.h>
+#include <image_file_handle.h>
+#include <soft/soft_video_buf_allocator.h>
+#include <interface/blender.h>
+#include <interface/geo_mapper.h>
+#include <interface/stitcher.h>
+#include <calibration_parser.h>
 #include <string>
 
 #define RUN_N(statement, loop, msg, ...) \

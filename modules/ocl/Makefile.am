@@ -140,7 +140,6 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_image_warp_handler.h         \
     cl_image_360_stitch.h           \
     cl_blender.h                    \
-    cl_pyramid_blender.h            \
     cl_retinex_handler.h            \
     cl_wavelet_denoise_handler.h    \
     cl_newwavelet_denoise_handler.h \
@@ -163,5 +162,10 @@ endif
 if HAVE_LIBDRM
 nobase_libxcam_oclinclude_HEADERS += cl_image_bo_buffer.h
 endif
+
+noinst_HEADERS =                    \
+    cl_pyramid_blender.h            \
+    $(NULL)
+
 
 libxcam_ocl_la_LIBTOOLFLAGS = --tag=disable-static

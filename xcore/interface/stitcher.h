@@ -22,11 +22,10 @@
 #ifndef XCAM_INTERFACE_STITCHER_H
 #define XCAM_INTERFACE_STITCHER_H
 
-#include "xcam_utils.h"
-#include "interface/data_types.h"
+#include <xcam_std.h>
+#include <interface/data_types.h>
 #include <vector>
-#include "video_buffer.h"
-#include "calibration_parser.h"
+#include <video_buffer.h>
 
 #define XCAM_STITCH_FISHEYE_MAX_NUM    6
 #define XCAM_STITCH_MAX_CAMERAS XCAM_STITCH_FISHEYE_MAX_NUM

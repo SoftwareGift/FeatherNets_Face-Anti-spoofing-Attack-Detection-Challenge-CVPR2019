@@ -21,10 +21,10 @@
 #ifndef XCAM_SOFT_IMAGE_H
 #define XCAM_SOFT_IMAGE_H
 
-#include "xcam_utils.h"
-#include "video_buffer.h"
-#include "vec_mat.h"
-#include "file_handle.h"
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <vec_mat.h>
+#include <file_handle.h>
 
 namespace XCam {
 

@@ -21,10 +21,9 @@
 #ifndef XCAM_BUFFER_POOL_H
 #define XCAM_BUFFER_POOL_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "safe_list.h"
-#include "video_buffer.h"
+#include <xcam_std.h>
+#include <safe_list.h>
+#include <video_buffer.h>
 
 namespace XCam {
 

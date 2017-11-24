@@ -21,9 +21,9 @@
 #ifndef XCAM_CL_IMAGE_PROCESSOR_H
 #define XCAM_CL_IMAGE_PROCESSOR_H
 
-#include "xcam_utils.h"
-#include "image_processor.h"
-#include "priority_buffer_queue.h"
+#include <xcam_std.h>
+#include <image_processor.h>
+#include <ocl/priority_buffer_queue.h>
 #include <list>
 
 namespace XCam {

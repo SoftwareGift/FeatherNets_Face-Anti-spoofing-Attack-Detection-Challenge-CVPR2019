@@ -21,13 +21,13 @@
 #ifndef XCAM_POLL_THREAD_H
 #define XCAM_POLL_THREAD_H
 
-#include "xcam_utils.h"
-#include "xcam_mutex.h"
-#include "x3a_event.h"
-#include "v4l2_buffer_proxy.h"
-#include "x3a_stats_pool.h"
-#include "v4l2_device.h"
-#include "stats_callback_interface.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
+#include <x3a_event.h>
+#include <v4l2_buffer_proxy.h>
+#include <x3a_stats_pool.h>
+#include <v4l2_device.h>
+#include <stats_callback_interface.h>
 
 namespace XCam {
 

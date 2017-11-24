@@ -21,10 +21,10 @@
 #ifndef XCAM_CL_IMAGE_BO_BUFFER_H
 #define XCAM_CL_IMAGE_BO_BUFFER_H
 
-#include "xcam_utils.h"
-#include "drm_bo_buffer.h"
-#include "ocl/cl_memory.h"
-#include "ocl/cl_context.h"
+#include <xcam_std.h>
+#include <drm_bo_buffer.h>
+#include <ocl/cl_memory.h>
+#include <ocl/cl_context.h>
 
 namespace XCam {
 

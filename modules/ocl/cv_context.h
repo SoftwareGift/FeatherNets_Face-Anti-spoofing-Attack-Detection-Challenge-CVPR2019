@@ -19,21 +19,13 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#ifndef XCAM_CV_CONTEXT
-#define XCAM_CV_CONTEXT
+#ifndef XCAM_CV_CONTEXT_H
+#define XCAM_CV_CONTEXT_H
 
-#include "cl_utils.h"
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
-#include "xcam_mutex.h"
-
+#include <xcam_std.h>
+#include <xcam_obj_debug.h>
+#include <xcam_mutex.h>
 #include <ocl/cl_context.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_memory.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
@@ -67,4 +59,4 @@ private:
 
 }
 
-#endif // XCAM_CV_CONTEXT
+#endif // XCAM_CV_CONTEXT_H

@@ -18,7 +18,6 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
 #include "dma_video_buffer.h"
 
 namespace XCam {

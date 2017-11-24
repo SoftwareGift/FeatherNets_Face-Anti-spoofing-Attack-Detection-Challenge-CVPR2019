@@ -22,7 +22,7 @@
 #ifndef XCAM_FILE_HANDLE_H
 #define XCAM_FILE_HANDLE_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 
 namespace XCam {
 

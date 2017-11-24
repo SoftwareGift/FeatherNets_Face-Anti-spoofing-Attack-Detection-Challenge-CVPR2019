@@ -20,7 +20,7 @@
 
 #include <base/xcam_smart_description.h>
 #include <base/xcam_buffer.h>
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "aiq3a_utils.h"
 #include "x3a_result_factory.h"
 #include "smart_analyzer.h"

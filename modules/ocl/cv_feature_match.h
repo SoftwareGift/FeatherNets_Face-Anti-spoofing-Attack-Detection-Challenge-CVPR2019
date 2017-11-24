@@ -22,22 +22,15 @@
 #ifndef XCAM_CV_FEATURE_MATCH_H
 #define XCAM_CV_FEATURE_MATCH_H
 
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
-#include "ocl/cv_base_class.h"
-#include "interface/feature_match.h"
-#include "interface/data_types.h"
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <ocl/cv_base_class.h>
+#include <interface/feature_match.h>
+#include <interface/data_types.h>
 
 #include <ocl/cl_context.h>
 #include <ocl/cl_device.h>
 #include <ocl/cl_memory.h>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/ocl.hpp>
 
 namespace XCam {
 

@@ -17,7 +17,7 @@
  *
  * Author: wangfei <feix.w.wang@intel.com>
  */
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "cl_ee_handler.h"
 
 namespace XCam {

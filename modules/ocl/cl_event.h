@@ -21,8 +21,7 @@
 #ifndef XCAM_CL_EVENT_H
 #define XCAM_CL_EVENT_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
+#include <xcam_std.h>
 #include <list>
 #include <CL/cl.h>
 

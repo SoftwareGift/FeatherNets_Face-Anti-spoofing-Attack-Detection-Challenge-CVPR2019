@@ -21,10 +21,10 @@
 #ifndef XCAM_IMAGE_HANDLER_H
 #define XCAM_IMAGE_HANDLER_H
 
-#include "xcam_utils.h"
-#include "meta_data.h"
-#include "buffer_pool.h"
-#include "worker.h"
+#include <xcam_std.h>
+#include <meta_data.h>
+#include <buffer_pool.h>
+#include <worker.h>
 
 #define DECLARE_HANDLER_CALLBACK(CbClass, Next, mem_func)                \
     class CbClass : public ::XCam::ImageHandler::Callback {              \

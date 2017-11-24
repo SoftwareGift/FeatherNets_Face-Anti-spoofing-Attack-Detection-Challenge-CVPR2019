@@ -21,7 +21,7 @@
 #ifndef XCAM_AIQ_HANDLER_H
 #define XCAM_AIQ_HANDLER_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "handler_interface.h"
 #include "x3a_statistics_queue.h"
 #include "ia_types.h"

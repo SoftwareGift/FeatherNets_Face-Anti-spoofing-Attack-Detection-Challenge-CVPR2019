@@ -21,10 +21,9 @@
 #ifndef XCAM_VIDEO_BUFFER_H
 #define XCAM_VIDEO_BUFFER_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "meta_data.h"
-#include "base/xcam_buffer.h"
+#include <xcam_std.h>
+#include <meta_data.h>
+#include <base/xcam_buffer.h>
 #include <list>
 
 namespace XCam {

@@ -21,9 +21,9 @@
 #ifndef XCAM_CL_NEWWAVELET_DENOISE_HANLDER_H
 #define XCAM_CL_NEWWAVELET_DENOISE_HANLDER_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_handler.h"
-#include "base/xcam_3a_result.h"
+#include <xcam_std.h>
+#include <ocl/cl_image_handler.h>
+#include <base/xcam_3a_result.h>
 
 namespace XCam {
 

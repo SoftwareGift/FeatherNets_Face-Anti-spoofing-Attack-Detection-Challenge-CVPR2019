@@ -21,10 +21,10 @@
 #ifndef XCAM_CL_3A_STATS_CONTEXT_H
 #define XCAM_CL_3A_STATS_CONTEXT_H
 
-#include "xcam_utils.h"
-#include "x3a_stats_pool.h"
-#include "ocl/cl_memory.h"
-#include "ocl/cl_context.h"
+#include <xcam_std.h>
+#include <x3a_stats_pool.h>
+#include <ocl/cl_memory.h>
+#include <ocl/cl_context.h>
 
 #define XCAM_CL_3A_STATS_BUFFER_COUNT 6
 

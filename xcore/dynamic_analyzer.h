@@ -21,12 +21,13 @@
 #ifndef XCAM_DYNAMIC_ANALYZER_H
 #define XCAM_DYNAMIC_ANALYZER_H
 
+#include <xcam_std.h>
 #include <base/xcam_3a_description.h>
-#include "x3a_analyzer.h"
-#include "x3a_stats_pool.h"
-#include "handler_interface.h"
-#include "x3a_result_factory.h"
-#include "analyzer_loader.h"
+#include <x3a_analyzer.h>
+#include <x3a_stats_pool.h>
+#include <handler_interface.h>
+#include <x3a_result_factory.h>
+#include <analyzer_loader.h>
 
 namespace XCam {
 

@@ -20,6 +20,9 @@
 
 #include "cl_utils.h"
 #include "cl_image_360_stitch.h"
+#if HAVE_OPENCV
+#include "cv_feature_match.h"
+#endif
 
 #define XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH 64
 

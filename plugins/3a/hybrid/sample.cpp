@@ -19,7 +19,7 @@
  */
 
 #include <base/xcam_3a_description.h>
-#include "xcam_utils.h"
+#include <xcam_std.h>
 
 using namespace XCam;
 

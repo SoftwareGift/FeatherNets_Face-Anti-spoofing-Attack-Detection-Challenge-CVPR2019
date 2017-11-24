@@ -21,8 +21,7 @@
 #ifndef XCAM_WORKER_H
 #define XCAM_WORKER_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
+#include <xcam_std.h>
 
 #define ENABLE_FUNC_OBJ 0
 

@@ -21,9 +21,9 @@
 #ifndef XCAM_SOFT_STITCHER_H
 #define XCAM_SOFT_STITCHER_H
 
-#include "xcam_utils.h"
-#include "interface/stitcher.h"
-#include "soft_handler.h"
+#include <xcam_std.h>
+#include <interface/stitcher.h>
+#include <soft_handler.h>
 
 namespace XCam {
 

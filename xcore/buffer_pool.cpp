@@ -18,7 +18,6 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
 #include "buffer_pool.h"
 
 namespace XCam {

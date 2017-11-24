@@ -21,11 +21,10 @@
 #ifndef XCAM_IMAGE_PROCESSOR_H
 #define XCAM_IMAGE_PROCESSOR_H
 
-#include "xcam_utils.h"
-#include "video_buffer.h"
-#include "x3a_result.h"
-#include "smartptr.h"
-#include "safe_list.h"
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <x3a_result.h>
+#include <safe_list.h>
 
 namespace XCam {
 

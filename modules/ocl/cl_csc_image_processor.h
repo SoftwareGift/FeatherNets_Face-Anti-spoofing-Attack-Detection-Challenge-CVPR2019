@@ -21,9 +21,9 @@
 #ifndef XCAM_CL_CSC_IMAGE_PROCESSOR_H
 #define XCAM_CL_CSC_IMAGE_PROCESSOR_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_processor.h"
-#include "stats_callback_interface.h"
+#include <xcam_std.h>
+#include <stats_callback_interface.h>
+#include <ocl/cl_image_processor.h>
 
 namespace XCam {
 

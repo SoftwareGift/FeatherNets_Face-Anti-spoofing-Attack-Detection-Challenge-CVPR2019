@@ -22,14 +22,9 @@
 #ifndef XCAM_FEATURE_MATCH_H
 #define XCAM_FEATURE_MATCH_H
 
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
-#include "interface/data_types.h"
-
-#include <vector>
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <interface/data_types.h>
 
 namespace XCam {
 

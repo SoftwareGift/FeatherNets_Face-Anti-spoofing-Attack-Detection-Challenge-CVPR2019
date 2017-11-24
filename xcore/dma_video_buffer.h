@@ -20,8 +20,8 @@
 #ifndef XCAM_DMA_VIDEO_BUFFER_H
 #define XCAM_DMA_VIDEO_BUFFER_H
 
-#include "xcam_utils.h"
-#include "video_buffer.h"
+#include <xcam_std.h>
+#include <video_buffer.h>
 #include <unistd.h>
 
 namespace XCam {

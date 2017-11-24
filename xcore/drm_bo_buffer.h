@@ -20,13 +20,12 @@
 #ifndef XCAM_DRM_BO_BUFFER_H
 #define XCAM_DRM_BO_BUFFER_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "safe_list.h"
-#include "xcam_mutex.h"
-#include "buffer_pool.h"
-#include "drm_display.h"
-#include "swapped_buffer.h"
+#include <xcam_std.h>
+#include <safe_list.h>
+#include <xcam_mutex.h>
+#include <buffer_pool.h>
+#include <drm_display.h>
+#include <swapped_buffer.h>
 
 namespace XCam {
 

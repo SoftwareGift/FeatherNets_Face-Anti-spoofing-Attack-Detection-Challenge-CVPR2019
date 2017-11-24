@@ -21,10 +21,10 @@
 #ifndef XCAM_SOFT_HANDLER_H
 #define XCAM_SOFT_HANDLER_H
 
-#include "xcam_utils.h"
-#include "image_handler.h"
-#include "video_buffer.h"
-#include "worker.h"
+#include <xcam_std.h>
+#include <image_handler.h>
+#include <video_buffer.h>
+#include <worker.h>
 
 namespace XCam {
 

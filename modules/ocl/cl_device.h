@@ -21,9 +21,8 @@
 #ifndef XCAM_CL_DEVICE_H
 #define XCAM_CL_DEVICE_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "xcam_mutex.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
 #include <CL/cl.h>
 
 namespace XCam {

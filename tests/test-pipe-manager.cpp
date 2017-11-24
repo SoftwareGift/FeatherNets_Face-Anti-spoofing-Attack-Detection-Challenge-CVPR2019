@@ -18,14 +18,14 @@
   * Author: Yinhang Liu <yinhangx.liu@intel.com>
   */
 
-#include "pipe_manager.h"
-#include "smart_analyzer_loader.h"
-#include "ocl/cl_post_image_processor.h"
+#include <pipe_manager.h>
+#include <smart_analyzer_loader.h>
+#include <ocl/cl_post_image_processor.h>
 #if HAVE_LIBDRM
-#include "drm_display.h"
+#include <drm_display.h>
 #endif
 #include <getopt.h>
-#include "test_common.h"
+#include <test_common.h>
 #include <signal.h>
 #include <stdio.h>
 
@@ -426,7 +426,7 @@ int main (int argc, char *argv[])
     if (need_display) {
         need_display = false;
         XCAM_LOG_WARNING ("CLVideoBuffer doesn't support local preview, disable local preview now");
-    }   
+    }
 
     if (need_display) {
 #if HAVE_LIBDRM
@@ -441,7 +441,7 @@ int main (int argc, char *argv[])
         XCAM_LOG_WARNING ("preview is not supported, disable preview now");
         need_display = false;
 #endif
-    }   
+    }
     pipe_manager->enable_display (need_display);
 
     ret = pipe_manager->start ();

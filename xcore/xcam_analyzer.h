@@ -22,11 +22,11 @@
 #ifndef XCAM_ANALYZER_H
 #define XCAM_ANALYZER_H
 
-#include "xcam_utils.h"
-#include "handler_interface.h"
-#include "xcam_thread.h"
-#include "video_buffer.h"
-#include "safe_list.h"
+#include <xcam_std.h>
+#include <handler_interface.h>
+#include <xcam_thread.h>
+#include <video_buffer.h>
+#include <safe_list.h>
 
 namespace XCam {
 

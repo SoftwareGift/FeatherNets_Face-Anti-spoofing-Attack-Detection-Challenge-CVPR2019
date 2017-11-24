@@ -21,8 +21,8 @@
 #ifndef XCAM_THREAD_H
 #define XCAM_THREAD_H
 
-#include "xcam_utils.h"
-#include "xcam_mutex.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
 
 namespace XCam {
 

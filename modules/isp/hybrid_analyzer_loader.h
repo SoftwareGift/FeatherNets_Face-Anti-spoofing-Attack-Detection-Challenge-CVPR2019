@@ -22,11 +22,10 @@
 #ifndef XCAM_HYBRID_ANALYZER_LOADER_H
 #define XCAM_HYBRID_ANALYZER_LOADER_H
 
-#include <base/xcam_common.h>
+#include <xcam_std.h>
 #include <base/xcam_3a_description.h>
 #include "dynamic_analyzer_loader.h"
 #include "isp_controller.h"
-#include "smartptr.h"
 
 namespace XCam {
 class IspController;

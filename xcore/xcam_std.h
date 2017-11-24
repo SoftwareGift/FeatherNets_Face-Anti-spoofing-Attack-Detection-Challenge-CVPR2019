@@ -1,7 +1,7 @@
 /*
- * aiq3a_utils.h - aiq 3a utility:
+ * xcam_std.h - xcam std
  *
- *  Copyright (c) 2015 Intel Corporation
+ *  Copyright (c) 2014-2017 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,34 @@
  * limitations under the License.
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
- * Author: Shincy Tu <shincy.tu@intel.com>
  */
 
-#ifndef XCAM_AIQ_UTILS_H
-#define XCAM_AIQ_UTILS_H
+#ifndef XCAM_STD_H
+#define XCAM_STD_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-#include <xcam_std.h>
-#include "x3a_result.h"
-
-#include <base/xcam_3a_stats.h>
-#include <linux/atomisp.h>
+#include <base/xcam_common.h>
+#include <xcam_obj_debug.h>
+extern "C" {
+#include <linux/videodev2.h>
+}
+#include <cinttypes>
+#include <vector>
+#include <smartptr.h>
 
 namespace XCam {
-bool translate_3a_stats (XCam3AStats *from, struct atomisp_3a_statistics *to);
-uint32_t translate_3a_results_to_xcam (XCam::X3aResultList &list,
-                                       XCam3aResultHead *results[], uint32_t max_count);
 
-void free_3a_result (XCam3aResultHead *result);
-}
+static const int64_t InvalidTimestamp = INT64_C(-1);
 
-#endif //XCAM_AIQ_UTILS_H
+enum NV12PlaneIdx {
+    NV12PlaneYIdx = 0,
+    NV12PlaneUVIdx,
+    NV12PlaneMax,
+};
+
+};
+
+#endif //XCAM_STD_H

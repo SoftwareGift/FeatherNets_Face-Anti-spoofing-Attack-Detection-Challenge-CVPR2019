@@ -21,8 +21,8 @@
 #ifndef XCAM_STATS_CALLBACK_H
 #define XCAM_STATS_CALLBACK_H
 
-#include "xcam_utils.h"
-#include "xcam_mutex.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
 
 
 namespace XCam {

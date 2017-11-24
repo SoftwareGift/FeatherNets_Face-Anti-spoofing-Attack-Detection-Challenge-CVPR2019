@@ -22,10 +22,9 @@
 #ifndef XCAM_DYNAMIC_ANALYZER_LOADER_H
 #define XCAM_DYNAMIC_ANALYZER_LOADER_H
 
-#include <base/xcam_common.h>
+#include <xcam_std.h>
 #include <base/xcam_3a_description.h>
-#include "analyzer_loader.h"
-#include "smartptr.h"
+#include <analyzer_loader.h>
 
 namespace XCam {
 class X3aAnalyzer;

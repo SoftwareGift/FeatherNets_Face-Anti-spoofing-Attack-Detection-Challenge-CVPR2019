@@ -63,6 +63,7 @@ typedef enum {
 
 #define xcam_mem_clear(v_stack) memset(&(v_stack), 0, sizeof(v_stack))
 
+uint32_t xcam_version ();
 void * xcam_malloc (size_t size);
 void * xcam_malloc0 (size_t size);
 

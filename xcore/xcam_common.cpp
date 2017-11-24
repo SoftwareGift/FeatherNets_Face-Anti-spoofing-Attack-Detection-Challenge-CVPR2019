@@ -18,6 +18,10 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <base/xcam_common.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -25,6 +29,11 @@
 #include <stdarg.h>
 
 static char log_file_name[XCAM_MAX_STR_SIZE] = {0};
+
+uint32_t xcam_version ()
+{
+    return XCAM_VERSION;
+}
 
 void * xcam_malloc(size_t size)
 {

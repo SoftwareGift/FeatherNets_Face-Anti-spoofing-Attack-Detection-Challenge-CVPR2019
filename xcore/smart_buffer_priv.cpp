@@ -18,7 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "base/xcam_buffer.h"
 #include "video_buffer.h"
 #if HAVE_LIBDRM

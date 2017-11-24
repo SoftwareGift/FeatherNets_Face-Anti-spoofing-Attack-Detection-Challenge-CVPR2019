@@ -21,10 +21,9 @@
 #ifndef XCAM_SMART_ANALYZER_LOADER_H
 #define XCAM_SMART_ANALYZER_LOADER_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "analyzer_loader.h"
-#include "smart_analysis_handler.h"
+#include <xcam_std.h>
+#include <analyzer_loader.h>
+#include <smart_analysis_handler.h>
 #include <base/xcam_smart_description.h>
 #include <list>
 

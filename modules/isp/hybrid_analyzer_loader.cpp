@@ -85,9 +85,9 @@ HybridAnalyzerLoader::load_symbol (void* handle)
         XCAM_LOG_DEBUG ("get symbol failed from lib");
         return NULL;
     }
-    if (desc->version < XCAM_VERSION) {
+    if (desc->version < xcam_version ()) {
         XCAM_LOG_DEBUG ("get symbolfailed. version is:0x%04x, but expect:0x%04x",
-                        desc->version, XCAM_VERSION);
+                        desc->version, xcam_version ());
         return NULL;
     }
     if (desc->size < sizeof (XCam3ADescription)) {

@@ -21,9 +21,9 @@
 #ifndef XCAM_CL_CSC_HANLDER_H
 #define XCAM_CL_CSC_HANLDER_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_handler.h"
-#include "base/xcam_3a_result.h"
+#include <xcam_std.h>
+#include <base/xcam_3a_result.h>
+#include <ocl/cl_image_handler.h>
 
 namespace XCam {
 

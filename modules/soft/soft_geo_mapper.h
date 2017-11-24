@@ -21,10 +21,10 @@
 #ifndef XCAM_SOFT_GEO_MAP_H
 #define XCAM_SOFT_GEO_MAP_H
 
-#include "xcam_utils.h"
-#include "interface/geo_mapper.h"
-#include "soft/soft_handler.h"
-#include "soft/soft_image.h"
+#include <xcam_std.h>
+#include <interface/geo_mapper.h>
+#include <soft/soft_handler.h>
+#include <soft/soft_image.h>
 
 namespace XCam {
 

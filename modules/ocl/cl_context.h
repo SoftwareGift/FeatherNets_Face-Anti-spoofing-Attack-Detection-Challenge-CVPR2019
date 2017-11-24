@@ -21,13 +21,12 @@
 #ifndef XCAM_CL_CONTEXT_H
 #define XCAM_CL_CONTEXT_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "ocl/cl_event.h"
+#include <xcam_std.h>
 #include <map>
 #include <list>
 #include <CL/cl.h>
 #include <CL/cl_intel.h>
+#include <ocl/cl_event.h>
 
 namespace XCam {
 

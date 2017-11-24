@@ -77,10 +77,10 @@ CLFisheye2GPSKernel::CLFisheye2GPSKernel (
 XCamReturn
 CLFisheye2GPSKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
 {
-    SmartPtr<CLImage> input_y = _handler->get_input_image (CLNV12PlaneY);
-    SmartPtr<CLImage> input_uv = _handler->get_input_image (CLNV12PlaneUV);
-    SmartPtr<CLImage> output_y = _handler->get_output_image (CLNV12PlaneY);
-    SmartPtr<CLImage> output_uv = _handler->get_output_image (CLNV12PlaneUV);
+    SmartPtr<CLImage> input_y = _handler->get_input_image (NV12PlaneYIdx);
+    SmartPtr<CLImage> input_uv = _handler->get_input_image (NV12PlaneUVIdx);
+    SmartPtr<CLImage> output_y = _handler->get_output_image (NV12PlaneYIdx);
+    SmartPtr<CLImage> output_uv = _handler->get_output_image (NV12PlaneUVIdx);
     const CLImageDesc &input_y_desc = input_y->get_image_desc ();
     const CLImageDesc &outuv_desc = output_uv->get_image_desc ();
     FisheyeInfo fisheye_info;
@@ -245,43 +245,43 @@ CLFisheyeHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vid
     cl_desc.format.image_channel_order = CL_R;
     cl_desc.width = input_image_w;
     cl_desc.height = input_image_h;
-    cl_desc.row_pitch = in_info.strides[CLNV12PlaneY];
-    _input[CLNV12PlaneY] = convert_to_climage (context, input, cl_desc, in_info.offsets[CLNV12PlaneY]);
+    cl_desc.row_pitch = in_info.strides[NV12PlaneYIdx];
+    _input[NV12PlaneYIdx] = convert_to_climage (context, input, cl_desc, in_info.offsets[NV12PlaneYIdx]);
 
     cl_desc.format.image_channel_data_type = CL_UNORM_INT8;
     cl_desc.format.image_channel_order = CL_RG;
     cl_desc.width = input_image_w / 2;
     cl_desc.height = input_image_h / 2;
-    cl_desc.row_pitch = in_info.strides[CLNV12PlaneUV];
-    _input[CLNV12PlaneUV] = convert_to_climage (context, input, cl_desc, in_info.offsets[CLNV12PlaneUV]);
+    cl_desc.row_pitch = in_info.strides[NV12PlaneUVIdx];
+    _input[NV12PlaneUVIdx] = convert_to_climage (context, input, cl_desc, in_info.offsets[NV12PlaneUVIdx]);
 
     if (_use_map) {
         cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT16;
         cl_desc.format.image_channel_order = CL_RGBA;
         cl_desc.width = XCAM_ALIGN_DOWN (out_info.width, 8) / 8; //CL_RGBA * CL_UNSIGNED_INT16 = 8
         cl_desc.height = XCAM_ALIGN_DOWN (out_info.height, 2);
-        cl_desc.row_pitch = out_info.strides[CLNV12PlaneY];
-        _output[CLNV12PlaneY] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneY]);
+        cl_desc.row_pitch = out_info.strides[NV12PlaneYIdx];
+        _output[NV12PlaneYIdx] = convert_to_climage (context, output, cl_desc, out_info.offsets[NV12PlaneYIdx]);
         cl_desc.height /= 2;
-        cl_desc.row_pitch = out_info.strides[CLNV12PlaneUV];
-        _output[CLNV12PlaneUV] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneUV]);
+        cl_desc.row_pitch = out_info.strides[NV12PlaneUVIdx];
+        _output[NV12PlaneUVIdx] = convert_to_climage (context, output, cl_desc, out_info.offsets[NV12PlaneUVIdx]);
     } else {
         cl_desc.format.image_channel_data_type = CL_UNSIGNED_INT8;
         cl_desc.format.image_channel_order = CL_RGBA;
         cl_desc.width = XCAM_ALIGN_DOWN (out_info.width, 4) / 4; //CL_RGBA * CL_UNSIGNED_INT8 = 4
         cl_desc.height = XCAM_ALIGN_DOWN (out_info.height, 2);
-        cl_desc.row_pitch = out_info.strides[CLNV12PlaneY];
-        _output[CLNV12PlaneY] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneY]);
+        cl_desc.row_pitch = out_info.strides[NV12PlaneYIdx];
+        _output[NV12PlaneYIdx] = convert_to_climage (context, output, cl_desc, out_info.offsets[NV12PlaneYIdx]);
         cl_desc.height /= 2;
-        cl_desc.row_pitch = out_info.strides[CLNV12PlaneUV];
-        _output[CLNV12PlaneUV] = convert_to_climage (context, output, cl_desc, out_info.offsets[CLNV12PlaneUV]);
+        cl_desc.row_pitch = out_info.strides[NV12PlaneUVIdx];
+        _output[NV12PlaneUVIdx] = convert_to_climage (context, output, cl_desc, out_info.offsets[NV12PlaneUVIdx]);
     }
 
     XCAM_ASSERT (
-        _input[CLNV12PlaneY].ptr () && _input[CLNV12PlaneY]->is_valid () &&
-        _input[CLNV12PlaneUV].ptr () && _input[CLNV12PlaneUV]->is_valid () &&
-        _output[CLNV12PlaneY].ptr () && _output[CLNV12PlaneY]->is_valid () &&
-        _output[CLNV12PlaneUV].ptr () && _output[CLNV12PlaneUV]->is_valid ());
+        _input[NV12PlaneYIdx].ptr () && _input[NV12PlaneYIdx]->is_valid () &&
+        _input[NV12PlaneUVIdx].ptr () && _input[NV12PlaneUVIdx]->is_valid () &&
+        _output[NV12PlaneYIdx].ptr () && _output[NV12PlaneYIdx]->is_valid () &&
+        _output[NV12PlaneUVIdx].ptr () && _output[NV12PlaneUVIdx]->is_valid ());
 
     if (_use_map && !_geo_table.ptr ()) {
         generate_fisheye_table (input_image_w, input_image_h, _fisheye_info);
@@ -530,7 +530,7 @@ CLFisheyeHandler::execute_done (SmartPtr<VideoBuffer> &output)
 {
     XCAM_UNUSED (output);
 
-    for (int i = 0; i < CLNV12PlaneMax; ++i) {
+    for (int i = 0; i < NV12PlaneMax; ++i) {
         _input[i].release ();
         _output[i].release ();
     }
@@ -539,12 +539,12 @@ CLFisheyeHandler::execute_done (SmartPtr<VideoBuffer> &output)
 }
 
 SmartPtr<CLImage>
-CLFisheyeHandler::get_geo_input_image (CLNV12PlaneIdx index) {
+CLFisheyeHandler::get_geo_input_image (NV12PlaneIdx index) {
     return get_input_image(index);
 }
 
 SmartPtr<CLImage>
-CLFisheyeHandler::get_geo_output_image (CLNV12PlaneIdx index) {
+CLFisheyeHandler::get_geo_output_image (NV12PlaneIdx index) {
     return get_output_image (index);
 }
 

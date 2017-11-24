@@ -21,10 +21,10 @@
 #ifndef XCAM_SOFT_BLENDER_TASKS_PRIV_H
 #define XCAM_SOFT_BLENDER_TASKS_PRIV_H
 
-#include "xcam_utils.h"
-#include "soft/soft_worker.h"
-#include "soft/soft_image.h"
-#include "soft/soft_blender.h"
+#include <xcam_std.h>
+#include <soft/soft_worker.h>
+#include <soft/soft_image.h>
+#include <soft/soft_blender.h>
 
 #define SOFT_BLENDER_ALIGNMENT_X 8
 #define SOFT_BLENDER_ALIGNMENT_Y 4

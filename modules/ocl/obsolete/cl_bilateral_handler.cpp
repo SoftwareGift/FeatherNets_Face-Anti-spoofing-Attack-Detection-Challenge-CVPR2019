@@ -19,7 +19,7 @@
  *             Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "cl_bilateral_handler.h"
 
 namespace XCam {

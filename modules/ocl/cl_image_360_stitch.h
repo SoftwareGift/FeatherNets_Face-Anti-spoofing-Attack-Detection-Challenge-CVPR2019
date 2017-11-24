@@ -21,14 +21,12 @@
 #ifndef XCAM_CL_IMAGE_360_STITCH_H
 #define XCAM_CL_IMAGE_360_STITCH_H
 
-#include "xcam_utils.h"
-#include "interface/stitcher.h"
-#include "ocl/cl_multi_image_handler.h"
-#include "ocl/cl_fisheye_handler.h"
-#include "ocl/cl_blender.h"
-#if HAVE_OPENCV
-#include "ocl/cv_feature_match.h"
-#endif
+#include <xcam_std.h>
+#include <interface/stitcher.h>
+#include <interface/feature_match.h>
+#include <ocl/cl_multi_image_handler.h>
+#include <ocl/cl_fisheye_handler.h>
+#include <ocl/cl_blender.h>
 
 namespace XCam {
 
@@ -129,9 +127,7 @@ private:
     SmartPtr<CLContext>         _context;
     CLFisheyeParams             _fisheye[XCAM_STITCH_FISHEYE_MAX_NUM];
     SmartPtr<CLBlender>         _blender[XCAM_STITCH_FISHEYE_MAX_NUM];
-#if HAVE_OPENCV
     SmartPtr<FeatureMatch>      _feature_match[XCAM_STITCH_FISHEYE_MAX_NUM];
-#endif
 
     uint32_t                    _output_width;
     uint32_t                    _output_height;

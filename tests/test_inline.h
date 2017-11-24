@@ -22,7 +22,7 @@
 #ifndef XCAM_TEST_INLINE_H
 #define XCAM_TEST_INLINE_H
 
-#include "video_buffer.h"
+#include <video_buffer.h>
 
 using namespace XCam;
 

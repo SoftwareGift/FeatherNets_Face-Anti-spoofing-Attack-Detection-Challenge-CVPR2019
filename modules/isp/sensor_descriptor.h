@@ -21,7 +21,7 @@
 #ifndef XCAM_SENSOR_DESCRIPTOR_H
 #define XCAM_SENSOR_DESCRIPTOR_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include <linux/atomisp.h>
 
 namespace XCam {

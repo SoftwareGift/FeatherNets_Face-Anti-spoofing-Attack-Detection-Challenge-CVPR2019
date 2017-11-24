@@ -21,8 +21,8 @@
 #ifndef XCAM_3A_ISP_CONFIG_H
 #define XCAM_3A_ISP_CONFIG_H
 
-#include "xcam_utils.h"
-#include "x3a_result.h"
+#include <xcam_std.h>
+#include <x3a_result.h>
 #include <linux/atomisp.h>
 #include <base/xcam_3a_result.h>
 
@@ -149,7 +149,7 @@ private:
 /* special X3aAtomIspParametersResult type */
 template <>
 class X3aIspResultT<struct atomisp_parameters, X3aIspConfig::X3aIspResultDummy, X3aIspConfig::IspAllParameters>
-            : public X3aStandardResultT<X3aIspConfig::X3aIspResultDummy>
+        : public X3aStandardResultT<X3aIspConfig::X3aIspResultDummy>
     {
 public:
         X3aIspResultT (

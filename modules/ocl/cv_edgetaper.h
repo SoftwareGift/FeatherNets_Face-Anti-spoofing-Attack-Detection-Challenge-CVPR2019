@@ -22,18 +22,8 @@
 #ifndef XCAM_CV_EDGETAPER_H
 #define XCAM_CV_EDGETAPER_H
 
-#include "xcam_utils.h"
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
-#include "cv_base_class.h"
-
-#include <ocl/cl_context.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_memory.h>
+#include <xcam_std.h>
+#include <ocl/cv_base_class.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>

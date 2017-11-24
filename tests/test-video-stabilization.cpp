@@ -22,18 +22,18 @@
 #include "test_inline.h"
 #include <unistd.h>
 #include <getopt.h>
-#include "ocl/cl_utils.h"
-#include "ocl/cl_device.h"
-#include "ocl/cl_context.h"
-#include "ocl/cl_blender.h"
-#include "image_file_handle.h"
-#include "ocl/cl_video_stabilizer.h"
-#include "dma_video_buffer.h"
+#include <ocl/cl_utils.h>
+#include <ocl/cl_device.h>
+#include <ocl/cl_context.h>
+#include <ocl/cl_blender.h>
+#include <image_file_handle.h>
+#include <ocl/cl_video_stabilizer.h>
+#include <dma_video_buffer.h>
 
 #if HAVE_OPENCV
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
-#include "ocl/cv_base_class.h"
+#include <ocl/cv_base_class.h>
 #endif
 
 using namespace XCam;

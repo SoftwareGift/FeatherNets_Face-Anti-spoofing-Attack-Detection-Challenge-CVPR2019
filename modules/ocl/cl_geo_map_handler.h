@@ -21,8 +21,8 @@
 #ifndef XCAM_CL_GEO_MAP_HANDLER_H
 #define XCAM_CL_GEO_MAP_HANDLER_H
 
-#include "xcam_utils.h"
-#include "ocl/cl_image_handler.h"
+#include <xcam_std.h>
+#include <ocl/cl_image_handler.h>
 
 namespace XCam {
 
@@ -43,8 +43,8 @@ public:
     virtual ~GeoKernelParamCallback () {}
 
 protected:
-    virtual SmartPtr<CLImage> get_geo_input_image (CLNV12PlaneIdx index) = 0;
-    virtual SmartPtr<CLImage> get_geo_output_image (CLNV12PlaneIdx index) = 0;
+    virtual SmartPtr<CLImage> get_geo_input_image (NV12PlaneIdx index) = 0;
+    virtual SmartPtr<CLImage> get_geo_output_image (NV12PlaneIdx index) = 0;
     virtual SmartPtr<CLImage> get_geo_map_table () = 0;
     virtual void get_geo_equivalent_out_size (float &width, float &height) = 0;
     virtual void get_geo_pixel_out_size (float &width, float &height) = 0;
@@ -98,12 +98,12 @@ public:
 
 protected:
     // derived from GeoKernelParamCallback
-    virtual SmartPtr<CLImage> get_geo_input_image (CLNV12PlaneIdx index) {
-        XCAM_ASSERT (index < CLNV12PlaneMax);
+    virtual SmartPtr<CLImage> get_geo_input_image (NV12PlaneIdx index) {
+        XCAM_ASSERT (index < NV12PlaneMax);
         return _input [index];
     }
-    virtual SmartPtr<CLImage> get_geo_output_image (CLNV12PlaneIdx index) {
-        XCAM_ASSERT (index < CLNV12PlaneMax);
+    virtual SmartPtr<CLImage> get_geo_output_image (NV12PlaneIdx index) {
+        XCAM_ASSERT (index < NV12PlaneMax);
         return _output [index];
     }
     virtual SmartPtr<CLImage> get_geo_map_table () {
@@ -141,8 +141,8 @@ private:
     uint32_t                         _map_width, _map_height;
     uint32_t                         _map_aligned_width;
     float                            _uint_x, _uint_y;
-    SmartPtr<CLImage>                _input[CLNV12PlaneMax];
-    SmartPtr<CLImage>                _output[CLNV12PlaneMax];
+    SmartPtr<CLImage>                _input[NV12PlaneMax];
+    SmartPtr<CLImage>                _output[NV12PlaneMax];
     SmartPtr<CLBuffer>               _geo_map;
     SmartPtr<CLImage>                _geo_image;
     bool                             _geo_map_normalized;

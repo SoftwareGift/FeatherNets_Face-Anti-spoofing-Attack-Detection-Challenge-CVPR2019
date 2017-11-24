@@ -21,10 +21,10 @@
 #ifndef XCAM_CL_TONEMAPPING_HANLDER_H
 #define XCAM_CL_TONEMAPPING_HANLDER_H
 
-#include "xcam_utils.h"
-#include "x3a_stats_pool.h"
-#include "ocl/cl_image_handler.h"
-#include "ocl/cl_bayer_basic_handler.h"
+#include <xcam_std.h>
+#include <x3a_stats_pool.h>
+#include <ocl/cl_image_handler.h>
+#include <ocl/cl_bayer_basic_handler.h>
 
 namespace XCam {
 

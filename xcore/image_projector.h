@@ -21,9 +21,9 @@
 #ifndef XCAM_IMAGE_PROJECTIVE_2D_H
 #define XCAM_IMAGE_PROJECTIVE_2D_H
 
-#include "xcam_utils.h"
-#include "meta_data.h"
-#include "vec_mat.h"
+#include <xcam_std.h>
+#include <meta_data.h>
+#include <vec_mat.h>
 #include <vector>
 
 namespace XCam {

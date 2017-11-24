@@ -18,7 +18,6 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
 #include "cl_argument.h"
 
 namespace XCam {

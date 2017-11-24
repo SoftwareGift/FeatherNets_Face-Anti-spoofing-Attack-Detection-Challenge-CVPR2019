@@ -19,6 +19,7 @@
  */
 
 #include "soft_blender.h"
+#include "xcam_utils.h"
 #include "soft_image.h"
 #include "soft_worker.h"
 #include "soft_blender_tasks_priv.h"
@@ -154,10 +155,16 @@ void dump_level_buf (const SmartPtr<VideoBuffer> buf, const char *name, uint32_t
     dump_buf_perfix_path (buf, file_name);
 }
 #else
-static void dump_buf (const SmartPtr<VideoBuffer> buf, ...) { XCAM_UNUSED (buf); }
+static void dump_buf (const SmartPtr<VideoBuffer> buf, ...) {
+    XCAM_UNUSED (buf);
+}
 template <class SoftImageT>
-static void dump_soft (const SmartPtr<SoftImageT> &image, ...) { XCAM_UNUSED (image); }
-static void dump_level_buf (const SmartPtr<VideoBuffer> buf, ...) { XCAM_UNUSED (buf); }
+static void dump_soft (const SmartPtr<SoftImageT> &image, ...) {
+    XCAM_UNUSED (image);
+}
+static void dump_level_buf (const SmartPtr<VideoBuffer> buf, ...) {
+    XCAM_UNUSED (buf);
+}
 #endif
 
 SoftBlender::SoftBlender (const char *name)

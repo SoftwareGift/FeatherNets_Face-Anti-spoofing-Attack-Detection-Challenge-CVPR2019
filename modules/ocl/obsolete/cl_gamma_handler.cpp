@@ -17,7 +17,7 @@
  *
  * Author: wangfei <feix.w.wang@intel.com>
  */
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "cl_gamma_handler.h"
 
 float default_gamma_table[XCAM_GAMMA_TABLE_SIZE] = {

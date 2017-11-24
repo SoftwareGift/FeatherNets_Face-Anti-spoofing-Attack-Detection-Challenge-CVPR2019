@@ -22,21 +22,9 @@
 #ifndef XCAM_CV_BASE_CLASS_H
 #define XCAM_CV_BASE_CLASS_H
 
-#include "cl_utils.h"
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
-#include "cv_context.h"
-
-#include <ocl/cl_context.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_memory.h>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/ocl.hpp>
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <ocl/cv_context.h>
 
 namespace XCam {
 

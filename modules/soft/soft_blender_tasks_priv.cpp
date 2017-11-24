@@ -18,7 +18,6 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
 #include "soft_blender_tasks_priv.h"
 
 namespace XCam {

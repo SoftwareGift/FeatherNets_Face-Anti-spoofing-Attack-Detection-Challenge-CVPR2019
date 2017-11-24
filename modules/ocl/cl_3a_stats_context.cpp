@@ -19,7 +19,7 @@
  * Author: Jia Meng <jia.meng@intel.com>
  */
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "cl_3a_stats_context.h"
 
 namespace XCam {

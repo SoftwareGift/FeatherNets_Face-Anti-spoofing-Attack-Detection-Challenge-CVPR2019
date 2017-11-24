@@ -20,7 +20,7 @@
 #ifndef XCAM_ISP_CONTROLLER_H
 #define XCAM_ISP_CONTROLLER_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "x3a_isp_config.h"
 
 namespace XCam {

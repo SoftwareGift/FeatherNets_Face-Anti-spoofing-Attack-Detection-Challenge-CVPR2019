@@ -21,10 +21,9 @@
 #ifndef XCAM_THREAD_POOL_H
 #define XCAM_THREAD_POOL_H
 
-#include "xcam_utils.h"
-#include "safe_list.h"
-#include "smartptr.h"
-#include "xcam_thread.h"
+#include <xcam_std.h>
+#include <safe_list.h>
+#include <xcam_thread.h>
 
 namespace XCam {
 

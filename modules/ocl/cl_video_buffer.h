@@ -21,13 +21,12 @@
 #ifndef XCAM_CL_VIDEO_BUFFER_H
 #define XCAM_CL_VIDEO_BUFFER_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "safe_list.h"
-#include "xcam_mutex.h"
-#include "buffer_pool.h"
-#include "x3a_stats_pool.h"
-#include "ocl/cl_context.h"
+#include <xcam_std.h>
+#include <safe_list.h>
+#include <xcam_mutex.h>
+#include <buffer_pool.h>
+#include <x3a_stats_pool.h>
+#include <ocl/cl_context.h>
 
 namespace XCam {
 

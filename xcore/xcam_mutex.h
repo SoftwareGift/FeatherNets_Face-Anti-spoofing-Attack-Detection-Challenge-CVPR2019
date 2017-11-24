@@ -21,7 +21,7 @@
 #ifndef XCAM_MUTEX_H
 #define XCAM_MUTEX_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include <pthread.h>
 #include <sys/time.h>
 

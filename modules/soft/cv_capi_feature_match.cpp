@@ -36,13 +36,13 @@ CVCapiFeatureMatch::get_crop_image (
     VideoBufferInfo info = buffer->get_video_info ();
 
     uint8_t* image_buffer = buffer->map();
-    int offset = info.strides[CLNV12PlaneY] * crop_rect.pos_y + crop_rect.pos_x;
+    int offset = info.strides[NV12PlaneYIdx] * crop_rect.pos_y + crop_rect.pos_x;
 
     crop_image.resize (crop_rect.width * crop_rect.height);
     for (int i = 0; i < crop_rect.height; i++) {
         for (int j = 0; j < crop_rect.width; j++) {
             crop_image[i * crop_rect.width + j] =
-                image_buffer[offset + i * info.strides[CLNV12PlaneY] + j];
+                image_buffer[offset + i * info.strides[NV12PlaneYIdx] + j];
         }
     }
 

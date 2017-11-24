@@ -129,9 +129,9 @@ SmartAnalyzerLoader::load_symbol (void* handle)
         XCAM_LOG_DEBUG ("get symbol failed from lib");
         return NULL;
     }
-    if (desc->version < XCAM_VERSION) {
+    if (desc->version < xcam_version ()) {
         XCAM_LOG_WARNING ("get symbol version is:0x%04x, but expect:0x%04x",
-                          desc->version, XCAM_VERSION);
+                          desc->version, xcam_version ());
     }
     if (desc->size < sizeof (XCamSmartAnalysisDescription)) {
         XCAM_LOG_DEBUG ("get symbol failed, XCamSmartAnalysisDescription size is:%" PRIu32 ", but expect:%" PRIuS,

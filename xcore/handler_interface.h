@@ -25,9 +25,9 @@
 #include <base/xcam_3a_types.h>
 #include <base/xcam_params.h>
 
-#include "xcam_utils.h"
-#include "xcam_mutex.h"
-#include "x3a_result.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
+#include <x3a_result.h>
 
 namespace XCam {
 

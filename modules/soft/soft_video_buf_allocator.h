@@ -21,8 +21,8 @@
 #ifndef XCAM_SOFT_VIDEO_BUF_ALLOCATOR_H
 #define XCAM_SOFT_VIDEO_BUF_ALLOCATOR_H
 
-#include "xcam_utils.h"
-#include "buffer_pool.h"
+#include <xcam_std.h>
+#include <buffer_pool.h>
 
 namespace XCam {
 

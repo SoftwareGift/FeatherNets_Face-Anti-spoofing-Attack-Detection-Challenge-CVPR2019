@@ -23,11 +23,16 @@
 #include "test_inline.h"
 #include <unistd.h>
 #include <getopt.h>
-#include "ocl/cl_device.h"
-#include "ocl/cl_context.h"
-#include "image_file_handle.h"
-#include "ocl/cl_fisheye_handler.h"
-#include "ocl/cl_image_360_stitch.h"
+#include <image_file_handle.h>
+#include <calibration_parser.h>
+#include <ocl/cl_device.h>
+#include <ocl/cl_context.h>
+#include <ocl/cl_fisheye_handler.h>
+#include <ocl/cl_image_360_stitch.h>
+#include <ocl/cl_utils.h>
+#if HAVE_OPENCV
+#include <ocl/cv_base_class.h>
+#endif
 
 #define XCAM_TEST_STITCH_DEBUG 0
 #define XCAM_ALIGNED_WIDTH 16

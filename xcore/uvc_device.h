@@ -21,10 +21,10 @@
 #ifndef XCAM_UVC_DEVICE_H
 #define XCAM_UVC_DEVICE_H
 
-#include "xcam_utils.h"
-#include "v4l2_device.h"
+#include <xcam_std.h>
+#include <v4l2_device.h>
 #if HAVE_LIBDRM
-#include "drm_display.h"
+#include <drm_display.h>
 #endif
 
 namespace XCam {

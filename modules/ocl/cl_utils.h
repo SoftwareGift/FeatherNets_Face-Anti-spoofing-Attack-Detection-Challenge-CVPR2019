@@ -31,6 +31,17 @@
 
 namespace XCam {
 
+enum CLWaveletBasis {
+    CL_WAVELET_DISABLED = 0,
+    CL_WAVELET_HAT,
+    CL_WAVELET_HAAR,
+};
+
+enum CLImageChannel {
+    CL_IMAGE_CHANNEL_Y = 1,
+    CL_IMAGE_CHANNEL_UV = 1 << 1,
+};
+
 bool dump_image (SmartPtr<CLImage> image, const char *file_name);
 
 SmartPtr<CLBuffer> convert_to_clbuffer (

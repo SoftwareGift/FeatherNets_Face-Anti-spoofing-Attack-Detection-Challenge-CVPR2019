@@ -21,8 +21,7 @@
 #ifndef XCAM_META_DATA_H
 #define XCAM_META_DATA_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
+#include <xcam_std.h>
 #include <list>
 
 namespace XCam {

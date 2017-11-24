@@ -25,8 +25,7 @@
 #include <base/xcam_common.h>
 #include <errno.h>
 #include <list>
-#include "smartptr.h"
-#include "xcam_mutex.h"
+#include <xcam_mutex.h>
 
 namespace XCam {
 

@@ -22,11 +22,12 @@
 #ifndef XCAM_CL_POST_IMAGE_PROCESSOR_H
 #define XCAM_CL_POST_IMAGE_PROCESSOR_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include <base/xcam_3a_types.h>
-#include "ocl/cl_image_processor.h"
-#include "stats_callback_interface.h"
-#include "ocl/cl_blender.h"
+#include <ocl/cl_image_processor.h>
+#include <stats_callback_interface.h>
+#include <ocl/cl_blender.h>
+#include <ocl/cl_utils.h>
 
 namespace XCam {
 

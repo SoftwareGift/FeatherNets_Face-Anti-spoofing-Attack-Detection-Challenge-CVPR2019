@@ -21,9 +21,9 @@
 #ifndef XCAM_SOFT_BLENDER_H
 #define XCAM_SOFT_BLENDER_H
 
-#include "xcam_utils.h"
-#include "interface/blender.h"
-#include "soft/soft_handler.h"
+#include <xcam_std.h>
+#include <interface/blender.h>
+#include <soft/soft_handler.h>
 
 #define XCAM_SOFT_PYRAMID_MAX_LEVEL 4
 #define XCAM_SOFT_PYRAMID_DEFAULT_LEVEL 3

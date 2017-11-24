@@ -22,25 +22,13 @@
 #ifndef XCAM_CV_FEATURE_DEBLURRING_H
 #define XCAM_CV_FEATURE_DEBLURRING_H
 
-#include "xcam_utils.h"
-#include <base/xcam_common.h>
-#include <base/xcam_buffer.h>
-#include <dma_video_buffer.h>
-#include <smartptr.h>
-#include "xcam_obj_debug.h"
-#include "image_file_handle.h"
-#include "cv_base_class.h"
-#include "cv_image_process_helper.h"
-#include "cv_image_sharp.h"
-#include "cv_edgetaper.h"
-#include "cv_wiener_filter.h"
-
-#include <ocl/cl_context.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_memory.h>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/ocl.hpp>
+#include <xcam_std.h>
+#include <video_buffer.h>
+#include <ocl/cv_base_class.h>
+#include <ocl/cv_image_process_helper.h>
+#include <ocl/cv_image_sharp.h>
+#include <ocl/cv_edgetaper.h>
+#include <ocl/cv_wiener_filter.h>
 
 namespace XCam {
 

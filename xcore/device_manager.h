@@ -21,16 +21,15 @@
 #ifndef XCAM_DEVICE_MANAGER_H
 #define XCAM_DEVICE_MANAGER_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "v4l2_device.h"
-#include "v4l2_buffer_proxy.h"
-#include "x3a_analyzer.h"
-#include "smart_analyzer.h"
-#include "x3a_image_process_center.h"
-#include "image_processor.h"
-#include "poll_thread.h"
-#include "stats_callback_interface.h"
+#include <xcam_std.h>
+#include <v4l2_device.h>
+#include <v4l2_buffer_proxy.h>
+#include <x3a_analyzer.h>
+#include <smart_analyzer.h>
+#include <x3a_image_process_center.h>
+#include <image_processor.h>
+#include <poll_thread.h>
+#include <stats_callback_interface.h>
 
 namespace XCam {
 

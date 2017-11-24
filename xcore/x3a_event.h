@@ -21,12 +21,12 @@
 #ifndef XCAM_3A_EVENT_H
 #define XCAM_3A_EVENT_H
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 
 namespace XCam {
 
 class X3aEvent
-    //:public ObjectLife
+//:public ObjectLife
 {
 public:
     enum Type {

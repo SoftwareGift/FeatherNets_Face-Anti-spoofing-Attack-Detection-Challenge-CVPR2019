@@ -18,7 +18,7 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
-#include "xcam_utils.h"
+#include <xcam_std.h>
 #include "cl_3a_stats_calculator.h"
 
 namespace XCam {

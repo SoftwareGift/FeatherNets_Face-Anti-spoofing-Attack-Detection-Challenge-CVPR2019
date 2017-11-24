@@ -21,10 +21,9 @@
 #ifndef XCAM_3A_STATISTIC_QUEUE_H
 #define XCAM_3A_STATISTIC_QUEUE_H
 
-#include "xcam_utils.h"
-#include "xcam_mutex.h"
-#include "smartptr.h"
-#include "x3a_stats_pool.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
+#include <x3a_stats_pool.h>
 #include <linux/atomisp.h>
 
 namespace XCam {

@@ -21,10 +21,9 @@
 #ifndef XCAM_3A_RESULT_FACTORY_H
 #define XCAM_3A_RESULT_FACTORY_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "xcam_mutex.h"
-#include "x3a_result.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
+#include <x3a_result.h>
 
 namespace XCam {
 

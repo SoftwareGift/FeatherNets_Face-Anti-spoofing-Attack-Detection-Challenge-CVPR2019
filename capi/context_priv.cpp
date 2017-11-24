@@ -30,6 +30,7 @@
 #include <ocl/cl_image_warp_handler.h>
 #include <ocl/cl_fisheye_handler.h>
 #include <ocl/cl_image_360_stitch.h>
+#include <ocl/cl_utils.h>
 
 using namespace XCam;
 

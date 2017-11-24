@@ -21,11 +21,10 @@
 #ifndef XCAM_CL_KERNEL_H
 #define XCAM_CL_KERNEL_H
 
-#include "xcam_utils.h"
-#include "smartptr.h"
-#include "xcam_mutex.h"
-#include "ocl/cl_event.h"
-#include "ocl/cl_argument.h"
+#include <xcam_std.h>
+#include <xcam_mutex.h>
+#include <ocl/cl_event.h>
+#include <ocl/cl_argument.h>
 
 #include <CL/cl.h>
 #include <string>

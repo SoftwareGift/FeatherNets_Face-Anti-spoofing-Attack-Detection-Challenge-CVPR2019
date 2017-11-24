@@ -38,6 +38,7 @@
 #include "ocl/cl_3d_denoise_handler.h"
 #include "ocl/cl_image_warp_handler.h"
 #include "ocl/cl_fisheye_handler.h"
+#include "ocl/cl_utils.h"
 
 using namespace XCam;
 

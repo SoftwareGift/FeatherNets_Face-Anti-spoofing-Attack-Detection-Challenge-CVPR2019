@@ -124,6 +124,7 @@ nobase_libxcam_coreinclude_HEADERS = \
     x3a_result.h                   \
     xcam_mutex.h                   \
     xcam_thread.h                  \
+    xcam_std.h                     \
     xcam_utils.h                   \
     xcam_obj_debug.h               \
     buffer_pool.h                  \

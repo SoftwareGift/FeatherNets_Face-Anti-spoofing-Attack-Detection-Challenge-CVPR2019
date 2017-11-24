@@ -21,8 +21,8 @@
 #ifndef XCAM_SOFT_WORKER_H
 #define XCAM_SOFT_WORKER_H
 
-#include "xcam_utils.h"
-#include "worker.h"
+#include <xcam_std.h>
+#include <worker.h>
 
 #define SOFT_MAX_DIM 3
 
