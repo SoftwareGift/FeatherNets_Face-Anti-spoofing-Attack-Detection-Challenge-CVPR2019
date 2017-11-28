@@ -170,63 +170,6 @@ convert_nv12_mem_to_video_buffer (
     return XCAM_RETURN_NO_ERROR;
 }
 
-static void
-transform_x_coordinate (
-    const VideoBufferInfo &info,
-    float x_pos, float y_pos,
-    float &x_trans)
-{
-    float step = info.width / (2.0f * PI);
-    float offset_radian = (x_pos < 0.0f) ? PI : ((y_pos >= 0.0f) ? 2.0f * PI : 0.0f);
-    float arctan_radian = (x_pos != 0.0f) ? atan (-y_pos / x_pos) : ((y_pos >= 0.0f) ? -PI / 2.0f : PI / 2.0f);
-
-    x_trans = arctan_radian + offset_radian;
-    x_trans *= step;
-    clamp (x_trans, 0.0f, info.width - 1.0f);
-}
-
-static void
-transform_y_coordinate (
-    const VideoBufferInfo &info,
-    const BowlDataConfig &config,
-    float x_pos, float y_pos, float z_pos,
-    float &y_trans)
-{
-    uint32_t wall_image_height = config.wall_height / (config.wall_height + config.ground_length) * info.height;
-    uint32_t ground_image_height = info.height - wall_image_height;
-
-    if (z_pos > 0.0f) {
-        y_trans = (config.wall_height - z_pos) * wall_image_height / config.wall_height;
-        clamp (y_trans, 0.0f, wall_image_height - 1.0f);
-    } else {
-        float max_semimajor = config.b *
-                              sqrt (1 - config.center_z * config.center_z / (config.c * config.c));
-        float min_semimajor = max_semimajor - config.ground_length;
-        XCAM_ASSERT (max_semimajor > min_semimajor);
-        float step = ground_image_height / (max_semimajor - min_semimajor);
-
-        float axis_ratio = config.a / config.b;
-        float cur_semimajor = sqrt (x_pos * x_pos + y_pos * y_pos * axis_ratio * axis_ratio) / axis_ratio;
-        clamp (cur_semimajor, min_semimajor, max_semimajor);
-
-        y_trans = (max_semimajor - cur_semimajor) * step + wall_image_height;
-        clamp (y_trans, wall_image_height, info.height - 1.0f);
-    }
-}
-
-XCamReturn
-bowl_view_coords_to_image (
-    const VideoBufferInfo &info,
-    const BowlDataConfig &config,
-    float x_pos, float y_pos, float z_pos,
-    float &x_trans, float &y_trans)
-{
-    transform_x_coordinate (info, x_pos, y_pos, x_trans);
-    transform_y_coordinate (info, config, x_pos, y_pos, z_pos, y_trans);
-
-    return XCAM_RETURN_NO_ERROR;
-}
-
 XCamReturn
 interpolate_pixel_value (
     uint8_t* stitch_mem,
@@ -299,7 +242,7 @@ XCamReturn
 generate_topview_map_table (
     const VideoBufferInfo &stitch_info,
     const BowlDataConfig &config,
-    std::vector<float> &map_table,
+    std::vector<PointFloat2> &map_table,
     int width, int height)
 {
     int center_x = width / 2;
@@ -308,17 +251,19 @@ generate_topview_map_table (
     float show_width_mm = 5000.0f;
     float length_per_pixel = show_width_mm / height;
 
+    map_table.resize (height * width);
+
     for(int row = 0; row < height; row++) {
         for(int col = 0; col < width; col++) {
-            float world_x = (col - center_x) * length_per_pixel;
-            float world_y = (center_y - row) * length_per_pixel;
-            float world_z = 0.0f;
+            PointFloat3 world;
+            world.x = (col - center_x) * length_per_pixel;
+            world.y = (center_y - row) * length_per_pixel;
+            world.z = 0.0f;
 
-            float image_coord_x, image_coord_y;
-            bowl_view_coords_to_image (stitch_info, config, world_x, world_y, world_z, image_coord_x, image_coord_y);
+            PointFloat2 image_pos =
+                bowl_view_coords_to_image (config, world, stitch_info.width, stitch_info.height);
 
-            map_table[row * width * 2 + col * 2] = image_coord_x;
-            map_table[row * width * 2 + col * 2 + 1] = image_coord_y;
+            map_table[row * width + col] = image_pos;
         }
     }
 
@@ -329,7 +274,7 @@ XCamReturn
 generate_rectifiedview_map_table (
     const VideoBufferInfo &stitch_info,
     const BowlDataConfig &config,
-    std::vector<float> &map_table,
+    std::vector<PointFloat2> &map_table,
     float angle_start, float angle_end,
     int width, int height)
 {
@@ -348,12 +293,14 @@ generate_rectifiedview_map_table (
 
     float center_y = tan (fov_up) / (tan (fov_up) + tan (fov_down)) * height;
 
-    float world_x, world_y, world_z;
+    PointFloat3 world_pos;
     float plane_center_coords[3];
 
     plane_center_coords[0] = focal_plane_dist * cos (degree2radian (angle_center));
     plane_center_coords[1] = -focal_plane_dist * sin (degree2radian (angle_center));
     plane_center_coords[2] = 0.0f;
+
+    map_table.resize (width * height);
 
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
@@ -364,34 +311,33 @@ generate_rectifiedview_map_table (
 
             float rate_xz, rate_yz;
             if (XCAM_DOUBLE_EQUAL_AROUND (plane_point_coords[2], 0.0f) && XCAM_DOUBLE_EQUAL_AROUND (plane_point_coords[1], 0.0f)) {
-                world_x = config.a;
-                world_y = 0;
-                world_z = 0;
+                world_pos.x = config.a;
+                world_pos.y = 0;
+                world_pos.z = 0;
             } else if (XCAM_DOUBLE_EQUAL_AROUND (plane_point_coords[2], 0.0f)) {
-                world_z = 0.0f;
+                world_pos.z = 0.0f;
 
                 float rate_xy = plane_point_coords[0] / plane_point_coords[1];
                 float square_y = 1 / (rate_xy * rate_xy / (config.a * config.a) + 1 / (config.b * config.b));
-                world_y = (plane_point_coords[1] > 0) ? sqrt (square_y) : -sqrt (square_y);
-                world_x = rate_xy * world_y;
+                world_pos.y = (plane_point_coords[1] > 0) ? sqrt (square_y) : -sqrt (square_y);
+                world_pos.x = rate_xy * world_pos.y;
             } else {
                 rate_xz = plane_point_coords[0] / plane_point_coords[2];
                 rate_yz = plane_point_coords[1] / plane_point_coords[2];
 
                 float square_z = 1 / (rate_xz * rate_xz / (config.a * config.a) + rate_yz * rate_yz / (config.b * config.b) + 1 / (config.c * config.c));
-                world_z = (plane_point_coords[2] > 0) ? sqrt (square_z) : -sqrt (square_z);
-                world_z = (world_z <= -config.center_z) ? -config.center_z : world_z;
-                world_x = rate_xz * world_z;
-                world_y = rate_yz * world_z;
+                world_pos.z = (plane_point_coords[2] > 0) ? sqrt (square_z) : -sqrt (square_z);
+                world_pos.z = (world_pos.z <= -config.center_z) ? -config.center_z : world_pos.z;
+                world_pos.x = rate_xz * world_pos.z;
+                world_pos.y = rate_yz * world_pos.z;
             }
 
-            world_z += config.center_z;
+            world_pos.z += config.center_z;
 
-            float image_coord_x, image_coord_y;
-            bowl_view_coords_to_image (stitch_info, config, world_x, world_y, world_z, image_coord_x, image_coord_y);
+            PointFloat2 image_coord =
+                bowl_view_coords_to_image (config, world_pos, stitch_info.width, stitch_info.height);
 
-            map_table[row * width * 2 + col * 2] = image_coord_x;
-            map_table[row * width * 2 + col * 2 + 1] = image_coord_y;
+            map_table[row * width + col] = image_coord;
         }
     }
 
@@ -403,7 +349,7 @@ sample_generate_top_view (
     SmartPtr<VideoBuffer> &stitch_buf,
     SmartPtr<VideoBuffer> top_view_buf,
     const BowlDataConfig &config,
-    std::vector<float> &map_table, int frame_id)
+    std::vector<PointFloat2> &map_table)
 {
     const VideoBufferInfo top_view_info = top_view_buf->get_video_info ();
     const VideoBufferInfo stitch_info = stitch_buf->get_video_info ();
@@ -411,7 +357,8 @@ sample_generate_top_view (
     int top_view_resolution_w = top_view_buf->get_video_info ().width;
     int top_view_resolution_h = top_view_buf->get_video_info ().height;
 
-    if(frame_id == 0) {
+    if((int)map_table.size () != top_view_resolution_w * top_view_resolution_h) {
+        map_table.clear ();
         generate_topview_map_table (stitch_info, config, map_table, top_view_resolution_w, top_view_resolution_h);
     }
 
@@ -422,10 +369,9 @@ sample_generate_top_view (
 
     for(int row = 0; row < top_view_resolution_h; row++) {
         for(int col = 0; col < top_view_resolution_w; col++) {
-            float image_coord_x = map_table[row * top_view_resolution_w * 2 + col * 2];
-            float image_coord_y = map_table[row * top_view_resolution_w * 2 + col * 2 + 1];
+            PointFloat2 image_coord = map_table[row * top_view_resolution_w + col];
 
-            map_to_specific_view (top_view_mem, stitch_mem, row, col, image_coord_x, image_coord_y, top_view_info, stitch_info);
+            map_to_specific_view (top_view_mem, stitch_mem, row, col, image_coord.x, image_coord.y, top_view_info, stitch_info);
         }
     }
 
@@ -441,7 +387,7 @@ sample_generate_rectified_view (
     SmartPtr<VideoBuffer> rectified_view_buf,
     const BowlDataConfig &config,
     float angle_start, float angle_end,
-    std::vector<float> &map_table, int frame_id)
+    std::vector<PointFloat2> &map_table)
 {
     const VideoBufferInfo rectified_view_info = rectified_view_buf->get_video_info ();
     const VideoBufferInfo stitch_info = stitch_buf->get_video_info ();
@@ -449,7 +395,8 @@ sample_generate_rectified_view (
     int rectified_view_resolution_w = rectified_view_buf->get_video_info ().width;
     int rectified_view_resolution_h = rectified_view_buf->get_video_info ().height;
 
-    if(frame_id == 0) {
+    if((int)map_table.size () != rectified_view_resolution_w * rectified_view_resolution_h) {
+        map_table.clear ();
         generate_rectifiedview_map_table (stitch_info, config, map_table, angle_start, angle_end, rectified_view_resolution_w, rectified_view_resolution_h);
     }
 
@@ -460,10 +407,9 @@ sample_generate_rectified_view (
 
     for(int row = 0; row < rectified_view_resolution_h; row++) {
         for(int col = 0; col < rectified_view_resolution_w; col++) {
-            float image_coord_x = map_table[row * rectified_view_resolution_w * 2 + col * 2];
-            float image_coord_y = map_table[row * rectified_view_resolution_w * 2 + col * 2 + 1];
+            PointFloat2 image_coord = map_table[row * rectified_view_resolution_w + col];
 
-            map_to_specific_view (rectified_view_mem, stitch_mem, row, col, image_coord_x, image_coord_y, rectified_view_info, stitch_info);
+            map_to_specific_view (rectified_view_mem, stitch_mem, row, col, image_coord.x, image_coord.y, rectified_view_info, stitch_info);
         }
     }
 

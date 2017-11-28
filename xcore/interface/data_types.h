@@ -64,23 +64,6 @@ struct FisheyeInfo {
     }
 };
 
-struct BowlDataConfig {
-    float a, b, c;
-    float angle_start, angle_end; // angle degree
-
-    float center_z;
-    float wall_height;
-    float ground_length;
-
-    BowlDataConfig ()
-    //: a (5050.0f), b (3656.7f), c (3003.4f)
-        : a (6060.0f), b (4388.0f), c (3003.4f)
-        , angle_start (90.0f), angle_end (270.0f)
-        , center_z (1500.0f), wall_height (3000.0f)
-        , ground_length (2801.0f) // (2168.0f)
-    {}
-};
-
 #define XCAM_INTRINSIC_MAX_POLY_SIZE 16
 
 // current intrinsic parameters definition from Scaramuzza's approach
@@ -136,6 +119,33 @@ typedef Point2DT<float> PointFloat2;
 
 typedef Point3DT<int32_t> PointInt3;
 typedef Point3DT<float> PointFloat3;
+
+/*
+ * Ellipsoid model
+ *  x^2 / a^2 + y^2 / b^2 + (z-center_z)^2 / c^2 = 1
+ */
+struct BowlDataConfig {
+    float a, b, c;
+    float angle_start, angle_end; // angle degree
+
+    // unit mm
+    float center_z;
+    float wall_height;
+    float ground_length;
+
+    BowlDataConfig ()
+        : a (6060.0f), b (4388.0f), c (3003.4f)
+        , angle_start (90.0f), angle_end (270.0f)
+        , center_z (1500.0f), wall_height (3000.0f)
+        , ground_length (2801.0f) // (2168.0f)
+    {
+        XCAM_ASSERT (fabs(center_z) <= c);
+        XCAM_ASSERT (a > 0.0f && b > 0.0f && c > 0.0f);
+        XCAM_ASSERT (wall_height >= 0.0f && ground_length >= 0.0f);
+        XCAM_ASSERT (ground_length <= b * sqrt(1.0f - center_z * center_z / (c * c)));
+        XCAM_ASSERT (wall_height <= center_z + c);
+    }
+};
 
 }
 

@@ -94,6 +94,45 @@ parse_camera_info (const char *path, uint32_t idx, uint32_t out_w, uint32_t out_
     return 0;
 }
 
+int dump_topview_image (BowlModel &model, const SmartPtr<VideoBuffer> &buf, const char *surfix_name)
+{
+    char file_name[1024];
+    const char *dir_delimiter = strrchr (surfix_name, '/');
+    if (dir_delimiter) {
+        std::string path (surfix_name, dir_delimiter - surfix_name + 1);
+        XCAM_ASSERT (path.c_str ());
+        snprintf (file_name, 1024, "%stopview_%s", path.c_str (), dir_delimiter + 1);
+    } else {
+        snprintf (file_name, 1024, "topview_%s", surfix_name);
+    }
+
+    ImageFileHandle out_file;
+    CHECK (out_file.open (file_name, "wb"), "create topview file(%s) failed.", file_name);
+
+    BowlModel::VertexMap vertices;
+    BowlModel::PointMap points;
+    SmartPtr<VideoBuffer> topview_buf;
+
+    uint32_t topview_width = 1280, topview_height = 720;
+    uint32_t lut_w = topview_width / 4, lut_h = topview_height / 4;
+    float length_mm = 0.0f, width_mm = 0.0f;
+
+    model.get_max_topview_area_mm (length_mm, width_mm);
+    XCAM_LOG_INFO ("Max Topview Area (L%.2fmm, W%.2fmm)", length_mm, width_mm);
+
+    model.get_topview_vertex_map (vertices, points, lut_w, lut_h);
+    SmartPtr<GeoMapper> mapper = GeoMapper::create_soft_geo_mapper ();
+    XCAM_ASSERT (mapper.ptr ());
+    mapper->set_output_size (topview_width, topview_height);
+    mapper->set_lookup_table (points.data (), lut_w, lut_h);
+    CHECK (mapper->remap (buf, topview_buf), "remap stitched image to topview failed.");
+
+    XCAM_LOG_INFO ("write topview to file:%s", file_name);
+    CHECK (out_file.write_buf (topview_buf), "write topview buffer to file(%s) failed.", file_name);
+
+    return 0;
+}
+
 static void usage(const char* arg0)
 {
     printf ("Usage:\n"
@@ -331,6 +370,9 @@ int main (int argc, char *argv[])
         stitcher->set_bowl_config (bowl);
         stitcher->set_output_size (output_width, output_height);
         RUN_N (stitcher->stitch_buffers (in_buffers, out), loop, "stitcher buffers to out buffer failed.");
+
+        BowlModel bowl_model (bowl, output_width, output_height);
+        dump_topview_image (bowl_model, out, file_out_name);
         break;
     }
 
@@ -342,6 +384,7 @@ int main (int argc, char *argv[])
     }
 
     ImageFileHandle out_file (file_out_name, "wb");
+    XCAM_LOG_INFO ("write buffer to file:%s", file_out_name);
     CHECK (out_file.write_buf (out), "write buffer to file(%s) failed.", file_out_name);
     out_file.close ();
     return 0;

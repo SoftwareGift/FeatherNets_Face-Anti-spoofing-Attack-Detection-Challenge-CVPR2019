@@ -85,9 +85,6 @@ struct ImageOverlapInfo {
     Rect left;
     Rect right;
     Rect out_area;
-    //Rect left_overlap, right_overlap;
-    //Rect seam_buf;
-    //Rect out_area;
 };
 
 class Stitcher
@@ -204,6 +201,30 @@ private:
     CenterMark                  _center_marks[XCAM_STITCH_MAX_CAMERAS];
     bool                        _is_center_marked;
     CopyAreaArray               _copy_areas;
+};
+
+class BowlModel {
+public:
+    typedef std::vector<PointFloat3> VertexMap;
+    typedef std::vector<PointFloat2> PointMap;
+
+public:
+    BowlModel (const BowlDataConfig &config, const uint32_t image_width, const uint32_t image_height);
+    bool get_max_topview_area_mm (float &length_mm, float &width_mm);
+    bool get_topview_vertex_map (
+        VertexMap &vertices, PointMap &texture_points,
+        uint32_t res_width, uint32_t res_height,
+        float length_mm = 0.0f, float width_mm = 0.0f);
+
+    bool get_bowlview_vertex_map (
+        VertexMap &vertices, PointMap &texture_points,
+        uint32_t res_width, uint32_t res_height);
+
+private:
+    BowlDataConfig    _config;
+    uint32_t          _bowl_img_width, _bowl_img_height;
+    float             _max_topview_width_mm;
+    float             _max_topview_length_mm;
 };
 
 }

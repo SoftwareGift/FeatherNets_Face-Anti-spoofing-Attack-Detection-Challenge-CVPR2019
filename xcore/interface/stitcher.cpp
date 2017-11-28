@@ -20,6 +20,7 @@
  */
 
 #include "stitcher.h"
+#include "xcam_utils.h"
 
 // angle to position, output range [-180, 180]
 #define OUT_WINDOWS_START -180.0f
@@ -486,6 +487,99 @@ Stitcher::update_copy_areas ()
     XCAM_ASSERT (_copy_areas.size() >= _camera_num);
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+BowlModel::BowlModel (const BowlDataConfig &config, const uint32_t image_width, const uint32_t image_height)
+    : _config (config)
+    , _bowl_img_width (image_width)
+    , _bowl_img_height (image_height)
+{
+    //max area => x/a = y/b
+    XCAM_ASSERT (fabs(_config.center_z) < _config.c);
+    float mid = sqrt ((1.0f - _config.center_z * _config.center_z / (_config.c * _config.c)) / 2.0f);
+    _max_topview_length_mm = mid * _config.a * 2.0f;
+    _max_topview_width_mm = mid * _config.b * 2.0f;
+}
+
+bool
+BowlModel::get_max_topview_area_mm (float &length_mm, float &width_mm)
+{
+    if (_max_topview_width_mm <= 0.0f || _max_topview_length_mm <= 0.0f)
+        return false;
+    length_mm = _max_topview_length_mm;
+    width_mm = _max_topview_width_mm;
+    return true;
+}
+
+bool
+BowlModel::get_topview_vertex_map (
+    VertexMap &vertices, PointMap &texture_points,
+    uint32_t res_width, uint32_t res_height,
+    float length_mm, float width_mm)
+{
+    if (XCAM_DOUBLE_EQUAL_AROUND (length_mm, 0.0f) ||
+            XCAM_DOUBLE_EQUAL_AROUND (width_mm, 0.0f)) {
+        get_max_topview_area_mm (length_mm, width_mm);
+    }
+
+    XCAM_FAIL_RETURN (
+        ERROR,
+        length_mm * length_mm / (_config.a * _config.a) / 4.0f + width_mm * width_mm / (_config.b * _config.b) / 4.0f +
+        _config.center_z * _config.center_z / (_config.c * _config.c) <= 1.0f + 0.001f,
+        false,
+        "bowl model topview input area(L:%.2fmm, W:%.2fmm) is larger than max area", length_mm, width_mm);
+
+    float center_pos_x = res_width / 2.0f;
+    float center_pos_y = res_height / 2.0f;
+    float mm_per_pixel_x = length_mm / res_width;
+    float mm_per_pixel_y = width_mm / res_height;
+
+    vertices.resize (res_width * res_height);
+    texture_points.resize (res_width * res_height);
+
+    for(uint32_t row = 0; row < res_height; row++) {
+        for(uint32_t col = 0; col < res_width; col++) {
+            PointFloat3 world_pos (
+                (col - center_pos_x) * mm_per_pixel_x,
+                (center_pos_y - row) * mm_per_pixel_y,
+                0.0f);
+
+            PointFloat2 texture_pos = bowl_view_coords_to_image (
+                                          _config, world_pos, _bowl_img_width, _bowl_img_height);
+
+            vertices [res_width * row + col] = world_pos;
+            texture_points [res_width * row + col] = texture_pos;
+        }
+    }
+    return true;
+}
+
+bool
+BowlModel::get_bowlview_vertex_map (
+    VertexMap &vertices, PointMap &texture_points,
+    uint32_t res_width, uint32_t res_height)
+{
+    vertices.resize (res_width * res_height);
+    texture_points.resize (res_width * res_height);
+
+    float step_x = (float)_bowl_img_width / res_width;
+    float step_y = (float)_bowl_img_height / res_height;
+
+    for(uint32_t row = 0; row < res_height; row++) {
+        PointFloat2 texture_pos;
+        texture_pos.y = row * step_y;
+        for(uint32_t col = 0; col < res_width; col++) {
+            texture_pos.x = col * step_x;
+
+            PointFloat3 world_pos =
+                bowl_view_image_to_world (
+                    _config, _bowl_img_width, _bowl_img_height, texture_pos);
+
+            vertices [res_width * row + col] = world_pos;
+            texture_points [res_width * row + col] = texture_pos;
+        }
+    }
+    return true;
 }
 
 }

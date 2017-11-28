@@ -22,8 +22,20 @@
 #define XCAM_UTILS_H
 
 #include <xcam_std.h>
+#include <interface/data_types.h>
 
 namespace XCam {
+
+PointFloat2 bowl_view_coords_to_image (
+    const BowlDataConfig &config,
+    const PointFloat3 &bowl_pos,
+    const uint32_t img_width, const uint32_t img_height);
+
+PointFloat3 bowl_view_image_to_world (
+    const BowlDataConfig &config,
+    const uint32_t img_width, const uint32_t img_height,
+    const PointFloat2 &img_pos);
+
 
 double
 linear_interpolate_p2 (

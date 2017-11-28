@@ -489,8 +489,8 @@ int main (int argc, char *argv[])
     SmartPtr<VideoBuffer> input_bufs[XCAM_STITCH_FISHEYE_MAX_NUM];
 #endif
     int frame_id = 0;
-    std::vector<float> top_view_map_table (top_view_height * top_view_width * 2);
-    std::vector<float> rectified_view_map_table (rectified_view_height * rectified_view_width * 2);
+    std::vector<PointFloat2> top_view_map_table;
+    std::vector<PointFloat2> rectified_view_map_table;
     float rectified_start_angle = -45.0f, rectified_end_angle = 45.0f;
 
     while (loop--) {
@@ -529,9 +529,9 @@ int main (int argc, char *argv[])
             CHECK (ret, "image_360 stitch execute failed");
 
             BowlDataConfig config = image_360->get_fisheye_bowl_config ();
-            sample_generate_top_view (output_buf, top_view_buf, config, top_view_map_table, frame_id);
+            sample_generate_top_view (output_buf, top_view_buf, config, top_view_map_table);
             sample_generate_rectified_view (output_buf, rectified_view_buf, config, rectified_start_angle,
-                                            rectified_end_angle, rectified_view_map_table, frame_id);
+                                            rectified_end_angle, rectified_view_map_table);
 
 #if HAVE_OPENCV
             if (need_save_output) {

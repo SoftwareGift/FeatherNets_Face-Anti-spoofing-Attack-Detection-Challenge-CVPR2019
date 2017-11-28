@@ -17,6 +17,8 @@
  *
  * Author: Wind Yuan <feng.yuan@intel.com>
  * Author: Zong Wei <wei.zong@intel.com>
+ * Author: Junkai Wu <junkai.wu@intel.com>
+ * Author: Yinhang Liu <yinhangx.liu@intel.com>
  */
 
 #include "xcam_utils.h"
@@ -24,6 +26,130 @@
 #include "image_file_handle.h"
 
 namespace XCam {
+
+static float
+transform_bowl_coord_to_image_x (
+    const float bowl_x, const float bowl_y,
+    const uint32_t img_width)
+{
+    float offset_radian = (bowl_x < 0.0f) ? PI : ((bowl_y >= 0.0f) ? 2.0f * PI : 0.0f);
+    float arctan_radian = (bowl_x != 0.0f) ? atan (-bowl_y / bowl_x) : ((bowl_y >= 0.0f) ? -PI / 2.0f : PI / 2.0f);
+
+    float img_x = arctan_radian + offset_radian;
+    img_x *= img_width / (2.0f * PI);
+    return XCAM_CLAMP (img_x, 0.0f, img_width - 1.0f);
+}
+
+static float
+transform_bowl_coord_to_image_y (
+    const BowlDataConfig &config,
+    const float bowl_x, const float bowl_y, const float bowl_z,
+    const uint32_t img_height)
+{
+    float wall_image_height = config.wall_height / (config.wall_height + config.ground_length) * img_height;
+    float ground_image_height = img_height - wall_image_height;
+    float img_y = 0.0f;
+
+    if (bowl_z > 0.0f) {
+        img_y = (config.wall_height - bowl_z) * wall_image_height / config.wall_height;
+        img_y = XCAM_CLAMP (img_y, 0.0f, wall_image_height - 1.0f);
+    } else {
+        float max_semimajor = config.b *
+                              sqrt (1 - config.center_z * config.center_z / (config.c * config.c));
+        float min_semimajor = max_semimajor - config.ground_length;
+        XCAM_ASSERT (min_semimajor >= 0);
+        XCAM_ASSERT (max_semimajor > min_semimajor);
+        float step = ground_image_height / (max_semimajor - min_semimajor);
+
+        float axis_ratio = config.a / config.b;
+        float cur_semimajor = sqrt (bowl_x * bowl_x + bowl_y * bowl_y * axis_ratio * axis_ratio) / axis_ratio;
+        cur_semimajor = XCAM_CLAMP (cur_semimajor, min_semimajor, max_semimajor);
+
+        img_y = (max_semimajor - cur_semimajor) * step + wall_image_height;
+        img_y = XCAM_CLAMP (img_y, wall_image_height, img_height - 1.0f);
+    }
+    return img_y;
+}
+
+PointFloat2 bowl_view_coords_to_image (
+    const BowlDataConfig &config,
+    const PointFloat3 &bowl_pos,
+    const uint32_t img_width, const uint32_t img_height)
+{
+    PointFloat2 img_pos;
+    img_pos.x = transform_bowl_coord_to_image_x (bowl_pos.x, bowl_pos.y, img_width);
+    img_pos.y = transform_bowl_coord_to_image_y (config, bowl_pos.x, bowl_pos.y, bowl_pos.z, img_height);
+
+    return img_pos;
+}
+
+PointFloat3 bowl_view_image_to_world (
+    const BowlDataConfig &config,
+    const uint32_t img_width, const uint32_t img_height,
+    const PointFloat2 &img_pos)
+{
+    PointFloat3 world;
+    float angle;
+
+    float a = config.a;
+    float b = config.b;
+    float c = config.c;
+
+    float wall_image_height = config.wall_height / (float)(config.wall_height + config.ground_length) * (float)img_height;
+    float ground_image_height = (float)img_height - wall_image_height;
+
+    float z_step = (float)config.wall_height / wall_image_height;
+    float angle_step = fabs(config.angle_end - config.angle_start) / img_width;
+
+    if(img_pos.y < wall_image_height) {
+        world.z = config.wall_height - img_pos.y * z_step; // TODO world.z
+        angle = degree2radian (config.angle_start + img_pos.x * angle_step);
+        float r2 = 1 - (world.z - config.center_z) * (world.z - config.center_z) / (c * c);
+
+        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
+            world.x = 0.0f;
+            world.y = -sqrt(r2 * b * b);
+        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
+            world.x = 0.0f;
+            world.y = sqrt(r2 * b * b);
+        } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
+            world.x = sqrt(r2 * a * a * b * b / (b * b + a * a * tan(angle) * tan(angle)));
+            world.y = -world.x * tan(angle);
+        } else {
+            world.x = -sqrt(r2 * a * a * b * b / (b * b + a * a * tan(angle) * tan(angle)));
+            world.y = -world.x * tan(angle);
+        }
+    } else {
+        a = a * sqrt(1 - config.center_z * config.center_z / (c * c));
+        b = b * sqrt(1 - config.center_z * config.center_z / (c * c));
+
+        float ratio_ab = b / a;
+
+        float step_b = config.ground_length / ground_image_height;
+
+        b = b - (img_pos.y - wall_image_height) * step_b;
+        a = b / ratio_ab;
+
+        angle = degree2radian (config.angle_start + img_pos.x * angle_step);
+
+        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
+            world.x = 0.0f;
+            world.y = -b;
+        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
+            world.x = 0.0f;
+            world.y = b;
+        } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
+            world.x = a * b / sqrt(b * b + a * a * tan(angle) * tan(angle));
+            world.y = -world.x * tan(angle);
+        } else {
+            world.x = -a * b / sqrt(b * b + a * a * tan(angle) * tan(angle));
+            world.y = -world.x * tan(angle);
+        }
+        world.z = 0.0f;
+    }
+
+    return world;
+}
 
 double
 linear_interpolate_p2 (

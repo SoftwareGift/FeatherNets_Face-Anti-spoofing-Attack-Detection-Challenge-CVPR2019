@@ -49,7 +49,6 @@ private:
 
     virtual void cal_image_coord (const PointFloat3 &cam_coord, PointFloat2 &image_coord);
 
-    void cal_world_coord (uint32_t x, uint32_t y, PointFloat3 &world_coord, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config);
     void cal_cam_world_coord (const PointFloat3 &world_coord, PointFloat3 &cam_world_coord);
     void world_coord2cam (const PointFloat3 &cam_world_coord, PointFloat3 &cam_coord);
 

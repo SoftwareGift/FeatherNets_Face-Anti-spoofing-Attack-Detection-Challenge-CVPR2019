@@ -19,6 +19,7 @@
  */
 
 #include "surview_fisheye_dewarp.h"
+#include "xcam_utils.h"
 
 namespace XCam {
 
@@ -73,15 +74,13 @@ SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint
                     bowl_config.wall_height, bowl_config.ground_length,
                     bowl_config.a, bowl_config.b, bowl_config.c, bowl_config.center_z);
 
-    uint32_t scale_factor_w = image_w / table_w;
-    uint32_t scale_factor_h = image_h / table_h;
+    float scale_factor_w = (float)image_w / table_w;
+    float scale_factor_h = (float)image_h / table_h;
 
     for(uint32_t row = 0; row < table_h; row++) {
         for(uint32_t col = 0; col < table_w; col++) {
-            uint32_t x = col * scale_factor_w;
-            uint32_t y = row * scale_factor_h;
-
-            cal_world_coord(x, y, world_coord, image_w, image_h, bowl_config);
+            PointFloat2 out_pos (col * scale_factor_w, row * scale_factor_h);
+            world_coord = bowl_view_image_to_world (bowl_config, image_w, image_h, out_pos);
             cal_cam_world_coord(world_coord, cam_world_coord);
             world_coord2cam(cam_world_coord, cam_coord);
             cal_image_coord(cam_coord, image_coord);
@@ -89,74 +88,6 @@ SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint
             map_table[row * table_w + col] = image_coord;
         }
     }
-}
-
-void
-SurViewFisheyeDewarp::cal_world_coord(uint32_t x, uint32_t y, PointFloat3 &world_coord, uint32_t image_w, uint32_t image_h, const BowlDataConfig &bowl_config)
-{
-    float world_x, world_y, world_z;
-    float angle;
-
-    float a = bowl_config.a;
-    float b = bowl_config.b;
-    float c = bowl_config.c;
-
-    uint32_t wall_image_height = bowl_config.wall_height / (bowl_config.wall_height + bowl_config.ground_length) * image_h;
-    uint32_t ground_image_height = image_h - wall_image_height;
-
-    float z_step = bowl_config.wall_height / wall_image_height;
-    float angle_step = fabs(bowl_config.angle_end - bowl_config.angle_start) / image_w;
-
-    if(y < wall_image_height) {
-        world_z = bowl_config.wall_height - bowl_config.center_z - y * z_step;
-        angle = degree2radian (bowl_config.angle_start + x * angle_step);
-        float r2 = 1 - world_z * world_z / (c * c);
-
-        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
-            world_x = 0.0f;
-            world_y = -sqrt(r2 * b * b);
-        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
-            world_x = 0.0f;
-            world_y = sqrt(r2 * b * b);
-        } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
-            world_x = sqrt(r2 * a * a * b * b / (b * b + a * a * tan(angle) * tan(angle)));
-            world_y = -world_x * tan(angle);
-        } else {
-            world_x = -sqrt(r2 * a * a * b * b / (b * b + a * a * tan(angle) * tan(angle)));
-            world_y = -world_x * tan(angle);
-        }
-    } else {
-        world_z = -bowl_config.center_z;
-        a = a * sqrt(1 - world_z * world_z / (c * c));
-        b = b * sqrt(1 - world_z * world_z / (c * c));
-
-        float ratio_ab = b / a;
-
-        float step_b = bowl_config.ground_length / ground_image_height;
-
-        b = b - (y - wall_image_height) * step_b;
-        a = b / ratio_ab;
-
-        angle = degree2radian (bowl_config.angle_start + x * angle_step);
-
-        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
-            world_x = 0.0f;
-            world_y = -b;
-        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
-            world_x = 0.0f;
-            world_y = b;
-        } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
-            world_x = a * b / sqrt(b * b + a * a * tan(angle) * tan(angle));
-            world_y = -world_x * tan(angle);
-        } else {
-            world_x = -a * b / sqrt(b * b + a * a * tan(angle) * tan(angle));
-            world_y = -world_x * tan(angle);
-        }
-    }
-
-    world_coord.x = world_x;
-    world_coord.y = world_y;
-    world_coord.z = world_z + bowl_config.center_z;
 }
 
 void
