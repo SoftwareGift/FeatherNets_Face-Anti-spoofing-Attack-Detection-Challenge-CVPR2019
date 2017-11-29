@@ -151,6 +151,28 @@ PointFloat3 bowl_view_image_to_world (
     return world;
 }
 
+void centralize_bowl_coord_from_cameras (
+    ExtrinsicParameter &front_cam, ExtrinsicParameter &right_cam,
+    ExtrinsicParameter &rear_cam, ExtrinsicParameter &left_cam,
+    PointFloat3 &bowl_coord_offset)
+{
+    bowl_coord_offset.x = (front_cam.trans_x + rear_cam.trans_x) / 2.0f;
+    bowl_coord_offset.y = (right_cam.trans_y + left_cam.trans_y) / 2.0f;
+    bowl_coord_offset.z = 0.0f;
+
+    front_cam.trans_x -= bowl_coord_offset.x;
+    front_cam.trans_y -= bowl_coord_offset.y;
+
+    right_cam.trans_x -= bowl_coord_offset.x;
+    right_cam.trans_y -= bowl_coord_offset.y;
+
+    rear_cam.trans_x -= bowl_coord_offset.x;
+    rear_cam.trans_y -= bowl_coord_offset.y;
+
+    left_cam.trans_x -= bowl_coord_offset.x;
+    left_cam.trans_y -= bowl_coord_offset.y;
+}
+
 double
 linear_interpolate_p2 (
     double value_start, double value_end,

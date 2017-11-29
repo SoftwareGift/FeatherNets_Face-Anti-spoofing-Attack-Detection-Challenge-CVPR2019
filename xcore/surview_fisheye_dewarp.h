@@ -49,7 +49,7 @@ private:
 
     virtual void cal_image_coord (const PointFloat3 &cam_coord, PointFloat2 &image_coord);
 
-    void cal_cam_world_coord (const PointFloat3 &world_coord, PointFloat3 &cam_world_coord);
+    void cal_cam_world_coord (const PointFloat3 &view_point, const PointFloat3 &world_coord, PointFloat3 &cam_world_coord);
     void world_coord2cam (const PointFloat3 &cam_world_coord, PointFloat3 &cam_coord);
 
     Mat4f generate_rotation_matrix(float roll, float pitch, float yaw);

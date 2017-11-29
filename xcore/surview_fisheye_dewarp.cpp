@@ -65,6 +65,7 @@ SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint
     PointFloat3 world_coord;
     PointFloat3 cam_coord;
     PointFloat3 cam_world_coord;
+    PointFloat3 view_point (0.0f, 0.0f, bowl_config.viewpoint_z);
     PointFloat2 image_coord;
 
     XCAM_LOG_DEBUG ("fisheye-dewarp:\n table(%dx%d), out_size(%dx%d)"
@@ -81,7 +82,7 @@ SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint
         for(uint32_t col = 0; col < table_w; col++) {
             PointFloat2 out_pos (col * scale_factor_w, row * scale_factor_h);
             world_coord = bowl_view_image_to_world (bowl_config, image_w, image_h, out_pos);
-            cal_cam_world_coord(world_coord, cam_world_coord);
+            cal_cam_world_coord(view_point, world_coord, cam_world_coord);
             world_coord2cam(cam_world_coord, cam_coord);
             cal_image_coord(cam_coord, image_coord);
 
@@ -91,19 +92,19 @@ SurViewFisheyeDewarp::fisheye_dewarp(MapTable &map_table, uint32_t table_w, uint
 }
 
 void
-SurViewFisheyeDewarp::cal_cam_world_coord(const PointFloat3 &world_coord, PointFloat3 &cam_world_coord)
+SurViewFisheyeDewarp::cal_cam_world_coord(const PointFloat3 &view_point, const PointFloat3 &world_coord, PointFloat3 &cam_world_coord)
 {
     Mat4f rotation_mat = generate_rotation_matrix( degree2radian (_extrinsic_param.roll),
                          degree2radian (_extrinsic_param.pitch),
                          degree2radian (_extrinsic_param.yaw));
     Mat4f rotation_tran_mat = rotation_mat;
-    rotation_tran_mat(0, 3) = _extrinsic_param.trans_x;
-    rotation_tran_mat(1, 3) = _extrinsic_param.trans_y;
-    rotation_tran_mat(2, 3) = _extrinsic_param.trans_z;
+    rotation_tran_mat(0, 3) = _extrinsic_param.trans_x - view_point.x;
+    rotation_tran_mat(1, 3) = _extrinsic_param.trans_y - view_point.y;
+    rotation_tran_mat(2, 3) = _extrinsic_param.trans_z - view_point.z;
 
-    Mat4f world_coord_mat(Vec4f(1.0f, 0.0f, 0.0f, world_coord.x),
-                          Vec4f(0.0f, 1.0f, 0.0f, world_coord.y),
-                          Vec4f(0.0f, 0.0f, 1.0f, world_coord.z),
+    Mat4f world_coord_mat(Vec4f(1.0f, 0.0f, 0.0f, world_coord.x - view_point.x),
+                          Vec4f(0.0f, 1.0f, 0.0f, world_coord.y - view_point.y),
+                          Vec4f(0.0f, 0.0f, 1.0f, world_coord.z - view_point.z),
                           Vec4f(0.0f, 0.0f, 0.0f, 1.0f));
 
     Mat4f cam_world_coord_mat = rotation_tran_mat.inverse() * world_coord_mat;

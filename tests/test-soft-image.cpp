@@ -351,17 +351,28 @@ int main (int argc, char *argv[])
         if (!fisheye_config_path)
             fisheye_config_path = FISHEYE_CONFIG_PATH;
 
-        stitcher->set_camera_num (4);
         for (uint32_t i = 0; i < 4; ++i) {
             if (parse_camera_info (fisheye_config_path, i, output_width, output_height, cam_info[i]) != 0) {
                 XCAM_LOG_ERROR ("parse fisheye dewarp info(idx:%d) failed.", i);
                 return -1;
             }
+        }
+
+        PointFloat3 bowl_coord_offset;
+        centralize_bowl_coord_from_cameras (
+            cam_info[0].calibration.extrinsic, cam_info[1].calibration.extrinsic,
+            cam_info[2].calibration.extrinsic, cam_info[3].calibration.extrinsic,
+            bowl_coord_offset);
+
+        stitcher->set_camera_num (4);
+        for (uint32_t i = 0; i < 4; ++i) {
             stitcher->set_camera_info (i, cam_info[i]);
         }
+
         BowlDataConfig bowl;
         bowl.wall_height = 3000.0f;
         bowl.ground_length = 2000.0f;
+        bowl.viewpoint_z = 1300.0f;
         //bowl.a = 5000.0f;
         //bowl.b = 3600.0f;
         //bowl.c = 3000.0f;
