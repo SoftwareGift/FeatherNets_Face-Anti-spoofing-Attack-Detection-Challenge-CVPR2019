@@ -64,32 +64,27 @@ struct CalibrationInfo {
     IntrinsicParameter intrinsic;
 };
 
-struct RoundViewSlice {
-    float          hori_angle_start;
-    float          hori_angle_range;
-    uint32_t       width;
-    uint32_t       height;
-
-    RoundViewSlice ()
-        : hori_angle_start (0.0f), hori_angle_range (0.0f)
-        , width (0), height (0)
-    {}
-};
-
 struct CameraInfo {
     CalibrationInfo   calibration;
-    RoundViewSlice    slice_view;
-};
-
-struct ImageOverlapInfo {
-    Rect left;
-    Rect right;
-    Rect out_area;
+    float             round_angle_start;
+    float             angle_range;;
 };
 
 class Stitcher
 {
 public:
+    struct RoundViewSlice {
+        float          hori_angle_start;
+        float          hori_angle_range;
+        uint32_t       width;
+        uint32_t       height;
+
+        RoundViewSlice ()
+            : hori_angle_start (0.0f), hori_angle_range (0.0f)
+            , width (0), height (0)
+        {}
+    };
+
     struct CenterMark {
         uint32_t slice_center_x;
         uint32_t out_center_x;
@@ -107,6 +102,12 @@ public:
             : left_scale (1.0f)
             , right_scale (1.0f)
         {}
+    };
+
+    struct ImageOverlapInfo {
+        Rect left;
+        Rect right;
+        Rect out_area;
     };
 
     struct CopyArea {
@@ -160,6 +161,7 @@ public:
     virtual XCamReturn stitch_buffers (const VideoBufferList &in_bufs, SmartPtr<VideoBuffer> &out_buf) = 0;
 
 protected:
+    XCamReturn estimate_round_slices ();
     virtual XCamReturn estimate_coarse_crops ();
     XCamReturn mark_centers ();
     XCamReturn estimate_overlap ();
@@ -167,6 +169,9 @@ protected:
 
     const CenterMark &get_center (uint32_t idx) const {
         return _center_marks[idx];
+    }
+    const RoundViewSlice &get_round_view_slice (uint32_t idx) const {
+        return _round_view_slices[idx];
     }
     const ImageOverlapInfo &get_overlap (uint32_t idx) const {
         return _overlap_info[idx];
@@ -193,6 +198,9 @@ private:
     float                       _out_start_angle;
     uint32_t                    _camera_num;
     CameraInfo                  _camera_info[XCAM_STITCH_MAX_CAMERAS];
+    RoundViewSlice              _round_view_slices[XCAM_STITCH_MAX_CAMERAS];
+    bool                        _is_round_view_set;
+
     ImageOverlapInfo            _overlap_info[XCAM_STITCH_MAX_CAMERAS];
     BowlDataConfig              _bowl_config;
     bool                        _is_overlap_set;

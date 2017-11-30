@@ -25,6 +25,8 @@
 // angle to position, output range [-180, 180]
 #define OUT_WINDOWS_START -180.0f
 
+#define constraint_margin (2 * _alignment_x)
+
 namespace XCam {
 
 static inline bool
@@ -80,6 +82,7 @@ Stitcher::Stitcher (uint32_t align_x, uint32_t align_y)
     , _output_height (0)
     , _out_start_angle (OUT_WINDOWS_START)
     , _camera_num (0)
+    , _is_round_view_set (false)
     , _is_overlap_set (false)
     , _is_center_marked (false)
 {
@@ -180,10 +183,50 @@ Stitcher::get_camera_info (uint32_t index, CameraInfo &info) const
 }
 
 XCamReturn
+Stitcher::estimate_round_slices ()
+{
+    if (_is_round_view_set)
+        return XCAM_RETURN_NO_ERROR;
+
+    XCAM_FAIL_RETURN (
+        ERROR, _camera_num && _camera_num < XCAM_STITCH_MAX_CAMERAS, XCAM_RETURN_ERROR_PARAM,
+        "stitcher: camera num was not set, or camera num(%d) exceed max camera value(%d)",
+        _camera_num, XCAM_STITCH_MAX_CAMERAS);
+
+    for (uint32_t i = 0; i < _camera_num; ++i) {
+        CameraInfo &cam_info = _camera_info[i];
+        RoundViewSlice &view_slice = _round_view_slices[i];
+
+        view_slice.width = cam_info.angle_range / 360.0f * (float)_output_width;
+        view_slice.width = XCAM_ALIGN_UP (view_slice.width, _alignment_x);
+        view_slice.height = _output_height;
+        view_slice.hori_angle_range = view_slice.width * 360.0f / (float)_output_width;
+
+        uint32_t aligned_start = format_angle (cam_info.round_angle_start) / 360.0f * (float)_output_width;
+        aligned_start = XCAM_ALIGN_AROUND (aligned_start, _alignment_x);
+        if (_output_width <= constraint_margin + aligned_start || aligned_start <= constraint_margin)
+            aligned_start = 0;
+        view_slice.hori_angle_start = format_angle((float)aligned_start / (float)_output_width * 360.0f);
+        if (XCAM_DOUBLE_EQUAL_AROUND (view_slice.hori_angle_start, 0.0001f))
+            view_slice.hori_angle_start = 0.0f;
+
+        cam_info.round_angle_start = view_slice.hori_angle_start;
+        cam_info.angle_range = view_slice.hori_angle_range;
+    }
+
+    _is_round_view_set = true;
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 Stitcher::estimate_coarse_crops ()
 {
     if (_is_crop_set)
         return XCAM_RETURN_NO_ERROR;
+
+    XCAM_FAIL_RETURN (
+        ERROR, _camera_num > 0 && _is_round_view_set, XCAM_RETURN_ERROR_ORDER,
+        "stitcher mark_centers failed, need set camera info and round_slices first");
 
     for (uint32_t i = 0; i < _camera_num; ++i) {
         _crop_info[i].left = 0;
@@ -199,23 +242,21 @@ Stitcher::estimate_coarse_crops ()
 XCamReturn
 Stitcher::mark_centers ()
 {
-    const uint32_t constraint_margin = 2 * _alignment_x;
-
     if (_is_center_marked)
         return XCAM_RETURN_NO_ERROR;
 
     XCAM_FAIL_RETURN (
-        ERROR, _camera_num > 0, XCAM_RETURN_ERROR_ORDER,
-        "stitcher mark_centers failed, need set camera info first");
+        ERROR, _camera_num > 0 && _is_round_view_set, XCAM_RETURN_ERROR_ORDER,
+        "stitcher mark_centers failed, need set camera info and round_view slices first");
 
     for (uint32_t i = 0; i < _camera_num; ++i) {
-        const RoundViewSlice &slice = _camera_info[i].slice_view;
+        const RoundViewSlice &slice = _round_view_slices[i];
 
         //calcuate final output postion
         float center_angle = i * 360.0f / _camera_num;
         uint32_t out_pos = format_angle (center_angle - _out_start_angle) / 360.0f * _output_width;
         XCAM_ASSERT (out_pos < _output_width);
-        if (_output_width - out_pos < constraint_margin || out_pos < constraint_margin)
+        if (_output_width <= constraint_margin + out_pos || out_pos <= constraint_margin)
             out_pos = 0;
 
         // get slice center angle
@@ -249,13 +290,13 @@ Stitcher::estimate_overlap ()
         return XCAM_RETURN_NO_ERROR;
 
     XCAM_FAIL_RETURN (
-        ERROR, _is_crop_set && _is_center_marked, XCAM_RETURN_ERROR_ORDER,
-        "stitcher estimate_coarse_seam failed, need set crop info first");
+        ERROR, _is_round_view_set && _is_crop_set && _is_center_marked, XCAM_RETURN_ERROR_ORDER,
+        "stitcher estimate_coarse_seam failed, need set round_view slices, crop info and mark centers first");
 
     for (uint32_t idx = 0; idx < _camera_num; ++idx) {
         uint32_t next_idx = (idx + 1) % _camera_num;
-        const RoundViewSlice &left = _camera_info[idx].slice_view;
-        const RoundViewSlice &right = _camera_info[next_idx].slice_view;
+        const RoundViewSlice &left = _round_view_slices[idx];
+        const RoundViewSlice &right = _round_view_slices[next_idx];
         const CenterMark &left_center = _center_marks[idx];
         const CenterMark &right_center = _center_marks[next_idx];
         const ImageCropInfo &left_img_crop = _crop_info[idx];
@@ -391,8 +432,9 @@ XCamReturn
 Stitcher::update_copy_areas ()
 {
     XCAM_FAIL_RETURN (
-        ERROR, _camera_num > 1 && _is_crop_set && _is_overlap_set, XCAM_RETURN_ERROR_ORDER,
-        "stitcher update_copy_areas failed, check orders, need camera_info, crop_info and overlap_info set first.");
+        ERROR, _camera_num > 1 && _is_round_view_set && _is_crop_set && _is_overlap_set, XCAM_RETURN_ERROR_ORDER,
+        "stitcher update_copy_areas failed, check orders, need"
+        "camera_info, round_view slices, crop_info and overlap_info set first.");
 
     CopyAreaArray tmp_areas;
     uint32_t i = 0;
@@ -411,7 +453,7 @@ Stitcher::update_copy_areas ()
         left.in_area.width = overlap.left.pos_x - left.in_area.pos_x;
         XCAM_ASSERT (left.in_area.width > 0);
         left.in_area.pos_y = _crop_info[i].top;
-        left.in_area.height = _camera_info[i].slice_view.height - _crop_info[i].top - _crop_info[i].bottom;
+        left.in_area.height = _round_view_slices[i].height - _crop_info[i].top - _crop_info[i].bottom;
         XCAM_ASSERT (left.in_area.height > 0);
 
         left.out_area.pos_x = mark_left.out_center_x;
@@ -432,7 +474,7 @@ Stitcher::update_copy_areas ()
         right.in_area.width =  (int32_t)mark_right.slice_center_x - right.in_area.pos_x;
         XCAM_ASSERT (right.in_area.width > 0);
         right.in_area.pos_y = _crop_info[next_i].top;
-        right.in_area.height = _camera_info[next_i].slice_view.height - _crop_info[next_i].top - _crop_info[next_i].bottom;
+        right.in_area.height = _round_view_slices[next_i].height - _crop_info[next_i].top - _crop_info[next_i].bottom;
         XCAM_ASSERT (right.in_area.height > 0);
 
         uint32_t out_right_center_x = mark_right.out_center_x;

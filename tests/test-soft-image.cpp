@@ -85,12 +85,8 @@ parse_camera_info (const char *path, uint32_t idx, uint32_t out_w, uint32_t out_
         "parse extrinsic params (%s)failed.", extrinsic_path);
     info.calibration.extrinsic.trans_x += TEST_CAMERA_POSITION_OFFSET_X;
 
-    info.slice_view.width = viewpoints_range[idx] / 360.0f * out_w;
-    info.slice_view.width = XCAM_ALIGN_UP (info.slice_view.width, 32);
-    info.slice_view.height = out_h;
-    info.slice_view.hori_angle_range = info.slice_view.width * 360.0f / (float)out_w;
-    info.slice_view.hori_angle_start = (idx * 360.0f / 4.0f) - info.slice_view.hori_angle_range / 2.0f;
-    info.slice_view.hori_angle_start = format_angle (info.slice_view.hori_angle_start);
+    info.angle_range = viewpoints_range[idx];
+    info.round_angle_start = (idx * 360.0f / 4.0f) - info.angle_range / 2.0f;
     return 0;
 }
 

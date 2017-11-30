@@ -140,7 +140,9 @@ struct FisheyeDewarp {
     bool set_dewarp_factor ();
     XCamReturn set_dewarp_geo_table (
         SmartPtr<SoftGeoMapper> mapper,
-        const CameraInfo &cam_info, const BowlDataConfig &bowl);
+        const CameraInfo &cam_info,
+        const Stitcher::RoundViewSlice &view_slice,
+        const BowlDataConfig &bowl);
 };
 
 struct Copier {
@@ -235,21 +237,25 @@ StitcherImpl::init_dewarp_factors (uint32_t idx)
 }
 
 XCamReturn
-FisheyeDewarp::set_dewarp_geo_table (SmartPtr<SoftGeoMapper> mapper, const CameraInfo &cam_info, const BowlDataConfig &bowl)
+FisheyeDewarp::set_dewarp_geo_table (
+    SmartPtr<SoftGeoMapper> mapper,
+    const CameraInfo &cam_info,
+    const Stitcher::RoundViewSlice &view_slice,
+    const BowlDataConfig &bowl)
 {
     PolyFisheyeDewarp fd;
     fd.set_intrinsic_param (cam_info.calibration.intrinsic);
     fd.set_extrinsic_param (cam_info.calibration.extrinsic);
 
     uint32_t table_width, table_height;
-    table_width = cam_info.slice_view.width / MAP_FACTOR_X;
+    table_width = view_slice.width / MAP_FACTOR_X;
     table_width = XCAM_ALIGN_UP (table_width, 4);
-    table_height = cam_info.slice_view.height / MAP_FACTOR_Y;
+    table_height = view_slice.height / MAP_FACTOR_Y;
     table_height = XCAM_ALIGN_UP (table_height, 2);
     SurViewFisheyeDewarp::MapTable map_table(table_width * table_height);
     fd.fisheye_dewarp (
         map_table, table_width, table_height,
-        cam_info.slice_view.width, cam_info.slice_view.height, bowl);
+        view_slice.width, view_slice.height, bowl);
 
     XCAM_FAIL_RETURN (
         ERROR, mapper->set_lookup_table (map_table.data (), table_width, table_height),
@@ -283,14 +289,14 @@ StitcherImpl::init_fisheye (uint32_t idx)
     XCAM_ASSERT (fisheye.dewarp.ptr ());
     fisheye.dewarp->set_callback (dewarp_cb);
 
-    CameraInfo cam_info;
-    _stitcher->get_camera_info (idx, cam_info);
+    Stitcher::RoundViewSlice view_slice =
+        _stitcher->get_round_view_slice (idx);
 
     VideoBufferInfo buf_info;
     buf_info.init (
-        V4L2_PIX_FMT_NV12, cam_info.slice_view.width, cam_info.slice_view.height,
-        XCAM_ALIGN_UP (cam_info.slice_view.width, SOFT_STITCHER_ALIGNMENT_X),
-        XCAM_ALIGN_UP (cam_info.slice_view.height, SOFT_STITCHER_ALIGNMENT_Y));
+        V4L2_PIX_FMT_NV12, view_slice.width, view_slice.height,
+        XCAM_ALIGN_UP (view_slice.width, SOFT_STITCHER_ALIGNMENT_X),
+        XCAM_ALIGN_UP (view_slice.height, SOFT_STITCHER_ALIGNMENT_Y));
 
     fisheye.buf_pool = new SoftVideoBufAllocator (buf_info);
     XCAM_ASSERT (fisheye.buf_pool.ptr ());
@@ -404,24 +410,24 @@ StitcherImpl::fisheye_dewarp_to_table ()
     for (uint32_t i = 0; i < camera_num; ++i) {
         CameraInfo cam_info;
         _stitcher->get_camera_info (i, cam_info);
+        Stitcher::RoundViewSlice view_slice = _stitcher->get_round_view_slice (i);
 
         BowlDataConfig bowl = _stitcher->get_bowl_config ();
-        bowl.angle_start = cam_info.slice_view.hori_angle_start;
-        bowl.angle_end = format_angle (
-                             cam_info.slice_view.hori_angle_start + cam_info.slice_view.hori_angle_range);
+        bowl.angle_start = view_slice.hori_angle_start;
+        bowl.angle_end = format_angle (view_slice.hori_angle_start + view_slice.hori_angle_range);
 
         uint32_t out_width, out_height;
         _stitcher->get_output_size (out_width, out_height);
 
-        _fisheye[i].dewarp->set_output_size (cam_info.slice_view.width, cam_info.slice_view.height);
+        _fisheye[i].dewarp->set_output_size (view_slice.width, view_slice.height);
         if (bowl.angle_end < bowl.angle_start)
             bowl.angle_start -= 360.0f;
         XCAM_LOG_INFO (
             "soft-stitcher:%s camera(idx:%d) info (angle start:%.2f, range:%.2f), bowl info (angle start%.2f, end:%.2f)",
             XCAM_STR (_stitcher->get_name ()), i,
-            cam_info.slice_view.hori_angle_start, cam_info.slice_view.hori_angle_range,
+            view_slice.hori_angle_start, view_slice.hori_angle_range,
             bowl.angle_start, bowl.angle_end);
-        XCamReturn ret = _fisheye[i].set_dewarp_geo_table (_fisheye[i].dewarp, cam_info, bowl);
+        XCamReturn ret = _fisheye[i].set_dewarp_geo_table (_fisheye[i].dewarp, cam_info, view_slice, bowl);
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (ret), ret,
             "stitcher:%s set dewarp geo table failed, idx:%d.", XCAM_STR (_stitcher->get_name ()), i);
@@ -478,7 +484,7 @@ StitcherImpl::feature_match (
     const SmartPtr<VideoBuffer> &right_buf,
     const uint32_t idx)
 {
-    const ImageOverlapInfo overlap_info = _stitcher->get_overlap (idx);
+    const Stitcher::ImageOverlapInfo overlap_info = _stitcher->get_overlap (idx);
     Rect left_ovlap = overlap_info.left;
     Rect right_ovlap = overlap_info.right;
     const VideoBufferInfo left_buf_info = left_buf->get_video_info ();
@@ -522,7 +528,7 @@ StitcherImpl::start_single_blender (
     const SmartPtr<BlenderParam> &param)
 {
     SmartPtr<SoftBlender> blender = _overlaps[idx].blender;
-    const ImageOverlapInfo &overlap_info = _stitcher->get_overlap (idx);
+    const Stitcher::ImageOverlapInfo &overlap_info = _stitcher->get_overlap (idx);
     uint32_t out_width, out_height;
     _stitcher->get_output_size (out_width, out_height);
 
@@ -846,7 +852,12 @@ SoftStitcher::configure_resource (const SmartPtr<Parameters> &param)
     XCAM_UNUSED (param);
     XCAM_ASSERT (_impl.ptr ());
 
-    XCamReturn ret = estimate_coarse_crops ();
+    XCamReturn ret = estimate_round_slices ();
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), ret,
+        "soft-stitcher:%s estimate round view slices failed", XCAM_STR (get_name ()));
+
+    ret = estimate_coarse_crops ();
     XCAM_FAIL_RETURN (
         ERROR, xcam_ret_is_ok (ret), ret,
         "soft-stitcher:%s estimate coarse crops failed", XCAM_STR (get_name ()));
