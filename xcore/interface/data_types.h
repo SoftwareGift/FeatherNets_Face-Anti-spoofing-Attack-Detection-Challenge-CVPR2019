@@ -127,7 +127,6 @@ typedef Point3DT<float> PointFloat3;
  * x_axis : front direction
  * y_axis : left direction
  * z_axis : up direction
- * viewpoint_z : viewpoint in z_axis
  * wall_height : bowl height inside of view
  * ground_length: left direction distance from ellipsoid bottom edge to nearest side of the car in the view
  */
@@ -137,15 +136,15 @@ struct BowlDataConfig {
 
     // unit mm
     float center_z;
-    float viewpoint_z;
     float wall_height;
     float ground_length;
 
     BowlDataConfig ()
         : a (6060.0f), b (4388.0f), c (3003.4f)
         , angle_start (90.0f), angle_end (270.0f)
-        , center_z (1500.0f), viewpoint_z (1200.0f)
-        , wall_height (3000.0f), ground_length (2801.0f)
+        , center_z (1500.0f)
+        , wall_height (3000.0f)
+        , ground_length (2801.0f)
     {
         XCAM_ASSERT (fabs(center_z) <= c);
         XCAM_ASSERT (a > 0.0f && b > 0.0f && c > 0.0f);

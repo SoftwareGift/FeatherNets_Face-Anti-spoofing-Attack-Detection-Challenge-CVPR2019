@@ -368,7 +368,6 @@ int main (int argc, char *argv[])
         BowlDataConfig bowl;
         bowl.wall_height = 3000.0f;
         bowl.ground_length = 2000.0f;
-        bowl.viewpoint_z = 1300.0f;
         //bowl.a = 5000.0f;
         //bowl.b = 3600.0f;
         //bowl.c = 3000.0f;
