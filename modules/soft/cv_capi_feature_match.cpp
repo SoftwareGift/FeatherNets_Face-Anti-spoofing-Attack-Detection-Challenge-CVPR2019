@@ -148,33 +148,18 @@ CVCapiFeatureMatch::detect_and_match (
     }
 
     // find the corresponding points in img_right
-    err.resize (count);
-    status.resize (count);
-    corner_left.resize (count);
     corner_right.resize (count);
+    status.resize (count);
+    err.resize (count);
 
-    float* optflow_errs = &err[0];
-    char* optflow_status = &status[0];
     CvPoint2D32f* corner_points1 = &corner_left[0];
     CvPoint2D32f* corner_points2 = &corner_right[0];
-
-    for (size_t i = 0; i < (size_t)count; ++i) {
-        corner_points1[i] = corner_left[i];
-    }
+    char* optflow_status = &status[0];
+    float* optflow_errs = &err[0];
 
     cvCalcOpticalFlowPyrLK (
         img_left, img_right, 0, 0, corner_points1, corner_points2, count, win_size, 3,
         optflow_status, optflow_errs, cvTermCriteria(CV_TERMCRIT_ITER, 40, 0.1), 0 );
-
-    corner_right.reserve (count);
-    status.reserve (count);
-    err.reserve (count);
-    for (size_t i = 0; i < (size_t)count; ++i) {
-        CvPoint2D32f &kp = corner_points2[i];
-        corner_right.push_back (kp);
-        status.push_back (optflow_status[i]);
-        err.push_back (optflow_errs[i]);
-    }
 
     calc_of_match (img_left, img_right, corner_left, corner_right,
                    status, err, valid_count, mean_offset, x_offset);
