@@ -23,7 +23,7 @@
 
 #include <xcam_std.h>
 #include <interface/stitcher.h>
-#include <soft_handler.h>
+#include <soft/soft_handler.h>
 
 namespace XCam {
 
