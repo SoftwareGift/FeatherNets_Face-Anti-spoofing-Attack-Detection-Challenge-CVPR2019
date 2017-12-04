@@ -58,7 +58,7 @@ enum SoftType {
 };
 
 static int
-parse_camera_info (const char *path, uint32_t idx, uint32_t out_w, uint32_t out_h, CameraInfo &info)
+parse_camera_info (const char *path, uint32_t idx, CameraInfo &info)
 {
     static const char *instrinsic_names[] = {
         "intrinsic_camera_front.txt", "intrinsic_camera_right.txt",
@@ -125,6 +125,21 @@ int dump_topview_image (BowlModel &model, const SmartPtr<VideoBuffer> &buf, cons
 
     XCAM_LOG_INFO ("write topview to file:%s", file_name);
     CHECK (out_file.write_buf (topview_buf), "write topview buffer to file(%s) failed.", file_name);
+
+#if 0
+    BowlModel::VertexMap bowl_vertices;
+    BowlModel::PointMap bowl_points;
+    uint32_t bowl_lut_w = 15, bowl_lut_h = 10;
+    model.get_bowlview_vertex_map (bowl_vertices, bowl_points, bowl_lut_w, bowl_lut_h);
+    for (uint32_t i = 0; i < bowl_lut_h; ++i) {
+        for (uint32_t j = 0; j < bowl_lut_w; ++j)
+        {
+            PointFloat3 &vetex = bowl_vertices[i * bowl_lut_w + j];
+            printf ("(%4.0f, %4.0f, %4.0f), ", vetex.x, vetex.y, vetex.z );
+        }
+        printf ("\n");
+    }
+#endif
 
     return 0;
 }
@@ -348,7 +363,7 @@ int main (int argc, char *argv[])
             fisheye_config_path = FISHEYE_CONFIG_PATH;
 
         for (uint32_t i = 0; i < 4; ++i) {
-            if (parse_camera_info (fisheye_config_path, i, output_width, output_height, cam_info[i]) != 0) {
+            if (parse_camera_info (fisheye_config_path, i, cam_info[i]) != 0) {
                 XCAM_LOG_ERROR ("parse fisheye dewarp info(idx:%d) failed.", i);
                 return -1;
             }
@@ -372,7 +387,7 @@ int main (int argc, char *argv[])
         //bowl.b = 3600.0f;
         //bowl.c = 3000.0f;
         bowl.angle_start = 0.0f;
-        bowl.angle_end = 0.0f;
+        bowl.angle_end = 360.0f;
         stitcher->set_bowl_config (bowl);
         stitcher->set_output_size (output_width, output_height);
         RUN_N (stitcher->stitch_buffers (in_buffers, out), loop, "stitcher buffers to out buffer failed.");
