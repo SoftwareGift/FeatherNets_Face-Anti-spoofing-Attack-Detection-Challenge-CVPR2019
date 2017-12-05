@@ -30,11 +30,19 @@
 #include <calibration_parser.h>
 #include <string>
 
-#define RUN_N(statement, loop, msg, ...) \
-    for (int i = 0; i < loop; ++i) {                          \
-        CHECK (statement, msg, ## __VA_ARGS__);               \
-        FPS_CALCULATION (soft-image, XCAM_OBJ_DUR_FRAME_NUM); \
-    }
+#if (!defined(ANDROID) && (HAVE_OPENCV))
+#include <ocl/cv_base_class.h>
+#endif
+
+#define XCAM_TEST_SOFT_IMAGE_DEBUG 0
+
+#if (!defined(ANDROID) && (HAVE_OPENCV))
+#define XCAM_TEST_OPENCV 1
+#else
+#define XCAM_TEST_OPENCV 0
+#endif
+
+#define XCAM_TEST_MAX_STR_SIZE 1024
 
 #define FISHEYE_CONFIG_PATH "./"
 
@@ -57,6 +65,194 @@ enum SoftType {
     SoftTypeStitch,
 };
 
+#define RUN_N(statement, loop, msg, ...) \
+    for (int i = 0; i < loop; ++i) {                          \
+        CHECK (statement, msg, ## __VA_ARGS__);               \
+        FPS_CALCULATION (soft-image, XCAM_OBJ_DUR_FRAME_NUM); \
+    }
+
+#define ADD_ENELEMT(elements, file_name) \
+    {                                                                \
+        SmartPtr<SoftElement> element = new SoftElement (file_name); \
+        elements.push_back (element);                                \
+    }
+
+#if XCAM_TEST_OPENCV
+const static cv::Scalar color = cv::Scalar (0, 0, 255);
+const static int fontFace = cv::FONT_HERSHEY_COMPLEX;
+#endif
+
+class SoftElement {
+public:
+    explicit SoftElement (const char *file_name = NULL, uint32_t width = 0, uint32_t height = 0);
+    ~SoftElement ();
+
+    void set_buf_size (uint32_t width, uint32_t height);
+    uint32_t get_width () const {
+        return _width;
+    }
+    uint32_t get_height () const {
+        return _height;
+    }
+
+    const char *get_file_name () const {
+        return _file_name;
+    }
+
+    SmartPtr<VideoBuffer> &get_buf () {
+        return _buf;
+    }
+
+    XCamReturn open_file (const char *option);
+    XCamReturn close_file ();
+    XCamReturn rewind_file ();
+
+    XCamReturn read_buf ();
+    XCamReturn write_buf ();
+
+    XCamReturn create_buf_pool (const VideoBufferInfo &info, uint32_t count);
+
+#if XCAM_TEST_OPENCV
+    XCamReturn cv_open_writer ();
+    void cv_write_image (char *img_name, char *frame_str, char *idx_str = NULL);
+#endif
+
+private:
+    char                 *_file_name;
+    uint32_t              _width;
+    uint32_t              _height;
+    SmartPtr<VideoBuffer> _buf;
+
+    ImageFileHandle       _file;
+    SmartPtr<BufferPool>  _pool;
+#if XCAM_TEST_OPENCV
+    cv::VideoWriter       _writer;
+#endif
+};
+
+typedef std::vector<SmartPtr<SoftElement>> SoftElements;
+
+SoftElement::SoftElement (const char *file_name, uint32_t width, uint32_t height)
+    : _file_name (NULL)
+    , _width (width)
+    , _height (height)
+{
+    if (file_name)
+        _file_name = strndup (file_name, XCAM_TEST_MAX_STR_SIZE);
+}
+
+SoftElement::~SoftElement ()
+{
+    _file.close ();
+
+    if (_file_name)
+        xcam_free (_file_name);
+}
+
+void
+SoftElement::set_buf_size (uint32_t width, uint32_t height)
+{
+    _width = width;
+    _height = height;
+}
+
+XCamReturn
+SoftElement::open_file (const char *option)
+{
+    if (_file.open (_file_name, option) != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("open %s failed.", _file_name);
+        return XCAM_RETURN_ERROR_FILE;
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+SoftElement::close_file ()
+{
+    return _file.close ();
+}
+
+XCamReturn
+SoftElement::rewind_file ()
+{
+    return _file.rewind ();
+}
+
+XCamReturn
+SoftElement::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
+{
+    _pool = new SoftVideoBufAllocator ();
+    _pool->set_video_info (info);
+    if (!_pool->reserve (count)) {
+        XCAM_LOG_ERROR ("create buffer pool failed");
+        return XCAM_RETURN_ERROR_MEM;
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+SoftElement::read_buf ()
+{
+    _buf = _pool->get_buffer (_pool);
+    XCAM_ASSERT (_buf.ptr ());
+
+    return _file.read_buf (_buf);
+}
+
+XCamReturn
+SoftElement::write_buf () {
+    return _file.write_buf (_buf);
+}
+
+#if XCAM_TEST_OPENCV
+XCamReturn
+SoftElement::cv_open_writer ()
+{
+    XCAM_FAIL_RETURN (
+        ERROR,
+        _width && _height,
+        XCAM_RETURN_ERROR_PARAM,
+        "invalid size width:%d height:%d", _width, _height);
+
+    cv::Size frame_size = cv::Size (_width, _height);
+    if (!_writer.open (_file_name, CV_FOURCC('X', '2', '6', '4'), 30, frame_size)) {
+        XCAM_LOG_ERROR ("open file %s failed", _file_name);
+        return XCAM_RETURN_ERROR_FILE;
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+void
+SoftElement::cv_write_image (char *img_name, char *frame_str, char *idx_str)
+{
+    cv::Mat mat;
+
+#if XCAM_TEST_SOFT_IMAGE_DEBUG
+    convert_to_mat (_buf, mat);
+
+    cv::putText (mat, frame_str, cv::Point(20, 50), fontFace, 2.0, color, 2, 8, false);
+    if(idx_str)
+        cv::putText (mat, idx_str, cv::Point(20, 110), fontFace, 2.0, color, 2, 8, false);
+
+    cv::imwrite (img_name, mat);
+#else
+    XCAM_UNUSED (img_name);
+    XCAM_UNUSED (frame_str);
+    XCAM_UNUSED (idx_str);
+#endif
+
+    if (_writer.isOpened ()) {
+        if (mat.empty())
+            convert_to_mat (_buf, mat);
+
+        _writer.write (mat);
+    }
+}
+#endif
+
 static int
 parse_camera_info (const char *path, uint32_t idx, CameraInfo &info)
 {
@@ -70,10 +266,10 @@ parse_camera_info (const char *path, uint32_t idx, CameraInfo &info)
     };
     static const float viewpoints_range[] = {64.0f, 160.0f, 64.0f, 160.0f};
 
-    char intrinsic_path[1024];
-    char extrinsic_path[1024];
-    snprintf (intrinsic_path, 1024, "%s/%s", path, instrinsic_names[idx]);
-    snprintf (extrinsic_path, 1024, "%s/%s", path, exstrinsic_names[idx]);
+    char intrinsic_path[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+    char extrinsic_path[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+    snprintf (intrinsic_path, XCAM_TEST_MAX_STR_SIZE, "%s/%s", path, instrinsic_names[idx]);
+    snprintf (extrinsic_path, XCAM_TEST_MAX_STR_SIZE, "%s/%s", path, exstrinsic_names[idx]);
 
     CalibrationParser parser;
     CHECK (
@@ -90,26 +286,62 @@ parse_camera_info (const char *path, uint32_t idx, CameraInfo &info)
     return 0;
 }
 
-int dump_topview_image (BowlModel &model, const SmartPtr<VideoBuffer> &buf, const char *surfix_name)
+static void
+combine_name (const char *orig_name, const char *embedded_str, char *new_name)
 {
-    char file_name[1024];
-    const char *dir_delimiter = strrchr (surfix_name, '/');
+    const char *dir_delimiter = std::strrchr (orig_name, '/');
+
     if (dir_delimiter) {
-        std::string path (surfix_name, dir_delimiter - surfix_name + 1);
+        std::string path (orig_name, dir_delimiter - orig_name + 1);
         XCAM_ASSERT (path.c_str ());
-        snprintf (file_name, 1024, "%stopview_%s", path.c_str (), dir_delimiter + 1);
+        snprintf (new_name, XCAM_TEST_MAX_STR_SIZE, "%s%s_%s", path.c_str (), embedded_str, dir_delimiter + 1);
     } else {
-        snprintf (file_name, 1024, "topview_%s", surfix_name);
+        snprintf (new_name, XCAM_TEST_MAX_STR_SIZE, "%s_%s", embedded_str, orig_name);
+    }
+}
+
+static void
+add_element (SoftElements &elements, const char *element_name, uint32_t width, uint32_t height)
+{
+    char file_name[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+    combine_name (elements[0]->get_file_name (), element_name, file_name);
+
+    SmartPtr<SoftElement> element = new SoftElement (file_name, width, height);
+    elements.push_back (element);
+}
+
+static XCamReturn
+elements_open_file (const SoftElements &elements, const char *option, const bool &nv12_output)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    for (uint32_t i = 0; i < elements.size (); ++i) {
+        if (nv12_output)
+            ret = elements[i]->open_file (option);
+#if XCAM_TEST_OPENCV
+        else
+            ret = elements[i]->cv_open_writer ();
+#endif
+
+        if (ret != XCAM_RETURN_NO_ERROR) {
+            XCAM_LOG_ERROR ("open file(%s) failed", elements[i]->get_file_name ());
+            break;
+        }
     }
 
-    ImageFileHandle out_file;
-    CHECK (out_file.open (file_name, "wb"), "create topview file(%s) failed.", file_name);
+    return ret;
+}
 
+static XCamReturn
+remap_topview_buf (
+    BowlModel &model,
+    const SmartPtr<VideoBuffer> &buf,
+    SmartPtr<VideoBuffer> &topview_buf,
+    uint32_t topview_width, uint32_t topview_height)
+{
     BowlModel::VertexMap vertices;
     BowlModel::PointMap points;
-    SmartPtr<VideoBuffer> topview_buf;
 
-    uint32_t topview_width = 1280, topview_height = 720;
     uint32_t lut_w = topview_width / 4, lut_h = topview_height / 4;
     float length_mm = 0.0f, width_mm = 0.0f;
 
@@ -121,10 +353,12 @@ int dump_topview_image (BowlModel &model, const SmartPtr<VideoBuffer> &buf, cons
     XCAM_ASSERT (mapper.ptr ());
     mapper->set_output_size (topview_width, topview_height);
     mapper->set_lookup_table (points.data (), lut_w, lut_h);
-    CHECK (mapper->remap (buf, topview_buf), "remap stitched image to topview failed.");
 
-    XCAM_LOG_INFO ("write topview to file:%s", file_name);
-    CHECK (out_file.write_buf (topview_buf), "write topview buffer to file(%s) failed.", file_name);
+    XCamReturn ret = mapper->remap (buf, topview_buf);
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("remap stitched image to topview failed.");
+        return ret;
+    }
 
 #if 0
     BowlModel::VertexMap bowl_vertices;
@@ -140,6 +374,126 @@ int dump_topview_image (BowlModel &model, const SmartPtr<VideoBuffer> &buf, cons
         printf ("\n");
     }
 #endif
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+static void
+write_image (const SoftElements &ins, const SoftElements &outs, const bool &nv12_output) {
+    if (nv12_output) {
+        for (uint32_t i = 0; i < outs.size (); ++i)
+            outs[i]->write_buf ();
+    }
+#if XCAM_TEST_OPENCV
+    else {
+        static uint32_t frame_num = 0;
+        char img_name[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+        char frame_str[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+        std::snprintf (frame_str, XCAM_TEST_MAX_STR_SIZE, "frame:%d", frame_num);
+
+        char idx_str[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+        for (uint32_t i = 0; i < ins.size (); ++i) {
+            std::snprintf (idx_str, XCAM_TEST_MAX_STR_SIZE, "idx:%d", i);
+            std::snprintf (img_name, XCAM_TEST_MAX_STR_SIZE, "orig_fisheye_%d_%d.jpg", frame_num, i);
+            ins[i]->cv_write_image (img_name, frame_str, idx_str);
+        }
+
+        for (uint32_t i = 0; i < outs.size (); ++i) {
+            std::snprintf (img_name, XCAM_TEST_MAX_STR_SIZE, "%s_%d.jpg", outs[i]->get_file_name (), frame_num);
+            outs[i]->cv_write_image (img_name, frame_str);
+        }
+        frame_num++;
+    }
+#endif
+}
+
+static XCamReturn
+ensure_output_format (const char *file_name, const SoftType &type, bool &nv12_output)
+{
+    char suffix[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+    const char *ptr = std::strrchr (file_name, '.');
+    std::snprintf (suffix, XCAM_TEST_MAX_STR_SIZE, "%s", ptr + 1);
+    if (!strcasecmp (suffix, "mp4")) {
+#if XCAM_TEST_OPENCV
+        if (type != SoftTypeStitch) {
+            XCAM_LOG_ERROR ("only stitch type supports MP4 output format");
+            return XCAM_RETURN_ERROR_PARAM;
+        }
+        nv12_output = false;
+#else
+        XCAM_LOG_ERROR ("only supports NV12 output format");
+        return XCAM_RETURN_ERROR_PARAM;
+#endif
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+static XCamReturn
+check_elements (const SoftElements &elements)
+{
+    for (uint32_t i = 0; i < elements.size (); ++i) {
+        XCAM_ASSERT (elements[i].ptr ());
+        XCAM_FAIL_RETURN (
+            ERROR,
+            elements[i]->get_width () && elements[i]->get_height (),
+            XCAM_RETURN_ERROR_PARAM,
+            "SoftElement: invalid parameters index:%d width:%d height:%d",
+            i, elements[i]->get_width (), elements[i]->get_height ());
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+static XCamReturn
+run_topview (const SmartPtr<Stitcher> &stitcher, const SoftElements &outs)
+{
+    BowlModel bowl_model (stitcher->get_bowl_config (), outs[0]->get_width (), outs[0]->get_height ());
+    return remap_topview_buf (bowl_model, outs[0]->get_buf (), outs[1]->get_buf (),
+                              outs[1]->get_width (), outs[1]->get_height ());
+}
+
+static int
+run_stitcher (
+    const SmartPtr<Stitcher> &stitcher,
+    const SoftElements &ins, const SoftElements &outs,
+    bool nv12_output, bool save_output, int loop)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    CHECK (check_elements (ins), "invalid input elements");
+    CHECK (check_elements (outs), "invalid output elements");
+
+    VideoBufferList in_buffers;
+    while (loop--) {
+        for (uint32_t i = 0; i < ins.size (); ++i) {
+            CHECK (ins[i]->rewind_file (), "rewind buffer from file(%s) failed", ins[i]->get_file_name ());
+        }
+
+        do {
+            in_buffers.clear ();
+
+            for (uint32_t i = 0; i < ins.size (); ++i) {
+                ret = ins[i]->read_buf();
+                if (ret == XCAM_RETURN_BYPASS)
+                    break;
+                CHECK (ret, "read buffer from file(%s) failed.", ins[i]->get_file_name ());
+
+                in_buffers.push_back (ins[i]->get_buf ());
+            }
+            if (ret == XCAM_RETURN_BYPASS)
+                break;
+
+            stitcher->stitch_buffers (in_buffers, outs[0]->get_buf ());
+            if (outs[1].ptr ()) {
+                CHECK (run_topview (stitcher, outs), "run topview failed");
+            }
+
+            if (save_output)
+                write_image (ins, outs, nv12_output);
+
+            FPS_CALCULATION (soft-stitcher, XCAM_OBJ_DUR_FRAME_NUM);
+        } while (true);
+    }
 
     return 0;
 }
@@ -158,7 +512,10 @@ static void usage(const char* arg0)
             "\t--in-w              optional, input width, default: 1920\n"
             "\t--in-h              optional, input height, default: 1080\n"
             "\t--out-w             optional, output width, default: 1920\n"
-            "\t--out-h             optional, output width, default: 960\n"
+            "\t--out-h             optional, output height, default: 960\n"
+            "\t--topview-w         optional, output width, default: 1280\n"
+            "\t--topview-h         optional, output height, default: 720\n"
+            "\t--save              optional, save file or not, select from [true/false], default: true\n"
             "\t--loop              optional, how many loops need to run, default: 1\n"
             "\t--help              usage\n",
             arg0);
@@ -166,18 +523,20 @@ static void usage(const char* arg0)
 
 int main (int argc, char *argv[])
 {
-    char file_in0_name[256] = {'\0'};
-    char file_in1_name[256] = {'\0'};
-    char file_in2_name[256] = {'\0'};
-    char file_in3_name[256] = {'\0'};
-    char file_out_name[256] = {'\0'};
-    //uint32_t input_format = V4L2_PIX_FMT_NV12;
     uint32_t input_width = 1920;
     uint32_t input_height = 1080;
     uint32_t output_width = 1920; //output_height * 2;
     uint32_t output_height = 960; //960;
+    uint32_t topview_width = 1280;
+    uint32_t topview_height = 720;
     SoftType type = SoftTypeNone;
+
+    SoftElements ins;
+    SoftElements outs;
+
     int loop = 1;
+    bool save_output = true;
+    bool nv12_output = true;
 
     const struct option long_opts[] = {
         {"type", required_argument, NULL, 't'},
@@ -190,6 +549,9 @@ int main (int argc, char *argv[])
         {"in-h", required_argument, NULL, 'h'},
         {"out-w", required_argument, NULL, 'W'},
         {"out-h", required_argument, NULL, 'H'},
+        {"topview-w", required_argument, NULL, 'P'},
+        {"topview-h", required_argument, NULL, 'V'},
+        {"save", required_argument, NULL, 's'},
         {"loop", required_argument, NULL, 'L'},
         {"help", no_argument, NULL, 'e'},
         {NULL, 0, NULL, 0},
@@ -215,23 +577,23 @@ int main (int argc, char *argv[])
 
         case 'i':
             XCAM_ASSERT (optarg);
-            strncpy(file_in0_name, optarg, sizeof (file_in0_name) - 1);
+            ADD_ENELEMT(ins, optarg);
             break;
         case 'j':
             XCAM_ASSERT (optarg);
-            strncpy(file_in1_name, optarg, sizeof (file_in1_name) - 1);
+            ADD_ENELEMT(ins, optarg);
             break;
         case 'k':
             XCAM_ASSERT (optarg);
-            strncpy(file_in2_name, optarg, sizeof (file_in2_name) - 1);
+            ADD_ENELEMT(ins, optarg);
             break;
         case 'l':
             XCAM_ASSERT (optarg);
-            strncpy(file_in3_name, optarg, sizeof (file_in3_name) - 1);
+            ADD_ENELEMT(ins, optarg);
             break;
         case 'o':
             XCAM_ASSERT (optarg);
-            strncpy(file_out_name, optarg, sizeof (file_out_name) - 1);
+            ADD_ENELEMT(outs, optarg);
             break;
         case 'w':
             input_width = atoi(optarg);
@@ -244,6 +606,15 @@ int main (int argc, char *argv[])
             break;
         case 'H':
             output_height = atoi(optarg);
+            break;
+        case 'P':
+            topview_width = atoi(optarg);
+            break;
+        case 'V':
+            topview_height = atoi(optarg);
+            break;
+        case 's':
+            save_output = (strcasecmp (optarg, "false") == 0 ? false : true);
             break;
         case 'L':
             loop = atoi(optarg);
@@ -267,62 +638,42 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    if (!strlen (file_in0_name) || !strlen (file_out_name)) {
+    if (!strlen (ins[0]->get_file_name ()) || !strlen (outs[0]->get_file_name ())) {
         XCAM_LOG_ERROR ("input or output file name was not set");
         usage (argv[0]);
         return -1;
     }
 
-    printf ("input0 file:\t\t%s\n", file_in0_name);
-    printf ("input1 file:\t\t%s\n", file_in1_name);
-    printf ("input2 file:\t\t%s\n", file_in2_name);
-    printf ("input3 file:\t\t%s\n", file_in3_name);
-    printf ("output file:\t\t%s\n", file_out_name);
+    printf ("input0 file:\t\t%s\n", ins[0]->get_file_name ());
+    printf ("input1 file:\t\t%s\n", ins[1]->get_file_name ());
+    printf ("input2 file:\t\t%s\n", ins[2]->get_file_name ());
+    printf ("input3 file:\t\t%s\n", ins[3]->get_file_name ());
+    printf ("output file:\t\t%s\n", outs[0]->get_file_name ());
     printf ("input width:\t\t%d\n", input_width);
     printf ("input height:\t\t%d\n", input_height);
     printf ("output width:\t\t%d\n", output_width);
     printf ("output height:\t\t%d\n", output_height);
+    printf ("topview width:\t\t%d\n", topview_width);
+    printf ("topview height:\t\t%d\n", topview_height);
+    printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 
-    VideoBufferInfo in_info;
+    VideoBufferInfo in_info, out_info;
     in_info.init (V4L2_PIX_FMT_NV12, input_width, input_height);
-    SmartPtr<BufferPool> in_pool = new SoftVideoBufAllocator ();
-    in_pool->set_video_info (in_info);
-    if (!in_pool->reserve (4)) {
-        XCAM_LOG_ERROR ("in-buffer pool reserve failed");
-        return -1;
-    }
-
-    VideoBufferInfo out_info;
     out_info.init (V4L2_PIX_FMT_NV12, output_width, output_height);
-    SmartPtr<BufferPool> out_pool = new SoftVideoBufAllocator ();
-    out_pool->set_video_info (out_info);
-    if (!out_pool->reserve (4)) {
-        XCAM_LOG_ERROR ("out-buffer pool reserve failed");
-        return -1;
+
+    for (uint32_t i = 0; i < ins.size (); ++i) {
+        ins[i]->set_buf_size (input_width, input_height);
+        CHECK (ins[i]->create_buf_pool (in_info, 6), "create buffer pool failed");
+        CHECK (ins[i]->open_file ("rb"), "open file(%s) failed", ins[i]->get_file_name ());
     }
 
-    SmartPtr<VideoBuffer> in0 = in_pool->get_buffer (in_pool);
-    SmartPtr<VideoBuffer> out = out_pool->get_buffer (out_pool);
-    SmartPtr<VideoBuffer> in1, in2, in3;
-
-    ImageFileHandle in0_file(file_in0_name, "rb");
-    CHECK (in0_file.read_buf (in0), "read buffer from file(%s) failed.", file_in0_name);
-
-    if (strlen (file_in1_name)) {
-        in1 = in_pool->get_buffer (in_pool);
-        ImageFileHandle in1_file(file_in1_name, "rb");
-        CHECK (in1_file.read_buf (in1), "read buffer from file(%s) failed.", file_in1_name);
-    }
-    if (strlen (file_in2_name)) {
-        in2 = in_pool->get_buffer (in_pool);
-        ImageFileHandle in2_file(file_in2_name, "rb");
-        CHECK (in2_file.read_buf (in2), "read buffer from file(%s) failed.", file_in2_name);
-    }
-    if (strlen (file_in3_name)) {
-        in3 = in_pool->get_buffer (in_pool);
-        ImageFileHandle in3_file(file_in3_name, "rb");
-        CHECK (in3_file.read_buf (in3), "read buffer from file(%s) failed.", file_in3_name);
+    outs[0]->set_buf_size (output_width, output_height);
+    if (save_output) {
+        CHECK (ensure_output_format (outs[0]->get_file_name (), type, nv12_output), "unsupported output format");
+        if (nv12_output) {
+            CHECK (outs[0]->open_file ("wb"), "open file(%s) failed", outs[0]->get_file_name ());
+        }
     }
 
     switch (type) {
@@ -336,7 +687,12 @@ int main (int argc, char *argv[])
         merge_window.width = out_info.width;
         merge_window.height = out_info.height;
         blender->set_merge_window (merge_window);
-        RUN_N (blender->blend (in0, in1, out), loop, "blend in0/in1 to out buffer failed.");
+
+        CHECK (ins[0]->read_buf(), "read buffer from file(%s) failed.", ins[0]->get_file_name ());
+        CHECK (ins[1]->read_buf(), "read buffer from file(%s) failed.", ins[1]->get_file_name ());
+        RUN_N (blender->blend (ins[0]->get_buf (), ins[1]->get_buf (), outs[0]->get_buf ()), loop, "blend buffer failed.");
+        if (save_output)
+            outs[0]->write_buf ();
         break;
     }
     case SoftTypeRemap: {
@@ -345,18 +701,17 @@ int main (int argc, char *argv[])
         mapper->set_output_size (output_width, output_height);
         mapper->set_lookup_table (map_table, MAP_WIDTH, MAP_HEIGHT);
         //mapper->set_factors ((output_width - 1.0f) / (MAP_WIDTH - 1.0f), (output_height - 1.0f) / (MAP_HEIGHT - 1.0f));
-        RUN_N (mapper->remap (in0, out), loop, "remap in0 to out buffer failed.");
+
+        CHECK (ins[0]->read_buf(), "read buffer from file(%s) failed.", ins[0]->get_file_name ());
+        RUN_N (mapper->remap (ins[0]->get_buf (), outs[0]->get_buf ()), loop, "remap buffer failed.");
+        if (save_output)
+            outs[0]->write_buf ();
         break;
     }
     case SoftTypeStitch: {
         SmartPtr<Stitcher> stitcher = Stitcher::create_soft_stitcher ();
         XCAM_ASSERT (stitcher.ptr ());
-        XCAM_ASSERT (in0.ptr () && in1.ptr () && in2.ptr () && in3.ptr ());
-        VideoBufferList in_buffers;
-        in_buffers.push_back (in0);
-        in_buffers.push_back (in1);
-        in_buffers.push_back (in2);
-        in_buffers.push_back (in3);
+
         CameraInfo cam_info[4];
         const char *fisheye_config_path = getenv ("FISHEYE_CONFIG_PATH");
         if (!fisheye_config_path)
@@ -390,10 +745,11 @@ int main (int argc, char *argv[])
         bowl.angle_end = 360.0f;
         stitcher->set_bowl_config (bowl);
         stitcher->set_output_size (output_width, output_height);
-        RUN_N (stitcher->stitch_buffers (in_buffers, out), loop, "stitcher buffers to out buffer failed.");
 
-        BowlModel bowl_model (bowl, output_width, output_height);
-        dump_topview_image (bowl_model, out, file_out_name);
+        add_element (outs, "topview", topview_width, topview_height);
+        if (save_output)
+            elements_open_file (outs, "wb", nv12_output);
+        run_stitcher (stitcher, ins, outs, nv12_output, save_output, loop);
         break;
     }
 
@@ -404,9 +760,5 @@ int main (int argc, char *argv[])
     }
     }
 
-    ImageFileHandle out_file (file_out_name, "wb");
-    XCAM_LOG_INFO ("write buffer to file:%s", file_out_name);
-    CHECK (out_file.write_buf (out), "write buffer to file(%s) failed.", file_out_name);
-    out_file.close ();
     return 0;
 }
