@@ -21,9 +21,9 @@
 
 #include "feature_match.h"
 
-namespace XCam {
-
 #define XCAM_FM_DEBUG 0
+
+namespace XCam {
 
 FeatureMatch::FeatureMatch ()
     : _x_offset (0.0f)
@@ -69,8 +69,8 @@ FeatureMatch::get_mean_offset (std::vector<float> offsets, float sum, int &count
 
 #if XCAM_FM_DEBUG
     XCAM_LOG_INFO (
-        "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
-        mean_offset, 0.0f, 0, count);
+        "FeatureMatch(idx:%d): X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
+        _fm_idx, mean_offset, 0.0f, 0, count);
 #endif
 
     bool ret = true;
@@ -95,8 +95,8 @@ FeatureMatch::get_mean_offset (std::vector<float> offsets, float sum, int &count
         mean_offset = sum / recur_count;
 #if XCAM_FM_DEBUG
         XCAM_LOG_INFO (
-            "X-axis mean offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
-            mean_offset, pre_mean_offset, try_times, recur_count);
+            "FeatureMatch(idx:%d): X-axis mean_offset:%.2f, pre_mean_offset:%.2f (%d times, count:%d)",
+            _fm_idx, mean_offset, pre_mean_offset, try_times, recur_count);
 #endif
 
         if (mean_offset == pre_mean_offset && recur_count == count)

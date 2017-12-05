@@ -22,7 +22,18 @@
 
 #include "cv_capi_feature_match.h"
 
+#define XCAM_CV_CAPI_FM_DEBUG 0
+
+#if XCAM_CV_CAPI_FM_DEBUG
+#include "ocl/cv_base_class.h"
+#endif
+
 namespace XCam {
+#if XCAM_CV_CAPI_FM_DEBUG
+static void
+debug_write_image (
+    const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name, char *frame_str, char *fm_idx_str);
+#endif
 
 CVCapiFeatureMatch::CVCapiFeatureMatch ()
     : FeatureMatch()
@@ -66,24 +77,32 @@ CVCapiFeatureMatch::add_detected_data (
 
     cvGoodFeaturesToTrack (image, NULL, NULL, corner_points, &found_num, quality, min_dist);
     XCAM_ASSERT (found_num <= 300);
-    if (found_num < (int)corners.size ()) {
-        XCAM_LOG_DEBUG ("Detedt corners:%d, less than reserved size:%d\n", found_num, (int)corners.size ());
+
+#if XCAM_CV_CAPI_FM_DEBUG
+    XCAM_LOG_INFO ("FeatureMatch(idx:%d): detected corners:%d, reserved size:%d", _fm_idx, found_num, (int)corners.size ());
+#endif
+    if (found_num < (int)corners.size ())
         corners.resize (found_num);
-    }
 }
 
 void
 CVCapiFeatureMatch::get_valid_offsets (
-    CvArr* image, CvSize img0_size,
     std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,
     std::vector<char> status, std::vector<float> error,
-    std::vector<float> &offsets, float &sum, int &count)
+    std::vector<float> &offsets, float &sum, int &count,
+    CvArr* image, CvSize &img0_size)
 {
     count = 0;
     sum = 0.0f;
     for (uint32_t i = 0; i < status.size (); ++i) {
         if (!status[i] || error[i] > 24)
             continue;
+
+#if XCAM_CV_CAPI_FM_DEBUG
+        cv::Mat mat = cv::cvarrToMat (image);
+        cv::Point start = cv::Point (corner0[i].x, corner0[i].y);
+        cv::circle (mat, start, 2, cv::Scalar(255), 2);
+#endif
         if (fabs(corner0[i].y - corner1[i].y) >= 8)
             continue;
 
@@ -92,8 +111,12 @@ CVCapiFeatureMatch::get_valid_offsets (
         ++count;
         offsets.push_back (offset);
 
+#if XCAM_CV_CAPI_FM_DEBUG
+        cv::line (mat, start, cv::Point(corner1[i].x + img0_size.width, corner1[i].y), cv::Scalar(255), 2);
+#else
         XCAM_UNUSED (image);
         XCAM_UNUSED (img0_size);
+#endif
     }
 }
 
@@ -104,6 +127,7 @@ CVCapiFeatureMatch::calc_of_match (
     std::vector<char> &status, std::vector<float> &error,
     int &last_count, float &last_mean_offset, float &out_x_offset)
 {
+    CvMat debug_image;
     CvSize img0_size = cvSize(((CvMat*)image0)->width, ((CvMat*)image0)->height);
     CvSize img1_size = cvSize(((CvMat*)image1)->width, ((CvMat*)image1)->height);
     XCAM_ASSERT (img0_size.height == img1_size.height);
@@ -113,8 +137,24 @@ CVCapiFeatureMatch::calc_of_match (
     int count = 0;
     float mean_offset = 0.0f;
     offsets.reserve (corner0.size ());
-    get_valid_offsets (NULL, img0_size, corner0, corner1, status, error,
-                       offsets, offset_sum, count);
+
+#if XCAM_CV_CAPI_FM_DEBUG
+    cv::Mat mat;
+    mat.create (img0_size.height, img0_size.width + img1_size.width, ((CvMat*)image0)->type);
+    debug_image = cvMat (img0_size.height, img0_size.width + img1_size.width, ((CvMat*)image0)->type, mat.ptr());
+    cv::cvarrToMat(image0, true).copyTo (mat (cv::Rect(0, 0, img0_size.width, img0_size.height)));
+    cv::cvarrToMat(image1, true).copyTo (mat (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
+#endif
+
+    get_valid_offsets (corner0, corner1, status, error,
+                       offsets, offset_sum, count, &debug_image, img0_size);
+
+#if XCAM_CV_CAPI_FM_DEBUG
+    XCAM_LOG_INFO ("FeatureMatch(idx:%d): valid offsets:%d", _fm_idx, offsets.size ());
+    char file_name[256] = {'\0'};
+    std::snprintf (file_name, 256, "fm_optical_flow_%d_%d.jpg", _frame_num, _fm_idx);
+    cv::imwrite (file_name, mat);
+#endif
 
     bool ret = get_mean_offset (offsets, offset_sum, count, mean_offset);
     if (ret) {
@@ -161,10 +201,20 @@ CVCapiFeatureMatch::detect_and_match (
         img_left, img_right, 0, 0, corner_points1, corner_points2, count, win_size, 3,
         optflow_status, optflow_errs, cvTermCriteria(CV_TERMCRIT_ITER, 40, 0.1), 0 );
 
+#if XCAM_CV_CAPI_FM_DEBUG
+    XCAM_LOG_INFO ("FeatureMatch(idx:%d): matched corners:%d", _fm_idx, count);
+#endif
+
     calc_of_match (img_left, img_right, corner_left, corner_right,
                    status, err, valid_count, mean_offset, x_offset);
 
     adjust_stitch_area (dst_width, x_offset, crop_left, crop_right);
+
+#if XCAM_CV_CAPI_FM_DEBUG
+    XCAM_LOG_INFO (
+        "FeatureMatch(idx:%d): stiching area: left_area(pos_x:%d, width:%d), right_area(pos_x:%d, width:%d)",
+        _fm_idx, crop_left.pos_x, crop_left.width, crop_right.pos_x, crop_right.width);
+#endif
 }
 
 void
@@ -180,6 +230,52 @@ CVCapiFeatureMatch::optical_flow_feature_match (
 
     detect_and_match ((CvArr*)(&left_img), (CvArr*)(&right_img), left_crop_rect, right_crop_rect,
                       _valid_count, _mean_offset, _x_offset, dst_width);
+
+#if XCAM_CV_CAPI_FM_DEBUG
+    XCAM_ASSERT (_fm_idx >= 0);
+
+    char frame_str[64] = {'\0'};
+    std::snprintf (frame_str, 64, "frame:%d", _frame_num);
+    char fm_idx_str[64] = {'\0'};
+    std::snprintf (fm_idx_str, 64, "fm_idx:%d", _fm_idx);
+
+    char img_name[256] = {'\0'};
+    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_0.jpg", _frame_num, _fm_idx);
+    debug_write_image (left_buf, left_crop_rect, img_name, frame_str, fm_idx_str);
+
+    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_1.jpg", _frame_num, _fm_idx);
+    debug_write_image (right_buf, right_crop_rect, img_name, frame_str, fm_idx_str);
+
+    XCAM_LOG_INFO ("FeatureMatch(idx:%d): frame number:%d done", _fm_idx, _frame_num);
+
+    _frame_num++;
+#endif
 }
+
+#if XCAM_CV_CAPI_FM_DEBUG
+static void
+debug_write_image (
+    const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name, char *frame_str, char *fm_idx_str)
+{
+    cv::Scalar color = cv::Scalar(0, 0, 255);
+    VideoBufferInfo info = buf->get_video_info ();
+
+    cv::Mat mat;
+    CVBaseClass cv_obj;
+    cv_obj.convert_to_mat (buf, mat);
+
+    cv::putText (mat, frame_str, cv::Point(rect.pos_x, 30), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
+    cv::putText (mat, fm_idx_str, cv::Point(rect.pos_x, 70), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
+
+    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y), cv::Point(rect.pos_x + rect.width, rect.pos_y), color, 1);
+    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y + rect.height),
+              cv::Point(rect.pos_x + rect.width, rect.pos_y + rect.height), color, 1);
+
+    cv::line (mat, cv::Point(rect.pos_x, 0), cv::Point(rect.pos_x, info.height), color, 2);
+    cv::line (mat, cv::Point(rect.pos_x + rect.width, 0), cv::Point(rect.pos_x + rect.width, info.height), color, 2);
+
+    cv::imwrite (img_name, mat);
+}
+#endif
 
 }

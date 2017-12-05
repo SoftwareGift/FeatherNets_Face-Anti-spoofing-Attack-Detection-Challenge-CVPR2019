@@ -56,10 +56,10 @@ protected:
     bool get_crop_image (SmartPtr<VideoBuffer> buffer, Rect crop_rect, std::vector<char> &crop_image, CvMat &img);
 
     void add_detected_data (CvArr* image, std::vector<CvPoint2D32f> &corners);
-    void get_valid_offsets (CvArr* out_image, CvSize img0_size,
-                            std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,
+    void get_valid_offsets (std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,
                             std::vector<char> status, std::vector<float> error,
-                            std::vector<float> &offsets, float &sum, int &count);
+                            std::vector<float> &offsets, float &sum, int &count,
+                            CvArr* out_image, CvSize &img0_size);
 
     void calc_of_match (CvArr* image0, CvArr* image1,
                         std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,

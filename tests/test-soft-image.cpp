@@ -68,7 +68,7 @@ parse_camera_info (const char *path, uint32_t idx, CameraInfo &info)
         "extrinsic_camera_front.txt", "extrinsic_camera_right.txt",
         "extrinsic_camera_rear.txt", "extrinsic_camera_left.txt"
     };
-    static const float viewpoints_range[] = {60.0f, 150.0f, 60.0f, 150.0f};
+    static const float viewpoints_range[] = {64.0f, 160.0f, 64.0f, 160.0f};
 
     char intrinsic_path[1024];
     char extrinsic_path[1024];
