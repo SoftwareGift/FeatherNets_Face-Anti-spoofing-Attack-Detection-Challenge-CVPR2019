@@ -94,8 +94,9 @@ CVCapiFeatureMatch::get_valid_offsets (
 {
     count = 0;
     sum = 0.0f;
+
     for (uint32_t i = 0; i < status.size (); ++i) {
-        if (!status[i] || error[i] > 24)
+        if (!status[i])
             continue;
 
 #if XCAM_CV_CAPI_FM_DEBUG
@@ -103,7 +104,11 @@ CVCapiFeatureMatch::get_valid_offsets (
         cv::Point start = cv::Point (corner0[i].x, corner0[i].y);
         cv::circle (mat, start, 2, cv::Scalar(255), 2);
 #endif
-        if (fabs(corner0[i].y - corner1[i].y) >= 8)
+        if (error[i] > _config.max_track_error)
+            continue;
+        if (fabs(corner0[i].y - corner1[i].y) >= _config.max_valid_offset_y)
+            continue;
+        if (corner1[i].x < 0.0f || corner1[i].x > img0_size.width)
             continue;
 
         float offset = corner1[i].x - corner0[i].x;
@@ -179,7 +184,7 @@ CVCapiFeatureMatch::detect_and_match (
     std::vector<char> status;
     std::vector<CvPoint2D32f> corner_left, corner_right;
 
-    CvSize win_size = cvSize (5, 5);
+    CvSize win_size = cvSize (41, 41);
 
     add_detected_data (img_left, corner_left);
     int count = corner_left.size ();
@@ -199,7 +204,7 @@ CVCapiFeatureMatch::detect_and_match (
 
     cvCalcOpticalFlowPyrLK (
         img_left, img_right, 0, 0, corner_points1, corner_points2, count, win_size, 3,
-        optflow_status, optflow_errs, cvTermCriteria(CV_TERMCRIT_ITER, 40, 0.1), 0 );
+        optflow_status, optflow_errs, cvTermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 10, 0.01f), 0);
 
 #if XCAM_CV_CAPI_FM_DEBUG
     XCAM_LOG_INFO ("FeatureMatch(idx:%d): matched corners:%d", _fm_idx, count);

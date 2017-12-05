@@ -83,14 +83,18 @@ CVFeatureMatch::get_valid_offsets (
     count = 0;
     sum = 0.0f;
     for (uint32_t i = 0; i < status.size (); ++i) {
+        if (!status[i])
+            continue;
+
 #if XCAM_CV_FM_DEBUG
         cv::Point start = cv::Point(corner0[i]) * XCAM_CV_OF_DRAW_SCALE;
         cv::circle (debug_img, start, 4, cv::Scalar(255), XCAM_CV_OF_DRAW_SCALE);
 #endif
-
-        if (!status[i] || error[i] > 24)
+        if (error[i] > _config.max_track_error)
             continue;
-        if (fabs(corner0[i].y - corner1[i].y) >= 8)
+        if (fabs(corner0[i].y - corner1[i].y) >= _config.max_valid_offset_y)
+            continue;
+        if (corner1[i].x < 0.0f || corner1[i].x > img0_size.width)
             continue;
 
         float offset = corner1[i].x - corner0[i].x;

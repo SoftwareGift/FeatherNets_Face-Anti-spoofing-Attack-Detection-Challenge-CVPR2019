@@ -81,7 +81,7 @@ FeatureMatch::get_mean_offset (std::vector<float> &offsets, float sum, int &coun
         sum = 0.0f;
 
         for (size_t i = 0; i < offsets.size (); ++i) {
-            if (fabs (offsets[i] - mean_offset) >= 8.0f)
+            if (fabs (offsets[i] - mean_offset) >= _config.recur_offset_error)
                 continue;
             sum += offsets[i];
             ++recur_count;
@@ -123,11 +123,13 @@ FeatureMatch::adjust_stitch_area (int dst_width, float &x_offset, Rect &stitch0,
 
     int last_overlap_width = stitch1.pos_x + stitch1.width + (dst_width - (stitch0.pos_x + stitch0.width));
     // int final_overlap_width = stitch1.pos_x + stitch1.width + (dst_width - (stitch0.pos_x - x_offset + stitch0.width));
+    if ((stitch0.pos_x - x_offset + stitch0.width) > dst_width)
+        x_offset = dst_width - (stitch0.pos_x + stitch0.width);
     int final_overlap_width = last_overlap_width + x_offset;
     final_overlap_width = XCAM_ALIGN_AROUND (final_overlap_width, 8);
     XCAM_ASSERT (final_overlap_width >= _config.sitch_min_width);
     int center = final_overlap_width / 2;
-    XCAM_ASSERT (center > _config.sitch_min_width / 2);
+    XCAM_ASSERT (center >= _config.sitch_min_width / 2);
 
     stitch1.pos_x = XCAM_ALIGN_AROUND (center - _config.sitch_min_width / 2, 8);
     stitch1.width = _config.sitch_min_width;

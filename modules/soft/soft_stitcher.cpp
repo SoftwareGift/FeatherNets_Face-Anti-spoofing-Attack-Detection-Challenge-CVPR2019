@@ -343,7 +343,17 @@ StitcherImpl::init_config (uint32_t count)
 
 #if ENABLE_FEATURE_MATCH
         _overlaps[i].matcher = new CVCapiFeatureMatch;
-        //_overlaps[i].matcher->set_config ();
+
+        CVFMConfig config;
+        config.sitch_min_width = 136;
+        config.min_corners = 4;
+        config.offset_factor = 0.8f;
+        config.delta_mean_offset = 120.0f;
+        config.recur_offset_error = 8.0f;
+        config.max_adjusted_offset = 24.0f;
+        config.max_valid_offset_y = 20.0f;
+        config.max_track_error = 28.0f;
+        _overlaps[i].matcher->set_config (config);
         _overlaps[i].matcher->set_fm_index (i);
 #endif
 
@@ -488,6 +498,11 @@ StitcherImpl::feature_match (
     Rect left_ovlap = overlap_info.left;
     Rect right_ovlap = overlap_info.right;
     const VideoBufferInfo left_buf_info = left_buf->get_video_info ();
+
+    left_ovlap.pos_y = left_ovlap.height / 5;
+    left_ovlap.height = left_ovlap.height / 2;
+    right_ovlap.pos_y = right_ovlap.height / 5;
+    right_ovlap.height = right_ovlap.height / 2;
 
     _overlaps[idx].matcher->reset_offsets ();
     _overlaps[idx].matcher->optical_flow_feature_match (

@@ -120,16 +120,22 @@ get_fm_default_config (StitchResMode res_mode)
         config.min_corners = 8;
         config.offset_factor = 0.8f;
         config.delta_mean_offset = 5.0f;
+        config.recur_offset_error = 8.0f;
         config.max_adjusted_offset = 12.0f;
+        config.max_valid_offset_y = 8.0f;
+        config.max_track_error = 24.0f;
 
         break;
     }
     case StitchRes1080P4: {
-        config.sitch_min_width = 96;
-        config.min_corners = 8;
+        config.sitch_min_width = 128;
+        config.min_corners = 4;
         config.offset_factor = 0.8f;
-        config.delta_mean_offset = 5.0f;
-        config.max_adjusted_offset = 12.0f;
+        config.delta_mean_offset = 24.0f;
+        config.recur_offset_error = 12.0f;
+        config.max_adjusted_offset = 24.0f;
+        config.max_valid_offset_y = 64.0f;
+        config.max_track_error = 32.0f;
 
         break;
     }
@@ -138,7 +144,10 @@ get_fm_default_config (StitchResMode res_mode)
         config.min_corners = 8;
         config.offset_factor = 0.8f;
         config.delta_mean_offset = 5.0f;
+        config.recur_offset_error = 8.0f;
         config.max_adjusted_offset = 12.0f;
+        config.max_valid_offset_y = 8.0f;
+        config.max_track_error = 24.0f;
 
         break;
     }

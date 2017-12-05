@@ -33,14 +33,20 @@ struct CVFMConfig {
     int min_corners;           // number of minimum efficient corners
     float offset_factor;       // last_offset * offset_factor + cur_offset * (1.0f - offset_factor)
     float delta_mean_offset;   // cur_mean_offset - last_mean_offset
-    float max_adjusted_offset; // max offset of each adjustment
+    float recur_offset_error;  // cur_offset - mean_offset
+    float max_adjusted_offset; // maximum offset of each adjustment
+    float max_valid_offset_y;  // valid maximum offset in vertical direction
+    float max_track_error;     // maximum track error
 
     CVFMConfig ()
         : sitch_min_width (56)
         , min_corners (8)
         , offset_factor (0.8f)
         , delta_mean_offset (5.0f)
+        , recur_offset_error (8.0f)
         , max_adjusted_offset (12.0f)
+        , max_valid_offset_y (8.0f)
+        , max_track_error (24.0f)
     {}
 };
 
