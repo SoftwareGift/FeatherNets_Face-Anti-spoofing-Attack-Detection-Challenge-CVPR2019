@@ -46,7 +46,7 @@ bool dump_image (SmartPtr<CLImage> image, const char *file_name);
 
 SmartPtr<CLBuffer> convert_to_clbuffer (
     const SmartPtr<CLContext> &context,
-    SmartPtr<VideoBuffer> &buf);
+    const SmartPtr<VideoBuffer> &buf);
 
 SmartPtr<CLImage> convert_to_climage (
     const SmartPtr<CLContext> &context,

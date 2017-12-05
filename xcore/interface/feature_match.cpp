@@ -60,7 +60,7 @@ FeatureMatch::reset_offsets ()
 }
 
 bool
-FeatureMatch::get_mean_offset (std::vector<float> offsets, float sum, int &count, float &mean_offset)
+FeatureMatch::get_mean_offset (std::vector<float> &offsets, float sum, int &count, float &mean_offset)
 {
     if (count < _config.min_corners)
         return false;

@@ -58,7 +58,7 @@ public:
     void reset_offsets ();
 
     virtual void optical_flow_feature_match (
-        SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
         Rect &left_crop_rect, Rect &right_crop_rect, int dst_width) = 0;
 
     float get_current_left_offset_x () const {
@@ -69,7 +69,7 @@ public:
     virtual bool is_ocl_path () = 0;
 
 protected:
-    bool get_mean_offset (std::vector<float> offsets, float sum, int &count, float &mean_offset);
+    bool get_mean_offset (std::vector<float> &offsets, float sum, int &count, float &mean_offset);
 
     void adjust_stitch_area (int dst_width, float &x_offset, Rect &stitch0, Rect &stitch1);
 

@@ -42,7 +42,7 @@ CVCapiFeatureMatch::CVCapiFeatureMatch ()
 
 bool
 CVCapiFeatureMatch::get_crop_image (
-    SmartPtr<VideoBuffer> buffer, Rect crop_rect, std::vector<char> &crop_image, CvMat &img)
+    const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, std::vector<char> &crop_image, CvMat &img)
 {
     VideoBufferInfo info = buffer->get_video_info ();
 
@@ -87,8 +87,8 @@ CVCapiFeatureMatch::add_detected_data (
 
 void
 CVCapiFeatureMatch::get_valid_offsets (
-    std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,
-    std::vector<char> status, std::vector<float> error,
+    std::vector<CvPoint2D32f> &corner0, std::vector<CvPoint2D32f> &corner1,
+    std::vector<char> &status, std::vector<float> &error,
     std::vector<float> &offsets, float &sum, int &count,
     CvArr* image, CvSize &img0_size)
 {
@@ -123,7 +123,7 @@ CVCapiFeatureMatch::get_valid_offsets (
 void
 CVCapiFeatureMatch::calc_of_match (
     CvArr* image0, CvArr* image1,
-    std::vector<CvPoint2D32f> corner0, std::vector<CvPoint2D32f> corner1,
+    std::vector<CvPoint2D32f> &corner0, std::vector<CvPoint2D32f> &corner1,
     std::vector<char> &status, std::vector<float> &error,
     int &last_count, float &last_mean_offset, float &out_x_offset)
 {
@@ -219,7 +219,7 @@ CVCapiFeatureMatch::detect_and_match (
 
 void
 CVCapiFeatureMatch::optical_flow_feature_match (
-    SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
+    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
     Rect &left_crop_rect, Rect &right_crop_rect, int dst_width)
 {
     CvMat left_img, right_img;

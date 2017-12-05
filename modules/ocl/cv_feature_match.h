@@ -42,7 +42,7 @@ public:
     explicit CVFeatureMatch ();
 
     void optical_flow_feature_match (
-        SmartPtr<VideoBuffer> left_buf, SmartPtr<VideoBuffer> right_buf,
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
         Rect &left_img_crop, Rect &right_img_crop, int dst_width);
 
     void set_ocl (bool use_ocl) {
@@ -53,22 +53,21 @@ public:
     }
 
 protected:
-    bool get_crop_image (SmartPtr<VideoBuffer> buffer, Rect crop_rect, cv::UMat &img);
+    bool get_crop_image (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img);
 
     void add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
-    void get_valid_offsets (std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
-                            std::vector<uchar> status, std::vector<float> error,
+    void get_valid_offsets (std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
+                            std::vector<uchar> &status, std::vector<float> &error,
                             std::vector<float> &offsets, float &sum, int &count,
                             cv::InputOutputArray debug_img, cv::Size &img0_size);
 
     void calc_of_match (cv::InputArray image0, cv::InputArray image1,
-                        std::vector<cv::Point2f> corner0, std::vector<cv::Point2f> corner1,
+                        std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
                         std::vector<uchar> &status, std::vector<float> &error,
                         int &last_count, float &last_mean_offset, float &out_x_offset);
 
-    void detect_and_match (
-        cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
-        int &valid_count, float &mean_offset, float &x_offset, int dst_width);
+    void detect_and_match (cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
+                           int &valid_count, float &mean_offset, float &x_offset, int dst_width);
 
 private:
     XCAM_DEAD_COPY (CVFeatureMatch);
