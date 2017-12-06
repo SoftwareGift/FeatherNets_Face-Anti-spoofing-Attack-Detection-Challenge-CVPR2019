@@ -53,6 +53,7 @@ XCAM_SOFT_SRC_FILES := \
     modules/soft/soft_blender_tasks_priv.cpp \
     modules/soft/soft_copy_task.cpp \
     modules/soft/soft_geo_mapper.cpp \
+    modules/soft/soft_geo_tasks_priv.cpp \
     modules/soft/soft_handler.cpp \
     modules/soft/soft_stitcher.cpp \
     modules/soft/soft_video_buf_allocator.cpp \

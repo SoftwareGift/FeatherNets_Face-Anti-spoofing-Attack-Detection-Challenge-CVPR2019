@@ -15,6 +15,7 @@ xcam_soft_sources =                  \
     soft_blender_tasks_priv.cpp      \
     soft_blender.cpp                 \
     soft_geo_mapper.cpp              \
+    soft_geo_tasks_priv.cpp          \
     soft_copy_task.cpp               \
     soft_stitcher.cpp                \
    $(NULL)
@@ -64,6 +65,7 @@ nobase_libxcam_softinclude_HEADERS =   \
 
 noinst_HEADERS =                       \
     soft_blender_tasks_priv.h          \
+    soft_geo_tasks_priv.h              \
     $(NULL)
 
 if HAVE_OPENCV
