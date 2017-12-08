@@ -1,4 +1,4 @@
-LOCAL_PATH:= $(call my-dir)
+LOCAL_PATH := $(call my-dir)
 
 # XCam Version Num 1.1.0
 XCAM_VERSION_CFLAGS := -DXCAM_VERSION=0x110
@@ -10,7 +10,8 @@ ifeq ($(ENABLE_DEBUG), 1)
 XCAM_CFLAGS += -DDEBUG
 endif
 
-ifeq ($(ENABLE_OPENCV), 1)
+ifneq ($(wildcard external/opencv),)
+ENABLE_OPENCV := 1
 XCAM_CFLAGS += -DHAVE_OPENCV=1
 endif
 
