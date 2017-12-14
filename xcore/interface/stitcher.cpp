@@ -23,7 +23,7 @@
 #include "xcam_utils.h"
 
 // angle to position, output range [-180, 180]
-#define OUT_WINDOWS_START -180.0f
+#define OUT_WINDOWS_START 0.0f
 
 #define constraint_margin (2 * _alignment_x)
 
