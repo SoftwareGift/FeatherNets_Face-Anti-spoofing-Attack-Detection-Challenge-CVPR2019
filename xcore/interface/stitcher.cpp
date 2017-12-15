@@ -27,6 +27,8 @@
 
 #define constraint_margin (2 * _alignment_x)
 
+#define XCAM_GL_RESTART_FIXED_INDEX 0xFFFF
+
 namespace XCam {
 
 static inline bool
@@ -597,29 +599,50 @@ BowlModel::get_topview_vertex_map (
 }
 
 bool
-BowlModel::get_bowlview_vertex_map (
-    VertexMap &vertices, PointMap &texture_points,
+BowlModel::get_bowlview_vertex_model (
+    VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
     uint32_t res_width, uint32_t res_height)
 {
-    vertices.resize (res_width * res_height);
-    texture_points.resize (res_width * res_height);
+    vertices.reserve (2 * (res_width + 1) * (res_height + 1));
+    texture_points.reserve (2 * (res_width + 1) * (res_height + 1));
+    indeices.reserve (2 * (res_width + 1) * (res_height + 1) + (res_height + 1));
 
     float step_x = (float)_bowl_img_width / res_width;
     float step_y = (float)_bowl_img_height / res_height;
 
-    for(uint32_t row = 0; row < res_height; row++) {
-        PointFloat2 texture_pos;
-        texture_pos.y = row * step_y;
-        for(uint32_t col = 0; col < res_width; col++) {
-            texture_pos.x = col * step_x;
+    int32_t indicator = 0;
 
-            PointFloat3 world_pos =
-                bowl_view_image_to_world (
-                    _config, _bowl_img_width, _bowl_img_height, texture_pos);
+    for (uint32_t row = 0; row <= res_height; row++) {
+        PointFloat2 texture_pos0;
+        texture_pos0.y = row * step_y;
 
-            vertices [res_width * row + col] = world_pos;
-            texture_points [res_width * row + col] = texture_pos;
+        PointFloat2 texture_pos1;
+        if (row + 1 <= res_height) {
+            texture_pos1.y = (row + 1) * step_y;
         }
+
+        for (uint32_t col = 0; col <= res_width; col++) {
+            texture_pos0.x = col * step_x;
+            texture_pos1.x = col * step_x;
+
+            PointFloat3 world_pos0 =
+                bowl_view_image_to_world (
+                    _config, _bowl_img_width, _bowl_img_height, texture_pos0);
+
+            vertices.push_back (PointFloat3(world_pos0.x / _config.a, world_pos0.y / _config.b, world_pos0.z / _config.c));
+            indeices.push_back (indicator++);
+            texture_points.push_back (PointFloat2(texture_pos0.x / _bowl_img_width, (_bowl_img_height - texture_pos0.y) / _bowl_img_height));
+
+            PointFloat3 world_pos1 =
+                bowl_view_image_to_world (
+                    _config, _bowl_img_width, _bowl_img_height, texture_pos1);
+
+            vertices.push_back (PointFloat3(world_pos1.x / _config.a, world_pos1.y / _config.b, world_pos1.z / _config.c));
+            indeices.push_back (indicator++);
+            texture_points.push_back (PointFloat2(texture_pos1.x / _bowl_img_width, (_bowl_img_height - texture_pos1.y) / _bowl_img_height));
+        }
+
+        indeices.push_back (XCAM_GL_RESTART_FIXED_INDEX);
     }
     return true;
 }

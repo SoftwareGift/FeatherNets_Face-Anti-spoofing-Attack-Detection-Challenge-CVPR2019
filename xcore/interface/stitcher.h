@@ -215,6 +215,7 @@ class BowlModel {
 public:
     typedef std::vector<PointFloat3> VertexMap;
     typedef std::vector<PointFloat2> PointMap;
+    typedef std::vector<int32_t> IndexVector;
 
 public:
     BowlModel (const BowlDataConfig &config, const uint32_t image_width, const uint32_t image_height);
@@ -224,8 +225,8 @@ public:
         uint32_t res_width, uint32_t res_height,
         float length_mm = 0.0f, float width_mm = 0.0f);
 
-    bool get_bowlview_vertex_map (
-        VertexMap &vertices, PointMap &texture_points,
+    bool get_bowlview_vertex_model (
+        VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
         uint32_t res_width, uint32_t res_height);
 
 private:
