@@ -339,7 +339,6 @@ remap_topview_buf (
     SmartPtr<VideoBuffer> &topview_buf,
     uint32_t topview_width, uint32_t topview_height)
 {
-    BowlModel::VertexMap vertices;
     BowlModel::PointMap points;
 
     uint32_t lut_w = topview_width / 4, lut_h = topview_height / 4;
@@ -348,7 +347,7 @@ remap_topview_buf (
     model.get_max_topview_area_mm (length_mm, width_mm);
     XCAM_LOG_INFO ("Max Topview Area (L%.2fmm, W%.2fmm)", length_mm, width_mm);
 
-    model.get_topview_vertex_map (vertices, points, lut_w, lut_h);
+    model.get_topview_rect_map (points, lut_w, lut_h);
     SmartPtr<GeoMapper> mapper = GeoMapper::create_soft_geo_mapper ();
     XCAM_ASSERT (mapper.ptr ());
     mapper->set_output_size (topview_width, topview_height);
@@ -491,7 +490,7 @@ run_stitcher (
             if (save_output)
                 write_image (ins, outs, nv12_output);
 
-            FPS_CALCULATION (soft-stitcher, XCAM_OBJ_DUR_FRAME_NUM);
+            FPS_CALCULATION (soft - stitcher, XCAM_OBJ_DUR_FRAME_NUM);
         } while (true);
     }
 

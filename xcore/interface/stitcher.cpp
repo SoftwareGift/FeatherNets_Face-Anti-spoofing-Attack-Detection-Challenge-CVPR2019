@@ -556,8 +556,8 @@ BowlModel::get_max_topview_area_mm (float &length_mm, float &width_mm)
 }
 
 bool
-BowlModel::get_topview_vertex_map (
-    VertexMap &vertices, PointMap &texture_points,
+BowlModel::get_topview_rect_map (
+    PointMap &texture_points,
     uint32_t res_width, uint32_t res_height,
     float length_mm, float width_mm)
 {
@@ -578,7 +578,6 @@ BowlModel::get_topview_vertex_map (
     float mm_per_pixel_x = length_mm / res_width;
     float mm_per_pixel_y = width_mm / res_height;
 
-    vertices.resize (res_width * res_height);
     texture_points.resize (res_width * res_height);
 
     for(uint32_t row = 0; row < res_height; row++) {
@@ -591,7 +590,6 @@ BowlModel::get_topview_vertex_map (
             PointFloat2 texture_pos = bowl_view_coords_to_image (
                                           _config, world_pos, _bowl_img_width, _bowl_img_height);
 
-            vertices [res_width * row + col] = world_pos;
             texture_points [res_width * row + col] = texture_pos;
         }
     }
@@ -599,29 +597,29 @@ BowlModel::get_topview_vertex_map (
 }
 
 bool
-BowlModel::get_bowlview_vertex_model (
+BowlModel::get_stitch_image_vertex_model (
     VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
-    uint32_t res_width, uint32_t res_height)
+    uint32_t res_width, uint32_t res_height, float vertex_height)
 {
     vertices.reserve (2 * (res_width + 1) * (res_height + 1));
     texture_points.reserve (2 * (res_width + 1) * (res_height + 1));
     indeices.reserve (2 * (res_width + 1) * (res_height + 1) + (res_height + 1));
 
     float step_x = (float)_bowl_img_width / res_width;
-    float step_y = (float)_bowl_img_height / res_height;
+    float step_y = vertex_height / res_height;
+    float offset_y = (float)_bowl_img_height - vertex_height;
 
     int32_t indicator = 0;
 
-    for (uint32_t row = 0; row <= res_height; row++) {
+    for (uint32_t row = 0; row < res_height - 1; row++) {
         PointFloat2 texture_pos0;
-        texture_pos0.y = row * step_y;
+        texture_pos0.y = row * step_y + offset_y;
 
         PointFloat2 texture_pos1;
-        if (row + 1 <= res_height) {
-            texture_pos1.y = (row + 1) * step_y;
-        }
+        texture_pos1.y = (row + 1) * step_y + offset_y;
 
         for (uint32_t col = 0; col <= res_width; col++) {
+
             texture_pos0.x = col * step_x;
             texture_pos1.x = col * step_x;
 
@@ -641,10 +639,29 @@ BowlModel::get_bowlview_vertex_model (
             indeices.push_back (indicator++);
             texture_points.push_back (PointFloat2(texture_pos1.x / _bowl_img_width, (_bowl_img_height - texture_pos1.y) / _bowl_img_height));
         }
-
-        indeices.push_back (XCAM_GL_RESTART_FIXED_INDEX);
     }
     return true;
 }
+
+
+bool
+BowlModel::get_bowlview_vertex_model (
+    VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
+    uint32_t res_width, uint32_t res_height)
+{
+    return get_stitch_image_vertex_model (vertices, texture_points, indeices, res_width, res_height, (float)_bowl_img_height);
+}
+
+bool
+BowlModel::get_topview_vertex_model (
+    VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
+    uint32_t res_width, uint32_t res_height)
+{
+    float wall_image_height = _config.wall_height / (float)(_config.wall_height + _config.ground_length) * (float)_bowl_img_height;
+    float ground_image_height = (float)_bowl_img_height - wall_image_height;
+
+    return get_stitch_image_vertex_model (vertices, texture_points, indeices, res_width, res_height, ground_image_height);
+}
+
 
 }

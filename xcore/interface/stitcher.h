@@ -220,12 +220,20 @@ public:
 public:
     BowlModel (const BowlDataConfig &config, const uint32_t image_width, const uint32_t image_height);
     bool get_max_topview_area_mm (float &length_mm, float &width_mm);
-    bool get_topview_vertex_map (
-        VertexMap &vertices, PointMap &texture_points,
+    bool get_topview_rect_map (
+        PointMap &texture_points,
         uint32_t res_width, uint32_t res_height,
         float length_mm = 0.0f, float width_mm = 0.0f);
 
+    bool get_stitch_image_vertex_model (
+        VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
+        uint32_t res_width, uint32_t res_height, float vertex_height);
+
     bool get_bowlview_vertex_model (
+        VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
+        uint32_t res_width, uint32_t res_height);
+
+    bool get_topview_vertex_model (
         VertexMap &vertices, PointMap &texture_points, IndexVector &indeices,
         uint32_t res_width, uint32_t res_height);
 
