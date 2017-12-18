@@ -422,92 +422,6 @@ CLContext::insert_kernel (SmartPtr<CLKernel> &kernel)
 #endif
 
 cl_mem
-CLContext::create_va_buffer (uint32_t bo_name)
-{
-    cl_mem mem_id = NULL;
-    cl_int errcode = CL_SUCCESS;
-    if (!is_valid())
-        return NULL;
-
-    clCreateBufferFromLibvaIntel_fn oclCreateBufferFromLibvaIntel =
-        (clCreateBufferFromLibvaIntel_fn) _device->get_extension_function (OCL_EXT_NAME_CREATE_BUFFER_FROM_LIBVA_INTEL);
-    XCAM_FAIL_RETURN(ERROR, oclCreateBufferFromLibvaIntel, NULL, "create buffer failed since extension was not found");
-
-    mem_id = oclCreateBufferFromLibvaIntel (_context_id, bo_name, &errcode);
-    XCAM_FAIL_RETURN(
-        WARNING,
-        errcode == CL_SUCCESS,
-        NULL,
-        "create cl memory from va image failed");
-    return mem_id;
-}
-
-cl_mem
-CLContext::import_dma_buffer (const cl_import_buffer_info_intel &import_info)
-{
-    cl_mem mem_id = NULL;
-    cl_int errcode = CL_SUCCESS;
-    if (!is_valid())
-        return NULL;
-
-    clCreateBufferFromFdINTEL_fn oclCreateBufferFromFdINTEL =
-        (clCreateBufferFromFdINTEL_fn) _device->get_extension_function (OCL_EXT_NAME_CREATE_BUFFER_FROM_FD_INTEL);
-    XCAM_FAIL_RETURN(ERROR, oclCreateBufferFromFdINTEL, NULL, "import buffer failed since extension was not found");
-
-    mem_id = oclCreateBufferFromFdINTEL (_context_id, &import_info, &errcode);
-    XCAM_FAIL_RETURN(
-        WARNING,
-        errcode == CL_SUCCESS,
-        NULL,
-        "import cl memory from dma buffer failed");
-
-    return mem_id;
-}
-
-cl_mem
-CLContext::create_va_image (const cl_libva_image &image_info)
-{
-    cl_mem mem_id = NULL;
-    cl_int errcode = CL_SUCCESS;
-    if (!is_valid())
-        return NULL;
-
-    clCreateImageFromLibvaIntel_fn oclCreateImageFromLibvaIntel =
-        (clCreateImageFromLibvaIntel_fn) _device->get_extension_function (OCL_EXT_NAME_CREATE_IMAGE_FROM_LIBVA_INTEL);
-    XCAM_FAIL_RETURN(ERROR, oclCreateImageFromLibvaIntel, NULL, "create image failed since extension was not found");
-
-    mem_id = oclCreateImageFromLibvaIntel (_context_id, &image_info, &errcode);
-    XCAM_FAIL_RETURN(
-        WARNING,
-        errcode == CL_SUCCESS,
-        NULL,
-        "create cl memory from va image failed");
-    return mem_id;
-}
-
-cl_mem
-CLContext::import_dma_image (const cl_import_image_info_intel &import_info)
-{
-    cl_mem mem_id = NULL;
-    cl_int errcode = CL_SUCCESS;
-    if (!is_valid())
-        return NULL;
-
-    clCreateImageFromFdINTEL_fn oclCreateImageFromFdINTEL =
-        (clCreateImageFromFdINTEL_fn) _device->get_extension_function (OCL_EXT_NAME_CREATE_IMAGE_FROM_FD_INTEL);
-    XCAM_FAIL_RETURN(ERROR, oclCreateImageFromFdINTEL, NULL, "create image failed since extension was not found");
-
-    mem_id = oclCreateImageFromFdINTEL (_context_id, &import_info, &errcode);
-    XCAM_FAIL_RETURN(
-        WARNING,
-        errcode == CL_SUCCESS,
-        NULL,
-        "import cl memory from dma image failed, errcode:%d", errcode);
-
-    return mem_id;
-}
-
-cl_mem
 CLContext::create_image (
     cl_mem_flags flags, const cl_image_format& format,
     const cl_image_desc &image_info, void *host_ptr)
@@ -783,26 +697,6 @@ CLContext::enqueue_unmap (
         "cl enqueue unmap buffer failed with error_code:%d", errcode);
 
     return XCAM_RETURN_NO_ERROR;
-}
-
-int32_t
-CLContext::export_mem_fd (cl_mem mem_id)
-{
-    cl_int errcode = CL_SUCCESS;
-    int32_t fd = -1;
-
-    clGetMemObjectFdIntel_fn oclGetMemObjectFdIntel =
-        (clGetMemObjectFdIntel_fn) _device->get_extension_function (OCL_EXT_NAME_GET_MEM_OBJECT_FD_INTEL);
-    XCAM_FAIL_RETURN(ERROR, oclGetMemObjectFdIntel, -1, "export fd failed since extension was not found");
-
-    XCAM_ASSERT (mem_id);
-    errcode = oclGetMemObjectFdIntel (_context_id, mem_id, &fd);
-    XCAM_FAIL_RETURN (
-        WARNING,
-        errcode == CL_SUCCESS,
-        -1,
-        "export cl mem fd failed");
-    return fd;
 }
 
 CLCommandQueue::CLCommandQueue (SmartPtr<CLContext> &context, cl_command_queue id)

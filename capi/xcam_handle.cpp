@@ -23,6 +23,9 @@
 #include <dma_video_buffer.h>
 #include "context_priv.h"
 #include <stdarg.h>
+#if HAVE_LIBDRM
+#include <drm_bo_buffer.h>
+#endif
 
 using namespace XCam;
 
@@ -154,9 +157,7 @@ external_buf_to_drm_buf (XCamVideoBuffer *buf)
     video_buf = dma_buf;
     XCAM_ASSERT (display.ptr ());
     drm_buf = display->convert_to_drm_bo_buf (display, video_buf);
-
-    video_buf = drm_buf;
-    return video_buf;
+    return drm_buf;
 #else
     XCAM_LOG_ERROR ("VideoBuffer doesn't support drm buf");
 

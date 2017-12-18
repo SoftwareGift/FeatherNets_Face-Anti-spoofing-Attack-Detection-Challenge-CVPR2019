@@ -24,9 +24,6 @@
 #include "ocl/cl_context.h"
 #include "ocl/cl_event.h"
 #include "video_buffer.h"
-#if HAVE_LIBDRM
-#include "drm_bo_buffer.h"
-#endif
 
 #include <unistd.h>
 
@@ -171,25 +168,6 @@ private:
     uint32_t             _size;
 };
 
-#if HAVE_LIBDRM
-class CLVaBuffer
-    : public CLBuffer
-{
-public:
-    explicit CLVaBuffer (
-        const SmartPtr<CLContext> &context,
-        SmartPtr<DrmBoBuffer> &bo);
-
-private:
-    bool init_va_buffer (const SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo);
-
-    XCAM_DEAD_COPY (CLVaBuffer);
-
-private:
-    SmartPtr<DrmBoBuffer>   _bo;
-};
-#endif
-
 class CLImage
     : public CLMemory
 {
@@ -226,39 +204,6 @@ private:
 
     CLImageDesc  _image_desc;
 };
-
-#if HAVE_LIBDRM
-class CLVaImage
-    : public CLImage
-{
-public:
-    explicit CLVaImage (
-        const SmartPtr<CLContext> &context,
-        SmartPtr<DrmBoBuffer> &bo,
-        uint32_t offset = 0,
-        bool single_plane = false);
-    explicit CLVaImage (
-        const SmartPtr<CLContext> &context,
-        SmartPtr<DrmBoBuffer> &bo,
-        const CLImageDesc &image_info,
-        uint32_t offset = 0);
-    ~CLVaImage () {}
-
-private:
-    bool init_va_image (
-        const SmartPtr<CLContext> &context, SmartPtr<DrmBoBuffer> &bo,
-        const CLImageDesc &cl_desc, uint32_t offset);
-    bool merge_multi_plane (
-        const VideoBufferInfo &video_info,
-        CLImageDesc &cl_desc);
-
-    XCAM_DEAD_COPY (CLVaImage);
-
-private:
-    SmartPtr<DrmBoBuffer>   _bo;
-    cl_libva_image          _va_image_info;
-};
-#endif
 
 class CLImage2D
     : public CLImage

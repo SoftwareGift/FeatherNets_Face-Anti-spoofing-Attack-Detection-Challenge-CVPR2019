@@ -83,6 +83,8 @@ xcam_ocl_sources += cv_image_deblurring.cpp
 endif
 
 if HAVE_LIBDRM
+xcam_ocl_sources += intel/cl_intel_context.cpp
+xcam_ocl_sources += intel/cl_va_memory.cpp
 xcam_ocl_sources += cl_image_bo_buffer.cpp
 endif
 
@@ -160,6 +162,8 @@ nobase_libxcam_oclinclude_HEADERS += cv_image_deblurring.h
 endif
 
 if HAVE_LIBDRM
+nobase_libxcam_oclinclude_HEADERS += intel/cl_intel_context.h
+nobase_libxcam_oclinclude_HEADERS += intel/cl_va_memory.h
 nobase_libxcam_oclinclude_HEADERS += cl_image_bo_buffer.h
 endif
 

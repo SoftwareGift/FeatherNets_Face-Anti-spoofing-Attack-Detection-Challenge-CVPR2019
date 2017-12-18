@@ -25,7 +25,6 @@
 #include <map>
 #include <list>
 #include <CL/cl.h>
-#include <CL/cl_intel.h>
 #include <ocl/cl_event.h>
 
 namespace XCam {
@@ -33,6 +32,10 @@ namespace XCam {
 class CLKernel;
 class CLDevice;
 class CLCommandQueue;
+
+class CLVaBuffer;
+class CLVaImage;
+class CLIntelContext;
 
 /* default context:
  *  SmartPtr<CLContext> context = CLDevice::instance()->get_context();
@@ -47,11 +50,13 @@ class CLContext {
     friend class CLMemory;
     friend class CLBuffer;
     friend class CLSubBuffer;
-    friend class CLVaBuffer;
     friend class CLImage;
-    friend class CLVaImage;
     friend class CLImage2D;
     friend class CLImage2DArray;
+
+    friend class CLVaBuffer;
+    friend class CLVaImage;
+    friend class CLIntelContext;
 
 public:
     enum KernelBuildType {
@@ -59,7 +64,7 @@ public:
         KERNEL_BUILD_SOURCE,
     };
 
-    ~CLContext ();
+    virtual ~CLContext ();
     cl_context get_context_id () {
         return _context_id;
     }
@@ -109,10 +114,6 @@ private:
     SmartPtr<CLCommandQueue> get_default_cmd_queue ();
 
     //Memory, Image
-    cl_mem create_va_buffer (uint32_t bo_name);
-    cl_mem import_dma_buffer (const cl_import_buffer_info_intel &import_info);
-    cl_mem create_va_image (const cl_libva_image &image_info);
-    cl_mem import_dma_image (const cl_import_image_info_intel &image_info);
     cl_mem create_image (
         cl_mem_flags flags, const cl_image_format& format,
         const cl_image_desc &image_info, void *host_ptr = NULL);
@@ -164,8 +165,6 @@ private:
         void *ptr,
         CLEventList &events_wait = CLEvent::EmptyList,
         SmartPtr<CLEvent> &event_out = CLEvent::NullEvent);
-
-    int32_t export_mem_fd (cl_mem mem_id);
 
     // return valid event count
     static uint32_t event_list_2_id_array (

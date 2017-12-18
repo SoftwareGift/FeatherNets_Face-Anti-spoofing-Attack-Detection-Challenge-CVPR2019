@@ -20,6 +20,10 @@
 
 #include "cl_utils.h"
 #include "image_file_handle.h"
+#if HAVE_LIBDRM
+#include "intel/cl_intel_context.h"
+#include "intel/cl_va_memory.h"
+#endif
 
 namespace XCam {
 
@@ -89,7 +93,10 @@ convert_to_clbuffer (
 #if HAVE_LIBDRM
     else {
         SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
-        cl_buf = new CLVaBuffer (context, bo_buf);
+        SmartPtr<CLIntelContext> ctx = context.dynamic_cast_ptr<CLIntelContext> ();
+        XCAM_ASSERT (bo_buf.ptr () && ctx.ptr ());
+
+        cl_buf = new CLVaBuffer (ctx, bo_buf);
     }
 #else
     XCAM_UNUSED (context);
@@ -128,7 +135,10 @@ convert_to_climage (
 #if HAVE_LIBDRM
     else {
         SmartPtr<DrmBoBuffer> bo_buf = buf.dynamic_cast_ptr<DrmBoBuffer> ();
-        cl_image = new CLVaImage (context, bo_buf, desc, offset);
+        SmartPtr<CLIntelContext> ctx = context.dynamic_cast_ptr<CLIntelContext> ();
+        XCAM_ASSERT (bo_buf.ptr () && ctx.ptr ());
+
+        cl_image = new CLVaImage (ctx, bo_buf, desc, offset);
     }
 #endif
 

@@ -20,6 +20,9 @@
 
 #include "cl_device.h"
 #include "cl_context.h"
+#if HAVE_LIBDRM
+#include "intel/cl_intel_context.h"
+#endif
 
 namespace XCam {
 
@@ -188,7 +191,13 @@ CLDevice::query_device_info (cl_device_id device_id, CLDevieInfo &info)
 bool
 CLDevice::create_default_context ()
 {
-    SmartPtr<CLContext> context = new CLContext (_instance);
+    SmartPtr<CLContext> context;
+
+#if HAVE_LIBDRM
+    context = new CLIntelContext (_instance);
+#else
+    context = new CLContext (_instance);
+#endif
     if (!context->is_valid())
         return false;
 
