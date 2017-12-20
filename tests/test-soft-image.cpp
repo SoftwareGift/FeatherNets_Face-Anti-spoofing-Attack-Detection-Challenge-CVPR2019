@@ -428,17 +428,36 @@ ensure_output_format (const char *file_name, const SoftType &type, bool &nv12_ou
     return XCAM_RETURN_NO_ERROR;
 }
 
+static bool
+check_element (const SoftElements &elements, const uint32_t &idx)
+{
+    if (idx >= elements.size ())
+        return false;
+
+    if (!elements[idx].ptr()) {
+        XCAM_LOG_ERROR ("SoftElement(idx:%d) ptr is NULL", idx);
+        return false;
+    }
+
+    XCAM_FAIL_RETURN (
+        ERROR,
+        elements[idx]->get_width () && elements[idx]->get_height (),
+        false,
+        "SoftElement(idx:%d): invalid parameters width:%d height:%d",
+        idx, elements[idx]->get_width (), elements[idx]->get_height ());
+
+    return true;
+}
+
 static XCamReturn
 check_elements (const SoftElements &elements)
 {
     for (uint32_t i = 0; i < elements.size (); ++i) {
-        XCAM_ASSERT (elements[i].ptr ());
         XCAM_FAIL_RETURN (
             ERROR,
-            elements[i]->get_width () && elements[i]->get_height (),
+            check_element (elements, i),
             XCAM_RETURN_ERROR_PARAM,
-            "SoftElement: invalid parameters index:%d width:%d height:%d",
-            i, elements[i]->get_width (), elements[i]->get_height ());
+            "invalid SoftElement index:%d\n", i);
     }
 
     return XCAM_RETURN_NO_ERROR;
@@ -483,14 +502,16 @@ run_stitcher (
                 break;
 
             stitcher->stitch_buffers (in_buffers, outs[0]->get_buf ());
-            if (outs[1].ptr ()) {
-                CHECK (run_topview (stitcher, outs), "run topview failed");
+
+            if (save_output) {
+                if (check_element (outs, 1)) {
+                    CHECK (run_topview (stitcher, outs), "run topview failed");
+                }
+
+                write_image (ins, outs, nv12_output);
             }
 
-            if (save_output)
-                write_image (ins, outs, nv12_output);
-
-            FPS_CALCULATION (soft - stitcher, XCAM_OBJ_DUR_FRAME_NUM);
+            FPS_CALCULATION (soft-stitcher, XCAM_OBJ_DUR_FRAME_NUM);
         } while (true);
     }
 
@@ -745,9 +766,10 @@ int main (int argc, char *argv[])
         stitcher->set_bowl_config (bowl);
         stitcher->set_output_size (output_width, output_height);
 
-        add_element (outs, "topview", topview_width, topview_height);
-        if (save_output)
+        if (save_output) {
+            add_element (outs, "topview", topview_width, topview_height);
             elements_open_file (outs, "wb", nv12_output);
+        }
         run_stitcher (stitcher, ins, outs, nv12_output, save_output, loop);
         break;
     }
