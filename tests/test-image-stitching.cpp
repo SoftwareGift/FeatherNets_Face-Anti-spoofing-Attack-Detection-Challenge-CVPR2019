@@ -453,7 +453,6 @@ int main (int argc, char *argv[])
     }
     rectified_view_buf = rectified_view_pool->get_buffer (rectified_view_pool);
 
-
     for (int i = 0; i < input_count; i++) {
         ret = file_in[i].open (file_in_name[i], "rb");
         CHECK (ret, "open %s failed", file_in_name[i]);
@@ -528,27 +527,27 @@ int main (int argc, char *argv[])
             ret = image_360->execute (input_buf, output_buf);
             CHECK (ret, "image_360 stitch execute failed");
 
-            BowlDataConfig config = image_360->get_fisheye_bowl_config ();
-            sample_generate_top_view (output_buf, top_view_buf, config, top_view_map_table);
-            sample_generate_rectified_view (output_buf, rectified_view_buf, config, rectified_start_angle,
-                                            rectified_end_angle, rectified_view_map_table);
-
 #if HAVE_OPENCV
             if (need_save_output) {
                 cv::Mat out_mat;
                 convert_to_mat (output_buf, out_mat);
                 writer.write (out_mat);
 
+                BowlDataConfig config = image_360->get_fisheye_bowl_config ();
                 cv::Mat top_view_mat;
+                sample_generate_top_view (output_buf, top_view_buf, config, top_view_map_table);
                 convert_to_mat (top_view_buf, top_view_mat);
                 top_view_writer.write (top_view_mat);
 
                 cv::Mat rectified_view_mat;
+                sample_generate_rectified_view (output_buf, rectified_view_buf, config, rectified_start_angle,
+                                                rectified_end_angle, rectified_view_map_table);
                 convert_to_mat (rectified_view_buf, rectified_view_mat);
                 rectified_view_writer.write (rectified_view_mat);
 
 #if XCAM_TEST_STITCH_DEBUG
-                dbg_write_image (context, image_360, input_bufs, output_buf, top_view_buf, rectified_view_buf, all_in_one, fisheye_num, input_count);
+                dbg_write_image (context, image_360, input_bufs, output_buf, top_view_buf, rectified_view_buf,
+                                 all_in_one, fisheye_num, input_count);
 #endif
             } else
 #endif
