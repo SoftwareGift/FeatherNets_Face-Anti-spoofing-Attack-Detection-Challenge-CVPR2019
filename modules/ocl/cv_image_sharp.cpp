@@ -25,7 +25,7 @@ namespace XCam {
 
 
 CVImageSharp::CVImageSharp ()
-    : CVBaseClass()
+    : CVBaseClass ()
 {
 
 }
@@ -36,19 +36,16 @@ CVImageSharp::sharp_image_gray (const cv::Mat &image, float sigmar)
     cv::Mat temp_image;
     image.convertTo (temp_image, CV_32FC1);
     cv::Mat bilateral_image;
-    cv::bilateralFilter (image, bilateral_image, 5, sigmar, 2);
+    cv::bilateralFilter (temp_image, bilateral_image, 5, sigmar, 2);
 
     cv::Mat sharp_filter = (cv::Mat_<float>(3, 3) << -1, -1, -1, -1, 8, -1, -1, -1, -1);
     cv::Mat filtered_image;
     cv::filter2D (bilateral_image, filtered_image, -1, sharp_filter);
-    filtered_image.convertTo (filtered_image, CV_32FC1);
     cv::normalize (filtered_image, filtered_image, 0, 255.0f, cv::NORM_MINMAX);
-
     cv::Mat sharpened = temp_image + filtered_image;
     cv::normalize (sharpened, sharpened, 0, 255.0f, cv::NORM_MINMAX);
     return sharpened.clone ();
 }
-
 
 float
 CVImageSharp::measure_sharp (const cv::Mat &image)
@@ -56,14 +53,7 @@ CVImageSharp::measure_sharp (const cv::Mat &image)
     cv::Mat dst;
     cv::Laplacian (image, dst, -1, 3, 1, 0, cv::BORDER_CONSTANT);
     dst.convertTo (dst, CV_8UC1);
-    float sum = 0;
-    for (int i = 0; i < image.rows; i++)
-    {
-        for (int j = 0; j < image.cols; j++)
-        {
-            sum += dst.at<unsigned char>(i, j);
-        }
-    }
+    float sum = cv::sum (dst)[0];
     sum /= (image.rows * image.cols);
     return sum;
 }

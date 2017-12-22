@@ -25,7 +25,7 @@ namespace XCam {
 
 
 CVImageProcessHelper::CVImageProcessHelper ()
-    : CVBaseClass()
+    : CVBaseClass ()
 {
 
 }
@@ -34,11 +34,11 @@ cv::Mat
 CVImageProcessHelper::erosion (const cv::Mat &image, int erosion_size, int erosion_type)
 {
     cv::Mat element = cv::getStructuringElement (erosion_type,
-                      cv::Size(2 * erosion_size + 1, 2 * erosion_size + 1 ),
-                      cv::Point(erosion_size, erosion_size));
+                      cv::Size (2 * erosion_size + 1, 2 * erosion_size + 1),
+                      cv::Point (erosion_size, erosion_size));
     cv::Mat eroded;
     cv::erode (image, eroded, element);
-    return eroded.clone();
+    return eroded.clone ();
 }
 
 float
@@ -55,17 +55,6 @@ CVImageProcessHelper::get_snr (const cv::Mat &noisy, const cv::Mat &noiseless)
     return res;
 }
 
-cv::Mat
-CVImageProcessHelper::get_auto_correlation (const cv::Mat &image)
-{
-    cv::Mat dst;
-    cv::Laplacian (image, dst, -1, 3, 1, 0, cv::BORDER_CONSTANT);
-    dst.convertTo (dst, CV_32FC1);
-    cv::Mat correlation;
-    cv::filter2D (dst, correlation, -1, dst, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
-    return correlation.clone ();
-}
-
 void
 CVImageProcessHelper::compute_dft (const cv::Mat &image, cv::Mat &result)
 {
@@ -73,7 +62,7 @@ CVImageProcessHelper::compute_dft (const cv::Mat &image, cv::Mat &result)
     int m = cv::getOptimalDFTSize (image.rows);
     int n = cv::getOptimalDFTSize (image.cols);
     cv::copyMakeBorder (image, padded, 0, m - image.rows, 0, n - image.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
-    cv::Mat planes[] = {cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32FC1)};
+    cv::Mat planes[] = {cv::Mat_<float> (padded), cv::Mat::zeros (padded.size (), CV_32FC1)};
     cv::merge (planes, 2, result);
     cv::dft (result, result);
 }
@@ -103,24 +92,11 @@ CVImageProcessHelper::apply_constraints (cv::Mat &image, float threshold_min_val
     }
 }
 
-// weights will be symmetric and sum(weights elements) == 1
 void
 CVImageProcessHelper::normalize_weights (cv::Mat &weights)
 {
     weights.convertTo (weights, CV_32FC1);
-    float sum = 0;
-    for (int i = 0; i < weights.rows; i++)
-    {
-        for (int j = 0; j <= i; j++)
-        {
-            weights.at<float>(i, j) = (weights.at<float>(i, j) + weights.at<float>(j, i)) / 2;
-            weights.at<float>(j, i) = weights.at<float>(i, j);
-            if (j == i)
-                sum += weights.at<float>(i, j);
-            else
-                sum += (2 * weights.at<float>(i, j));
-        }
-    }
+    float sum = cv::sum (weights)[0];
     weights /= sum;
 }
 

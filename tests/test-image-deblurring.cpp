@@ -34,7 +34,7 @@
 using namespace XCam;
 
 static void
-usage(const char* arg0)
+usage (const char* arg0)
 {
     printf ("Usage: %s --input file --output file\n"
             "\t--input,    input image(RGB)\n"
@@ -60,7 +60,8 @@ int main (int argc, char *argv[])
     };
 
     int opt = -1;
-    while ((opt = getopt_long(argc, argv, "", long_opts, NULL)) != -1) {
+    while ((opt = getopt_long (argc, argv, "", long_opts, NULL)) != -1)
+    {
         switch (opt) {
         case 'i':
             file_in_name = optarg;
@@ -81,13 +82,15 @@ int main (int argc, char *argv[])
         }
     }
 
-    if (optind < argc || argc < 2) {
-        printf("unknown option %s\n", argv[optind]);
+    if (optind < argc || argc < 2)
+    {
+        printf ("unknown option %s\n", argv[optind]);
         usage (argv[0]);
         return -1;
     }
 
-    if (!file_in_name || !file_out_name) {
+    if (!file_in_name || !file_out_name)
+    {
         XCAM_LOG_ERROR ("input/output path is NULL");
         return -1;
     }
@@ -98,21 +101,23 @@ int main (int argc, char *argv[])
     printf ("need save file:%s\n", need_save_output ? "true" : "false");
     printf ("----------------------\n");
 
-    SmartPtr<CVImageDeblurring> imageDeblurring = new CVImageDeblurring();
-    SmartPtr<CVImageSharp> sharp = new CVImageSharp();
-    cv::Mat blurred = cv::imread(file_in_name, CV_LOAD_IMAGE_COLOR);
-    if (blurred.empty()) {
+    SmartPtr<CVImageDeblurring> imageDeblurring = new CVImageDeblurring ();
+    SmartPtr<CVImageSharp> sharp = new CVImageSharp ();
+    cv::Mat blurred = cv::imread (file_in_name, CV_LOAD_IMAGE_COLOR);
+    if (blurred.empty ())
+    {
         XCAM_LOG_ERROR ("input file read error");
         return 0;
     }
     cv::Mat deblurred;
     cv::Mat kernel;
-    imageDeblurring->blind_deblurring (blurred, deblurred, kernel);
+    imageDeblurring->blind_deblurring (blurred, deblurred, kernel, -1, -1, true);
     float input_sharp = sharp->measure_sharp (blurred);
     float output_sharp = sharp->measure_sharp (deblurred);
-    if (need_save_output) {
-        cv::imwrite(file_out_name, deblurred);
+    if (need_save_output)
+    {
+        cv::imwrite (file_out_name, deblurred);
     }
-    assert(output_sharp > input_sharp);
+    XCAM_ASSERT (output_sharp > input_sharp);
 }
 
