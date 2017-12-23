@@ -111,7 +111,7 @@ int main (int argc, char *argv[])
     }
     cv::Mat deblurred;
     cv::Mat kernel;
-    imageDeblurring->blind_deblurring (blurred, deblurred, kernel, -1, -1, true);
+    imageDeblurring->blind_deblurring (blurred, deblurred, kernel, -1, -1, false);
     float input_sharp = sharp->measure_sharp (blurred);
     float output_sharp = sharp->measure_sharp (deblurred);
     if (need_save_output)

@@ -30,17 +30,16 @@
 
 namespace XCam {
 
+
 class CVEdgetaper : public CVBaseClass
 {
 
 public:
     explicit CVEdgetaper ();
-
-    cv::Mat edgetaper (const cv::Mat &image, const cv::Mat &psf);
+    void edgetaper (const cv::Mat &image, const cv::Mat &psf, cv::Mat &output);
 
 private:
-    void create_weights (cv::Mat &coefficients, const cv::Mat &psf);
-    void normalized_autocorrelation (const cv::Mat &psf, cv::Mat &auto_correlation_psf);
+    void create_weights (const cv::Mat &image, const cv::Mat &psf, cv::Mat &coefficients);
 
     XCAM_DEAD_COPY (CVEdgetaper);
 };

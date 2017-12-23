@@ -25,12 +25,12 @@ namespace XCam {
 
 
 CVImageDeblurring::CVImageDeblurring ()
-    : CVBaseClass()
+    : CVBaseClass ()
 {
-    _helper = new CVImageProcessHelper();
-    _sharp = new CVImageSharp();
-    _edgetaper = new CVEdgetaper();
-    _wiener = new CVWienerFilter();
+    _helper = new CVImageProcessHelper ();
+    _sharp = new CVImageSharp ();
+    _edgetaper = new CVEdgetaper ();
+    _wiener = new CVWienerFilter ();
 }
 
 void
@@ -152,35 +152,52 @@ CVImageDeblurring::estimate_kernel_size (const cv::Mat &image)
 }
 
 void
-CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size, float noise_power)
+CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size, float noise_power, bool use_edgetaper)
 {
     cv::Mat gray_blurred;
     cv::cvtColor (blurred, gray_blurred, CV_BGR2GRAY);
-    if (noise_power < 0) {
+    if (noise_power < 0)
+    {
         cv::Mat median_blurred;
         medianBlur (gray_blurred, median_blurred, 3);
         noise_power = 1.0f / _helper->get_snr (gray_blurred, median_blurred);
-        XCAM_LOG_DEBUG("estimated inv snr %f", noise_power);
+        XCAM_LOG_DEBUG ("estimated inv snr %f", noise_power);
     }
-    if (kernel_size < 0) {
+    if (kernel_size < 0)
+    {
         kernel_size = estimate_kernel_size (gray_blurred);
-        XCAM_LOG_DEBUG("estimated kernel size %d", kernel_size);
+        XCAM_LOG_DEBUG ("estimated kernel size %d", kernel_size);
     }
-    std::vector<cv::Mat> blurred_rgb(3);
-    cv::split(blurred, blurred_rgb);
-    std::vector<cv::Mat> deblurred_rgb(3);
+    if (use_edgetaper) {
+        XCAM_LOG_DEBUG ("edgetaper will be used");
+    }
+    else {
+        XCAM_LOG_DEBUG ("edgetaper will not be used");
+    }
+    std::vector<cv::Mat> blurred_rgb (3);
+    cv::split (blurred, blurred_rgb);
+    std::vector<cv::Mat> deblurred_rgb (3);
     cv::Mat result_deblurred;
     cv::Mat result_kernel;
     blind_deblurring_one_channel (gray_blurred, result_kernel, kernel_size, noise_power);
     for (int i = 0; i < 3; i++)
     {
-        _wiener->wiener_filter (_edgetaper->edgetaper(blurred_rgb[i], result_kernel), result_kernel, deblurred_rgb[i], noise_power);
+        cv::Mat input;
+        if (use_edgetaper)
+        {
+            _edgetaper->edgetaper (blurred_rgb[i], result_kernel, input);
+        }
+        else
+        {
+            input = blurred_rgb[i].clone ();
+        }
+        _wiener->wiener_filter (input, result_kernel, deblurred_rgb[i], noise_power);
         _helper->apply_constraints (deblurred_rgb[i], 0);
     }
     cv::merge (deblurred_rgb, result_deblurred);
     result_deblurred.convertTo (result_deblurred, CV_8UC3);
     fastNlMeansDenoisingColored (result_deblurred, deblurred, 3, 3, 7, 21);
-    kernel = result_kernel.clone();
+    kernel = result_kernel.clone ();
 }
 
 void
@@ -189,19 +206,17 @@ CVImageDeblurring::blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat
     cv::Mat kernel_current = cv::Mat::zeros (kernel_size, kernel_size, CV_32FC1);
     cv::Mat deblurred_current = _helper->erosion (blurred, 2, 0);
     float sigmar = 20;
-    cv::Mat enhanced_blurred = blurred.clone ();
     for (int i = 0; i < _config.iterations; i++)
     {
         cv::Mat sharpened = _sharp->sharp_image_gray (deblurred_current, sigmar);
         _wiener->wiener_filter (blurred, sharpened.clone (), kernel_current, noise_power);
-        kernel_current = kernel_current (cv::Rect(0, 0, kernel_size, kernel_size));
+        kernel_current = kernel_current (cv::Rect (0, 0, kernel_size, kernel_size));
         double min_val;
         double max_val;
         cv::minMaxLoc (kernel_current, &min_val, &max_val);
         _helper->apply_constraints (kernel_current, (float)max_val / 20);
         _helper->normalize_weights (kernel_current);
-        enhanced_blurred = _edgetaper->edgetaper (blurred, kernel_current);
-        _wiener->wiener_filter (enhanced_blurred, kernel_current.clone(), deblurred_current, noise_power);
+        _wiener->wiener_filter (blurred, kernel_current.clone(), deblurred_current, noise_power);
         _helper->apply_constraints (deblurred_current, 0);
         sigmar *= 0.9;
     }

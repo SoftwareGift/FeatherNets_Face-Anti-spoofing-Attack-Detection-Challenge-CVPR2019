@@ -35,7 +35,7 @@ namespace XCam {
 struct CVIDConfig {
     int iterations;            // number of iterations for IBD algorithm
 
-    CVIDConfig (unsigned int _iterations = 200)
+    CVIDConfig (unsigned int _iterations = 50)
     {
         iterations = _iterations;
     }
@@ -46,11 +46,9 @@ class CVImageDeblurring : public CVBaseClass
 
 public:
     explicit CVImageDeblurring ();
-
     void set_config (CVIDConfig config);
     CVIDConfig get_config ();
-
-    void blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size = -1, float noise_power = -1.0f);
+    void blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size = -1, float noise_power = -1.0f, bool use_edgetaper = true);
 
 private:
     void blind_deblurring_one_channel (const cv::Mat &blurred, cv::Mat &kernel, int kernel_size, float noise_power);
