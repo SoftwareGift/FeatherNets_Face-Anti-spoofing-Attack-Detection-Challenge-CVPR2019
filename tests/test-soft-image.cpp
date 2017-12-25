@@ -254,7 +254,7 @@ SoftElement::cv_write_image (char *img_name, char *frame_str, char *idx_str)
 #endif
 
 static int
-parse_camera_info (const char *path, uint32_t idx, CameraInfo &info)
+parse_camera_info (const char *path, uint32_t idx, CameraInfo &info, uint32_t camera_count)
 {
     static const char *instrinsic_names[] = {
         "intrinsic_camera_front.txt", "intrinsic_camera_right.txt",
@@ -282,7 +282,7 @@ parse_camera_info (const char *path, uint32_t idx, CameraInfo &info)
     info.calibration.extrinsic.trans_x += TEST_CAMERA_POSITION_OFFSET_X;
 
     info.angle_range = viewpoints_range[idx];
-    info.round_angle_start = (idx * 360.0f / 4.0f) - info.angle_range / 2.0f;
+    info.round_angle_start = (idx * 360.0f / camera_count) - info.angle_range / 2.0f;
     return 0;
 }
 
@@ -501,7 +501,9 @@ run_stitcher (
             if (ret == XCAM_RETURN_BYPASS)
                 break;
 
-            stitcher->stitch_buffers (in_buffers, outs[0]->get_buf ());
+            CHECK (
+                stitcher->stitch_buffers (in_buffers, outs[0]->get_buf ()),
+                "stitch buffer failed.");
 
             if (save_output) {
                 if (check_element (outs, 1)) {
@@ -511,7 +513,7 @@ run_stitcher (
                 write_image (ins, outs, nv12_output);
             }
 
-            FPS_CALCULATION (soft-stitcher, XCAM_OBJ_DUR_FRAME_NUM);
+            FPS_CALCULATION (soft - stitcher, XCAM_OBJ_DUR_FRAME_NUM);
         } while (true);
     }
 
@@ -658,16 +660,16 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    if (!strlen (ins[0]->get_file_name ()) || !strlen (outs[0]->get_file_name ())) {
+    if (ins.empty () || outs.empty () ||
+            !strlen (ins[0]->get_file_name ()) || !strlen (outs[0]->get_file_name ())) {
         XCAM_LOG_ERROR ("input or output file name was not set");
         usage (argv[0]);
         return -1;
     }
 
-    printf ("input0 file:\t\t%s\n", ins[0]->get_file_name ());
-    printf ("input1 file:\t\t%s\n", ins[1]->get_file_name ());
-    printf ("input2 file:\t\t%s\n", ins[2]->get_file_name ());
-    printf ("input3 file:\t\t%s\n", ins[3]->get_file_name ());
+    for (uint32_t i = 0; i < ins.size (); ++i) {
+        printf ("input%d file:\t\t%s\n", i, ins[i]->get_file_name ());
+    }
     printf ("output file:\t\t%s\n", outs[0]->get_file_name ());
     printf ("input width:\t\t%d\n", input_width);
     printf ("input height:\t\t%d\n", input_height);
@@ -698,6 +700,7 @@ int main (int argc, char *argv[])
 
     switch (type) {
     case SoftTypeBlender: {
+        CHECK_EXP (ins.size () >= 2, "blender need 2 input files.");
         SmartPtr<Blender> blender = Blender::create_soft_blender ();
         XCAM_ASSERT (blender.ptr ());
         blender->set_output_size (output_width, output_height);
@@ -729,6 +732,9 @@ int main (int argc, char *argv[])
         break;
     }
     case SoftTypeStitch: {
+        CHECK_EXP (ins.size () >= 2 && ins.size () <= 4, "stitcher need at 2~4 input files.");
+
+        uint32_t camera_count = ins.size ();
         SmartPtr<Stitcher> stitcher = Stitcher::create_soft_stitcher ();
         XCAM_ASSERT (stitcher.ptr ());
 
@@ -737,21 +743,23 @@ int main (int argc, char *argv[])
         if (!fisheye_config_path)
             fisheye_config_path = FISHEYE_CONFIG_PATH;
 
-        for (uint32_t i = 0; i < 4; ++i) {
-            if (parse_camera_info (fisheye_config_path, i, cam_info[i]) != 0) {
+        for (uint32_t i = 0; i < camera_count; ++i) {
+            if (parse_camera_info (fisheye_config_path, i, cam_info[i], camera_count) != 0) {
                 XCAM_LOG_ERROR ("parse fisheye dewarp info(idx:%d) failed.", i);
                 return -1;
             }
         }
 
         PointFloat3 bowl_coord_offset;
-        centralize_bowl_coord_from_cameras (
-            cam_info[0].calibration.extrinsic, cam_info[1].calibration.extrinsic,
-            cam_info[2].calibration.extrinsic, cam_info[3].calibration.extrinsic,
-            bowl_coord_offset);
+        if (camera_count == 4) {
+            centralize_bowl_coord_from_cameras (
+                cam_info[0].calibration.extrinsic, cam_info[1].calibration.extrinsic,
+                cam_info[2].calibration.extrinsic, cam_info[3].calibration.extrinsic,
+                bowl_coord_offset);
+        }
 
-        stitcher->set_camera_num (4);
-        for (uint32_t i = 0; i < 4; ++i) {
+        stitcher->set_camera_num (camera_count);
+        for (uint32_t i = 0; i < camera_count; ++i) {
             stitcher->set_camera_info (i, cam_info[i]);
         }
 
@@ -770,7 +778,9 @@ int main (int argc, char *argv[])
             add_element (outs, "topview", topview_width, topview_height);
             elements_open_file (outs, "wb", nv12_output);
         }
-        run_stitcher (stitcher, ins, outs, nv12_output, save_output, loop);
+        CHECK_EXP (
+            run_stitcher (stitcher, ins, outs, nv12_output, save_output, loop) == 0,
+            "run stitcher failed.");
         break;
     }
 
