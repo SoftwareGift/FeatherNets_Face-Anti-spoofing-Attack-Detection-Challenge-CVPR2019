@@ -21,13 +21,14 @@
 
 #include "test_common.h"
 #include "test_inline.h"
+
 #include <unistd.h>
 #include <getopt.h>
 #include <image_file_handle.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_context.h>
-#include <ocl/cl_blender.h>
+#include <ocl/cv_image_sharp.h>
+#include <ocl/cv_wiener_filter.h>
 #include <ocl/cv_image_deblurring.h>
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
 
@@ -39,9 +40,44 @@ usage (const char* arg0)
     printf ("Usage: %s --input file --output file\n"
             "\t--input,    input image(RGB)\n"
             "\t--output,   output image(RGB) PREFIX\n"
+            "\t--blind,    optional, blind or non-blind deblurring, default true; select from [true/false]\n"
             "\t--save,     optional, save file or not, default true; select from [true/false]\n"
             "\t--help,     usage\n",
             arg0);
+}
+
+static void
+blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
+{
+    SmartPtr<CVImageDeblurring> image_deblurring = new CVImageDeblurring ();
+    cv::Mat kernel;
+    image_deblurring->blind_deblurring (input_image, output_image, kernel, -1, -1, false);
+}
+
+static void
+non_blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
+{
+    SmartPtr<CVWienerFilter> wiener_filter = new CVWienerFilter ();
+    cv::cvtColor (input_image, input_image, CV_BGR2GRAY);
+    // use simple motion blur kernel
+    int kernel_size = 13;
+    cv::Mat kernel = cv::Mat::zeros (kernel_size, kernel_size, CV_32FC1);
+    for (int i = 0; i < kernel_size; i++)
+    {
+        kernel.at<float> ((kernel_size - 1) / 2, i) = 1.0;
+    }
+    kernel /= kernel_size;
+    //flip kernel to perform convolution
+    cv::Mat conv_kernel;
+    cv::flip (kernel, conv_kernel, -1);
+    cv::Mat blurred;
+    cv::filter2D (input_image, blurred, CV_32FC1, conv_kernel, cv::Point(-1, -1), 0, cv::BORDER_CONSTANT);
+    // restore the image
+    cv::Mat median_blurred;
+    medianBlur (blurred, median_blurred, 3);
+    SmartPtr<CVImageProcessHelper> helpers = new CVImageProcessHelper ();
+    float noise_power = 1.0f / helpers->get_snr (blurred, median_blurred);
+    wiener_filter->wiener_filter (blurred, kernel, output_image, noise_power);
 }
 
 int main (int argc, char *argv[])
@@ -50,10 +86,12 @@ int main (int argc, char *argv[])
     const char *file_out_name = NULL;
 
     bool need_save_output = true;
+    bool blind = true;
 
     const struct option long_opts[] = {
         {"input", required_argument, NULL, 'i'},
         {"output", required_argument, NULL, 'o'},
+        {"blind", required_argument, NULL, 'b'},
         {"save", required_argument, NULL, 's'},
         {"help", no_argument, NULL, 'H'},
         {0, 0, 0, 0},
@@ -68,6 +106,9 @@ int main (int argc, char *argv[])
             break;
         case 'o':
             file_out_name = optarg;
+            break;
+        case 'b':
+            blind = (strcasecmp (optarg, "false") == 0 ? false : true);
             break;
         case 's':
             need_save_output = (strcasecmp (optarg, "false") == 0 ? false : true);
@@ -98,25 +139,31 @@ int main (int argc, char *argv[])
     printf ("Description-----------\n");
     printf ("input image file:%s\n", file_in_name);
     printf ("output file :%s\n", file_out_name);
+    printf ("blind deblurring:%s\n", blind ? "true" : "false");
     printf ("need save file:%s\n", need_save_output ? "true" : "false");
     printf ("----------------------\n");
 
-    SmartPtr<CVImageDeblurring> imageDeblurring = new CVImageDeblurring ();
     SmartPtr<CVImageSharp> sharp = new CVImageSharp ();
-    cv::Mat blurred = cv::imread (file_in_name, CV_LOAD_IMAGE_COLOR);
-    if (blurred.empty ())
+    cv::Mat input_image = cv::imread (file_in_name, CV_LOAD_IMAGE_COLOR);
+    cv::Mat output_image;
+    if (input_image.empty ())
     {
         XCAM_LOG_ERROR ("input file read error");
         return 0;
     }
-    cv::Mat deblurred;
-    cv::Mat kernel;
-    imageDeblurring->blind_deblurring (blurred, deblurred, kernel, -1, -1, false);
-    float input_sharp = sharp->measure_sharp (blurred);
-    float output_sharp = sharp->measure_sharp (deblurred);
+    if (blind)
+    {
+        blind_deblurring (input_image, output_image);
+    }
+    else
+    {
+        non_blind_deblurring (input_image, output_image);
+    }
+    float input_sharp = sharp->measure_sharp (input_image);
+    float output_sharp = sharp->measure_sharp (output_image);
     if (need_save_output)
     {
-        cv::imwrite (file_out_name, deblurred);
+        cv::imwrite (file_out_name, output_image);
     }
     XCAM_ASSERT (output_sharp > input_sharp);
 }
