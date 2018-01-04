@@ -60,7 +60,7 @@ dump_image (SmartPtr<CLImage> image, const char *file_name)
     size_t slice_pitch;
 
     XCamReturn ret = image->enqueue_map (ptr, origin, region, &row_pitch, &slice_pitch, CL_MAP_READ);
-    XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+    XCAM_FAIL_RETURN (ERROR, xcam_ret_is_ok (ret), false, "dump image failed in enqueue_map");
     XCAM_ASSERT (ptr);
     XCAM_ASSERT (row_pitch == desc.row_pitch);
     uint8_t *buf_start = (uint8_t *)ptr;
@@ -156,7 +156,9 @@ convert_nv12_mem_to_video_buffer (
 
     VideoBufferPlanarInfo planar;
     const VideoBufferInfo info = buf->get_video_info ();
-    XCAM_ASSERT ((width == info.width) && (height == info.height));
+    XCAM_FAIL_RETURN (
+        DEBUG, (width == info.width) && (height == info.height), XCAM_RETURN_ERROR_PARAM,
+        "convert mem to video buffer failed since image sizes are not matched.");
 
     uint8_t *out_mem = buf->map ();
     XCAM_FAIL_RETURN (ERROR, out_mem, XCAM_RETURN_ERROR_MEM, "map buffer failed");

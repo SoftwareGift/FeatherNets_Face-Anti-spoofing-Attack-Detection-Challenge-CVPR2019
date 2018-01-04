@@ -353,7 +353,7 @@ PyramidLayer::bind_buf_to_layer0 (
             cl_desc.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
             cl_desc.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[i_plane]) / divider_vert[i_plane];
             uint32_t row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) *
-                                     XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+                                 XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
             uint32_t size = row_pitch * cl_desc.height;
             SmartPtr<CLBuffer> cl_buf = new CLBuffer (context, size);
             XCAM_ASSERT (cl_buf.ptr () && cl_buf->is_valid ());
@@ -379,7 +379,11 @@ PyramidLayer::init_layer0 (SmartPtr<CLContext> context, bool last_layer, bool ne
     this->blend_mask[0] = new CLBuffer(context, mask_size);
     float *blend_ptr = NULL;
     XCamReturn ret = this->blend_mask[0]->enqueue_map((void*&)blend_ptr, 0, mask_size);
-    XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+    if (!xcam_ret_is_ok (ret)) {
+        XCAM_LOG_ERROR ("PyramidLayer init layer0 failed in blend_mask mem_map");
+        return;
+    }
+
     for (uint32_t i_ptr = 0; i_ptr < this->mask_width[0]; ++i_ptr) {
         if (i_ptr <= this->mask_width[0] / 2)
             blend_ptr[i_ptr] = 1.0f;
@@ -438,7 +442,7 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
 
             //gauss y image created by cl buffer
             row_pitch = CLImage::calculate_pixel_bytes (cl_desc_set.format) *
-                            XCAM_ALIGN_UP (cl_desc_set.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+                        XCAM_ALIGN_UP (cl_desc_set.width, XCAM_CL_IMAGE_ALIGNMENT_X);
             size = row_pitch * cl_desc_set.height;
             cl_buf = new CLBuffer (context, size);
             XCAM_ASSERT (cl_buf.ptr () && cl_buf->is_valid ());
@@ -451,7 +455,7 @@ PyramidLayer::build_cl_images (SmartPtr<CLContext> context, bool last_layer, boo
         cl_desc_set.width = XCAM_ALIGN_UP (this->blend_width, XCAM_CL_BLENDER_ALIGNMENT_X) / 8;
         cl_desc_set.height = XCAM_ALIGN_UP (this->blend_height, divider_vert[plane]) / divider_vert[plane];
         row_pitch = CLImage::calculate_pixel_bytes (cl_desc_set.format) *
-                        XCAM_ALIGN_UP (cl_desc_set.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+                    XCAM_ALIGN_UP (cl_desc_set.width, XCAM_CL_IMAGE_ALIGNMENT_X);
         size = row_pitch * cl_desc_set.height;
         cl_buf = new CLBuffer (context, size);
         XCAM_ASSERT (cl_buf.ptr () && cl_buf->is_valid ());
@@ -491,9 +495,9 @@ PyramidLayer::copy_mask_from_y_to_uv (SmartPtr<CLContext> &context)
     float *from_ptr = NULL;
     float *to_ptr = NULL;
     ret = this->blend_mask[1]->enqueue_map ((void*&)to_ptr, 0, this->mask_width[1] * sizeof(float));
-    XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+    XCAM_FAIL_RETURN (ERROR, xcam_ret_is_ok (ret), false, "PyramidLayer copy mask failed in blend_mask[1] mem_map");
     ret = this->blend_mask[0]->enqueue_map((void*&)from_ptr, 0, this->mask_width[0] * sizeof(float));
-    XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+    XCAM_FAIL_RETURN (ERROR, xcam_ret_is_ok (ret), false, "PyramidLayer copy mask failed in blend_mask[0] mem_map");
 
     for (int i = 0; i < (int)this->mask_width[1]; ++i) {
         if (i * 2 + 1 >= (int)this->mask_width[0]) { // todo i* 2 + 1
@@ -532,7 +536,10 @@ CLPyramidBlender::dump_layer_mask (uint32_t layer, bool is_uv)
 
     float *mask_ptr = NULL;
     XCamReturn ret = pyr_layer.blend_mask[plane]->enqueue_map ((void*&)mask_ptr, 0, pyr_layer.mask_width[plane] * sizeof(float));
-    XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+    if (!xcam_ret_is_ok (ret)) {
+        XCAM_LOG_ERROR ("CLPyramidBlender dump mask failed in blend_mask(layer:%d) mem_map", layer);
+        return;
+    }
 
     printf ("layer(%d)(-%s) mask, width:%d\n", layer, (is_uv ? "UV" : "Y"), pyr_layer.mask_width[plane]);
     for (uint32_t i = 0; i < pyr_layer.mask_width[plane]; ++i) {
@@ -560,10 +567,10 @@ gauss_fill_mask (
     XCAM_ASSERT (to.blend_mask[0].ptr ());
     float *mask0_ptr = NULL;
     ret = to.blend_mask[0]->enqueue_map((void*&)mask0_ptr, 0, mask_size);
-    XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+    XCAM_FAIL_RETURN (ERROR, xcam_ret_is_ok (ret), false, "gauss_fill_mask failed in destination image mem_map");
 
     ret = prev.blend_mask[0]->enqueue_map((void*&)pre_ptr, 0, prev_size);
-    XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+    XCAM_FAIL_RETURN (ERROR, xcam_ret_is_ok (ret), false, "gauss_fill_mask failed in source image mem_map");
 
     for (i = 0; i < (int)to.blend_width; ++i) {
         if (i * 2 + 1 >= (int)prev.mask_width[0]) { // todo i* 2 + 1
@@ -659,7 +666,7 @@ CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
     cl_desc.width = _seam_width / 8;
     cl_desc.height = _seam_height;
     cl_desc.row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) *
-                            XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+                        XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
 
     uint32_t image_diff_size = cl_desc.row_pitch * _seam_height;
     SmartPtr<CLBuffer> cl_diff_buf = new CLBuffer (context, image_diff_size);
@@ -695,7 +702,7 @@ CLPyramidBlender::init_seam_buffers (SmartPtr<CLContext> context)
         cl_desc.width = mask_width / 8;
         cl_desc.height = mask_height;
         cl_desc.row_pitch = CLImage::calculate_pixel_bytes (cl_desc.format) *
-                                XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
+                            XCAM_ALIGN_UP (cl_desc.width, XCAM_CL_IMAGE_ALIGNMENT_X);
 
         uint32_t mask_size = cl_desc.row_pitch * mask_height;
         SmartPtr<CLBuffer> cl_buf0 = new CLBuffer (context, mask_size);

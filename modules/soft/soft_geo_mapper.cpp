@@ -178,6 +178,7 @@ void
 SoftGeoMapper::remap_task_done (
     const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error)
 {
+    XCAM_UNUSED (worker);
     XCAM_ASSERT (worker.ptr () == _map_task.ptr ());
     SmartPtr<XCamSoftTasks::GeoMapTask::Args> args = base.dynamic_cast_ptr<XCamSoftTasks::GeoMapTask::Args> ();
     XCAM_ASSERT (args.ptr ());

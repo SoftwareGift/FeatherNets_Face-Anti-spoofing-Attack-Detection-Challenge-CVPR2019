@@ -25,6 +25,7 @@ namespace XCam {
 
 void
 ImageProcessCallback::process_buffer_done (ImageProcessor *processor, const SmartPtr<VideoBuffer> &buf) {
+    XCAM_UNUSED (processor);
     XCAM_ASSERT (buf.ptr() && processor);
 
     int64_t ts = buf->get_timestamp();
@@ -51,6 +52,7 @@ ImageProcessCallback::process_buffer_failed (ImageProcessor *processor, const Sm
 void
 ImageProcessCallback::process_image_result_done (ImageProcessor *processor, const SmartPtr<X3aResult> &result)
 {
+    XCAM_UNUSED (processor);
     XCAM_ASSERT (result.ptr() && processor);
 
     int64_t ts = result->get_timestamp();

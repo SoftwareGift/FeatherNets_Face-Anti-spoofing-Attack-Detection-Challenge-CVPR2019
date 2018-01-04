@@ -230,6 +230,8 @@ XCamReturn CLImageHandler::prepare_buffer_pool_video_info (
 XCamReturn
 CLImageHandler::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output)
 {
+    XCAM_UNUSED (input);
+    XCAM_UNUSED (output);
     XCAM_ASSERT (input.ptr () && output.ptr ());
     return XCAM_RETURN_NO_ERROR;
 }

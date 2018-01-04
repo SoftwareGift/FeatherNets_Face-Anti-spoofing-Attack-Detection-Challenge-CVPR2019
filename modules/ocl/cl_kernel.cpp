@@ -433,6 +433,7 @@ CLKernel::event_notify (cl_event event, cl_int status, void* data)
     KernelUserData *kernel_data = (KernelUserData *)data;
     XCAM_ASSERT (event == kernel_data->event->get_event_id ());
     XCAM_UNUSED (status);
+    XCAM_UNUSED (event);
 
     delete kernel_data;
 }

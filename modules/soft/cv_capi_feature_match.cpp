@@ -134,8 +134,8 @@ CVCapiFeatureMatch::calc_of_match (
 {
     CvMat debug_image;
     CvSize img0_size = cvSize(((CvMat*)image0)->width, ((CvMat*)image0)->height);
-    CvSize img1_size = cvSize(((CvMat*)image1)->width, ((CvMat*)image1)->height);
-    XCAM_ASSERT (img0_size.height == img1_size.height);
+    XCAM_ASSERT (img0_size.height == ((CvMat*)image1)->height);
+    XCAM_UNUSED (image1);
 
     std::vector<float> offsets;
     float offset_sum = 0.0f;
@@ -144,6 +144,7 @@ CVCapiFeatureMatch::calc_of_match (
     offsets.reserve (corner0.size ());
 
 #if XCAM_CV_CAPI_FM_DEBUG
+    CvSize img1_size = cvSize(((CvMat*)image1)->width, ((CvMat*)image1)->height);
     cv::Mat mat;
     mat.create (img0_size.height, img0_size.width + img1_size.width, ((CvMat*)image0)->type);
     debug_image = cvMat (img0_size.height, img0_size.width + img1_size.width, ((CvMat*)image0)->type, mat.ptr());

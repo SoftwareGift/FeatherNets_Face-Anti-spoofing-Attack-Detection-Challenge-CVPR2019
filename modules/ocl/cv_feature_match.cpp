@@ -121,12 +121,13 @@ CVFeatureMatch::calc_of_match (
 {
     cv::_InputOutputArray debug_img;
     cv::Size img0_size = image0.size ();
-    cv::Size img1_size = image1.size ();
-    XCAM_ASSERT (img0_size.height == img1_size.height);
+    XCAM_ASSERT (img0_size.height == image1.rows ());
+    XCAM_UNUSED (image1);
 
 #if XCAM_CV_FM_DEBUG
     cv::Mat mat;
     cv::UMat umat;
+    cv::Size img1_size = image1.size ();
     cv::Size size (img0_size.width + img1_size.width, img0_size.height);
 
     if (image0.isUMat ()) {

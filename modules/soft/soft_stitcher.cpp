@@ -843,6 +843,7 @@ SoftStitcher::copy_task_done (
     const SmartPtr<Worker::Arguments> &base,
     const XCamReturn error)
 {
+    XCAM_UNUSED (worker);
     XCAM_ASSERT (worker.ptr ());
     SmartPtr<SoftSitcherPriv::StitcherCopyArgs> args = base.dynamic_cast_ptr<SoftSitcherPriv::StitcherCopyArgs> ();
     XCAM_ASSERT (args.ptr ());

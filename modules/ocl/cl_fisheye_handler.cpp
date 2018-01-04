@@ -393,7 +393,7 @@ CLFisheyeHandler::generate_fisheye_table (
         size_t row_pitch;
         size_t slice_pitch;
         XCamReturn ret = _geo_table->enqueue_map ((void *&)map_ptr, origin, region, &row_pitch, &slice_pitch, CL_MAP_WRITE);
-        XCAM_ASSERT (ret == XCAM_RETURN_NO_ERROR);
+        XCAM_FAIL_RETURN (ERROR, xcam_ret_is_ok (ret), ret, "CLFisheyeHandler mesh table failed in enqueue_map");
 
         for (uint32_t row = 0; row < table_height; row++) {
             for(uint32_t col = 0; col < table_width; col++) {

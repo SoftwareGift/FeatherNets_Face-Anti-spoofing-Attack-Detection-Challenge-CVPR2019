@@ -109,6 +109,7 @@ CLVideoStabilizer::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vi
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     XCAM_ASSERT (input.ptr () && output.ptr ());
+    XCAM_UNUSED (output);
 
     if (_input_buf_list.size () >= 2 * _filter_radius + 1) {
         _input_buf_list.pop_front ();
