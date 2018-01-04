@@ -43,7 +43,7 @@
 #define MAP_FACTOR_X  16
 #define MAP_FACTOR_Y  16
 
-#define DUMP_STITCHER 1
+#define DUMP_STITCHER 0
 
 namespace XCam {
 

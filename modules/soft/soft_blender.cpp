@@ -30,7 +30,7 @@
 #define OVERLAP_POOL_SIZE 6
 #define LAP_POOL_SIZE 4
 
-#define DUMP_BLENDER 1
+#define DUMP_BLENDER 0
 
 namespace XCam {
 
