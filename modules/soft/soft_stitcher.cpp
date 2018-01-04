@@ -352,7 +352,11 @@ StitcherImpl::init_config (uint32_t count)
         config.recur_offset_error = 8.0f;
         config.max_adjusted_offset = 24.0f;
         config.max_valid_offset_y = 20.0f;
+#ifndef ANDROID
         config.max_track_error = 28.0f;
+#else
+        config.max_track_error = 3600.0f;
+#endif
         _overlaps[i].matcher->set_config (config);
         _overlaps[i].matcher->set_fm_index (i);
 #endif
