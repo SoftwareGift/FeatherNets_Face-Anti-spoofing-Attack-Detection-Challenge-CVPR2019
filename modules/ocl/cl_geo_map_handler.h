@@ -52,6 +52,9 @@ protected:
     virtual SmartPtr<CLImage> get_lsc_table () = 0;
     virtual float* get_lsc_gray_threshold() = 0;
 
+    virtual PointFloat2 get_left_scale_factor () = 0;
+    virtual PointFloat2 get_right_scale_factor () = 0;
+
 private:
     XCAM_DEAD_COPY (GeoKernelParamCallback);
 };
@@ -120,6 +123,16 @@ protected:
     virtual float* get_lsc_gray_threshold () {
         XCAM_ASSERT (false && "CLGeoMapHandler::lsc gray threshold is not supported");
         return NULL;
+    }
+
+    virtual PointFloat2 get_left_scale_factor () {
+        XCAM_ASSERT (false && "CLGeoMapHandler::left_scale_factor is not supported");
+        return PointFloat2 (0.0f, 0.0f);
+    }
+
+    virtual PointFloat2 get_right_scale_factor () {
+        XCAM_ASSERT (false && "CLGeoMapHandler::right_scale_factor is not supported");
+        return PointFloat2 (0.0f, 0.0f);
     }
 
 protected:

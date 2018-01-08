@@ -65,9 +65,20 @@ public:
     void set_lsc_table (float *table, uint32_t table_size);
     void set_lsc_gray_threshold (float min_threshold, float max_threshold);
 
+    void set_left_scale_factor (PointFloat2 factor);
+    void set_right_scale_factor (PointFloat2 factor);
+
+    virtual PointFloat2 get_left_scale_factor () {
+        return _left_scale_factor;
+    }
+    virtual PointFloat2 get_right_scale_factor () {
+        return _right_scale_factor;
+    }
+
     void set_bowl_config(const BowlDataConfig bowl_data_config) {
         _bowl_data_config = bowl_data_config;
     }
+
     const BowlDataConfig &get_bowl_config() {
         return _bowl_data_config;
     }
@@ -140,6 +151,9 @@ private:
     uint32_t                         _lsc_array_size;
     float                            _gray_threshold[2];  // [min_gray_threshold, max_gray_threshold]
     float                            *_lsc_array;
+
+    PointFloat2                      _left_scale_factor;
+    PointFloat2                      _right_scale_factor;
 
     BowlDataConfig                   _bowl_data_config;
 

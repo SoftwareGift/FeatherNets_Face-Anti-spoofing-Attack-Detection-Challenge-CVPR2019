@@ -52,6 +52,9 @@ CLGeoMapKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     const CLImageDesc &outuv_desc = output_uv->get_image_desc ();
     SmartPtr<CLImage> geo_image = _handler->get_geo_map_table ();
 
+    PointFloat2 left_scale_factor = _handler->get_left_scale_factor ();
+    PointFloat2 right_scale_factor = _handler->get_right_scale_factor ();
+
     float geo_scale_size[2]; //width/height
     float out_size[2];
     _handler->get_geo_equivalent_out_size (geo_scale_size[0], geo_scale_size[1]);
@@ -61,6 +64,8 @@ CLGeoMapKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     args.push_back (new CLMemArgument (input_uv));
     args.push_back (new CLMemArgument (geo_image));
     args.push_back (new CLArgumentTArray<float, 2> (geo_scale_size));
+    args.push_back (new CLArgumentT<PointFloat2> (left_scale_factor));
+    args.push_back (new CLArgumentT<PointFloat2> (right_scale_factor));
 
     if (_need_lsc) {
         SmartPtr<CLImage> lsc_image = _handler->get_lsc_table ();

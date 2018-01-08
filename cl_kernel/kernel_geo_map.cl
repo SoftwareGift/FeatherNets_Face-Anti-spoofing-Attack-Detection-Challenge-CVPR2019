@@ -66,6 +66,7 @@ __kernel void
 kernel_geo_map (
     __read_only image2d_t input_y, __read_only image2d_t input_uv,
     __read_only image2d_t geo_table, float2 table_scale_size,
+    float2 left_scale_factor, float2 right_scale_factor,
 #if ENABLE_LSC
     __read_only image2d_t lsc_table, float2 gray_threshold,
 #endif
@@ -79,6 +80,8 @@ kernel_geo_map (
     bool out_of_bound[8];
     float2 input_pos[8];
     // map to [-0.5, 0.5)
+    table_scale_size *= (g_x * PIXEL_RES_STEP_X < out_size.x / 2.0f) ? left_scale_factor : right_scale_factor;
+
     float2 table_scale_step = 1.0f / table_scale_size;
     float2 out_map_pos;
     sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;

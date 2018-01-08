@@ -139,6 +139,8 @@ CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, Surround
     , _need_lsc (need_lsc ? 1 : 0)
     , _lsc_array_size (0)
     , _lsc_array (NULL)
+    , _left_scale_factor (1.0f, 1.0f)
+    , _right_scale_factor (1.0f, 1.0f)
     , _surround_mode (surround_mode)
 {
     xcam_mem_clear (_gray_threshold);
@@ -201,6 +203,18 @@ CLFisheyeHandler::set_lsc_gray_threshold (float min_threshold, float max_thresho
 {
     _gray_threshold[0] = min_threshold;
     _gray_threshold[1] = max_threshold;
+}
+
+void
+CLFisheyeHandler::set_left_scale_factor (PointFloat2 factor)
+{
+    _left_scale_factor = factor;
+}
+
+void
+CLFisheyeHandler::set_right_scale_factor (PointFloat2 factor)
+{
+    _right_scale_factor = factor;
 }
 
 XCamReturn
