@@ -10,9 +10,14 @@ ifeq ($(ENABLE_DEBUG), 1)
 XCAM_CFLAGS += -DDEBUG
 endif
 
+ENABLE_OPENCV := 0
+ifneq ($(filter $(TARGET_ARCH),x86 x86_64),)
+
 ifneq ($(wildcard external/opencv),)
 ENABLE_OPENCV := 1
 XCAM_CFLAGS += -DHAVE_OPENCV=1
+endif
+
 endif
 
 
