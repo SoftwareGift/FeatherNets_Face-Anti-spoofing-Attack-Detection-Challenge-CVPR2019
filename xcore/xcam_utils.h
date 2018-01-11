@@ -64,6 +64,13 @@ class VideoBuffer;
 void dump_buf_perfix_path (const SmartPtr<VideoBuffer> buf, const char *prefix_name);
 bool dump_video_buf (const SmartPtr<VideoBuffer> buf, const char *file_name);
 
+SmartPtr<VideoBuffer>
+external_buf_to_once_map_buf (
+    uint8_t* buf, uint32_t format,
+    uint32_t width, uint32_t height,
+    uint32_t aligned_width, uint32_t aligned_height,
+    uint32_t size);
+
 };
 
 #endif //XCAM_UTILS_H

@@ -34,6 +34,7 @@ xcam_sources = \
     v4l2_buffer_proxy.cpp               \
     v4l2_device.cpp                     \
     video_buffer.cpp                    \
+    once_map_video_buffer_priv.cpp      \
     worker.cpp                          \
     xcam_analyzer.cpp                   \
     x3a_analyzer.cpp                    \

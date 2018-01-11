@@ -42,6 +42,7 @@ XCAM_XCORE_SRC_FILES := \
     xcore/surview_fisheye_dewarp.cpp \
     xcore/thread_pool.cpp \
     xcore/video_buffer.cpp \
+    xcore/once_map_video_buffer_priv.cpp \
     xcore/worker.cpp \
     xcore/xcam_buffer.cpp \
     xcore/xcam_common.cpp \
