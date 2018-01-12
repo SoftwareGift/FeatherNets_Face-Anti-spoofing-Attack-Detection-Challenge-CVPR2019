@@ -629,7 +629,7 @@ BowlModel::get_stitch_image_vertex_model (
 
             vertices.push_back (PointFloat3(world_pos0.x / _config.a, world_pos0.y / _config.b, world_pos0.z / _config.c));
             indeices.push_back (indicator++);
-            texture_points.push_back (PointFloat2(texture_pos0.x / _bowl_img_width, (_bowl_img_height - texture_pos0.y) / _bowl_img_height));
+            texture_points.push_back (PointFloat2(texture_pos0.x / _bowl_img_width, texture_pos0.y / _bowl_img_height));
 
             PointFloat3 world_pos1 =
                 bowl_view_image_to_world (
@@ -637,7 +637,7 @@ BowlModel::get_stitch_image_vertex_model (
 
             vertices.push_back (PointFloat3(world_pos1.x / _config.a, world_pos1.y / _config.b, world_pos1.z / _config.c));
             indeices.push_back (indicator++);
-            texture_points.push_back (PointFloat2(texture_pos1.x / _bowl_img_width, (_bowl_img_height - texture_pos1.y) / _bowl_img_height));
+            texture_points.push_back (PointFloat2(texture_pos1.x / _bowl_img_width, texture_pos1.y / _bowl_img_height));
         }
     }
     return true;
