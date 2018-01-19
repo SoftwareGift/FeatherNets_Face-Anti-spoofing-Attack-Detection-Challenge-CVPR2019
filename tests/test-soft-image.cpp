@@ -29,6 +29,7 @@
 #include <interface/stitcher.h>
 #include <calibration_parser.h>
 #include <string>
+#include <cstring>
 
 #if (!defined(ANDROID) && (HAVE_OPENCV))
 #include <ocl/cv_base_class.h>
