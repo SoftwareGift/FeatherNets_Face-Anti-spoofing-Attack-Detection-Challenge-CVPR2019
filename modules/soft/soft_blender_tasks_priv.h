@@ -66,7 +66,7 @@ protected:
         out[4] += in[4] * coef;
         out[5] += in[5] * coef;
         out[6] += in[6] * coef;
-        out[7] += in[7] * coef;
+        //out[7] += in[7] * coef;
     }
 
     template<typename T>
