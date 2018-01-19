@@ -41,7 +41,7 @@
 #include "gstxcaminterface.h"
 #include "dynamic_analyzer_loader.h"
 #include "isp/hybrid_analyzer_loader.h"
-#include "x3a_analyze_tuner.h"
+#include "isp/iq/x3a_analyze_tuner.h"
 #include "isp/isp_poll_thread.h"
 #endif
 #if HAVE_LIBCL

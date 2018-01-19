@@ -24,7 +24,7 @@
 #include "x3a_statistics_queue.h"
 #include "aiq3a_utils.h"
 #include "x3a_result_factory.h"
-#include "x3a_analyze_tuner.h"
+#include "iq/x3a_analyze_tuner.h"
 
 #define DEFAULT_AIQ_CPF_FILE       "/etc/atomisp/imx185.cpf"
 

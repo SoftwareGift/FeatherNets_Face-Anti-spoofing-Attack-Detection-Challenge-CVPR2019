@@ -32,7 +32,7 @@
 #include "isp/isp_image_processor.h"
 #include "isp/isp_poll_thread.h"
 #include "isp/x3a_analyzer_aiq.h"
-#include "x3a_analyze_tuner.h"
+#include "isp/iq/x3a_analyze_tuner.h"
 #include "dynamic_analyzer_loader.h"
 #include "isp/hybrid_analyzer_loader.h"
 #endif
