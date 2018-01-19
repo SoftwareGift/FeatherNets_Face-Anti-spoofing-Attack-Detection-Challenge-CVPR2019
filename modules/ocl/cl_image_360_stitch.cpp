@@ -452,23 +452,15 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
     } else {
         _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
 
-        float view_angle[XCAM_STITCH_FISHEYE_MAX_NUM];
+        float view_angle[XCAM_STITCH_FISHEYE_MAX_NUM] = {
+            68.0f, 152.0f, 68.0f, 152.0f
+        };
 
-        view_angle[0] = 68.0f;
-        _fisheye[0].width = view_angle[0] / 360.0f * out_info.width;
-        _fisheye[0].width = XCAM_ALIGN_UP (_fisheye[0].width, 32);
-
-        view_angle[1] = 152.0f;
-        _fisheye[1].width = view_angle[1] / 360.0f * out_info.width;
-        _fisheye[1].width = XCAM_ALIGN_UP (_fisheye[1].width, 32);
-
-        view_angle[2] = 68.0f;
-        _fisheye[2].width = view_angle[2] / 360.0f * out_info.width;
-        _fisheye[2].width = XCAM_ALIGN_UP (_fisheye[2].width, 32);
-
-        view_angle[3] = 152.0f;
-        _fisheye[3].width = view_angle[3] / 360.0f * out_info.width;
-        _fisheye[3].width = XCAM_ALIGN_UP (_fisheye[3].width, 32);
+        XCAM_ASSERT (_fisheye_num <= XCAM_STITCH_FISHEYE_MAX_NUM);
+        for (int i = 0; i < _fisheye_num; i++) {
+            _fisheye[i].width = view_angle[i] / 360.0f * out_info.width;
+            _fisheye[i].width = XCAM_ALIGN_UP (_fisheye[i].width, 32);
+        }
 
         XCAM_LOG_INFO (
             "fisheye correction output size width:%d height:%d",
