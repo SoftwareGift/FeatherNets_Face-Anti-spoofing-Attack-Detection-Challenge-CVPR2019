@@ -37,9 +37,13 @@ Mutex CLKernel::_kernel_map_mutex;
 static char*
 default_cache_path () {
     static char path[XCAM_MAX_STR_SIZE] = {0};
+    const char * home_dir = std::getenv ("HOME");
+    if (!home_dir)
+        home_dir = "/tmp";
+
     snprintf (
         path, XCAM_MAX_STR_SIZE - 1,
-        "%s/%s", std::getenv ("HOME"), ".xcam/");
+        "%s/%s", home_dir, ".xcam/");
 
     return path;
 }
