@@ -22,6 +22,7 @@
 #include "cl_image_360_stitch.h"
 #if HAVE_OPENCV
 #include "cv_feature_match.h"
+#include "cv_feature_match_cluster.h"
 #endif
 
 #define XCAM_BLENDER_GLOBAL_SCALE_EXT_WIDTH 64
@@ -286,7 +287,7 @@ CLImage360Stitch::CLImage360Stitch (
 {
 #if HAVE_OPENCV
     for (int i = 0; i < fisheye_num; i++) {
-        _feature_match[i] = new CVFeatureMatch ();
+        _feature_match[i] = new CVFeatureMatchCluster ();
         XCAM_ASSERT (_feature_match[i].ptr ());
         _feature_match[i]->set_config (get_fm_default_config (res_mode));
         _feature_match[i]->set_fm_index (i);
@@ -391,8 +392,8 @@ CLImage360Stitch::init_feature_match_config ()
 
     if (_surround_mode == BowlView) {
         config.sitch_min_width = 136;
-        config.min_corners = 4;
-        config.offset_factor = 0.8f;
+        config.min_corners = 3;
+        config.offset_factor = 0.95f;
         config.delta_mean_offset = 120.0f;
         config.recur_offset_error = 8.0f;
         config.max_adjusted_offset = 24.0f;
@@ -453,7 +454,7 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
         _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
 
         float view_angle[XCAM_STITCH_FISHEYE_MAX_NUM] = {
-            68.0f, 152.0f, 68.0f, 152.0f
+            68.0f, 156.0f, 60.0f, 156.0f
         };
 
         XCAM_ASSERT (_fisheye_num <= XCAM_STITCH_FISHEYE_MAX_NUM);
@@ -478,7 +479,11 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
             bowl_data_config[i].angle_end = angle_center + view_angle[i] / 2;
         }
 
+        float wall_image_height = bowl_data_config[0].wall_height / (float)(bowl_data_config[0].wall_height + bowl_data_config[0].ground_length) * _fisheye[0].height;
+        float stable_y_start = (wall_image_height + _fisheye[0].height ) / 2.0f;
+
         for(int i = 0; i < _fisheye_num; i++) {
+            _fisheye[i].handler->set_stable_y_start (stable_y_start);
             _fisheye[i].handler->set_bowl_config(bowl_data_config[i]);
             _fisheye[i].handler->set_output_size (_fisheye[i].width, _fisheye[i].height);
         }
@@ -769,7 +774,7 @@ CLImage360Stitch::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vid
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_is_stitch_inited) {
-#if HAVE_OPECV
+#if HAVE_OPENCV
         init_feature_match_config ();
 #endif
         set_stitch_info (get_default_stitch_info (_res_mode));

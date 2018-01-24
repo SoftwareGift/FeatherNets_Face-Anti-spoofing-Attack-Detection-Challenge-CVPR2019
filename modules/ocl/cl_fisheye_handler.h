@@ -65,6 +65,11 @@ public:
     void set_lsc_table (float *table, uint32_t table_size);
     void set_lsc_gray_threshold (float min_threshold, float max_threshold);
 
+    void set_stable_y_start (float y_start);
+    virtual float get_stable_y_start () {
+        return _stable_y_start;
+    }
+
     void set_left_scale_factor (PointFloat2 factor);
     void set_right_scale_factor (PointFloat2 factor);
 
@@ -151,6 +156,7 @@ private:
     uint32_t                         _lsc_array_size;
     float                            _gray_threshold[2];  // [min_gray_threshold, max_gray_threshold]
     float                            *_lsc_array;
+    float                            _stable_y_start;
 
     PointFloat2                      _left_scale_factor;
     PointFloat2                      _right_scale_factor;

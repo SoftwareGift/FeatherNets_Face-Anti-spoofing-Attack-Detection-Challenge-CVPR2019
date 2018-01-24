@@ -79,6 +79,7 @@ xcam_ocl_sources += cv_image_sharp.cpp
 xcam_ocl_sources += cv_edgetaper.cpp
 xcam_ocl_sources += cv_wiener_filter.cpp
 xcam_ocl_sources += cv_feature_match.cpp
+xcam_ocl_sources += cv_feature_match_cluster.cpp
 xcam_ocl_sources += cv_image_deblurring.cpp
 endif
 
@@ -158,6 +159,7 @@ nobase_libxcam_oclinclude_HEADERS += cv_image_sharp.h
 nobase_libxcam_oclinclude_HEADERS += cv_edgetaper.h
 nobase_libxcam_oclinclude_HEADERS += cv_wiener_filter.h
 nobase_libxcam_oclinclude_HEADERS += cv_feature_match.h
+nobase_libxcam_oclinclude_HEADERS += cv_feature_match_cluster.h
 nobase_libxcam_oclinclude_HEADERS += cv_image_deblurring.h
 endif
 

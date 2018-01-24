@@ -27,7 +27,9 @@ namespace XCam {
 
 FeatureMatch::FeatureMatch ()
     : _x_offset (0.0f)
+    , _y_offset (0.0f)
     , _mean_offset (0.0f)
+    , _mean_offset_y (0.0f)
     , _valid_count (0)
     , _fm_idx (-1)
     , _frame_num (0)
@@ -56,7 +58,9 @@ void
 FeatureMatch::reset_offsets ()
 {
     _x_offset = 0.0f;
+    _y_offset = 0.0f;
     _mean_offset = 0.0f;
+    _mean_offset_y = 0.0f;
 }
 
 bool

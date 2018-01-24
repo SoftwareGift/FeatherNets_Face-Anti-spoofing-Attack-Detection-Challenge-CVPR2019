@@ -71,6 +71,10 @@ public:
         return _x_offset;
     }
 
+    float get_current_left_offset_y () const {
+        return _y_offset;
+    }
+
     virtual void set_ocl (bool use_ocl) = 0;
     virtual bool is_ocl_path () = 0;
 
@@ -84,7 +88,9 @@ private:
 
 protected:
     float                _x_offset;
+    float                _y_offset;
     float                _mean_offset;
+    float                _mean_offset_y;
     int                  _valid_count;
     CVFMConfig           _config;
 

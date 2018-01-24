@@ -41,7 +41,7 @@ class CVFeatureMatch
 public:
     explicit CVFeatureMatch ();
 
-    void optical_flow_feature_match (
+    virtual void optical_flow_feature_match (
         const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
         Rect &left_img_crop, Rect &right_img_crop, int dst_width);
 
@@ -68,6 +68,9 @@ protected:
 
     void detect_and_match (cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
                            int &valid_count, float &mean_offset, float &x_offset, int dst_width);
+
+    void debug_write_image ( const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name,
+                             char *frame_str, char *fm_idx_str);
 
 private:
     XCAM_DEAD_COPY (CVFeatureMatch);

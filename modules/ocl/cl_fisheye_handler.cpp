@@ -139,6 +139,7 @@ CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, Surround
     , _need_lsc (need_lsc ? 1 : 0)
     , _lsc_array_size (0)
     , _lsc_array (NULL)
+    , _stable_y_start (0.0f)
     , _left_scale_factor (1.0f, 1.0f)
     , _right_scale_factor (1.0f, 1.0f)
     , _surround_mode (surround_mode)
@@ -203,6 +204,12 @@ CLFisheyeHandler::set_lsc_gray_threshold (float min_threshold, float max_thresho
 {
     _gray_threshold[0] = min_threshold;
     _gray_threshold[1] = max_threshold;
+}
+
+void
+CLFisheyeHandler::set_stable_y_start (float y_start)
+{
+    _stable_y_start = y_start;
 }
 
 void

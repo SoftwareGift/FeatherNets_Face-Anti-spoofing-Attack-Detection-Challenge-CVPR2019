@@ -28,11 +28,6 @@
 #define XCAM_CV_OF_DRAW_SCALE 2
 
 namespace XCam {
-#if XCAM_CV_FM_DEBUG
-static void debug_write_image (
-    const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name, char *frame_str, char *fm_idx_str);
-#endif
-
 CVFeatureMatch::CVFeatureMatch ()
     : CVBaseClass ()
     , FeatureMatch ()
@@ -263,9 +258,8 @@ CVFeatureMatch::optical_flow_feature_match (
 #endif
 }
 
-#if XCAM_CV_FM_DEBUG
-static void
-debug_write_image (
+void
+CVFeatureMatch::debug_write_image (
     const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name, char *frame_str, char *fm_idx_str)
 {
     cv::Scalar color = cv::Scalar(0, 0, 255);
@@ -287,6 +281,5 @@ debug_write_image (
 
     cv::imwrite (img_name, mat);
 }
-#endif
 
 }

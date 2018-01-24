@@ -67,6 +67,7 @@ kernel_geo_map (
     __read_only image2d_t input_y, __read_only image2d_t input_uv,
     __read_only image2d_t geo_table, float2 table_scale_size,
     float2 left_scale_factor, float2 right_scale_factor,
+    float stable_y_start,
 #if ENABLE_LSC
     __read_only image2d_t lsc_table, float2 gray_threshold,
 #endif
@@ -80,9 +81,18 @@ kernel_geo_map (
     bool out_of_bound[8];
     float2 input_pos[8];
     // map to [-0.5, 0.5)
-    table_scale_size *= (g_x * PIXEL_RES_STEP_X < out_size.x / 2.0f) ? left_scale_factor : right_scale_factor;
+    float a, b, c;
+    float2 scale = 1.0f;
+    float y_m = stable_y_start * 0.5f;
 
-    float2 table_scale_step = 1.0f / table_scale_size;
+    float2 scale_factor = (g_x * PIXEL_RES_STEP_X < out_size.x / 2.0f) ? left_scale_factor : right_scale_factor;
+    a = (1 - scale_factor.x) / ((stable_y_start - y_m) * (stable_y_start - y_m));
+    b = -2 * a * y_m;
+    c = 1 - a * stable_y_start * stable_y_start - b * stable_y_start;
+
+    scale.x = (g_y >= stable_y_start) ? 1.0f : ((g_y < y_m) ? scale_factor.x : (a * g_y * g_y + b * g_y + c));
+
+    float2 table_scale_step = 1.0f / (table_scale_size * scale);
     float2 out_map_pos;
     sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
@@ -103,7 +113,12 @@ kernel_geo_map (
     output_data.s67 = out_of_bound[6] ? CONST_DATA_UV : read_imagef (input_uv, sampler, input_pos[6]).xy;
     write_imageui (output_uv, (int2)(g_x, g_y_uv), convert_uint4(as_ushort4(convert_uchar8(output_data * 255.0f))));
 
-    out_map_pos.y += table_scale_step.y;
+    scale.x = (g_y + 1 >= stable_y_start) ? 1.0f : ((g_y + 1 < y_m) ? scale_factor.x : (a * (g_y + 1) * (g_y + 1) + b * (g_y + 1) + c));
+
+    table_scale_step = 1.0f / (table_scale_size * scale);
+
+    out_map_pos = (convert_float2((int2)(g_x * PIXEL_RES_STEP_X, g_y + 1)) - out_size / 2.0f) * table_scale_step + 0.5f;
+
     get_geo_mapped_y (input_y, geo_table, out_map_pos, table_scale_step.x, out_of_bound, input_pos, &output_data);
 
 #if ENABLE_LSC

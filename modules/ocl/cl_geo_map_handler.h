@@ -55,6 +55,7 @@ protected:
     virtual PointFloat2 get_left_scale_factor () = 0;
     virtual PointFloat2 get_right_scale_factor () = 0;
 
+    virtual float get_stable_y_start () = 0;
 private:
     XCAM_DEAD_COPY (GeoKernelParamCallback);
 };
@@ -134,6 +135,12 @@ protected:
         XCAM_ASSERT (false && "CLGeoMapHandler::right_scale_factor is not supported");
         return PointFloat2 (0.0f, 0.0f);
     }
+
+    virtual float get_stable_y_start () {
+        XCAM_ASSERT (false && "CLGeoMapHandler::get_stable_y_start is not supported");
+        return 0.0f;
+    }
+
 
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (
