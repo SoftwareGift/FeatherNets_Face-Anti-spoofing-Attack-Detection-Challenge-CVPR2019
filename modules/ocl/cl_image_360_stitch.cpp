@@ -287,7 +287,11 @@ CLImage360Stitch::CLImage360Stitch (
 {
 #if HAVE_OPENCV
     for (int i = 0; i < fisheye_num; i++) {
-        _feature_match[i] = new CVFeatureMatchCluster ();
+        if (_surround_mode == SphereView) {
+            _feature_match[i] = new CVFeatureMatch ();
+        } else {
+            _feature_match[i] = new CVFeatureMatchCluster ();
+        }
         XCAM_ASSERT (_feature_match[i].ptr ());
         _feature_match[i]->set_config (get_fm_default_config (res_mode));
         _feature_match[i]->set_fm_index (i);
@@ -454,7 +458,7 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
         _fisheye[0].height = out_info.height + _stitch_info.crop[0].top + _stitch_info.crop[0].bottom;
 
         float view_angle[XCAM_STITCH_FISHEYE_MAX_NUM] = {
-            68.0f, 156.0f, 60.0f, 156.0f
+            64.0f, 158.0f, 60.0f, 158.0f
         };
 
         XCAM_ASSERT (_fisheye_num <= XCAM_STITCH_FISHEYE_MAX_NUM);

@@ -182,7 +182,7 @@ CVFeatureMatch::detect_and_match (
     std::vector<uchar> status;
     std::vector<cv::Point2f> corner_left, corner_right;
     cv::Ptr<cv::Feature2D> fast_detector;
-    cv::Size win_size = cv::Size (41, 41);
+    cv::Size win_size = cv::Size (5, 5);
 
     if (img_left.isUMat ())
         win_size = cv::Size (16, 16);
