@@ -178,8 +178,7 @@ CVCapiFeatureMatch::calc_of_match (
 
 void
 CVCapiFeatureMatch::detect_and_match (
-    CvArr* img_left, CvArr* img_right, Rect &crop_left, Rect &crop_right,
-    int &valid_count, float &mean_offset, float &x_offset, int dst_width)
+    CvArr* img_left, CvArr* img_right, int &valid_count, float &mean_offset, float &x_offset)
 {
     std::vector<float> err;
     std::vector<char> status;
@@ -214,12 +213,8 @@ CVCapiFeatureMatch::detect_and_match (
     calc_of_match (img_left, img_right, corner_left, corner_right,
                    status, err, valid_count, mean_offset, x_offset);
 
-    adjust_stitch_area (dst_width, x_offset, crop_left, crop_right);
-
 #if XCAM_CV_CAPI_FM_DEBUG
-    XCAM_LOG_INFO (
-        "FeatureMatch(idx:%d): stiching area: left_area(pos_x:%d, width:%d), right_area(pos_x:%d, width:%d)",
-        _fm_idx, crop_left.pos_x, crop_left.width, crop_right.pos_x, crop_right.width);
+    XCAM_LOG_INFO ("FeatureMatch(idx:%d): x_offset:%0.2f", _fm_idx, x_offset);
 #endif
 }
 
@@ -234,8 +229,9 @@ CVCapiFeatureMatch::optical_flow_feature_match (
             || !get_crop_image (right_buf, right_crop_rect, _right_crop_image, right_img))
         return;
 
-    detect_and_match ((CvArr*)(&left_img), (CvArr*)(&right_img), left_crop_rect, right_crop_rect,
-                      _valid_count, _mean_offset, _x_offset, dst_width);
+    detect_and_match ((CvArr*)(&left_img), (CvArr*)(&right_img), _valid_count, _mean_offset, _x_offset);
+
+    XCAM_UNUSED (dst_width);
 
 #if XCAM_CV_CAPI_FM_DEBUG
     XCAM_ASSERT (_fm_idx >= 0);

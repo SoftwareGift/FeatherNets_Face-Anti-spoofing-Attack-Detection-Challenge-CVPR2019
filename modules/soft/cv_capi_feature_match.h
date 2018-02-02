@@ -43,7 +43,7 @@ public:
 
     void optical_flow_feature_match (
         const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-        Rect &left_img_crop, Rect &right_img_crop, int dst_width);
+        Rect &left_img_crop, Rect &right_img_crop, int dst_width = 0);
 
     void set_ocl (bool use_ocl) {
         XCAM_UNUSED (use_ocl);
@@ -67,8 +67,8 @@ protected:
                         std::vector<char> &status, std::vector<float> &error,
                         int &last_count, float &last_mean_offset, float &out_x_offset);
 
-    void detect_and_match (CvArr* img_left, CvArr* img_right, Rect &crop_left, Rect &crop_right,
-                           int &valid_count, float &mean_offset, float &x_offset, int dst_width);
+    void detect_and_match (CvArr* img_left, CvArr* img_right,
+                           int &valid_count, float &mean_offset, float &x_offset);
 
 private:
     XCAM_DEAD_COPY (CVCapiFeatureMatch);

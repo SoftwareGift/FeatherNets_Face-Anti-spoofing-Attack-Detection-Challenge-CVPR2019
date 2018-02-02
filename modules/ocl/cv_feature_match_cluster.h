@@ -33,7 +33,7 @@ public:
 
     void optical_flow_feature_match (
         const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-        Rect &left_img_crop, Rect &right_img_crop, int dst_width);
+        Rect &left_img_crop, Rect &right_img_crop, int dst_width = 0);
 
 protected:
     bool calc_mean_offset (std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,

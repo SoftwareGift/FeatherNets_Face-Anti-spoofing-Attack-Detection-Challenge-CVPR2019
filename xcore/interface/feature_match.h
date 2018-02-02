@@ -65,7 +65,7 @@ public:
 
     virtual void optical_flow_feature_match (
         const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-        Rect &left_crop_rect, Rect &right_crop_rect, int dst_width) = 0;
+        Rect &left_crop_rect, Rect &right_crop_rect, int dst_width = 0) = 0;
 
     float get_current_left_offset_x () const {
         return _x_offset;
@@ -80,8 +80,6 @@ public:
 
 protected:
     bool get_mean_offset (std::vector<float> &offsets, float sum, int &count, float &mean_offset);
-
-    void adjust_stitch_area (int dst_width, float &x_offset, Rect &stitch0, Rect &stitch1);
 
 private:
     XCAM_DEAD_COPY (FeatureMatch);

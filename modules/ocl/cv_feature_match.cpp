@@ -174,6 +174,31 @@ CVFeatureMatch::calc_of_match (
 }
 
 void
+CVFeatureMatch::adjust_stitch_area (int dst_width, float &x_offset, Rect &stitch0, Rect &stitch1)
+{
+    if (fabs (x_offset) < 5.0f)
+        return;
+
+    int last_overlap_width = stitch1.pos_x + stitch1.width + (dst_width - (stitch0.pos_x + stitch0.width));
+    // int final_overlap_width = stitch1.pos_x + stitch1.width + (dst_width - (stitch0.pos_x - x_offset + stitch0.width));
+    if ((stitch0.pos_x - x_offset + stitch0.width) > dst_width)
+        x_offset = dst_width - (stitch0.pos_x + stitch0.width);
+    int final_overlap_width = last_overlap_width + x_offset;
+    final_overlap_width = XCAM_ALIGN_AROUND (final_overlap_width, 8);
+    XCAM_ASSERT (final_overlap_width >= _config.sitch_min_width);
+    int center = final_overlap_width / 2;
+    XCAM_ASSERT (center >= _config.sitch_min_width / 2);
+
+    stitch1.pos_x = XCAM_ALIGN_AROUND (center - _config.sitch_min_width / 2, 8);
+    stitch1.width = _config.sitch_min_width;
+    stitch0.pos_x = dst_width - final_overlap_width + stitch1.pos_x;
+    stitch0.width = _config.sitch_min_width;
+
+    float delta_offset = final_overlap_width - last_overlap_width;
+    x_offset -= delta_offset;
+}
+
+void
 CVFeatureMatch::detect_and_match (
     cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
     int &valid_count, float &mean_offset, float &x_offset, int dst_width)
