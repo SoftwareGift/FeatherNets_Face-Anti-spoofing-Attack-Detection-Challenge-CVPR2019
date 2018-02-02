@@ -948,8 +948,10 @@ create_image_360_stitch (
         context, scale_mode, surround_mode, res_mode, fisheye_num, all_in_one_img);
     XCAM_ASSERT (stitch.ptr ());
 
+    bool need_scale = (surround_mode == BowlView) ? true : false;
+
     for (int index = 0; index < fisheye_num; ++index) {
-        fisheye = create_fisheye_handler (context, surround_mode, fisheye_map, need_lsc).dynamic_cast_ptr<CLFisheyeHandler> ();
+        fisheye = create_fisheye_handler (context, surround_mode, fisheye_map, need_lsc, need_scale).dynamic_cast_ptr<CLFisheyeHandler> ();
         XCAM_FAIL_RETURN (ERROR, fisheye.ptr (), NULL, "image_360_stitch create fisheye handler failed");
         fisheye->disable_buf_pool (true);
         stitch->set_fisheye_handler (fisheye, index);

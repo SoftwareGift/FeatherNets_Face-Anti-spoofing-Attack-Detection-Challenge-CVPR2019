@@ -49,7 +49,7 @@ class CLFisheyeHandler
 {
     friend class CLFisheye2GPSKernel;
 public:
-    explicit CLFisheyeHandler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc);
+    explicit CLFisheyeHandler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc, bool need_scale);
     virtual ~CLFisheyeHandler();
 
     void set_output_size (uint32_t width, uint32_t height);
@@ -153,6 +153,7 @@ private:
     float                            _map_factor;
     bool                             _use_map;
     uint32_t                         _need_lsc;
+    uint32_t                         _need_scale;
     uint32_t                         _lsc_array_size;
     float                            _gray_threshold[2];  // [min_gray_threshold, max_gray_threshold]
     float                            *_lsc_array;
@@ -175,7 +176,7 @@ private:
 };
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (const SmartPtr<CLContext> &context, SurroundMode surround_mode = SphereView, bool use_map = false, bool need_lsc = false);
+create_fisheye_handler (const SmartPtr<CLContext> &context, SurroundMode surround_mode = SphereView, bool use_map = false, bool need_lsc = false, bool need_scale = false);
 
 }
 

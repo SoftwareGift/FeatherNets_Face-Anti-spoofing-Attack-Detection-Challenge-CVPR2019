@@ -128,7 +128,7 @@ CLFisheye2GPSKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     return XCAM_RETURN_NO_ERROR;
 }
 
-CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc)
+CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc, bool need_scale)
     : CLImageHandler (context, "CLFisheyeHandler")
     , _output_width (0)
     , _output_height (0)
@@ -137,6 +137,7 @@ CLFisheyeHandler::CLFisheyeHandler (const SmartPtr<CLContext> &context, Surround
     , _map_factor (DEFAULT_FISHEYE_TABLE_SCALE)
     , _use_map (use_map)
     , _need_lsc (need_lsc ? 1 : 0)
+    , _need_scale (need_scale ? 1 : 0)
     , _lsc_array_size (0)
     , _lsc_array (NULL)
     , _stable_y_start (0.0f)
@@ -606,16 +607,16 @@ create_fishey_gps_kernel (const SmartPtr<CLContext> &context, SmartPtr<CLFisheye
 }
 
 SmartPtr<CLImageHandler>
-create_fisheye_handler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc)
+create_fisheye_handler (const SmartPtr<CLContext> &context, SurroundMode surround_mode, bool use_map, bool need_lsc, bool need_scale)
 {
     SmartPtr<CLFisheyeHandler> handler;
     SmartPtr<CLImageKernel> kernel;
 
-    handler = new CLFisheyeHandler (context, surround_mode, use_map, need_lsc);
+    handler = new CLFisheyeHandler (context, surround_mode, use_map, need_lsc, need_scale);
     XCAM_ASSERT (handler.ptr ());
 
     if (use_map) {
-        kernel = create_geo_map_kernel (context, handler, need_lsc);
+        kernel = create_geo_map_kernel (context, handler, need_lsc, need_scale);
     } else {
         kernel = create_fishey_gps_kernel (context, handler);
     }

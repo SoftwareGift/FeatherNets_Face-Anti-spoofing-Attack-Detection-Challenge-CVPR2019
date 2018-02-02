@@ -68,7 +68,7 @@ public:
     explicit CLGeoMapKernel (
         const SmartPtr<CLContext> &context,
         const SmartPtr<GeoKernelParamCallback> handler,
-        bool need_lsc);
+        bool need_lsc, bool need_scale);
 
 protected:
     virtual XCamReturn prepare_arguments (CLArgList &args, CLWorkSize &work_size);
@@ -76,6 +76,7 @@ protected:
 private:
     SmartPtr<GeoKernelParamCallback>   _handler;
     bool                               _need_lsc;
+    bool                               _need_scale;
 };
 
 class CLGeoMapHandler
@@ -170,10 +171,10 @@ private:
 
 SmartPtr<CLImageKernel>
 create_geo_map_kernel (
-    const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb, bool need_lsc);
+    const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb, bool need_lsc, bool need_scale);
 
 SmartPtr<CLImageHandler>
-create_geo_map_handler (const SmartPtr<CLContext> &context, bool need_lsc = false);
+create_geo_map_handler (const SmartPtr<CLContext> &context, bool need_lsc = false, bool need_scale = false);
 
 }
 

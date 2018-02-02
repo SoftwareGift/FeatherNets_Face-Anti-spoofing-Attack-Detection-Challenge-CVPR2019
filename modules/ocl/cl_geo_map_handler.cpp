@@ -34,10 +34,11 @@ static const XCamKernelInfo kernel_geo_map_info = {
 #define GEO_MAP_CHANNEL 4  /* only use channel_0, channel_1 */
 
 CLGeoMapKernel::CLGeoMapKernel (
-    const SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler, bool need_lsc)
+    const SmartPtr<CLContext> &context, const SmartPtr<GeoKernelParamCallback> handler, bool need_lsc, bool need_scale)
     : CLImageKernel (context)
     , _handler (handler)
     , _need_lsc (need_lsc)
+    , _need_scale (need_scale)
 {
     XCAM_ASSERT (handler.ptr ());
 }
@@ -66,9 +67,12 @@ CLGeoMapKernel::prepare_arguments (CLArgList &args, CLWorkSize &work_size)
     args.push_back (new CLMemArgument (input_uv));
     args.push_back (new CLMemArgument (geo_image));
     args.push_back (new CLArgumentTArray<float, 2> (geo_scale_size));
-    args.push_back (new CLArgumentT<PointFloat2> (left_scale_factor));
-    args.push_back (new CLArgumentT<PointFloat2> (right_scale_factor));
-    args.push_back (new CLArgumentT<float> (stable_y_start));
+
+    if (_need_scale) {
+        args.push_back (new CLArgumentT<PointFloat2> (left_scale_factor));
+        args.push_back (new CLArgumentT<PointFloat2> (right_scale_factor));
+        args.push_back (new CLArgumentT<float> (stable_y_start));
+    }
 
     if (_need_lsc) {
         SmartPtr<CLImage> lsc_image = _handler->get_lsc_table ();
@@ -327,14 +331,14 @@ CLGeoMapHandler::execute_done (SmartPtr<VideoBuffer> &output)
 
 SmartPtr<CLImageKernel>
 create_geo_map_kernel (
-    const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb, bool need_lsc)
+    const SmartPtr<CLContext> &context, SmartPtr<GeoKernelParamCallback> param_cb, bool need_lsc, bool need_scale)
 {
     SmartPtr<CLImageKernel> kernel;
-    kernel = new CLGeoMapKernel (context, param_cb, need_lsc);
+    kernel = new CLGeoMapKernel (context, param_cb, need_lsc, need_scale);
     XCAM_ASSERT (kernel.ptr ());
 
     char build_options[1024];
-    snprintf (build_options, sizeof(build_options), "-DENABLE_LSC=%d", need_lsc ? 1 : 0);
+    snprintf (build_options, sizeof(build_options), "-DENABLE_LSC=%d -DENABLE_SCALE=%d", need_lsc ? 1 : 0, need_scale ? 1 : 0);
     XCAM_FAIL_RETURN (
         ERROR, kernel->build_kernel (kernel_geo_map_info, build_options) == XCAM_RETURN_NO_ERROR,
         NULL, "build geo map kernel failed");
@@ -343,7 +347,7 @@ create_geo_map_kernel (
 }
 
 SmartPtr<CLImageHandler>
-create_geo_map_handler (const SmartPtr<CLContext> &context, bool need_lsc)
+create_geo_map_handler (const SmartPtr<CLContext> &context, bool need_lsc, bool need_scale)
 {
     SmartPtr<CLGeoMapHandler> handler;
     SmartPtr<CLImageKernel> kernel;
@@ -351,7 +355,7 @@ create_geo_map_handler (const SmartPtr<CLContext> &context, bool need_lsc)
     handler = new CLGeoMapHandler (context);
     XCAM_ASSERT (handler.ptr ());
 
-    kernel = create_geo_map_kernel (context, handler, need_lsc);
+    kernel = create_geo_map_kernel (context, handler, need_lsc, need_scale);
     XCAM_FAIL_RETURN (
         ERROR, kernel.ptr (), NULL, "CLMapHandler build geo map kernel failed");
     handler->add_kernel (kernel);
