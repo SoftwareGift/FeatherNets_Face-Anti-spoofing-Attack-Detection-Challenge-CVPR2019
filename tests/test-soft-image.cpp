@@ -119,6 +119,9 @@ public:
 #endif
 
 private:
+    XCAM_DEAD_COPY (SoftElement);
+
+private:
     char                 *_file_name;
     uint32_t              _width;
     uint32_t              _height;
@@ -146,8 +149,10 @@ SoftElement::~SoftElement ()
 {
     _file.close ();
 
-    if (_file_name)
+    if (_file_name) {
         xcam_free (_file_name);
+        _file_name = NULL;
+    }
 }
 
 void
