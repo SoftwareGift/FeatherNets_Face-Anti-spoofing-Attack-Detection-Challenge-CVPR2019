@@ -157,11 +157,11 @@ public:
     inline bool operator == (const VectorN<T, N>& rhs) const;
 
     inline T& operator [] (uint32_t index) {
-        XCAM_ASSERT(index >= 0 && index < N);
+        XCAM_ASSERT(index < N);
         return data[index];
     }
     inline const T& operator [] (uint32_t index) const {
-        XCAM_ASSERT(index >= 0 && index < N);
+        XCAM_ASSERT(index < N);
         return data[index];
     }
 
@@ -521,15 +521,11 @@ public:
     inline void eye ();
 
     inline T& at (uint32_t row, uint32_t col) {
-        XCAM_ASSERT(row >= 0 && row < N);
-        XCAM_ASSERT(col >= 0 && col < N);
-
+        XCAM_ASSERT(row < N && col < N);
         return data[row * N + col];
     };
     inline const T& at (uint32_t row, uint32_t col) const {
-        XCAM_ASSERT(row >= 0 && row < N);
-        XCAM_ASSERT(col >= 0 && col < N);
-
+        XCAM_ASSERT(row < N && col < N);
         return data[row * N + col];
     };
 
