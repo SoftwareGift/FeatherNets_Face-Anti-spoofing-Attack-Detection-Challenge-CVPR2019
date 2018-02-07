@@ -157,6 +157,14 @@ XCamReturn dvs_analyze(XCamSmartAnalysisContext *context, XCamVideoBuffer *buffe
         XCAM_LOG_WARNING ("dvs_analyze not ready! ");
     } else {
         XCamDVSResult *dvs_result = (XCamDVSResult *)malloc(sizeof(XCamDVSResult));
+        if (!dvs_result) {
+            XCAM_LOG_ERROR ("dvs_result: malloc failed!");
+            results[0] = NULL;
+            *res_count = 0;
+
+            return XCAM_RETURN_ERROR_MEM;
+        }
+
         memset(dvs_result, 0, sizeof(XCamDVSResult));
 
         dvs_result->head.type = XCAM_3A_RESULT_DVS;
