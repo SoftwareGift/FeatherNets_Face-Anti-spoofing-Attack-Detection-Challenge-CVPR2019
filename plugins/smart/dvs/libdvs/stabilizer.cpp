@@ -377,13 +377,23 @@ VideoStabilizer::setFrameSize(Size frameSize)
 Mat
 VideoStabilizer::nextFrame()
 {
+    Mat frame;
+
     if (isTwoPass_) {
         Ptr<TwoPassVideoStabilizer> stab = stabilizer_.dynamicCast<TwoPassVideoStabilizer>();
-        return stab->nextFrame();
+        if(!stab.empty())
+            frame = stab->nextFrame();
+        else
+            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     } else {
         Ptr<OnePassVideoStabilizer> stab = stabilizer_.dynamicCast<OnePassVideoStabilizer>();
-        return stab->nextFrame();
+        if(!stab.empty())
+            frame = stab->nextFrame();
+        else
+            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     }
+
+    return frame;
 }
 
 Mat
@@ -393,10 +403,16 @@ VideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
 
     if (isTwoPass_) {
         Ptr<TwoPassVideoStabilizer> stab = stabilizer_.dynamicCast<TwoPassVideoStabilizer>();
-        HMatrix = stab->nextStabilizedMotion(frame, stablizedPos);
+        if(!stab.empty())
+            HMatrix = stab->nextStabilizedMotion(frame, stablizedPos);
+        else
+            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     } else {
         Ptr<OnePassVideoStabilizer> stab = stabilizer_.dynamicCast<OnePassVideoStabilizer>();
-        HMatrix = stab->nextStabilizedMotion(frame, stablizedPos);
+        if(!stab.empty())
+            HMatrix = stab->nextStabilizedMotion(frame, stablizedPos);
+        else
+            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     }
 
     return HMatrix;
