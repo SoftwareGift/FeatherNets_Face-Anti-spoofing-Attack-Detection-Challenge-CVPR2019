@@ -136,7 +136,6 @@ XCamReturn dvs_analyze(XCamSmartAnalysisContext *context, XCamVideoBuffer *buffe
     DvsBuffer* dvs_buf = new DvsBuffer(buffer, frame);
     //set default config
     DvsConfig config;
-    memset(&config, 0, sizeof(DvsConfig));
     config.use_ocl  = true;
     config.frame_width = buffer->info.width;
     config.frame_height = buffer->info.height;
