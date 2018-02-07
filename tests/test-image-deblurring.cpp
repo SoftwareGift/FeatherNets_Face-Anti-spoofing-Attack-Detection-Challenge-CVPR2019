@@ -149,7 +149,7 @@ int main (int argc, char *argv[])
     if (input_image.empty ())
     {
         XCAM_LOG_ERROR ("input file read error");
-        return 0;
+        return -1;
     }
     if (blind)
     {
@@ -166,5 +166,7 @@ int main (int argc, char *argv[])
         cv::imwrite (file_out_name, output_image);
     }
     XCAM_ASSERT (output_sharp > input_sharp);
+
+    return 0;
 }
 
