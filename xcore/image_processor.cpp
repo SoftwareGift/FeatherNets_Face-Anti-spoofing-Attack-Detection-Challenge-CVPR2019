@@ -144,8 +144,13 @@ ImageProcessor::ImageProcessor (const char* name)
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
 
-    _processor_thread = new ImageProcessorThread (this);
-    _results_thread = new X3aResultsProcessThread (this);
+    SmartPtr<ImageProcessorThread> processor_thread = new ImageProcessorThread (this);
+    XCAM_ASSERT (processor_thread.ptr ());
+    _processor_thread = processor_thread;
+
+    SmartPtr<X3aResultsProcessThread> results_thread = new X3aResultsProcessThread (this);
+    XCAM_ASSERT (results_thread.ptr ());
+    _results_thread = results_thread;
 }
 
 ImageProcessor::~ImageProcessor ()

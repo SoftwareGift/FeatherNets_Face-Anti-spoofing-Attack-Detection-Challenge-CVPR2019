@@ -167,9 +167,9 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
     if (_buf_pool.ptr ())
         return XCAM_RETURN_ERROR_PARAM;
 
-    SmartPtr<BufferPool> buffer_pool;
     if (_buf_pool_type == CLImageHandler::CLVideoPoolType) {
-        buffer_pool = new CLVideoBufferPool ();
+        SmartPtr<BufferPool> pool = new CLVideoBufferPool ();
+        _buf_pool = pool.ptr() ? pool : _buf_pool;
     }
 #if HAVE_LIBDRM
     else {
@@ -181,30 +181,29 @@ CLImageHandler::create_buffer_pool (const VideoBufferInfo &video_info)
             "CLImageHandler(%s) failed to get drm dispay", XCAM_STR (_name));
 
         if (_buf_pool_type == CLImageHandler::DrmBoPoolType) {
-            buffer_pool = new DrmBoBufferPool (display);
+            SmartPtr<BufferPool> pool = new DrmBoBufferPool (display);
+            _buf_pool = pool.ptr() ? pool : _buf_pool;
         } else if (_buf_pool_type == CLImageHandler::CLBoPoolType) {
-            buffer_pool = new CLBoBufferPool (display, get_context ());
+            SmartPtr<BufferPool> pool = new CLBoBufferPool (display, get_context ());
+            _buf_pool = pool.ptr() ? pool : _buf_pool;
         }
     }
 #endif
     XCAM_FAIL_RETURN(
         WARNING,
-        buffer_pool.ptr (),
+        _buf_pool.ptr (),
         XCAM_RETURN_ERROR_CL,
         "CLImageHandler(%s) create buffer pool failed, pool_type:%d",
         XCAM_STR (_name), (int32_t)_buf_pool_type);
 
-    XCAM_ASSERT (buffer_pool.ptr ());
     // buffer_pool->set_swap_flags (_buf_swap_flags, _buf_swap_init_order);
-    buffer_pool->set_video_info (video_info);
-
+    _buf_pool->set_video_info (video_info);
     XCAM_FAIL_RETURN(
         WARNING,
-        buffer_pool->reserve (_buf_pool_size),
+        _buf_pool->reserve (_buf_pool_size),
         XCAM_RETURN_ERROR_CL,
         "CLImageHandler(%s) failed to init drm buffer pool", XCAM_STR (_name));
 
-    _buf_pool = buffer_pool;
     return XCAM_RETURN_NO_ERROR;
 }
 

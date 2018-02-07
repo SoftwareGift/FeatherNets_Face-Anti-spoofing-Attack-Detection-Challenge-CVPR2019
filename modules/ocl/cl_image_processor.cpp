@@ -83,11 +83,13 @@ CLImageProcessor::CLImageProcessor (const char* name)
     _context = CLDevice::instance ()->get_context ();
     XCAM_ASSERT (_context.ptr());
 
-    _handler_thread = new CLHandlerThread (this);
-    XCAM_ASSERT (_handler_thread.ptr ());
+    SmartPtr<CLHandlerThread> handler_thread = new CLHandlerThread (this);
+    XCAM_ASSERT (handler_thread.ptr ());
+    _handler_thread = handler_thread;
 
-    _done_buf_thread = new CLBufferNotifyThread (this);
-    XCAM_ASSERT (_done_buf_thread.ptr ());
+    SmartPtr<CLBufferNotifyThread> done_buf_thread = new CLBufferNotifyThread (this);
+    XCAM_ASSERT (done_buf_thread.ptr ());
+    _done_buf_thread = done_buf_thread;
 
     XCAM_LOG_DEBUG ("CLImageProcessor constructed");
     XCAM_OBJ_PROFILING_INIT;

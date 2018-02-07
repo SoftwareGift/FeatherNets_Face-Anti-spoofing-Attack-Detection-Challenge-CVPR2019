@@ -426,13 +426,15 @@ int main (int argc, char *argv[])
     top_view_buf_info.init (input_format, top_view_width, top_view_height);
     rectified_view_buf_info.init (input_format, rectified_view_width, rectified_view_height);
     for (int i = 0; i < input_count; i++) {
-        buf_pool[i] = new CLVideoBufferPool ();
-        XCAM_ASSERT (buf_pool[i].ptr ());
-        buf_pool[i]->set_video_info (input_buf_info);
-        if (!buf_pool[i]->reserve (6)) {
+        SmartPtr<BufferPool> pool = new CLVideoBufferPool ();
+        XCAM_ASSERT (pool.ptr ());
+        pool->set_video_info (input_buf_info);
+        if (!pool->reserve (6)) {
             XCAM_LOG_ERROR ("init buffer pool failed");
             return -1;
         }
+
+        buf_pool[i] = pool;
     }
 
     SmartPtr<BufferPool> top_view_pool = new CLVideoBufferPool ();

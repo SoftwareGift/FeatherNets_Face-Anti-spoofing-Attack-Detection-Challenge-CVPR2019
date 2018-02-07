@@ -740,13 +740,14 @@ CLImage360Stitch::create_buffer_pool (SmartPtr<BufferPool> &buf_pool, uint32_t w
     buf_info.init (V4L2_PIX_FMT_NV12, width, height,
                    XCAM_ALIGN_UP (width, 16), XCAM_ALIGN_UP (height, 16));
 
-    buf_pool = new CLVideoBufferPool ();
-    XCAM_ASSERT (buf_pool.ptr ());
-    buf_pool->set_video_info (buf_info);
-    if (!buf_pool->reserve (6)) {
+    SmartPtr<BufferPool> pool = new CLVideoBufferPool ();
+    XCAM_ASSERT (pool.ptr ());
+    pool->set_video_info (buf_info);
+    if (!pool->reserve (6)) {
         XCAM_LOG_ERROR ("CLImage360Stitch init buffer pool failed");
         return false;
     }
+    buf_pool = pool;
 
     return true;
 }

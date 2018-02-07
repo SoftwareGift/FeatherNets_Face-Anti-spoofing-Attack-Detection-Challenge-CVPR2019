@@ -94,7 +94,7 @@ class DrmBoBufferPool
 
 public:
     explicit DrmBoBufferPool (SmartPtr<DrmDisplay> &display);
-    ~DrmBoBufferPool ();
+    virtual ~DrmBoBufferPool ();
 
     // **** MUST be set before set_video_info ****
     void set_swap_flags (uint32_t flags, uint32_t init_order) {

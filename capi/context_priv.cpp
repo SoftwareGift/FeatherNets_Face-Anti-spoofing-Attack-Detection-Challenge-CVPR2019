@@ -59,8 +59,9 @@ ContextBase::ContextBase (HandleType type)
     , _alloc_out_buf (false)
 {
     if (!_inbuf_pool.ptr()) {
-        _inbuf_pool = new CLVideoBufferPool ();
-        XCAM_ASSERT (_inbuf_pool.ptr ());
+        SmartPtr<BufferPool> pool = new CLVideoBufferPool ();
+        XCAM_ASSERT (pool.ptr ());
+        _inbuf_pool = pool;
     }
 }
 

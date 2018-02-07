@@ -234,10 +234,11 @@ CLRetinexImageHandler::prepare_scaler_buf (const VideoBufferInfo &video_info)
 
         scaler_video_info.init (video_info.format, new_width, new_height);
 
-        _scaler_buf_pool = new CLVideoBufferPool ();
-        XCAM_ASSERT (_scaler_buf_pool.ptr ());
-        _scaler_buf_pool->set_video_info (scaler_video_info);
-        _scaler_buf_pool->reserve (XCAM_RETINEX_MAX_SCALE + 1);
+        SmartPtr<BufferPool> pool = new CLVideoBufferPool ();
+        XCAM_ASSERT (pool.ptr ());
+        pool->set_video_info (scaler_video_info);
+        pool->reserve (XCAM_RETINEX_MAX_SCALE + 1);
+        _scaler_buf_pool = pool;
 
         _scaler_buf1 = _scaler_buf_pool->get_buffer (_scaler_buf_pool);
         XCAM_ASSERT (_scaler_buf1.ptr ());

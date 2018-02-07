@@ -188,7 +188,10 @@ SoftElement::rewind_file ()
 XCamReturn
 SoftElement::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
 {
-    _pool = new SoftVideoBufAllocator ();
+    SmartPtr<BufferPool> pool = new SoftVideoBufAllocator ();
+    XCAM_ASSERT (pool.ptr ());
+    _pool = pool;
+
     _pool->set_video_info (info);
     if (!_pool->reserve (count)) {
         XCAM_LOG_ERROR ("create buffer pool failed");

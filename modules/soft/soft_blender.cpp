@@ -171,8 +171,10 @@ SoftBlender::SoftBlender (const char *name)
     : SoftHandler (name)
     , Blender (SOFT_BLENDER_ALIGNMENT_X, SOFT_BLENDER_ALIGNMENT_Y)
 {
-    _priv_config = new SoftBlenderPriv::BlenderPrivConfig (this, XCAM_SOFT_PYRAMID_DEFAULT_LEVEL);
-    XCAM_ASSERT (_priv_config.ptr ());
+    SmartPtr<SoftBlenderPriv::BlenderPrivConfig> config =
+        new SoftBlenderPriv::BlenderPrivConfig (this, XCAM_SOFT_PYRAMID_DEFAULT_LEVEL);
+    XCAM_ASSERT (config.ptr ());
+    _priv_config = config;
 }
 
 SoftBlender::~SoftBlender ()
@@ -682,7 +684,9 @@ SoftBlender::configure_resource (const SmartPtr<Parameters> &param)
     XCAM_ASSERT (merge_size.width % SOFT_BLENDER_ALIGNMENT_X == 0);
 
     overlap_info.init (in0_info.format, merge_size.width, merge_size.height);
-    _priv_config->first_lap_pool = new SoftVideoBufAllocator (overlap_info);
+    SmartPtr<BufferPool> first_lap_pool = new SoftVideoBufAllocator (overlap_info);
+    XCAM_ASSERT (first_lap_pool.ptr ());
+    _priv_config->first_lap_pool = first_lap_pool;
     XCAM_FAIL_RETURN (
         ERROR, _priv_config->first_lap_pool->reserve (LAP_POOL_SIZE), XCAM_RETURN_ERROR_MEM,
         "blender:%s reserve lap buffer pool(w:%d,h:%d) failed",
@@ -703,8 +707,9 @@ SoftBlender::configure_resource (const SmartPtr<Parameters> &param)
         merge_size.height = XCAM_ALIGN_UP ((merge_size.height + 1) / 2, SOFT_BLENDER_ALIGNMENT_Y);
         overlap_info.init (in0_info.format, merge_size.width, merge_size.height);
 
-        _priv_config->pyr_layer[i].overlap_pool = new SoftVideoBufAllocator (overlap_info);
-        XCAM_ASSERT (_priv_config->pyr_layer[i].overlap_pool.ptr ());
+        SmartPtr<BufferPool> pool = new SoftVideoBufAllocator (overlap_info);
+        XCAM_ASSERT (pool.ptr ());
+        _priv_config->pyr_layer[i].overlap_pool = pool;
         XCAM_FAIL_RETURN (
             ERROR, _priv_config->pyr_layer[i].overlap_pool->reserve (OVERLAP_POOL_SIZE), XCAM_RETURN_ERROR_MEM,
             "blender:%s reserve buffer pool(w:%d,h:%d) failed",

@@ -175,7 +175,6 @@ int main (int argc, char *argv[])
     SmartPtr<CLImageHandler> image_handler;
     VideoBufferInfo input_buf_info;
     SmartPtr<CLContext> context;
-    SmartPtr<BufferPool> buf_pool;
     int opt = 0;
     CLCscType csc_type = CL_CSC_TYPE_RGBATONV12;
     bool enable_bnr = false;
@@ -497,7 +496,8 @@ int main (int argc, char *argv[])
 
     input_buf_info.init (input_format, width, height);
 
-    buf_pool = new CLVideoBufferPool ();
+    SmartPtr<BufferPool> buf_pool = new CLVideoBufferPool ();
+    XCAM_ASSERT (buf_pool.ptr ());
     image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     buf_pool->set_video_info (input_buf_info);
     if (!buf_pool->reserve (6)) {
@@ -541,14 +541,6 @@ int main (int argc, char *argv[])
     XCAM_LOG_INFO ("processed %d buffers successfully", buf_count);
 
     if (enable_psnr) {
-        buf_pool = new CLVideoBufferPool ();
-        XCAM_ASSERT (buf_pool.ptr ());
-        buf_pool->set_video_info (input_buf_info);
-        if (!buf_pool->reserve (6)) {
-            XCAM_LOG_ERROR ("init buffer pool failed");
-            return -1;
-        }
-
         psnr_ref = buf_pool->get_buffer (buf_pool);
         XCAM_ASSERT (psnr_ref.ptr ());
 

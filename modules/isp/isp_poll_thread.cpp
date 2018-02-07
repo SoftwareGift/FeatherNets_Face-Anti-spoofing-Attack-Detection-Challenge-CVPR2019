@@ -50,7 +50,9 @@ IspPollThread::set_isp_controller (SmartPtr<IspController>  &isp)
 XCamReturn
 IspPollThread::start ()
 {
-    _3a_stats_pool = new X3aStatisticsQueue;
+    SmartPtr<X3aStatsPool> stats_pool = new X3aStatisticsQueue;
+    XCAM_ASSERT (stats_pool.ptr ());
+    _3a_stats_pool = stats_pool;
 
     return PollThread::start ();
 }

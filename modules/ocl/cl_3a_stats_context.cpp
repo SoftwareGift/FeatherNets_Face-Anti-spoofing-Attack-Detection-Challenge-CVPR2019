@@ -30,7 +30,9 @@ CL3AStatsCalculatorContext::CL3AStatsCalculatorContext (const SmartPtr<CLContext
     , _factor_shift (0)
     , _data_allocated (false)
 {
-    _stats_pool = new X3aStatsPool ();
+    SmartPtr<X3aStatsPool> pool = new X3aStatsPool ();
+    XCAM_ASSERT (pool.ptr ());
+    _stats_pool = pool;
 }
 
 CL3AStatsCalculatorContext::~CL3AStatsCalculatorContext ()

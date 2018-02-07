@@ -148,7 +148,6 @@ XCamReturn
 SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bool sync)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
-    SmartPtr<SyncMeta> sync_meta;
 
     XCAM_FAIL_RETURN (
         ERROR, param.ptr (), XCAM_RETURN_ERROR_PARAM,
@@ -176,7 +175,7 @@ SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bo
     }
 
     XCAM_ASSERT (!param->find_meta<SyncMeta> ().ptr ());
-    sync_meta = new SyncMeta ();
+    SmartPtr<SyncMeta> sync_meta = new SyncMeta ();
     XCAM_ASSERT (sync_meta.ptr ());
     param->add_meta (sync_meta);
 

@@ -83,8 +83,13 @@ PollThread::PollThread ()
     : _poll_callback (NULL)
     , _stats_callback (NULL)
 {
-    _event_loop = new EventPollThread(this);
-    _capture_loop = new CapturePollThread (this);
+    SmartPtr<EventPollThread> event_loop = new EventPollThread(this);
+    XCAM_ASSERT (event_loop.ptr ());
+    _event_loop = event_loop;
+
+    SmartPtr<CapturePollThread> capture_loop = new CapturePollThread (this);
+    XCAM_ASSERT (capture_loop.ptr ());
+    _capture_loop = capture_loop;
 
     XCAM_LOG_DEBUG ("PollThread constructed");
 }

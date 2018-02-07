@@ -118,7 +118,9 @@ XAnalyzer::XAnalyzer (const char *name)
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
 
-    _analyzer_thread  = new AnalyzerThread (this);
+    SmartPtr<AnalyzerThread> thread= new AnalyzerThread (this);
+    XCAM_ASSERT (thread.ptr ());
+    _analyzer_thread = thread;
 }
 
 XAnalyzer::~XAnalyzer()

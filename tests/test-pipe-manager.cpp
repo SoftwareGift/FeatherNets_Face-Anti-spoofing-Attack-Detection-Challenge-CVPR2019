@@ -199,8 +199,6 @@ int main (int argc, char *argv[])
     VideoBufferInfo buf_info;
     SmartPtr<VideoBuffer> video_buf;
     SmartPtr<SmartAnalyzer> smart_analyzer;
-    SmartPtr<CLPostImageProcessor> cl_post_processor;
-    SmartPtr<BufferPool> buf_pool;
 
     uint32_t pixel_format = V4L2_PIX_FMT_NV12;
     uint32_t image_width = 1920;
@@ -400,7 +398,7 @@ int main (int argc, char *argv[])
         pipe_manager->set_smart_analyzer (smart_analyzer);
     }
 
-    cl_post_processor = new CLPostImageProcessor ();
+    SmartPtr<CLPostImageProcessor> cl_post_processor = new CLPostImageProcessor ();
     cl_post_processor->set_stats_callback (pipe_manager);
     cl_post_processor->set_defog_mode ((CLPostImageProcessor::CLDefogMode) defog_mode);
     cl_post_processor->set_wavelet (wavelet_mode, wavelet_channel, wavelet_bayes_shrink);
@@ -416,7 +414,7 @@ int main (int argc, char *argv[])
     pipe_manager->add_image_processor (cl_post_processor);
 
     buf_info.init (pixel_format, image_width, image_height);
-    buf_pool = new CLVideoBufferPool ();
+    SmartPtr<BufferPool> buf_pool = new CLVideoBufferPool ();
     XCAM_ASSERT (buf_pool.ptr ());
     if (!buf_pool->set_video_info (buf_info) || !buf_pool->reserve (DEFAULT_FPT_BUF_COUNT)) {
         XCAM_LOG_ERROR ("init buffer pool failed");

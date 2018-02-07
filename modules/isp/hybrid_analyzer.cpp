@@ -79,8 +79,9 @@ HybridAnalyzer::setup_stats_pool (const XCam3AStats *stats)
     grid_info.deci_factor_log2 = log2 (grid_info.bqs_per_grid_cell);
     grid_info.elem_bit_depth = stats_info.bit_depth;
 
-    _stats_pool = new X3aStatisticsQueue;
-    XCAM_ASSERT (_stats_pool.ptr ());
+    SmartPtr<X3aStatisticsQueue> stats_pool = new X3aStatisticsQueue;
+    XCAM_ASSERT (stats_pool.ptr ());
+    _stats_pool = stats_pool;
 
     _stats_pool->set_grid_info (grid_info);
     if (!_stats_pool->reserve (6)) {

@@ -54,7 +54,11 @@ DrmDisplay::instance ()
     SmartLock lock(_mutex);
     if (_instance.ptr())
         return _instance;
-    _instance = new DrmDisplay ();
+
+    SmartPtr<DrmDisplay> instance = new DrmDisplay ();
+    XCAM_ASSERT (instance.ptr ());
+    _instance = instance;
+
     return _instance;
 }
 

@@ -112,22 +112,22 @@ XCam3AAiqContext::setup_stats_pool (uint32_t bit_depth)
     VideoBufferInfo info;
     info.init (XCAM_PIX_FMT_SGRBG16, _video_width, _video_height);
 
-    _stats_pool = new X3aStatisticsQueue;
-    XCAM_ASSERT (_stats_pool.ptr ());
+    SmartPtr<X3aStatisticsQueue> pool = new X3aStatisticsQueue;
+    XCAM_ASSERT (pool.ptr ());
 
-    _stats_pool->set_bit_depth (bit_depth);
+    pool->set_bit_depth (bit_depth);
     XCAM_FAIL_RETURN (
         WARNING,
-        _stats_pool->set_video_info (info),
+        pool->set_video_info (info),
         false,
         "3a stats set video info failed");
 
-
-    if (!_stats_pool->reserve (6)) {
+    if (!pool->reserve (6)) {
         XCAM_LOG_WARNING ("init_3a_stats_pool failed to reserve stats buffer.");
         return false;
     }
 
+    _stats_pool = pool;
     return true;
 }
 

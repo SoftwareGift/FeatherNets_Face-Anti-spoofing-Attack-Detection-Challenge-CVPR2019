@@ -62,10 +62,7 @@ int main (int argc, char *argv[])
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     SmartPtr<CLVideoStabilizer> video_stab;
-
     SmartPtr<CLContext> context;
-    SmartPtr<BufferPool> buf_pool;
-
     VideoBufferInfo input_buf_info;
     VideoBufferInfo output_buf_info;
     SmartPtr<VideoBuffer> input_buf;
@@ -201,7 +198,7 @@ int main (int argc, char *argv[])
 
     input_buf_info.init (input_format, input_width, input_height);
     output_buf_info.init (input_format, output_width, output_height);
-    buf_pool = new CLVideoBufferPool ();
+    SmartPtr<BufferPool> buf_pool = new CLVideoBufferPool ();
     XCAM_ASSERT (buf_pool.ptr ());
     buf_pool->set_video_info (input_buf_info);
     if (!buf_pool->reserve (36)) {

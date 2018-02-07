@@ -191,10 +191,13 @@ CLBayerBasicImageHandler::CLBayerBasicImageHandler (
         _gamma_table[i] = (float)i / 256.0f;
     _gamma_table[XCAM_GAMMA_TABLE_SIZE] = 0.9999f;
 
-    _3a_stats_context = new CL3AStatsCalculatorContext (context);
-    XCAM_ASSERT (_3a_stats_context.ptr ());
-    _3a_stats_thread = new CLBayer3AStatsThread (this);
-    XCAM_ASSERT (_3a_stats_thread.ptr ());
+    SmartPtr<CL3AStatsCalculatorContext> stats_context = new CL3AStatsCalculatorContext (context);
+    XCAM_ASSERT (stats_context.ptr ());
+    _3a_stats_context = stats_context;
+
+    SmartPtr<CLBayer3AStatsThread> stats_thread = new CLBayer3AStatsThread (this);
+    XCAM_ASSERT (stats_thread.ptr ());
+    _3a_stats_thread = stats_thread;
 
     XCAM_OBJ_PROFILING_INIT;
 }

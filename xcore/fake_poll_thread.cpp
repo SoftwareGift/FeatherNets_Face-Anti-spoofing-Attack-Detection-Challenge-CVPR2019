@@ -146,8 +146,9 @@ FakePollThread::init_buffer_pool ()
               format.fmt.pix.height, 0, 0, 0);
 #if HAVE_LIBDRM
     SmartPtr<DrmDisplay> drm_disp = DrmDisplay::instance ();
-    _buf_pool = new DrmBoBufferPool (drm_disp);
-    XCAM_ASSERT (_buf_pool.ptr ());
+    SmartPtr<BufferPool> pool = new DrmBoBufferPool (drm_disp);
+    XCAM_ASSERT (pool.ptr ());
+    _buf_pool = pool;
 
     if (_buf_pool->set_video_info (info) && _buf_pool->reserve (DEFAULT_FPT_BUF_COUNT))
         return XCAM_RETURN_NO_ERROR;

@@ -285,8 +285,9 @@ StitcherImpl::init_fisheye (uint32_t idx)
 {
     FisheyeDewarp &fisheye = _fisheye[idx];
     SmartPtr<ImageHandler::Callback> dewarp_cb = new CbGeoMap (_stitcher);
-    fisheye.dewarp = new SoftGeoMapper ("sitcher_remapper");
-    XCAM_ASSERT (fisheye.dewarp.ptr ());
+    SmartPtr<SoftGeoMapper> dewarp = new SoftGeoMapper ("sitcher_remapper");
+    XCAM_ASSERT (dewarp.ptr ());
+    fisheye.dewarp = dewarp;
     fisheye.dewarp->set_callback (dewarp_cb);
 
     Stitcher::RoundViewSlice view_slice =
@@ -298,8 +299,9 @@ StitcherImpl::init_fisheye (uint32_t idx)
         XCAM_ALIGN_UP (view_slice.width, SOFT_STITCHER_ALIGNMENT_X),
         XCAM_ALIGN_UP (view_slice.height, SOFT_STITCHER_ALIGNMENT_Y));
 
-    fisheye.buf_pool = new SoftVideoBufAllocator (buf_info);
-    XCAM_ASSERT (fisheye.buf_pool.ptr ());
+    SmartPtr<BufferPool> pool = new SoftVideoBufAllocator (buf_info);
+    XCAM_ASSERT (pool.ptr ());
+    fisheye.buf_pool = pool;
     XCAM_FAIL_RETURN (
         ERROR, fisheye.buf_pool->reserve (2), XCAM_RETURN_ERROR_MEM,
         "stitcher:%s reserve dewarp buffer pool(w:%d,h:%d) failed",
@@ -718,8 +720,10 @@ SoftStitcher::SoftStitcher (const char *name)
     : SoftHandler (name)
     , Stitcher (SOFT_STITCHER_ALIGNMENT_X, SOFT_STITCHER_ALIGNMENT_Y)
 {
-    _impl = new SoftSitcherPriv::StitcherImpl (this);
-    XCAM_ASSERT (_impl.ptr ());
+    SmartPtr<SoftSitcherPriv::StitcherImpl> impl = new SoftSitcherPriv::StitcherImpl (this);
+    XCAM_ASSERT (impl.ptr ());
+    _impl = impl;
+
 #if ENABLE_FEATURE_MATCH
 #ifndef ANDROID
     cv::ocl::setUseOpenCL (false);

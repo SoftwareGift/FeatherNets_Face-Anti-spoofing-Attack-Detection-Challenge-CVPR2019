@@ -104,7 +104,10 @@ DynamicAnalyzer::create_common_handler ()
     if (_common_handler.ptr())
         return _common_handler;
 
-    _common_handler = new DynamicCommonHandler (this);
+    SmartPtr<DynamicCommonHandler> handler = new DynamicCommonHandler (this);
+    XCAM_ASSERT (handler.ptr ());
+    _common_handler = handler;
+
     return _common_handler;
 }
 

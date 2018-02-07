@@ -165,7 +165,6 @@ int main (int argc, char *argv[])
     SmartPtr<CLBlender> blender;
     VideoBufferInfo input_buf_info0, input_buf_info1, output_buf_info;
     SmartPtr<CLContext> context;
-    SmartPtr<BufferPool> buf_pool0, buf_pool1;
     ImageFileHandle file_in0, file_in1, file_out;
     SmartPtr<VideoBuffer> input0, input1;
     SmartPtr<VideoBuffer> output_buf;
@@ -259,13 +258,14 @@ int main (int argc, char *argv[])
     input_buf_info0.init (input_format, input_width0, input_height);
     input_buf_info1.init (input_format, input_width1, input_height);
     output_buf_info.init (input_format, output_width, output_height);
+
 #if (ENABLE_DMA_TEST) && (HAVE_LIBDRM)
     SmartPtr<DrmDisplay> display = DrmDisplay::instance ();
-    buf_pool0 = new DrmBoBufferPool (display);
-    buf_pool1 = new DrmBoBufferPool (display);
+    SmartPtr<BufferPool> buf_pool0 = new DrmBoBufferPool (display);
+    SmartPtr<BufferPool> buf_pool1 = new DrmBoBufferPool (display);
 #else
-    buf_pool0 = new CLVideoBufferPool ();
-    buf_pool1 = new CLVideoBufferPool ();
+    SmartPtr<BufferPool> buf_pool0 = new CLVideoBufferPool ();
+    SmartPtr<BufferPool> buf_pool1 = new CLVideoBufferPool ();
 #endif
     XCAM_ASSERT (buf_pool0.ptr () && buf_pool1.ptr ());
     buf_pool0->set_video_info (input_buf_info0);

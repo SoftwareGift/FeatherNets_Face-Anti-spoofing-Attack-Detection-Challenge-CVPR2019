@@ -363,8 +363,9 @@ gst_xcam_filter_init (GstXCamFilter *xcamfilter)
     xcamfilter->cached_buf_num = 0;
 
     XCAM_CONSTRUCTOR (xcamfilter->pipe_manager, SmartPtr<MainPipeManager>);
-    xcamfilter->pipe_manager = new MainPipeManager;
-    XCAM_ASSERT (xcamfilter->pipe_manager.ptr ());
+    SmartPtr<MainPipeManager> pipe_manager = new MainPipeManager;
+    XCAM_ASSERT (pipe_manager.ptr ());
+    xcamfilter->pipe_manager = pipe_manager;
 }
 
 static void
@@ -508,7 +509,6 @@ gst_xcam_filter_start (GstBaseTransform *trans)
 
     SmartPtr<MainPipeManager> pipe_manager = xcamfilter->pipe_manager;
     SmartPtr<SmartAnalyzer> smart_analyzer;
-    SmartPtr<CLPostImageProcessor> image_processor;
 
     SmartHandlerList smart_handlers = SmartAnalyzerLoader::load_smart_handlers (DEFAULT_SMART_ANALYSIS_LIB_DIR);
     if (!smart_handlers.empty ()) {
@@ -530,7 +530,7 @@ gst_xcam_filter_start (GstBaseTransform *trans)
         }
     }
 
-    image_processor = new CLPostImageProcessor ();
+    SmartPtr<CLPostImageProcessor> image_processor = new CLPostImageProcessor ();
     XCAM_ASSERT (image_processor.ptr ());
     image_processor->set_stats_callback (pipe_manager);
     image_processor->set_defog_mode ((CLPostImageProcessor::CLDefogMode) xcamfilter->defog_mode);
@@ -571,8 +571,10 @@ gst_xcam_filter_start (GstBaseTransform *trans)
     pipe_manager->add_image_processor (image_processor);
     pipe_manager->set_image_processor (image_processor);
 
-    xcamfilter->buf_pool = new CLVideoBufferPool ();
-    XCAM_ASSERT (xcamfilter->buf_pool.ptr ());
+    SmartPtr<BufferPool> pool = new CLVideoBufferPool ();
+    XCAM_ASSERT (pool.ptr ());
+    xcamfilter->buf_pool = pool;
+
     if (xcamfilter->copy_mode == COPY_MODE_DMA) {
         XCAM_LOG_WARNING ("CLVideoBuffer doesn't support DMA copy mode, switch to CPU copy mode");
         xcamfilter->copy_mode = COPY_MODE_CPU;
