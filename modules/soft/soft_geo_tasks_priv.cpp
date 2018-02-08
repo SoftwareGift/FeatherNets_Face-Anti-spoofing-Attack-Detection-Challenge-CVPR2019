@@ -24,6 +24,35 @@ namespace XCam {
 
 namespace XCamSoftTasks {
 
+enum BoundState {
+    BoundInternal = 0,
+    BoundCritical,
+    BoundExternal
+};
+
+static inline void check_bound (const uint32_t &img_w, const uint32_t &img_h, Float2 *in_pos,
+    const uint32_t &max_idx, BoundState &bound)
+{
+    if (in_pos[0].x >= 0.0f && in_pos[max_idx].x >= 0.0f && in_pos[0].x < img_w && in_pos[max_idx].x < img_w &&
+            in_pos[0].y >= 0.0f && in_pos[max_idx].y >= 0.0f && in_pos[0].y < img_h && in_pos[max_idx].y < img_h)
+        bound = BoundInternal;
+    else if ((in_pos[0].x < 0.0f && in_pos[max_idx].x < 0.0f) || (in_pos[0].x >= img_w && in_pos[max_idx].x >= img_w) ||
+             (in_pos[0].y < 0.0f && in_pos[max_idx].y < 0.0f) || (in_pos[0].y >= img_h && in_pos[max_idx].y >= img_h))
+        bound = BoundExternal;
+    else
+        bound = BoundCritical;
+}
+
+template <typename TypeT>
+static inline void calc_critical (const uint32_t &img_w, const uint32_t &img_h, Float2 *in_pos,
+    const uint32_t &max_idx, const TypeT &zero_byte, TypeT *luma)
+{
+    for (uint32_t idx = 0; idx < max_idx; ++idx) {
+        if (in_pos[idx].x < 0.0f || in_pos[idx].x >= img_w || in_pos[idx].y < 0.0f || in_pos[idx].y >= img_h)
+            luma[idx] = zero_byte;
+    }
+}
+
 XCamReturn
 GeoMapTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
 {
@@ -48,11 +77,12 @@ GeoMapTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
     float x_step = 1.0f / factors.x;
     float y_step = 1.0f / factors.y;
 
-#undef OUT_BOUND
-#define OUT_BOUND(image, first, last) \
-        (in_pos[first].x >= image->get_width ()) ||   \
-        (in_pos[first].y >= image->get_height ()) ||  \
-        (in_pos[last].x <= 0.0f) || (in_pos[last].y <= 0.0f)
+    uint32_t luma_w = in_luma->get_width ();
+    uint32_t luma_h = in_luma->get_height ();
+    uint32_t uv_w = in_uv->get_width ();
+    uint32_t uv_h = in_uv->get_height ();
+
+    BoundState bound = BoundInternal;
 
     for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
         for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
@@ -75,12 +105,16 @@ GeoMapTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
                 Float2(first.x + x_step * 6, first.y), Float2(first.x + x_step * 7, first.y)
             };
             lut->read_interpolate_array<Float2, 8> (lut_pos, in_pos);
-            in_luma->read_interpolate_array<float, 8> (in_pos, luma_value);
-            convert_to_uchar_N<float, 8> (luma_value, luma_uc);
-            if (OUT_BOUND (in_luma, 0, 7))
+            check_bound (luma_w, luma_h, in_pos, 7, bound);
+            if (bound == BoundExternal)
                 out_luma->write_array_no_check<8> (out_x, out_y, zero_luma_byte);
-            else
+            else {
+                in_luma->read_interpolate_array<float, 8> (in_pos, luma_value);
+                convert_to_uchar_N<float, 8> (luma_value, luma_uc);
+                if (bound == BoundCritical)
+                    calc_critical (luma_w, luma_h, in_pos, 8, zero_luma_byte[0], luma_uc);
                 out_luma->write_array_no_check<8> (out_x, out_y, luma_uc);
+            }
 
             //4x1 UV
             Float2  uv_value[4];
@@ -89,23 +123,31 @@ GeoMapTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
             in_pos[1] = in_pos[2] / 2.0f;
             in_pos[2] = in_pos[4] / 2.0f;
             in_pos[3] = in_pos[6] / 2.0f;
-            in_uv->read_interpolate_array<Float2, 4> (in_pos, uv_value);
-            convert_to_uchar2_N<Float2, 4> (uv_value, uv_uc);
-            if (OUT_BOUND (in_uv, 0, 3))
+            check_bound (uv_w, uv_h, in_pos, 3, bound);
+            if (bound == BoundExternal)
                 out_uv->write_array_no_check<4> (x * 4, y, zero_uv_byte);
-            else
+            else {
+                in_uv->read_interpolate_array<Float2, 4> (in_pos, uv_value);
+                convert_to_uchar2_N<Float2, 4> (uv_value, uv_uc);
+                if (bound == BoundCritical)
+                    calc_critical (uv_w, uv_h, in_pos, 4, zero_uv_byte[0], uv_uc);
                 out_uv->write_array_no_check<4> (x * 4, y, uv_uc);
+            }
 
             //2nd-line luma
             lut_pos[0].y = lut_pos[1].y = lut_pos[2].y = lut_pos[3].y = lut_pos[4].y = lut_pos[5].y =
                                               lut_pos[6].y = lut_pos[7].y = first.y + y_step;
             lut->read_interpolate_array<Float2, 8> (lut_pos, in_pos);
-            in_luma->read_interpolate_array<float, 8> (in_pos, luma_value);
-            convert_to_uchar_N<float, 8> (luma_value, luma_uc);
-            if (OUT_BOUND (in_luma, 0, 7))
+            check_bound (luma_w, luma_h, in_pos, 7, bound);
+            if (bound == BoundExternal)
                 out_luma->write_array_no_check<8> (out_x, out_y + 1, zero_luma_byte);
-            else
+            else {
+                in_luma->read_interpolate_array<float, 8> (in_pos, luma_value);
+                convert_to_uchar_N<float, 8> (luma_value, luma_uc);
+                if (bound == BoundCritical)
+                    calc_critical (luma_w, luma_h, in_pos, 8, zero_luma_byte[0], luma_uc);
                 out_luma->write_array_no_check<8> (out_x, out_y + 1, luma_uc);
+            }
         }
     return XCAM_RETURN_NO_ERROR;
 }
