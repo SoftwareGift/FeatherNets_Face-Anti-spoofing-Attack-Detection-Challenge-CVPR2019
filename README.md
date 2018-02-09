@@ -48,7 +48,6 @@ OpenCL is used to improve performance in different platforms.
 #### Prerequisite:
   * install gcc/g++, automake, autoconf, libtool, gawk, pkg-config
   * Linux kernel > 3.10
-  * install libdrm-dev
   * install ocl-icd-dev, ocl-icd-opencl-dev
   * If --enable-libcl, need compile ocl driver <https://www.freedesktop.org/wiki/Software/Beignet/>
   * If --enable-opencv, need compile opencv <http://opencv.org> (or: <https://github.com/opencv/opencv/wiki>)
@@ -78,14 +77,15 @@ OpenCL is used to improve performance in different platforms.
         --enable-gst            enable gstreamer plugin build, [default=no]
         --enable-libcl          enable libcl image processor, [default=yes]
         --enable-opencv         enable opencv library, [default=no]
+        --enable-capi           enable libxcam-capi library, [default=yes]
         --enable-docs           build Doxygen documentation [default=no]
         --enable-3alib          enable 3A lib build, [default=no]
         --enable-smartlib       enable smart analysis lib build, [default=no]
 
     For example:
 
-        $ ./autogen.sh --prefix=/usr --enable-3alib --enable-aiq --enable-gst --enable-drm \
-          --enable-libcl --enable-opencv --enable-profiling --enable-smartlib
+        $ ./autogen.sh --prefix=/usr --enable-gst --enable-libcl --enable-opencv \
+          --enable-smartlib --enable-profiling
 
   * $ make
   * $ sudo make install
@@ -97,3 +97,6 @@ OpenCL is used to improve performance in different platforms.
 #### Reporting Bugs:
   * Bugs or suggestions can be reported on the github issues page:<BR>
     <https://github.com/01org/libxcam/issues>
+
+#### Mailing list
+  * To post a message to all the list members, please send email to libxcam@lists.01.org.
