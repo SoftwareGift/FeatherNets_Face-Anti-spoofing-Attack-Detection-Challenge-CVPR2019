@@ -45,8 +45,6 @@
 
 #define XCAM_TEST_MAX_STR_SIZE 1024
 
-#define FISHEYE_CONFIG_PATH "./"
-
 #define MAP_WIDTH 3
 #define MAP_HEIGHT 4
 
@@ -748,9 +746,11 @@ int main (int argc, char *argv[])
         XCAM_ASSERT (stitcher.ptr ());
 
         CameraInfo cam_info[4];
-        const char *fisheye_config_path = getenv ("FISHEYE_CONFIG_PATH");
+        const char *fisheye_config_path = getenv (FISHEYE_CONFIG_ENV_VAR);
         if (!fisheye_config_path)
             fisheye_config_path = FISHEYE_CONFIG_PATH;
+
+        XCAM_LOG_INFO ("calibration config path:%s", XCAM_STR (fisheye_config_path));
 
         for (uint32_t i = 0; i < camera_count; ++i) {
             if (parse_camera_info (fisheye_config_path, i, cam_info[i], camera_count) != 0) {

@@ -59,31 +59,27 @@ parse_calibration_params (
     ExtrinsicParameter extrinsic_param[],
     int fisheye_num)
 {
+    static const char *instrinsic_names[] = {
+        "intrinsic_camera_front.txt", "intrinsic_camera_right.txt",
+        "intrinsic_camera_rear.txt", "intrinsic_camera_left.txt"
+    };
+    static const char *exstrinsic_names[] = {
+        "extrinsic_camera_front.txt", "extrinsic_camera_right.txt",
+        "extrinsic_camera_rear.txt", "extrinsic_camera_left.txt"
+    };
+
+    const char *fisheye_config_path = getenv (FISHEYE_CONFIG_ENV_VAR);
+    if (!fisheye_config_path)
+        fisheye_config_path = FISHEYE_CONFIG_PATH;
+    XCAM_LOG_INFO ("calibration config path:%s", XCAM_STR (fisheye_config_path));
+
     CalibrationParser calib_parser;
+    XCAM_ASSERT (fisheye_num <= 4);
 
     char intrinsic_path[1024], extrinsic_path[1024];
     for(int index = 0; index < fisheye_num; index++) {
-        switch (index) {
-        case 0:
-            strncpy (intrinsic_path, "./calib_params/intrinsic_camera_front.txt", 1023);
-            strncpy (extrinsic_path, "./calib_params/extrinsic_camera_front.txt", 1023);
-            break;
-        case 1:
-            strncpy (intrinsic_path, "./calib_params/intrinsic_camera_right.txt", 1023);
-            strncpy (extrinsic_path, "./calib_params/extrinsic_camera_right.txt", 1023);
-            break;
-        case 2:
-            strncpy (intrinsic_path, "./calib_params/intrinsic_camera_rear.txt", 1023);
-            strncpy (extrinsic_path, "./calib_params/extrinsic_camera_rear.txt", 1023);
-            break;
-        case 3:
-            strncpy (intrinsic_path, "./calib_params/intrinsic_camera_left.txt", 1023);
-            strncpy (extrinsic_path, "./calib_params/extrinsic_camera_left.txt", 1023);
-            break;
-        default:
-            XCAM_LOG_ERROR ("bowl view only support 4-camera mode");
-            return false;
-        }
+        snprintf (intrinsic_path, 1023, "%s/%s", fisheye_config_path, instrinsic_names[index]);
+        snprintf (extrinsic_path, 1023, "%s/%s", fisheye_config_path, exstrinsic_names[index]);
 
         CHECK_ACCESS (intrinsic_path);
         CHECK_ACCESS (extrinsic_path);
@@ -153,6 +149,8 @@ void usage(const char* arg0)
             "\t--fisheye-num       optional, the number of fisheye lens, default: 2\n"
             "\t--all-in-one        optional, all fisheye in one image, select from [true/false], default: true\n"
             "\t--save              optional, save file or not, select from [true/false], default: true\n"
+            "\t--save-top-view     optional, save top view videos. default: no\n"
+            "\t--save-free-view    optional, save rectified(free) view videos. default: no\n"
             "\t--framerate         optional, framerate of saved video, default: 30.0\n"
             "\t--loop              optional, how many loops need to run for performance test, default: 1\n"
             "\t--help              usage\n",
@@ -199,6 +197,8 @@ int main (int argc, char *argv[])
     int fisheye_num = 2;
     bool all_in_one = true;
     bool need_save_output = true;
+    bool save_top_view = false;
+    bool save_free_view = false;
     double framerate = 30.0;
 
     const char *file_in_name[XCAM_STITCH_FISHEYE_MAX_NUM] = {NULL};
@@ -227,6 +227,8 @@ int main (int argc, char *argv[])
         {"fisheye-num", required_argument, NULL, 'N'},
         {"all-in-one", required_argument, NULL, 'A'},
         {"save", required_argument, NULL, 's'},
+        {"save-top-view", no_argument, NULL, 't'},
+        {"save-free-view", no_argument, NULL, 'v'},
         {"framerate", required_argument, NULL, 'f'},
         {"loop", required_argument, NULL, 'l'},
         {"help", no_argument, NULL, 'e'},
@@ -316,6 +318,12 @@ int main (int argc, char *argv[])
         case 's':
             need_save_output = (strcasecmp (optarg, "false") == 0 ? false : true);
             break;
+        case 't':
+            save_top_view = true;
+            break;
+        case 'v':
+            save_free_view = true;
+            break;
         case 'f':
             framerate = atof(optarg);
             break;
@@ -351,8 +359,8 @@ int main (int argc, char *argv[])
         }
     }
 
-    if (!file_out_name) {
-        XCAM_LOG_ERROR ("output path is NULL");
+    if (!file_out_name && need_save_output) {
+        XCAM_LOG_ERROR ("output path is NULL, video can't be saved");
         return -1;
     }
 
@@ -365,7 +373,7 @@ int main (int argc, char *argv[])
 
 #if !HAVE_OPENCV
     if (need_save_output) {
-        XCAM_LOG_WARNING ("non-OpenCV mode, can't save video");
+        XCAM_LOG_WARNING ("non-OpenCV mode, can't save video to file:%s", XCAM_STR (file_out_name));
         need_save_output = false;
     }
 #endif
@@ -396,6 +404,8 @@ int main (int argc, char *argv[])
     printf ("fisheye number:\t\t%d\n", fisheye_num);
     printf ("all in one:\t\t%s\n", all_in_one ? "true" : "false");
     printf ("save file:\t\t%s\n", need_save_output ? "true" : "false");
+    printf ("save top-view file:\t%s\n", save_top_view ? top_view_filename : "NO");
+    printf ("save free-view file:\t%s\n", save_free_view ? rectified_view_filename : "NO");
     printf ("framerate:\t\t%.3lf\n", framerate);
     printf ("loop count:\t\t%d\n", loop);
     printf ("-----------------------------------\n");
@@ -413,7 +423,10 @@ int main (int argc, char *argv[])
     image_360->set_pool_type (CLImageHandler::CLVideoPoolType);
 
     if (surround_mode == BowlView) {
-        parse_calibration_params (intrinsic_param, extrinsic_param, fisheye_num);
+        if (!parse_calibration_params (intrinsic_param, extrinsic_param, fisheye_num)) {
+            XCAM_LOG_ERROR ("parse calibration data failed in surround view.");
+            return -1;
+        }
 
         for (int i = 0; i < fisheye_num; i++) {
             image_360->set_fisheye_intrinsic (intrinsic_param[i], i);
@@ -470,14 +483,16 @@ int main (int argc, char *argv[])
             XCAM_LOG_ERROR ("open file %s failed", file_out_name);
             return -1;
         }
-
-        dst_size = cv::Size (top_view_width, top_view_height);
+    }
+    if (save_top_view) {
+        cv::Size dst_size = cv::Size (top_view_width, top_view_height);
         if (!top_view_writer.open (top_view_filename, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
             XCAM_LOG_ERROR ("open file %s failed", top_view_filename);
             return -1;
         }
-
-        dst_size = cv::Size (rectified_view_width, rectified_view_height);
+    }
+    if (save_free_view) {
+        cv::Size dst_size = cv::Size (rectified_view_width, rectified_view_height);
         if (!rectified_view_writer.open (rectified_view_filename, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
             XCAM_LOG_ERROR ("open file %s failed", rectified_view_filename);
             return -1;
@@ -534,24 +549,29 @@ int main (int argc, char *argv[])
                 cv::Mat out_mat;
                 convert_to_mat (output_buf, out_mat);
                 writer.write (out_mat);
+            }
 
-                BowlDataConfig config = image_360->get_fisheye_bowl_config ();
+            BowlDataConfig config = image_360->get_fisheye_bowl_config ();
+            if (save_top_view) {
                 cv::Mat top_view_mat;
                 sample_generate_top_view (output_buf, top_view_buf, config, top_view_map_table);
                 convert_to_mat (top_view_buf, top_view_mat);
                 top_view_writer.write (top_view_mat);
-
+            }
+            if (save_free_view) {
                 cv::Mat rectified_view_mat;
                 sample_generate_rectified_view (output_buf, rectified_view_buf, config, rectified_start_angle,
                                                 rectified_end_angle, rectified_view_map_table);
                 convert_to_mat (rectified_view_buf, rectified_view_mat);
                 rectified_view_writer.write (rectified_view_mat);
+            }
 
 #if XCAM_TEST_STITCH_DEBUG
-                dbg_write_image (context, image_360, input_bufs, output_buf, top_view_buf, rectified_view_buf,
-                                 all_in_one, fisheye_num, input_count);
+            dbg_write_image (context, image_360, input_bufs, output_buf, top_view_buf, rectified_view_buf,
+                             all_in_one, fisheye_num, input_count);
 #endif
-            } else
+
+            if (!(need_save_output || save_top_view || save_free_view))
 #endif
                 ensure_gpu_buffer_done (output_buf);
 
