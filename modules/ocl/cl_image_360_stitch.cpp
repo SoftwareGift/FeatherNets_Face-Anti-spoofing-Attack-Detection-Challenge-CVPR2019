@@ -852,12 +852,17 @@ CLImage360Stitch::execute_done (SmartPtr<VideoBuffer> &output)
 }
 
 static void
-convert_to_stitch_rect (Rect xcam_rect, Rect &stitch_rect)
+convert_to_stitch_rect (Rect xcam_rect, Rect &stitch_rect, SurroundMode surround_mode)
 {
     stitch_rect.pos_x = xcam_rect.pos_x;
-    stitch_rect.pos_y = xcam_rect.pos_y + xcam_rect.height / 5;
     stitch_rect.width = xcam_rect.width;
-    stitch_rect.height = xcam_rect.height / 2;
+    if (surround_mode == SphereView) {
+        stitch_rect.pos_y = xcam_rect.pos_y + xcam_rect.height / 3;
+        stitch_rect.height = xcam_rect.height / 3;
+    } else {
+        stitch_rect.pos_y = xcam_rect.pos_y + xcam_rect.height / 5;
+        stitch_rect.height = xcam_rect.height / 2;
+    }
 }
 
 static void
@@ -881,8 +886,8 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
         for (int i = 0; i < _fisheye_num; i++) {
             idx_next = (i == (_fisheye_num - 1)) ? 0 : (i + 1);
 
-            convert_to_stitch_rect (_img_merge_info[i].right, crop_left);
-            convert_to_stitch_rect (_img_merge_info[idx_next].left, crop_right);
+            convert_to_stitch_rect (_img_merge_info[i].right, crop_left, _surround_mode);
+            convert_to_stitch_rect (_img_merge_info[idx_next].left, crop_right, _surround_mode);
             if (_surround_mode == SphereView) {
                 _feature_match[i]->optical_flow_feature_match (
                     _fisheye[i].buf, _fisheye[idx_next].buf, crop_left, crop_right, _fisheye[i].width);
