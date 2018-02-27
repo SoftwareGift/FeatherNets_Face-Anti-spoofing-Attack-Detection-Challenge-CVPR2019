@@ -186,7 +186,7 @@ int main (int argc, char *argv[])
     bool enable_lsc = false;
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
     StitchResMode res_mode = StitchRes1080P;
-    SurroundMode surround_mode = BowlView;
+    SurroundMode surround_mode = SphereView;
 
     IntrinsicParameter intrinsic_param[XCAM_STITCH_FISHEYE_MAX_NUM];
     ExtrinsicParameter extrinsic_param[XCAM_STITCH_FISHEYE_MAX_NUM];
