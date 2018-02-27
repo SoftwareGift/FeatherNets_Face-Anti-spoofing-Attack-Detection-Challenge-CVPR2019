@@ -102,6 +102,13 @@ public:
         return _buf;
     }
 
+    void set_mapper (SmartPtr<GeoMapper> mapper) {
+        _mapper = mapper;
+    }
+    SmartPtr<GeoMapper> get_mapper () {
+        return _mapper;
+    }
+
     XCamReturn open_file (const char *option);
     XCamReturn close_file ();
     XCamReturn rewind_file ();
@@ -127,6 +134,7 @@ private:
 
     ImageFileHandle       _file;
     SmartPtr<BufferPool>  _pool;
+    SmartPtr<GeoMapper>   _mapper;
 #if XCAM_TEST_OPENCV
     cv::VideoWriter       _writer;
 #endif
@@ -339,51 +347,6 @@ elements_open_file (const SoftElements &elements, const char *option, const bool
     return ret;
 }
 
-static XCamReturn
-remap_topview_buf (
-    BowlModel &model,
-    const SmartPtr<VideoBuffer> &buf,
-    SmartPtr<VideoBuffer> &topview_buf,
-    uint32_t topview_width, uint32_t topview_height)
-{
-    BowlModel::PointMap points;
-
-    uint32_t lut_w = topview_width / 4, lut_h = topview_height / 4;
-    float length_mm = 0.0f, width_mm = 0.0f;
-
-    model.get_max_topview_area_mm (length_mm, width_mm);
-    XCAM_LOG_INFO ("Max Topview Area (L%.2fmm, W%.2fmm)", length_mm, width_mm);
-
-    model.get_topview_rect_map (points, lut_w, lut_h);
-    SmartPtr<GeoMapper> mapper = GeoMapper::create_soft_geo_mapper ();
-    XCAM_ASSERT (mapper.ptr ());
-    mapper->set_output_size (topview_width, topview_height);
-    mapper->set_lookup_table (points.data (), lut_w, lut_h);
-
-    XCamReturn ret = mapper->remap (buf, topview_buf);
-    if (ret != XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_ERROR ("remap stitched image to topview failed.");
-        return ret;
-    }
-
-#if 0
-    BowlModel::VertexMap bowl_vertices;
-    BowlModel::PointMap bowl_points;
-    uint32_t bowl_lut_w = 15, bowl_lut_h = 10;
-    model.get_bowlview_vertex_map (bowl_vertices, bowl_points, bowl_lut_w, bowl_lut_h);
-    for (uint32_t i = 0; i < bowl_lut_h; ++i) {
-        for (uint32_t j = 0; j < bowl_lut_w; ++j)
-        {
-            PointFloat3 &vetex = bowl_vertices[i * bowl_lut_w + j];
-            printf ("(%4.0f, %4.0f, %4.0f), ", vetex.x, vetex.y, vetex.z );
-        }
-        printf ("\n");
-    }
-#endif
-
-    return XCAM_RETURN_NO_ERROR;
-}
-
 static void
 write_image (const SoftElements &ins, const SoftElements &outs, const bool &nv12_output) {
     if (nv12_output) {
@@ -471,11 +434,56 @@ check_elements (const SoftElements &elements)
 }
 
 static XCamReturn
-run_topview (const SmartPtr<Stitcher> &stitcher, const SoftElements &outs)
+create_topview_mapper (
+    const SmartPtr<Stitcher> &stitcher,
+    const SmartPtr<SoftElement> &stitch, const SmartPtr<SoftElement> &topview)
 {
-    BowlModel bowl_model (stitcher->get_bowl_config (), outs[0]->get_width (), outs[0]->get_height ());
-    return remap_topview_buf (bowl_model, outs[0]->get_buf (), outs[1]->get_buf (),
-                              outs[1]->get_width (), outs[1]->get_height ());
+    BowlModel bowl_model (stitcher->get_bowl_config (), stitch->get_width (), stitch->get_height ());
+    BowlModel::PointMap points;
+
+    float length_mm = 0.0f, width_mm = 0.0f;
+    bowl_model.get_max_topview_area_mm (length_mm, width_mm);
+    XCAM_LOG_INFO ("Max Topview Area (L%.2fmm, W%.2fmm)", length_mm, width_mm);
+
+    bowl_model.get_topview_rect_map (points, topview->get_width (), topview->get_height (), length_mm, width_mm);
+    SmartPtr<GeoMapper> mapper = GeoMapper::create_soft_geo_mapper ();
+    XCAM_ASSERT (mapper.ptr ());
+
+    mapper->set_output_size (topview->get_width (), topview->get_height ());
+    mapper->set_lookup_table (points.data (), topview->get_width (), topview->get_height ());
+    topview->set_mapper (mapper);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+static XCamReturn
+remap_topview_buf (const SmartPtr<SoftElement> &stitch, const SmartPtr<SoftElement> &topview)
+{
+    SmartPtr<GeoMapper> mapper = topview->get_mapper();
+    XCAM_ASSERT (mapper.ptr ());
+
+    XCamReturn ret = mapper->remap (stitch->get_buf (), topview->get_buf ());
+    if (ret != XCAM_RETURN_NO_ERROR) {
+        XCAM_LOG_ERROR ("remap stitched image to topview failed.");
+        return ret;
+    }
+
+#if 0
+    BowlModel::VertexMap bowl_vertices;
+    BowlModel::PointMap bowl_points;
+    uint32_t bowl_lut_w = 15, bowl_lut_h = 10;
+    model.get_bowlview_vertex_map (bowl_vertices, bowl_points, bowl_lut_w, bowl_lut_h);
+    for (uint32_t i = 0; i < bowl_lut_h; ++i) {
+        for (uint32_t j = 0; j < bowl_lut_w; ++j)
+        {
+            PointFloat3 &vetex = bowl_vertices[i * bowl_lut_w + j];
+            printf ("(%4.0f, %4.0f, %4.0f), ", vetex.x, vetex.y, vetex.z );
+        }
+        printf ("\n");
+    }
+#endif
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 static int
@@ -514,7 +522,7 @@ run_stitcher (
 
             if (save_output) {
                 if (check_element (outs, 1)) {
-                    CHECK (run_topview (stitcher, outs), "run topview failed");
+                    CHECK (remap_topview_buf (outs[0], outs[1]), "run topview failed");
                 }
 
                 write_image (ins, outs, nv12_output);
@@ -786,6 +794,8 @@ int main (int argc, char *argv[])
         if (save_output) {
             add_element (outs, "topview", topview_width, topview_height);
             elements_open_file (outs, "wb", nv12_output);
+
+            create_topview_mapper (stitcher, outs[0], outs[1]);
         }
         CHECK_EXP (
             run_stitcher (stitcher, ins, outs, nv12_output, save_output, loop) == 0,
