@@ -1003,5 +1003,5 @@ GST_PLUGIN_DEFINE (
     VERSION,
     GST_LICENSE_UNKNOWN,
     "libxcamfilter",
-    "https://github.com/01org/libxcam"
+    "https://github.com/intel/libxcam"
 )

@@ -1,6 +1,6 @@
 ## libXCam
 
-Copyright (C) 2014-2017 Intel Corporation
+Copyright (C) 2014-2018 Intel Corporation
 
 libxcam core source code under the terms of Apache License, Version 2.0
 
@@ -13,24 +13,30 @@ OpenCL is used to improve performance in different platforms.
 
 #### Features:
   * Image processing features.
-    - Advanced features
-      - 360 Image stiching: generate 360 degree panorama photography by
-        stitching multiple neighbor fisheye images.
+    - Advanced features.
+      - Automotive surround view(360) stitching (both OpenCL version and CPU version).
+         - Support bowl view 3D model stitching by 4 video input.
+         - Enable geometry remap for WFoV camera calibration(intrinsic and extrinsic data).
+         - Quality improved (OCL version done, CPU version WIP).
+         - CPU version upstreamed into AOSP for automotive surround view.
+      - 360 video stitching (Equirectangular mode via OpenCL).
+        - Support 2-fisheye (>180 degree) video stream stitching.
+        - Performance and quality improved.
       - Digital Video Stabilization:
         - OpenCV feature-matched based video stabilization.
         - gyroscope 3-DoF (orientation) based video stabilization.
-      - Blender: multi-band blender.
-      - Noise reduction.
+      - Blender: multi-band blender (OpenCL).
+      - Noise reduction (OpenCL).
         - adaptive NR based on wavelet-haar and Bayersian shrinkage.
         - 3D-NR with inter-block and intra-block reference.
         - wavelet-hat NR (obsolete).
-      - Wide dynamic range (WDR).
+      - Wide dynamic range (WDR) (OpenCL).
         - histogram adjustment tone-mapping.
         - gaussian-based tone-mapping (obsolete).
-      - Fog removal: retinex and dark channel prior algorithm.
+      - Fog removal: retinex and dark channel prior algorithm (OpenCL).
         - dark channel prior algorithm based defog.
         - multi-scale retinex based defog (obsolete).
-    - Basic pipeline from bayer to YUV/RGB format.
+    - Basic pipeline from bayer to YUV/RGB format (OpenCL / AtomISP).
       - Gamma correction, MACC, color space, demosaicing, simple bilateral
         noise reduction, edge enhancement and temporal noise reduction.
     - 3A features.
@@ -92,11 +98,31 @@ OpenCL is used to improve performance in different platforms.
 
 #### Testing:
   * For detailed test cases, please refer to:<BR>
-    <https://github.com/01org/libxcam/wiki/Tests>
+    <https://github.com/intel/libxcam/wiki/Tests>
 
 #### Reporting Bugs:
   * Bugs or suggestions can be reported on the github issues page:<BR>
-    <https://github.com/01org/libxcam/issues>
+    <https://github.com/intel/libxcam/issues>
+  * Security issues, please send email to feng.yuan@intel.com directly
 
 #### Mailing list
   * To post a message to all the list members, please send email to libxcam@lists.01.org.
+  * To register libxcam public maillist, please go to:<BR>
+    <https://lists.01.org/mailman/listinfo/libxcam>
+
+#### Maintainer:
+  * Wind Yuan <feng.yuan@intel.com>
+
+#### Contributors: (orders by first name)
+  * Andrey Parfenov <a1994ndrey@gmail.com>
+  * Fei Wang <feix.w.wang@intel.com>
+  * Jia Meng <jia.meng@intel.com>
+  * John Ye <john.ye@intel.com>
+  * Juan Zhao <juan.j.zhao@intel.com>
+  * Junkai Wu <junkai.wu@intel.com>
+  * Sameer Kibey <sameer.kibey@intel.com>
+  * Shincy Tu <shincy.tu@intel.com>
+  * Wei Zong <wei.zong@intel.com>
+  * Yan Zhang <yan.y.zhang@intel.com>
+  * Yao Wang <yao.y.wang@intel.com>
+  * Yinhang Liu <yinhangx.liu@intel.com>

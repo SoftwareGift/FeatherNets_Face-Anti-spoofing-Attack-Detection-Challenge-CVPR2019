@@ -10,7 +10,7 @@ description:
 third_party {
   url {
     type: GIT
-    value: "https://github.com/01org/libxcam.git"
+    value: "https://github.com/intel/libxcam.git"
   }
   version: "1.0.0"
   last_upgrade_date { year: 2017 month: 9 day: 11 }
