@@ -91,7 +91,7 @@ FeatureMatch::get_mean_offset (std::vector<float> &offsets, float sum, int &coun
             ++recur_count;
         }
 
-        if (recur_count < _config.min_corners) {
+        if (recur_count < _config.min_corners || recur_count <= 0) {
             ret = false;
             break;
         }
