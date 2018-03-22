@@ -49,6 +49,7 @@ typedef enum {
     XCAM_RETURN_ERROR_IOCTL     = -8,
     XCAM_RETURN_ERROR_CL        = -9,
     XCAM_RETURN_ERROR_ORDER     = -10,
+    XCAM_RETURN_ERROR_GLES      = -11,
 
     XCAM_RETURN_ERROR_TIMEOUT   = -20,
 
