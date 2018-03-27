@@ -18,6 +18,9 @@
  * Author: Wind Yuan <feng.yuan@intel.com>
  */
 
+#ifndef XCAM_SOFT_GEO_TASKS_PRIV_H
+#define XCAM_SOFT_GEO_TASKS_PRIV_H
+
 #include <xcam_std.h>
 #include <soft/soft_worker.h>
 #include <soft/soft_image.h>
@@ -54,6 +57,32 @@ private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
 };
 
+class GeoMapDualConstTask
+    : public GeoMapTask
+{
+public:
+    struct Args : GeoMapTask::Args {
+        Float2    left_factor;
+        Float2    right_factor;
+
+        Args (
+            const SmartPtr<ImageHandler::Parameters> &param)
+            : GeoMapTask::Args (param)
+        {}
+    };
+
+public:
+    explicit GeoMapDualConstTask (const SmartPtr<Worker::Callback> &cb)
+        : GeoMapTask (cb)
+    {
+        set_work_uint (8, 2);
+    }
+
+private:
+    virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
+};
+
 }
 
 }
+#endif // XCAM_SOFT_GEO_TASKS_PRIV_H

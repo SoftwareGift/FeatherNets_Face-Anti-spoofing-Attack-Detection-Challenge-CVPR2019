@@ -78,6 +78,7 @@ split_area_by_out (
 
 Stitcher::Stitcher (uint32_t align_x, uint32_t align_y)
     : _is_crop_set (false)
+    , _scale_mode (ScaleSingleConst)
     , _alignment_x (align_x)
     , _alignment_y (align_y)
     , _output_width (0)

@@ -189,9 +189,15 @@ public:
     bool get_and_reset_feature_match_factors (uint32_t idx, Factor &left, Factor &right);
 
 private:
+    SmartPtr<SoftGeoMapper> create_geo_mapper ();
+
     XCamReturn init_fisheye (uint32_t idx);
     bool init_dewarp_factors (uint32_t idx);
     XCamReturn create_copier (Stitcher::CopyArea area);
+
+    void calc_factors (
+        const uint32_t &idx, const Factor &last_left_factor, const Factor &last_right_factor,
+        Factor &cur_left, Factor &cur_right);
 
 private:
     FisheyeDewarp           _fisheye [XCAM_STITCH_MAX_CAMERAS];
@@ -205,6 +211,21 @@ private:
     SoftStitcher           *_stitcher;
 };
 
+
+void
+StitcherImpl::calc_factors (
+    const uint32_t &idx, const Factor &last_left_factor, const Factor &last_right_factor,
+    Factor &cur_left, Factor &cur_right)
+{
+    Factor match_left_factor, match_right_factor;
+    get_and_reset_feature_match_factors (idx, match_left_factor, match_right_factor);
+
+    cur_left.x = last_left_factor.x * match_left_factor.x;
+    cur_left.y = last_left_factor.y * match_left_factor.y;
+    cur_right.x = last_right_factor.x * match_right_factor.x;
+    cur_right.y = last_right_factor.y * match_right_factor.y;
+}
+
 bool
 StitcherImpl::init_dewarp_factors (uint32_t idx)
 {
@@ -212,26 +233,38 @@ StitcherImpl::init_dewarp_factors (uint32_t idx)
         ERROR, _fisheye[idx].dewarp.ptr (), false,
         "FisheyeDewarp dewarp handler empty");
 
-    Factor match_left_factor, match_right_factor;
-    get_and_reset_feature_match_factors (idx, match_left_factor, match_right_factor);
+    Factor last_left_factor, last_right_factor, cur_left, cur_right;
+    if (_stitcher->get_scale_mode () == ScaleSingleConst) {
+        Factor unify_factor;
+        _fisheye[idx].dewarp->get_factors (unify_factor.x, unify_factor.y);
+        if (XCAM_DOUBLE_EQUAL_AROUND (unify_factor.x, 0.0f) ||
+                XCAM_DOUBLE_EQUAL_AROUND (unify_factor.y, 0.0f)) { // not started.
+            return true;
+        }
+        last_left_factor = last_right_factor = unify_factor;
 
-    Factor unify_factor, last_left_factor, last_right_factor;
-    _fisheye[idx].dewarp->get_factors (unify_factor.x, unify_factor.y);
-    last_left_factor = last_right_factor = unify_factor;
-    if (XCAM_DOUBLE_EQUAL_AROUND (unify_factor.x, 0.0f) ||
-            XCAM_DOUBLE_EQUAL_AROUND (unify_factor.y, 0.0f)) { // not started.
-        return true;
+        calc_factors (idx, last_left_factor, last_right_factor, cur_left, cur_right);
+        unify_factor.x = (cur_left.x + cur_right.x) / 2.0f;
+        unify_factor.y = (cur_left.y + cur_right.y) / 2.0f;
+
+        _fisheye[idx].dewarp->set_factors (unify_factor.x, unify_factor.y);
+    } else {
+        SmartPtr<SoftDualConstGeoMapper> dewarp = _fisheye[idx].dewarp.dynamic_cast_ptr<SoftDualConstGeoMapper> ();
+        XCAM_ASSERT (dewarp.ptr ());
+        dewarp->get_left_factors (last_left_factor.x, last_left_factor.y);
+        dewarp->get_right_factors (last_right_factor.x, last_right_factor.y);
+        if (XCAM_DOUBLE_EQUAL_AROUND (last_left_factor.x, 0.0f) ||
+                XCAM_DOUBLE_EQUAL_AROUND (last_left_factor.y, 0.0f) ||
+                XCAM_DOUBLE_EQUAL_AROUND (last_right_factor.y, 0.0f) ||
+                XCAM_DOUBLE_EQUAL_AROUND (last_right_factor.y, 0.0f)) { // not started.
+            return true;
+        }
+
+        calc_factors (idx, last_left_factor, last_right_factor, cur_left, cur_right);
+
+        dewarp->set_left_factors (cur_left.x, cur_left.y);
+        dewarp->set_right_factors (cur_right.x, cur_right.y);
     }
-
-    Factor cur_left, cur_right;
-    cur_left.x = last_left_factor.x * match_left_factor.x;
-    cur_left.y = last_left_factor.y * match_left_factor.y;
-    cur_right.x = last_right_factor.x * match_right_factor.x;
-    cur_right.y = last_right_factor.y * match_right_factor.y;
-
-    unify_factor.x = (cur_left.x + cur_right.x) / 2.0f;
-    unify_factor.y = (cur_left.y + cur_right.y) / 2.0f;
-    _fisheye[idx].dewarp->set_factors (unify_factor.x, unify_factor.y);
 
     return true;
 }
@@ -280,18 +313,28 @@ StitcherImpl::get_and_reset_feature_match_factors (uint32_t idx, Factor &left, F
     return true;
 }
 
+SmartPtr<SoftGeoMapper>
+StitcherImpl::create_geo_mapper ()
+{
+    SmartPtr<SoftGeoMapper> dewarp;
+    if (_stitcher->get_scale_mode () == ScaleSingleConst)
+        dewarp = new SoftGeoMapper ("sitcher_remapper");
+    else
+        dewarp = new SoftDualConstGeoMapper ("sitcher_dualconst_remapper");
+
+    XCAM_ASSERT (dewarp.ptr ());
+    return dewarp;
+}
+
 XCamReturn
 StitcherImpl::init_fisheye (uint32_t idx)
 {
     FisheyeDewarp &fisheye = _fisheye[idx];
-    SmartPtr<ImageHandler::Callback> dewarp_cb = new CbGeoMap (_stitcher);
-    SmartPtr<SoftGeoMapper> dewarp = new SoftGeoMapper ("sitcher_remapper");
-    XCAM_ASSERT (dewarp.ptr ());
-    fisheye.dewarp = dewarp;
-    fisheye.dewarp->set_callback (dewarp_cb);
+    Stitcher::RoundViewSlice view_slice = _stitcher->get_round_view_slice (idx);
 
-    Stitcher::RoundViewSlice view_slice =
-        _stitcher->get_round_view_slice (idx);
+    SmartPtr<ImageHandler::Callback> dewarp_cb = new CbGeoMap (_stitcher);
+    fisheye.dewarp = create_geo_mapper ();;
+    fisheye.dewarp->set_callback (dewarp_cb);
 
     VideoBufferInfo buf_info;
     buf_info.init (
@@ -522,7 +565,7 @@ StitcherImpl::feature_match (
     float range = feature_center_x - center_x;
     XCAM_ASSERT (range > 1.0f);
     right_factor.x = (range + left_offsetx / 2.0f) / range;
-    right_factor.y = 1.0;
+    right_factor.y = 1.0f;
     XCAM_ASSERT (right_factor.x > 0.0f && right_factor.x < 2.0f);
 
     uint32_t right_idx = (idx + 1) % _stitcher->get_camera_num ();
@@ -531,7 +574,7 @@ StitcherImpl::feature_match (
     range = center_x - feature_center_x;
     XCAM_ASSERT (range > 1.0f);
     left_factor.x = (range + left_offsetx / 2.0f) / range;
-    left_factor.y = 1.0;
+    left_factor.y = 1.0f;
     XCAM_ASSERT (left_factor.x > 0.0f && left_factor.x < 2.0f);
 
     {

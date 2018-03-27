@@ -552,6 +552,8 @@ static void usage(const char* arg0)
             "\t--out-h             optional, output height, default: 960\n"
             "\t--topview-w         optional, output width, default: 1280\n"
             "\t--topview-h         optional, output height, default: 720\n"
+            "\t--scale-mode        optional, scaling mode for geometric mapping,\n"
+            "\t                    select from [singleconst/dualconst], default: singleconst\n"
             "\t--save              optional, save file or not, select from [true/false], default: true\n"
             "\t--loop              optional, how many loops need to run, default: 1\n"
             "\t--help              usage\n",
@@ -567,6 +569,7 @@ int main (int argc, char *argv[])
     uint32_t topview_width = 1280;
     uint32_t topview_height = 720;
     SoftType type = SoftTypeNone;
+    GeoMapScaleMode scale_mode = ScaleSingleConst;
 
     SoftElements ins;
     SoftElements outs;
@@ -588,6 +591,7 @@ int main (int argc, char *argv[])
         {"out-h", required_argument, NULL, 'H'},
         {"topview-w", required_argument, NULL, 'P'},
         {"topview-h", required_argument, NULL, 'V'},
+        {"scale-mode", required_argument, NULL, 'S'},
         {"save", required_argument, NULL, 's'},
         {"loop", required_argument, NULL, 'L'},
         {"help", no_argument, NULL, 'e'},
@@ -650,6 +654,18 @@ int main (int argc, char *argv[])
         case 'V':
             topview_height = atoi(optarg);
             break;
+        case 'S':
+            XCAM_ASSERT (optarg);
+            if (!strcasecmp (optarg, "singleconst"))
+                scale_mode = ScaleSingleConst;
+            else if (!strcasecmp (optarg, "dualconst"))
+                scale_mode = ScaleDualConst;
+            else {
+                XCAM_LOG_ERROR ("GeoMapScaleMode unknown mode: %s", optarg);
+                usage (argv[0]);
+                return -1;
+            }
+            break;
         case 's':
             save_output = (strcasecmp (optarg, "false") == 0 ? false : true);
             break;
@@ -692,6 +708,7 @@ int main (int argc, char *argv[])
     printf ("output height:\t\t%d\n", output_height);
     printf ("topview width:\t\t%d\n", topview_width);
     printf ("topview height:\t\t%d\n", topview_height);
+    printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" : "dualconst");
     printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 
@@ -790,6 +807,7 @@ int main (int argc, char *argv[])
         bowl.angle_end = 360.0f;
         stitcher->set_bowl_config (bowl);
         stitcher->set_output_size (output_width, output_height);
+        stitcher->set_scale_mode (scale_mode);
 
         if (save_output) {
             add_element (outs, "topview", topview_width, topview_height);

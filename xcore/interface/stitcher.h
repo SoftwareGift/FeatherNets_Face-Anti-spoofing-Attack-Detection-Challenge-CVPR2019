@@ -158,6 +158,14 @@ public:
         width = _output_width;
         height = _output_height;
     }
+
+    void set_scale_mode (GeoMapScaleMode scale_mode) {
+        _scale_mode = scale_mode;
+    }
+    GeoMapScaleMode get_scale_mode () {
+        return _scale_mode;
+    }
+
     virtual XCamReturn stitch_buffers (const VideoBufferList &in_bufs, SmartPtr<VideoBuffer> &out_buf) = 0;
 
 protected:
@@ -189,6 +197,7 @@ private:
 protected:
     ImageCropInfo               _crop_info[XCAM_STITCH_MAX_CAMERAS];
     bool                        _is_crop_set;
+    GeoMapScaleMode             _scale_mode;
     //update after each feature match
     ScaleFactor                 _scale_factors[XCAM_STITCH_MAX_CAMERAS];
 

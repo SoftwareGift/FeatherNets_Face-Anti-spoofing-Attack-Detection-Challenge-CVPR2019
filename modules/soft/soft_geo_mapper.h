@@ -30,13 +30,14 @@ namespace XCam {
 
 namespace XCamSoftTasks {
 class GeoMapTask;
+class GeoMapDualConstTask;
 };
 
 class SoftGeoMapper
     : public SoftHandler, public GeoMapper
 {
 public:
-    SoftGeoMapper (const char *name = "SoftGeoMap");
+    SoftGeoMapper (const char *name = "SoftGeoMapper");
     ~SoftGeoMapper ();
 
     bool set_lookup_table (const PointFloat2 *data, uint32_t width, uint32_t height);
@@ -57,8 +58,18 @@ protected:
     XCamReturn configure_resource (const SmartPtr<Parameters> &param);
     XCamReturn start_work (const SmartPtr<Parameters> &param);
 
-private:
-    XCamReturn start_remap_task (const SmartPtr<ImageHandler::Parameters> &param);
+    void set_work_size (uint32_t thread_x, uint32_t thread_y, uint32_t luma_width, uint32_t luma_height);
+    SmartPtr<XCamSoftTasks::GeoMapTask> &get_map_task () {
+        return _map_task;
+    }
+    SmartPtr<Float2Image> &get_lookup_table () {
+        return _lookup_table;
+    }
+
+protected:
+    virtual bool init_factors ();
+    virtual SmartPtr<XCamSoftTasks::GeoMapTask> create_remap_task ();
+    virtual XCamReturn start_remap_task (const SmartPtr<ImageHandler::Parameters> &param);
 
 private:
     SmartPtr<XCamSoftTasks::GeoMapTask>   _map_task;
@@ -66,6 +77,42 @@ private:
 };
 
 extern SmartPtr<SoftHandler> create_soft_geo_mapper ();
-}
 
+class SoftDualConstGeoMapper
+    : public SoftGeoMapper
+{
+public:
+    SoftDualConstGeoMapper (const char *name = "SoftDualConstGeoMapper");
+    ~SoftDualConstGeoMapper ();
+
+    bool set_left_factors (float x, float y);
+    void get_left_factors (float &x, float &y) {
+        x = _left_factor_x;
+        y = _left_factor_y;
+    }
+    bool set_right_factors (float x, float y);
+    void get_right_factors (float &x, float &y) {
+        x = _right_factor_x;
+        y = _right_factor_y;
+    }
+
+    virtual void remap_task_done (
+        const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
+
+protected:
+    XCamReturn prepare_arguments (const SmartPtr<Worker::Arguments> &args,
+        const SmartPtr<ImageHandler::Parameters> &param);
+    virtual bool auto_calculate_factors (uint32_t lut_w, uint32_t lut_h);
+
+protected:
+    virtual bool init_factors ();
+    virtual SmartPtr<XCamSoftTasks::GeoMapTask> create_remap_task ();
+    virtual XCamReturn start_remap_task (const SmartPtr<ImageHandler::Parameters> &param);
+
+private:
+    float        _left_factor_x, _left_factor_y;
+    float        _right_factor_x, _right_factor_y;
+};
+
+}
 #endif //XCAM_SOFT_GEO_MAP_H

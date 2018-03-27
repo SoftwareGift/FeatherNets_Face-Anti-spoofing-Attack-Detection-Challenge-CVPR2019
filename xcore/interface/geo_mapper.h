@@ -53,7 +53,7 @@ public:
         SmartPtr<VideoBuffer> &out_buf) = 0;
 
 protected:
-    bool auto_calculate_factors (uint32_t lut_w, uint32_t lut_h);
+    virtual bool auto_calculate_factors (uint32_t lut_w, uint32_t lut_h);
 
 private:
     uint32_t     _out_width, _out_height;
