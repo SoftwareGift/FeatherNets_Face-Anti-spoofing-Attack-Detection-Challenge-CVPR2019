@@ -189,7 +189,7 @@ public:
     bool get_and_reset_feature_match_factors (uint32_t idx, Factor &left, Factor &right);
 
 private:
-    SmartPtr<SoftGeoMapper> create_geo_mapper ();
+    SmartPtr<SoftGeoMapper> create_geo_mapper (const Stitcher::RoundViewSlice &view_slice);
 
     XCamReturn init_fisheye (uint32_t idx);
     bool init_dewarp_factors (uint32_t idx);
@@ -314,13 +314,24 @@ StitcherImpl::get_and_reset_feature_match_factors (uint32_t idx, Factor &left, F
 }
 
 SmartPtr<SoftGeoMapper>
-StitcherImpl::create_geo_mapper ()
+StitcherImpl::create_geo_mapper (const Stitcher::RoundViewSlice &view_slice)
 {
     SmartPtr<SoftGeoMapper> dewarp;
     if (_stitcher->get_scale_mode () == ScaleSingleConst)
         dewarp = new SoftGeoMapper ("sitcher_remapper");
-    else
+    else if (_stitcher->get_scale_mode () == ScaleDualConst)
         dewarp = new SoftDualConstGeoMapper ("sitcher_dualconst_remapper");
+    else {
+        SmartPtr<SoftDualCurveGeoMapper> geomap = new SoftDualCurveGeoMapper ("sitcher_dualcurve_remapper");
+        XCAM_ASSERT (geomap.ptr ());
+
+        BowlDataConfig bowl = _stitcher->get_bowl_config ();
+        float scaled_height = (bowl.wall_height + bowl.ground_length / 2.0f) /
+                              (bowl.wall_height + bowl.ground_length) * view_slice.height;
+
+        geomap->set_scaled_height (scaled_height);
+        dewarp = geomap;
+    }
 
     XCAM_ASSERT (dewarp.ptr ());
     return dewarp;
@@ -333,7 +344,7 @@ StitcherImpl::init_fisheye (uint32_t idx)
     Stitcher::RoundViewSlice view_slice = _stitcher->get_round_view_slice (idx);
 
     SmartPtr<ImageHandler::Callback> dewarp_cb = new CbGeoMap (_stitcher);
-    fisheye.dewarp = create_geo_mapper ();;
+    fisheye.dewarp = create_geo_mapper (view_slice);;
     fisheye.dewarp->set_callback (dewarp_cb);
 
     VideoBufferInfo buf_info;

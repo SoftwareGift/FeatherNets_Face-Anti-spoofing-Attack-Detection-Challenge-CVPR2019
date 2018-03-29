@@ -28,6 +28,7 @@ namespace XCam {
 
 DECLARE_WORK_CALLBACK (CbGeoMapTask, SoftGeoMapper, remap_task_done);
 DECLARE_WORK_CALLBACK (CbGeoMapDualConstTask, SoftDualConstGeoMapper, remap_task_done);
+DECLARE_WORK_CALLBACK (CbGeoMapDualCurveTask, SoftDualCurveGeoMapper, remap_task_done);
 
 SoftGeoMapper::SoftGeoMapper (const char *name)
     : SoftHandler (name)
@@ -371,6 +372,68 @@ SoftDualConstGeoMapper::remap_task_done (
 
     SmartPtr<XCamSoftTasks::GeoMapDualConstTask::Args> args =
         base.dynamic_cast_ptr<XCamSoftTasks::GeoMapDualConstTask::Args> ();
+    XCAM_ASSERT (args.ptr ());
+
+    const SmartPtr<ImageHandler::Parameters> param = args->get_param ();
+    if (!check_work_continue (param, error))
+        return;
+
+    work_well_done (param, error);
+}
+
+SoftDualCurveGeoMapper::SoftDualCurveGeoMapper (const char *name)
+    : SoftDualConstGeoMapper (name)
+    , _scaled_height (0.0f)
+{
+}
+
+SoftDualCurveGeoMapper::~SoftDualCurveGeoMapper ()
+{
+}
+
+SmartPtr<XCamSoftTasks::GeoMapTask>
+SoftDualCurveGeoMapper::create_remap_task ()
+{
+    SmartPtr<XCamSoftTasks::GeoMapDualCurveTask> map_task =
+        new XCamSoftTasks::GeoMapDualCurveTask (new CbGeoMapDualCurveTask (this));
+    XCAM_ASSERT (map_task.ptr ());
+
+    map_task->set_scaled_height (_scaled_height);
+
+    float factor_x, factor_y;
+    get_left_factors (factor_x, factor_y);
+    map_task->set_left_std_factor (factor_x, factor_y);
+
+    get_right_factors (factor_x, factor_y);
+    map_task->set_right_std_factor (factor_x, factor_y);
+
+    return map_task;
+}
+
+XCamReturn
+SoftDualCurveGeoMapper::start_remap_task (const SmartPtr<ImageHandler::Parameters> &param)
+{
+    SmartPtr<XCamSoftTasks::GeoMapTask> map_task = get_map_task ();
+    XCAM_ASSERT (map_task.ptr ());
+
+    SmartPtr<XCamSoftTasks::GeoMapDualCurveTask::Args> args =
+        new XCamSoftTasks::GeoMapDualCurveTask::Args (param);
+    XCAM_ASSERT (args.ptr ());
+
+    prepare_arguments (args, param);
+
+    return map_task->work (args);
+}
+
+void
+SoftDualCurveGeoMapper::remap_task_done (
+    const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error)
+{
+    XCAM_UNUSED (worker);
+    XCAM_ASSERT (worker.ptr () == get_map_task().ptr ());
+
+    SmartPtr<XCamSoftTasks::GeoMapDualCurveTask::Args> args =
+        base.dynamic_cast_ptr<XCamSoftTasks::GeoMapDualCurveTask::Args> ();
     XCAM_ASSERT (args.ptr ());
 
     const SmartPtr<ImageHandler::Parameters> param = args->get_param ();

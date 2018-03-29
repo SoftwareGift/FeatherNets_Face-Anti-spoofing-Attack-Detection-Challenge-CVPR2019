@@ -33,7 +33,8 @@ enum SurroundMode {
 
 enum GeoMapScaleMode {
     ScaleSingleConst = 0,
-    ScaleDualConst
+    ScaleDualConst,
+    ScaleDualCurve
 };
 
 struct Rect {

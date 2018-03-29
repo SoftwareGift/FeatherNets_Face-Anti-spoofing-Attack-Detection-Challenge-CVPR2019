@@ -553,7 +553,7 @@ static void usage(const char* arg0)
             "\t--topview-w         optional, output width, default: 1280\n"
             "\t--topview-h         optional, output height, default: 720\n"
             "\t--scale-mode        optional, scaling mode for geometric mapping,\n"
-            "\t                    select from [singleconst/dualconst], default: singleconst\n"
+            "\t                    select from [singleconst/dualconst/dualcurve], default: singleconst\n"
             "\t--save              optional, save file or not, select from [true/false], default: true\n"
             "\t--loop              optional, how many loops need to run, default: 1\n"
             "\t--help              usage\n",
@@ -660,6 +660,8 @@ int main (int argc, char *argv[])
                 scale_mode = ScaleSingleConst;
             else if (!strcasecmp (optarg, "dualconst"))
                 scale_mode = ScaleDualConst;
+            else if (!strcasecmp (optarg, "dualcurve"))
+                scale_mode = ScaleDualCurve;
             else {
                 XCAM_LOG_ERROR ("GeoMapScaleMode unknown mode: %s", optarg);
                 usage (argv[0]);
@@ -708,7 +710,8 @@ int main (int argc, char *argv[])
     printf ("output height:\t\t%d\n", output_height);
     printf ("topview width:\t\t%d\n", topview_width);
     printf ("topview height:\t\t%d\n", topview_height);
-    printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" : "dualconst");
+    printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" :
+            ((scale_mode == ScaleDualConst) ? "dualconst" : "dualcurve"));
     printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 

@@ -31,6 +31,7 @@ namespace XCam {
 namespace XCamSoftTasks {
 class GeoMapTask;
 class GeoMapDualConstTask;
+class GeoMapDualCurveTask;
 };
 
 class SoftGeoMapper
@@ -112,6 +113,28 @@ protected:
 private:
     float        _left_factor_x, _left_factor_y;
     float        _right_factor_x, _right_factor_y;
+};
+
+class SoftDualCurveGeoMapper
+    : public SoftDualConstGeoMapper
+{
+public:
+    SoftDualCurveGeoMapper (const char *name = "SoftDualCurveGeoMapper");
+    ~SoftDualCurveGeoMapper ();
+
+    void set_scaled_height (float scaled_height) {
+        _scaled_height = scaled_height;
+    }
+
+    virtual void remap_task_done (
+        const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
+
+private:
+    virtual SmartPtr<XCamSoftTasks::GeoMapTask> create_remap_task ();
+    virtual XCamReturn start_remap_task (const SmartPtr<ImageHandler::Parameters> &param);
+
+private:
+    float        _scaled_height;
 };
 
 }

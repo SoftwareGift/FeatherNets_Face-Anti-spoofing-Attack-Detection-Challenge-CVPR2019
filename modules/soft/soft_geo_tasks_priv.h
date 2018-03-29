@@ -82,6 +82,47 @@ private:
     virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
 };
 
+class GeoMapDualCurveTask
+    : public GeoMapDualConstTask
+{
+public:
+    struct Args : GeoMapDualConstTask::Args {
+        Args (
+            const SmartPtr<ImageHandler::Parameters> &param)
+            : GeoMapDualConstTask::Args (param)
+        {}
+    };
+
+public:
+    explicit GeoMapDualCurveTask (const SmartPtr<Worker::Callback> &cb);
+    ~GeoMapDualCurveTask ();
+
+    void set_scaled_height (float scaled_height) {
+        XCAM_ASSERT (!XCAM_DOUBLE_EQUAL_AROUND (scaled_height, 0.0f));
+        _scaled_height = scaled_height;
+    }
+
+    void set_left_std_factor (float x, float y);
+    void set_right_std_factor (float x, float y);
+
+private:
+    void set_factors (SmartPtr<GeoMapDualCurveTask::Args> args, uint32_t size);
+    bool set_steps (uint32_t size);
+
+    virtual XCamReturn work_range (const SmartPtr<Arguments> &args, const WorkRange &range);
+
+    XCAM_DEAD_COPY (GeoMapDualCurveTask);
+
+private:
+    float        _scaled_height;
+    Float2       _left_std_factor;
+    Float2       _right_std_factor;
+    Float2       *_left_factors;
+    Float2       *_right_factors;
+    Float2       *_left_steps;
+    Float2       *_right_steps;
+};
+
 }
 
 }

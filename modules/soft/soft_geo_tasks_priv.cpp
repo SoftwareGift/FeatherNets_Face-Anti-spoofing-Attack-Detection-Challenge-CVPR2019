@@ -216,6 +216,164 @@ GeoMapDualConstTask::work_range (const SmartPtr<Arguments> &base, const WorkRang
     return XCAM_RETURN_NO_ERROR;
 }
 
+GeoMapDualCurveTask::GeoMapDualCurveTask (const SmartPtr<Worker::Callback> &cb)
+    : GeoMapDualConstTask (cb)
+    , _scaled_height (0.0f)
+    , _left_std_factor (0.0f, 0.0f)
+    , _right_std_factor (0.0f, 0.0f)
+    , _left_factors (NULL)
+    , _right_factors (NULL)
+    , _left_steps (NULL)
+    , _right_steps (NULL)
+{
+    set_work_uint (8, 2);
+}
+
+GeoMapDualCurveTask::~GeoMapDualCurveTask () {
+    if (_left_factors) {
+        delete [] _left_factors;
+        _left_factors = NULL;
+    }
+    if (_right_factors) {
+        delete [] _right_factors;
+        _right_factors = NULL;
+    }
+    if (_left_steps) {
+        delete [] _left_steps;
+        _left_steps = NULL;
+    }
+    if (_right_steps) {
+        delete [] _right_steps;
+        _right_steps = NULL;
+    }
+}
+
+void
+GeoMapDualCurveTask::set_left_std_factor (float x, float y) {
+    XCAM_ASSERT (!XCAM_DOUBLE_EQUAL_AROUND (x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (y, 0.0f));
+
+    _left_std_factor.x = x;
+    _left_std_factor.y = y;
+}
+
+void
+GeoMapDualCurveTask::set_right_std_factor (float x, float y) {
+    XCAM_ASSERT (!XCAM_DOUBLE_EQUAL_AROUND (x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (y, 0.0f));
+
+    _right_std_factor.x = x;
+    _right_std_factor.y = y;
+}
+
+static void calc_cur_row_factor (
+    const uint32_t &y, const uint32_t &ym,
+    const Float2 &std_factor, const float &scaled_height,
+    const Float2 &factor, Float2 &cur_row_factor)
+{
+    float a, b, c;
+    a = (std_factor.x - factor.x) / ((scaled_height - ym) * (scaled_height - ym));
+    b = -2 * a * ym;
+    c = std_factor.x - a * scaled_height * scaled_height - b * scaled_height;
+    cur_row_factor.x = (y >= scaled_height) ? std_factor.x : ((y < ym) ? factor.x : (a * y * y + b * y + c));
+
+    cur_row_factor.y = factor.y;
+}
+
+void
+GeoMapDualCurveTask::set_factors (SmartPtr<GeoMapDualCurveTask::Args> args, uint32_t size) {
+    if (_left_factors == NULL) {
+        _left_factors = new Float2[size];
+        XCAM_ASSERT (_left_factors);
+    }
+    if (_right_factors == NULL) {
+        _right_factors = new Float2[size];
+        XCAM_ASSERT (_right_factors);
+    }
+
+    float ym = _scaled_height * 0.5f;
+    for (uint32_t y = 0; y < size; ++y) {
+        calc_cur_row_factor (y, ym, _left_std_factor, _scaled_height, args->left_factor, _left_factors[y]);
+        calc_cur_row_factor (y, ym, _right_std_factor, _scaled_height, args->right_factor, _right_factors[y]);
+    }
+}
+
+bool
+GeoMapDualCurveTask::set_steps (uint32_t size) {
+    if (_left_steps == NULL) {
+        _left_steps =  new Float2[size];
+        XCAM_ASSERT (_left_steps);
+    }
+    if (_right_steps == NULL) {
+        _right_steps =  new Float2[size];
+        XCAM_ASSERT (_right_steps);
+    }
+
+    for (uint32_t y = 0; y < size; ++y) {
+        XCAM_FAIL_RETURN (
+            ERROR,
+            !XCAM_DOUBLE_EQUAL_AROUND (_left_factors[y].x, 0.0f) &&
+            !XCAM_DOUBLE_EQUAL_AROUND (_left_factors[y].y, 0.0f) &&
+            !XCAM_DOUBLE_EQUAL_AROUND (_right_factors[y].x, 0.0f) &&
+            !XCAM_DOUBLE_EQUAL_AROUND (_right_factors[y].y, 0.0f),
+            false,
+            "GeoMapDualCurveTask invalid factor(row:%d): left_factor(x:%f, y:%f) right_factor(x:%f, y:%f)",
+            y, _left_factors[y].x, _left_factors[y].y, _right_factors[y].x, _right_factors[y].y);
+
+        _left_steps[y] = Float2(1.0f, 1.0f) / _left_factors[y];
+        _right_steps[y] = Float2(1.0f, 1.0f) / _right_factors[y];
+    }
+
+    return true;
+}
+
+XCamReturn
+GeoMapDualCurveTask::work_range (const SmartPtr<Arguments> &base, const WorkRange &range)
+{
+    static const Uchar zero_luma_byte[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    static const Uchar2 zero_uv_byte[4] = {{128, 128}, {128, 128}, {128, 128}, {128, 128}};
+    SmartPtr<GeoMapDualCurveTask::Args> args = base.dynamic_cast_ptr<GeoMapDualCurveTask::Args> ();
+    XCAM_ASSERT (args.ptr ());
+    XCAM_ASSERT (
+        !XCAM_DOUBLE_EQUAL_AROUND (args->left_factor.x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (args->left_factor.y, 0.0f) &&
+        !XCAM_DOUBLE_EQUAL_AROUND (args->right_factor.x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (args->right_factor.y, 0.0f));
+
+    UcharImage *in_luma = args->in_luma.ptr (), *out_luma = args->out_luma.ptr ();
+    Uchar2Image *in_uv = args->in_uv.ptr (), *out_uv = args->out_uv.ptr ();
+    Float2Image *lut = args->lookup_table.ptr ();
+    XCAM_ASSERT (in_luma && in_uv);
+    XCAM_ASSERT (out_luma && out_uv);
+    XCAM_ASSERT (lut);
+
+    set_factors (args, out_luma->get_height ());
+    set_steps (out_luma->get_height ());
+
+    Float2 out_center ((out_luma->get_width () - 1.0f ) / 2.0f, (out_luma->get_height () - 1.0f ) / 2.0f);
+    Float2 lut_center ((lut->get_width () - 1.0f) / 2.0f, (lut->get_height () - 1.0f) / 2.0f);
+
+    uint32_t luma_w = in_luma->get_width ();
+    uint32_t luma_h = in_luma->get_height ();
+    uint32_t uv_w = in_uv->get_width ();
+    uint32_t uv_h = in_uv->get_height ();
+
+    for (uint32_t y = range.pos[1]; y < range.pos[1] + range.pos_len[1]; ++y)
+        for (uint32_t x = range.pos[0]; x < range.pos[0] + range.pos_len[0]; ++x)
+        {
+            uint32_t out_x = x * 8, out_y = y * 2;
+            Float2 &factor = (out_x + 4 < out_center.x) ? _left_factors[out_y] : _right_factors[out_y];
+            Float2 &step = (out_x + 4 < out_center.x) ? _left_steps[out_y] : _right_steps[out_y];
+
+            // calculate 8x2 luma, center aligned
+            Float2 out_pos (out_x, out_y);
+            out_pos -= out_center;
+            Float2 first = out_pos / factor;
+            first += lut_center;
+
+            map_image (in_luma, in_uv, out_luma, out_uv, lut, luma_w, luma_h, uv_w, uv_h,
+                       x, y, out_x, out_y, first, step, zero_luma_byte, zero_uv_byte);
+        }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 }
 
 }
