@@ -98,14 +98,22 @@ kernel_geo_map (
     b = -2 * a * y_m;
     c = 1 - a * stable_y_start * stable_y_start - b * stable_y_start;
 
-    scale.x = (g_y >= stable_y_start) ? 1.0f : ((g_y < y_m) ? scale_factor.x : (a * g_y * g_y + b * g_y + c));
+    scale.y = (g_y >= stable_y_start) ? 1.0f : ((right_scale_factor.y - left_scale_factor.y) /
+              (out_size.x - PIXEL_RES_STEP_X) * g_x * PIXEL_RES_STEP_X + left_scale_factor.y);
+    float y_scale = ((float)g_y - stable_y_start) * scale.y + stable_y_start;
+    scale.x = (y_scale >= stable_y_start) ? 1.0f : ((y_scale < y_m) ? scale_factor.x : (a * y_scale * y_scale + b * y_scale + c));
 #endif
 
     float2 table_scale_step = 1.0f / (table_scale_size * scale);
     float2 out_map_pos;
     sampler_t sampler = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
+#if ENABLE_SCALE
+    out_map_pos.x = (g_x * PIXEL_RES_STEP_X - out_size.x / 2.0f) * table_scale_step.x + 0.5f;
+    out_map_pos.y = ((float)g_y - stable_y_start) * table_scale_step.y + stable_y_start / out_size.y;
+#else
     out_map_pos = (convert_float2((int2)(g_x * PIXEL_RES_STEP_X, g_y)) - out_size / 2.0f) * table_scale_step + 0.5f;
+#endif
 
     get_geo_mapped_y (input_y, geo_table, out_map_pos, table_scale_step.x, out_of_bound, input_pos, &output_data);
 
@@ -123,11 +131,16 @@ kernel_geo_map (
     write_imageui (output_uv, (int2)(g_x, g_y_uv), convert_uint4(as_ushort4(convert_uchar8(output_data * 255.0f))));
 
 #if ENABLE_SCALE
-    scale.x = (g_y + 1 >= stable_y_start) ? 1.0f : ((g_y + 1 < y_m) ? scale_factor.x : (a * (g_y + 1) * (g_y + 1) + b * (g_y + 1) + c));
+    scale.y = (g_y + 1 >= stable_y_start) ? 1.0f : ((right_scale_factor.y - left_scale_factor.y) /
+              (out_size.x - PIXEL_RES_STEP_X) * g_x * PIXEL_RES_STEP_X + left_scale_factor.y);
+    y_scale = (g_y + 1 - stable_y_start) * scale.y + stable_y_start;
+    scale.x = (y_scale >= stable_y_start) ? 1.0f :
+              ((y_scale < y_m) ? scale_factor.x : (a * y_scale * y_scale + b * y_scale + c));
 
     table_scale_step = 1.0f / (table_scale_size * scale);
 
-    out_map_pos = (convert_float2((int2)(g_x * PIXEL_RES_STEP_X, g_y + 1)) - out_size / 2.0f) * table_scale_step + 0.5f;
+    out_map_pos.x = (g_x * PIXEL_RES_STEP_X - out_size.x / 2.0f) * table_scale_step.x + 0.5f;
+    out_map_pos.y = ((float)g_y + 1 - stable_y_start) * table_scale_step.y + stable_y_start / out_size.y;
 #else
     out_map_pos.y += table_scale_step.y;
 #endif

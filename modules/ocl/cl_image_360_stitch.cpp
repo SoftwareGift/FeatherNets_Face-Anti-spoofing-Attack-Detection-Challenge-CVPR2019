@@ -396,7 +396,7 @@ CLImage360Stitch::init_feature_match_config ()
 
     if (_surround_mode == BowlView) {
         config.sitch_min_width = 136;
-        config.min_corners = 3;
+        config.min_corners = 4;
         config.offset_factor = 0.95f;
         config.delta_mean_offset = 120.0f;
         config.recur_offset_error = 8.0f;
@@ -483,8 +483,13 @@ CLImage360Stitch::calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output)
             bowl_data_config[i].angle_end = angle_center + view_angle[i] / 2;
         }
 
-        float wall_image_height = bowl_data_config[0].wall_height / (float)(bowl_data_config[0].wall_height + bowl_data_config[0].ground_length) * _fisheye[0].height;
+        float wall_image_height = bowl_data_config[0].wall_height /
+                                  (float)(bowl_data_config[0].wall_height + bowl_data_config[0].ground_length) *
+                                  _fisheye[0].height;
         float stable_y_start = (wall_image_height + _fisheye[0].height ) / 2.0f;
+
+        if (stable_y_start < 0.5f)
+            stable_y_start = 1.0f;
 
         for(int i = 0; i < _fisheye_num; i++) {
             _fisheye[i].handler->set_stable_y_start (stable_y_start);
@@ -537,6 +542,7 @@ void
 CLImage360Stitch::update_scale_factors (uint32_t fm_idx, Rect crop_left, Rect crop_right)
 {
     float left_offsetx = _feature_match[fm_idx]->get_current_left_offset_x ();
+    float left_offsety = _feature_match[fm_idx]->get_current_left_offset_y ();
     PointFloat2 left_factor, right_factor;
 
     uint32_t left_idx = fm_idx;
@@ -545,7 +551,8 @@ CLImage360Stitch::update_scale_factors (uint32_t fm_idx, Rect crop_left, Rect cr
     float range = feature_center_x - center_x;
     XCAM_ASSERT (range > 1.0f);
     right_factor.x = (range + left_offsetx / 2.0f) / range;
-    right_factor.y = 1.0f;
+    right_factor.y = (_fisheye[left_idx].handler->get_stable_y_start () - left_offsety / 2.0f) /
+                     _fisheye[left_idx].handler->get_stable_y_start ();
     XCAM_ASSERT (right_factor.x > 0.0f && right_factor.x < 2.0f);
 
     uint32_t right_idx = (fm_idx + 1) % _fisheye_num;
@@ -554,7 +561,8 @@ CLImage360Stitch::update_scale_factors (uint32_t fm_idx, Rect crop_left, Rect cr
     range = center_x - feature_center_x;
     XCAM_ASSERT (range > 1.0f);
     left_factor.x = (range + left_offsetx / 2.0f) / range;
-    left_factor.y = 1.0f;
+    left_factor.y = (_fisheye[left_idx].handler->get_stable_y_start () + left_offsety / 2.0f) /
+                    _fisheye[left_idx].handler->get_stable_y_start ();
     XCAM_ASSERT (left_factor.x > 0.0f && left_factor.x < 2.0f);
 
     PointFloat2 last_left_factor, last_right_factor;

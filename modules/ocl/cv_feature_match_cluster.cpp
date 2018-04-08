@@ -86,7 +86,7 @@ CVFeatureMatchCluster::calc_mean_offset (
                 float x_offset = corner1[i].x - corner0[i].x;
                 float y_offset = corner1[i].y - corner0[i].y;
 
-                if (fabs (x_offset - seed_x_offset) > thres || fabs (y_offset - seed_y_offset) > thres)
+                if (fabs (x_offset - seed_x_offset) > thres || fabs (y_offset - seed_y_offset) > thres / 2.0f)
                     continue;
 
                 cluster.push_back (i);
