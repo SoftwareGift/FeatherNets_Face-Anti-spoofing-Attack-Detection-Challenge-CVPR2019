@@ -10,4 +10,11 @@ else
 ISP_DIR =
 endif
 
-SUBDIRS = soft $(ISP_DIR) $(OCL_DIR)
+if HAVE_GLES
+GLES_DIR = gles
+else
+GLES_DIR =
+endif
+
+
+SUBDIRS = soft $(ISP_DIR) $(OCL_DIR) $(GLES_DIR)

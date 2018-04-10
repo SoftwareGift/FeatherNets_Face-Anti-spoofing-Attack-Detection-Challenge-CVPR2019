@@ -65,6 +65,12 @@ AC_ARG_ENABLE(libcl,
                    [enable libcl image processor, @<:@default=yes@:>@]),
     [], [enable_libcl="yes"])
 
+AC_ARG_ENABLE([gles],
+    AS_HELP_STRING([--enable-gles],
+                   [enable gles, @<:@default=no@:>@]),
+    [], [enable_gles="no"])
+
+
 AC_ARG_ENABLE(opencv,
     AS_HELP_STRING([--enable-opencv],
                    [enable opencv library, @<:@default=no@:>@]),
@@ -117,6 +123,13 @@ HAVE_LIBCL=0
 if test "$enable_libcl" = "yes"; then
     PKG_CHECK_MODULES(LIBCL, [libcl], [HAVE_LIBCL=1], [HAVE_LIBCL=0])
 fi
+
+# check gl
+HAVE_GLES=0
+if test "$enable_gles" = "yes"; then
+    PKG_CHECK_MODULES(LIBGL, [gl], [HAVE_GLES=1], [HAVE_GLES=0])
+fi
+
 
 if test "$enable_libcl" = "yes" && test "$HAVE_LIBCL" -eq 0; then
     PKG_CHECK_MODULES(LIBCL, [OpenCL], [HAVE_LIBCL=1], [HAVE_LIBCL=0])
@@ -328,6 +341,11 @@ AC_DEFINE_UNQUOTED([HAVE_LIBCL], $HAVE_LIBCL,
     [have libcl])
 AM_CONDITIONAL([HAVE_LIBCL], [test "$HAVE_LIBCL" -eq 1])
 
+AC_DEFINE_UNQUOTED([HAVE_GLES], $HAVE_GLES,
+    [have gles])
+AM_CONDITIONAL([HAVE_GLES], [test "$HAVE_GLES" -eq 1])
+
+
 AC_DEFINE_UNQUOTED([HAVE_OPENCV], $HAVE_OPENCV,
     [have opencv])
 AM_CONDITIONAL([HAVE_OPENCV], [test "$HAVE_OPENCV" -eq 1])
@@ -360,6 +378,7 @@ AC_CONFIG_FILES([Makefile
                  modules/soft/Makefile
                  modules/isp/Makefile
                  modules/ocl/Makefile
+                 modules/gles/Makefile
                  wrapper/Makefile
                  wrapper/gstreamer/Makefile
                  wrapper/gstreamer/interface/Makefile
@@ -383,6 +402,7 @@ if test "$HAVE_LIBDRM" -eq 1; then have_drm="yes"; else have_drm="no"; fi
 if test "$USE_LOCAL_AIQ" -eq 1; then use_local_aiq="yes"; else  use_local_aiq="no"; fi
 if test "$USE_LOCAL_ATOMISP" -eq 1; then use_local_atomisp="yes"; else  use_local_atomisp="no"; fi
 if test "$HAVE_LIBCL" -eq 1; then have_libcl="yes"; else  have_libcl="no"; fi
+if test "$HAVE_GLES" -eq 1; then have_gles="yes"; else  have_gles="no"; fi
 if test "$HAVE_OPENCV" -eq 1; then have_opencv="yes"; else have_opencv="no"; fi
 if test "$ENABLE_DVS" -eq 1; then enable_dvs="yes"; else enable_dvs="no"; fi
 
@@ -396,8 +416,9 @@ echo "
      build aiq analyzer         : $enable_aiq
      use local aiq              : $use_local_aiq
      use local atomisp          : $use_local_atomisp
-     have opencl lib            : $have_libcl
-     have opencv lib            : $have_opencv
+     have GLES lib              : $have_gles
+     have OpenCL lib            : $have_libcl
+     have OpenCV lib            : $have_opencv
      enable 3a lib              : $enable_3alib
      enable smart analysis lib  : $enable_smartlib
      enable dvs                 : $enable_dvs
