@@ -30,7 +30,7 @@
 #ifdef ANDROID
 #include <cv.h>
 #else
-#include <opencv2/opencv.hpp>
+#include <cv.hpp>
 #endif
 
 namespace XCam {

@@ -384,13 +384,13 @@ VideoStabilizer::nextFrame()
         if(!stab.empty())
             frame = stab->nextFrame();
         else
-            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
+            CV_Error (Error::StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     } else {
         Ptr<OnePassVideoStabilizer> stab = stabilizer_.dynamicCast<OnePassVideoStabilizer>();
         if(!stab.empty())
             frame = stab->nextFrame();
         else
-            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
+            CV_Error (Error::StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     }
 
     return frame;
@@ -406,13 +406,13 @@ VideoStabilizer::nextStabilizedMotion(DvsData* frame, int& stablizedPos)
         if(!stab.empty())
             HMatrix = stab->nextStabilizedMotion(frame, stablizedPos);
         else
-            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
+            CV_Error (Error::StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     } else {
         Ptr<OnePassVideoStabilizer> stab = stabilizer_.dynamicCast<OnePassVideoStabilizer>();
         if(!stab.empty())
             HMatrix = stab->nextStabilizedMotion(frame, stablizedPos);
         else
-            CV_Error (CV_StsNullPtr, "VideoStabilizer: cast stabilizer failed");
+            CV_Error (Error::StsNullPtr, "VideoStabilizer: cast stabilizer failed");
     }
 
     return HMatrix;
