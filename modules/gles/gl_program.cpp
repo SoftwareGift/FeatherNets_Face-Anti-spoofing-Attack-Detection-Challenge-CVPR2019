@@ -25,7 +25,7 @@ namespace XCam {
 
 GLenum get_gl_error ()
 {
-    return glGetError();
+    return glGetError ();
 }
 
 GLProgram::GLProgram (GLuint id, const char *name)
@@ -46,7 +46,7 @@ GLProgram::~GLProgram ()
 SmartPtr<GLProgram>
 GLProgram::create_program (const char *name)
 {
-    GLuint program_id = glCreateProgram();
+    GLuint program_id = glCreateProgram ();
     XCAM_FAIL_RETURN (
         ERROR, program_id, NULL,
         "Create GL program(%s) failed, err_no:%d",
@@ -69,7 +69,7 @@ GLProgram::attach_shader (const SmartPtr<GLShader> &shader)
         "GL program(:%s)already have shader (id:%d), do not attach twice",
         get_name(), shader_id);
 
-    glAttachShader(_program_id, shader_id);
+    glAttachShader (_program_id, shader_id);
     XCAM_FAIL_RETURN (
         ERROR, glGetError () == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
         "GL program(:%s)attach shader (id:%d) failed, error_no:%d",
@@ -122,12 +122,12 @@ GLProgram::link ()
 
     GLint status;
     std::vector<char> link_log;
-    glGetProgramiv(_program_id, GL_LINK_STATUS, &status);
+    glGetProgramiv (_program_id, GL_LINK_STATUS, &status);
     if(status == GL_FALSE) {
         GLint length;
-        glGetProgramiv(_program_id, GL_INFO_LOG_LENGTH, &length);
+        glGetProgramiv (_program_id, GL_INFO_LOG_LENGTH, &length);
         link_log.resize (length + 1);
-        glGetProgramInfoLog(_program_id, length, &length, &link_log[0]);
+        glGetProgramInfoLog (_program_id, length, &length, &link_log[0]);
         XCAM_LOG_ERROR(
             "GL program(:%s)link failed, error_no:%d, link log:%s",
             get_name(), glGetError (), link_log.data());
@@ -144,8 +144,7 @@ GLProgram::use ()
 {
     XCAM_ASSERT (_program_id);
     XCAM_FAIL_RETURN (
-        WARNING, _state == StateLinked && !_shaders.empty (),
-        XCAM_RETURN_ERROR_PARAM,
+        WARNING, _state == StateLinked && !_shaders.empty (), XCAM_RETURN_ERROR_PARAM,
         "GL program(:%s) use must be called after link", get_name());
 
     glUseProgram (_program_id);

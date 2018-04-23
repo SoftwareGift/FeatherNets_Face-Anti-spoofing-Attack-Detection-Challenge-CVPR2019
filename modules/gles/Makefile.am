@@ -8,7 +8,7 @@ XCAM_GLES_CXXFLAGS =                 \
 
 XCAM_GLES_LIBS =                     \
     $(LIBGL_LIBS)                    \
-   $(NULL)
+    $(NULL)
 
 xcam_gles_sources =                  \
     gl_buffer.cpp                    \

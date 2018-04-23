@@ -40,15 +40,18 @@ SmartPtr<GLShader>
 GLShader::compile_shader (
     GLenum type, const char *src, uint32_t length, const char *name)
 {
+    GLenum error = GL_NO_ERROR;
+
     GLuint shader_id = glCreateShader (type);
+    error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, shader_id, NULL,
+        ERROR, shader_id && (error == GL_NO_ERROR), NULL,
         "GL create shader(:%s) failed, error:%d.",
-        XCAM_STR (name), glGetError ());
+        XCAM_STR (name), error);
 
     GLint tmp_len = length;
     glShaderSource (shader_id, 1, &src, &tmp_len);
-    GLenum error = glGetError ();
+    error = glGetError ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, NULL,
         "GL create shader(:%s) failed in source loading, error:%d.",
@@ -64,7 +67,7 @@ GLShader::compile_shader (
         compile_log.resize (length + 1);
         glGetShaderInfoLog (shader_id, length, &length, &compile_log[0]);
         XCAM_LOG_ERROR (
-            "GL create sharder(:%s)compile failed, error:%d, log:%s",
+            "GL create sharder(:%s) compile failed, error:%d, log:%s",
             XCAM_STR (name), glGetError (), compile_log.data());
         return NULL;
     }

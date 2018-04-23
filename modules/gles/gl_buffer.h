@@ -21,7 +21,7 @@
 #ifndef XCAM_GL_BUFFER_H
 #define XCAM_GL_BUFFER_H
 
-#include <gles_std.h>
+#include <gles/gles_std.h>
 #include <map>
 
 namespace XCam {
@@ -31,7 +31,7 @@ class GLBuffer
 public:
     ~GLBuffer ();
     static SmartPtr<GLBuffer> create_buffer (
-        GLenum target, const uint8_t *data = NULL, uint32_t size = 0, GLenum usage = GL_STATIC_DRAW);
+        GLenum target, const GLvoid *data = NULL, uint32_t size = 0, GLenum usage = GL_STATIC_DRAW);
 
     GLuint get_buffer_id () const {
         return _buf_id;

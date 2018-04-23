@@ -21,7 +21,7 @@
 #ifndef XCAM_GL_PROGRAM_H
 #define XCAM_GL_PROGRAM_H
 
-#include <gles_std.h>
+#include <gles/gles_std.h>
 #include <map>
 
 namespace XCam {
