@@ -69,6 +69,7 @@ private:
         void       *ptr;
 
         MapRange ();
+        void clear ();
         bool is_mapped () const;
     };
 

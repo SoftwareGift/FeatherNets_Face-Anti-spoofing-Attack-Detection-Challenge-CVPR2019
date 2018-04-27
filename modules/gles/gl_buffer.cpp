@@ -30,6 +30,15 @@ GLBuffer::MapRange::MapRange ()
 {
 }
 
+void
+GLBuffer::MapRange::clear ()
+{
+    offset = 0;
+    len = 0;
+    flags = 0;
+    ptr = NULL;
+}
+
 bool
 GLBuffer::MapRange::is_mapped () const
 {
@@ -104,7 +113,7 @@ GLBuffer::map_range (uint32_t offset, uint32_t length, GLbitfield flags)
             _mapped_range.len == length) {
         return _mapped_range.ptr;
     }
-    _mapped_range.ptr = NULL;
+    _mapped_range.clear ();
 
     XCamReturn ret = bind ();
     XCAM_FAIL_RETURN (
@@ -167,6 +176,8 @@ GLBuffer::unmap ()
         ERROR, glUnmapBuffer (_target), XCAM_RETURN_ERROR_GLES,
         "GL buffer unmap buf:%d failed, error:%d",
         _buf_id, glGetError ());
+
+    _mapped_range.clear ();
 
     return XCAM_RETURN_NO_ERROR;
 }
