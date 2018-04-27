@@ -42,6 +42,9 @@ public:
     GLenum get_usage () const {
         return _usage;
     }
+    uint32_t get_size () const {
+        return _size;
+    }
 
     void *map_range (
         uint32_t offset = 0, uint32_t length = 0,
@@ -64,6 +67,7 @@ private:
         uint32_t    len;
         GLbitfield  flags;
         void       *ptr;
+
         MapRange ();
         bool is_mapped () const;
     };
