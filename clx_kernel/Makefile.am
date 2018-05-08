@@ -26,14 +26,14 @@ clx_kernel_sources = \
 	kernel_image_warp.clx         \
 	$(NULL)
 
-cl_quotation_sh = \
-	$(top_srcdir)/tools/cl-double-quotation.sh
+add_quotation_marks_sh = \
+	$(top_srcdir)/tools/add-quotation-marks.sh
 
 cl_kernel_dir = $(top_srcdir)/cl_kernel
 
 all-local: $(clx_kernel_sources)
 
 $(clx_kernel_sources): %.clx: $(cl_kernel_dir)/%.cl
-	@$(cl_quotation_sh) $< $@
+	@$(add_quotation_marks_sh) $< $@
 
 CLEANFILES = $(clx_kernel_sources)

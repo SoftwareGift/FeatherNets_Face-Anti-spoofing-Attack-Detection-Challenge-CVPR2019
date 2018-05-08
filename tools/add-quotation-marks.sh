@@ -1,12 +1,12 @@
 #! /bin/sh
-# Add double quotation marks on cl file, this script will
-# be called in top_srcdir/clx_kernel/Makefile.am
+# Add double quotation marks on source file
+# Usage: add-quotation-marks.sh <src_file> <dst_file>
 
-CL_FILE=$1
-CLX_FILE=$2
+SRC_FILE=$1
+DST_FILE=$2
 
 if [ $# -ne 2 ]; then
-    echo "Usage: $0 <cl_file> <clx_file>"
+    echo "Usage: $0 <src_file> <dst_file>"
     exit 1
 fi
 
@@ -32,15 +32,15 @@ gawk '
             }
         }
     }
-    ' $CL_FILE > $CLX_FILE.tmp
+    ' $SRC_FILE > $DST_FILE.tmp
 
 ret=$?
 if [ $ret != 0 ]; then
-    rm -rf $CLX_FILE.tmp
-    echo "Add double quotation marks on $CL_FILE failed"
+    rm -rf $DST_FILE.tmp
+    echo "Add double quotation marks on $SRC_FILE failed"
     exit 1
 fi
 
-mv $CLX_FILE.tmp $CLX_FILE
+mv $DST_FILE.tmp $DST_FILE
 
-echo "Add double quotation marks on $CL_FILE done"
+echo "Add double quotation marks on $SRC_FILE done"
