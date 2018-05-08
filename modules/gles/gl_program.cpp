@@ -50,10 +50,7 @@ GLProgram::create_program (const char *name)
     XCAM_FAIL_RETURN (
         ERROR, program_id, NULL,
         "Create GL program(%s) failed, err_no:%d",
-        get_gl_error (), XCAM_STR (name));
-
-    if (!program_id)
-        return NULL;
+        XCAM_STR (name), get_gl_error ());
 
     return new GLProgram (program_id, name ? name : "null");
 }

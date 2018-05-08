@@ -38,7 +38,7 @@ public:
         StateInUse     = 3,
     };
 
-    ~GLProgram ();
+    virtual ~GLProgram ();
     static SmartPtr<GLProgram> create_program (const char *name = NULL);
     GLuint get_program_id () const {
         return _program_id;
