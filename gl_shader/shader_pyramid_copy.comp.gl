@@ -1,0 +1,25 @@
+#version 310 es
+
+layout (local_size_x = 8, local_size_y = 8) in;
+
+layout (binding = 0) readonly buffer InBuf {
+    uint data[];
+} in_buf;
+
+layout (binding = 1) writeonly buffer OutBuf {
+    uint data[];
+} out_buf;
+
+uniform uint in_w;
+uniform uint out_w;
+
+uniform uint in_offset_x;
+uniform uint out_offset_x;
+
+void main ()
+{
+    uint g_x = gl_GlobalInvocationID.x;
+    uint g_y = gl_GlobalInvocationID.y;
+
+    out_buf.data[g_y * out_w + g_x + out_offset_x] = in_buf.data[g_y * in_w + g_x + in_offset_x];
+}

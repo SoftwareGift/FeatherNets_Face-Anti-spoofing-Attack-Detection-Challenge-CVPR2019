@@ -373,6 +373,7 @@ AM_CONDITIONAL([USE_LOCAL_AIQ], [test "$USE_LOCAL_AIQ" -eq 1])
 
 AC_CONFIG_FILES([Makefile
                  clx_kernel/Makefile
+                 glx_shader/Makefile
                  xcore/Makefile
                  modules/Makefile
                  modules/soft/Makefile
