@@ -17,6 +17,7 @@ xcam_gles_sources =                  \
     gl_shader.cpp                    \
     gl_video_buffer.cpp              \
     gl_compute_program.cpp           \
+    gl_command.cpp                   \
     $(NULL)
 
 libxcam_gles_la_SOURCES =    \
@@ -47,6 +48,7 @@ nobase_libxcam_glesinclude_HEADERS = \
     gl_shader.h                      \
     gl_video_buffer.h                \
     gl_compute_program.h             \
+    gl_command.h                     \
     $(NULL)
 
 noinst_HEADERS =                     \
