@@ -1,5 +1,5 @@
 /*
- * gl_video_buffer_pool.h - GL video buffer pool class
+ * gl_video_buffer.h - GL video buffer class
  *
  *  Copyright (c) 2018 Intel Corporation
  *
@@ -18,8 +18,8 @@
  * Author: Yinhang Liu <yinhangx.liu@intel.com>
  */
 
-#ifndef XCAM_GL_VIDEO_BUFFER_POOL_H
-#define XCAM_GL_VIDEO_BUFFER_POOL_H
+#ifndef XCAM_GL_VIDEO_BUFFER_H
+#define XCAM_GL_VIDEO_BUFFER_H
 
 #include <buffer_pool.h>
 #include <gles/gl_buffer.h>
@@ -60,4 +60,4 @@ private:
 };
 
 };
-#endif // XCAM_GL_VIDEO_BUFFER_POOL_H
+#endif // XCAM_GL_VIDEO_BUFFER_H

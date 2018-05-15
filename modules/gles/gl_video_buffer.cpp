@@ -1,5 +1,5 @@
 /*
- * gl_video_buffer_pool.cpp - GL video buffer pool implementation
+ * gl_video_buffer.cpp - GL video buffer implementation
  *
  *  Copyright (c) 2018 Intel Corporation
  *
@@ -18,7 +18,7 @@
  * Author: Yinhang Liu <yinhangx.liu@intel.com>
  */
 
-#include "gl_video_buffer_pool.h"
+#include "gl_video_buffer.h"
 
 namespace XCam {
 
