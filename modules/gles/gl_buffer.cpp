@@ -22,6 +22,19 @@
 
 namespace XCam {
 
+GLBufferDesc::GLBufferDesc ()
+    : format (V4L2_PIX_FMT_NV12)
+    , width (0)
+    , height (0)
+    , aligned_width (0)
+    , aligned_height (0)
+    , size (0)
+{
+    xcam_mem_clear (strides);
+    xcam_mem_clear (slice_size);
+    xcam_mem_clear (offsets);
+}
+
 GLBuffer::MapRange::MapRange ()
     : offset (0)
     , len (0)

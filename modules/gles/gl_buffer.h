@@ -24,7 +24,23 @@
 #include <gles/gles_std.h>
 #include <map>
 
+#define XCAM_GL_MAX_COMPONENTS 4
+
 namespace XCam {
+
+struct GLBufferDesc {
+    uint32_t        format;
+    uint32_t        width;
+    uint32_t        height;
+    uint32_t        aligned_width;
+    uint32_t        aligned_height;
+    uint32_t        size;
+    uint32_t        strides[XCAM_GL_MAX_COMPONENTS];
+    uint32_t        offsets[XCAM_GL_MAX_COMPONENTS];
+    uint32_t        slice_size[XCAM_GL_MAX_COMPONENTS];
+
+    GLBufferDesc ();
+};
 
 class GLBuffer
 {
@@ -44,6 +60,13 @@ public:
     }
     uint32_t get_size () const {
         return _size;
+    }
+
+    void set_buffer_desc (const GLBufferDesc &desc) {
+        _desc = desc;
+    }
+    const GLBufferDesc &get_buffer_desc () {
+        return _desc;
     }
 
     void *map_range (
@@ -79,6 +102,7 @@ private:
     GLuint        _buf_id;
     uint32_t      _size;
     MapRange      _mapped_range;
+    GLBufferDesc  _desc;
 };
 
 }
