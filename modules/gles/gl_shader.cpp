@@ -32,17 +32,22 @@ GLShader::GLShader (GLuint id, GLenum type, const char *name)
 
 GLShader::~GLShader ()
 {
-    if (_shader_id)
+    if (_shader_id) {
         glDeleteShader (_shader_id);
+
+        GLenum error = glGetError ();
+        if (error != GL_NO_ERROR) {
+            XCAM_LOG_WARNING (
+                "GL Shader delete shader failed, error_no:%d", error);
+        }
+    }
 }
 
 SmartPtr<GLShader>
 GLShader::compile_shader (const GLShaderInfo &info)
 {
-    GLenum error = GL_NO_ERROR;
-
     GLuint shader_id = glCreateShader (info.type);
-    error = glGetError ();
+    GLenum error = glGetError ();
     XCAM_FAIL_RETURN (
         ERROR, shader_id && (error == GL_NO_ERROR), NULL,
         "GL create shader(:%s) failed, error:%d.",
@@ -50,12 +55,13 @@ GLShader::compile_shader (const GLShaderInfo &info)
 
     GLint tmp_len = info.len ? info.len : strlen (info.src);
     glShaderSource (shader_id, 1, &info.src, &tmp_len);
-    error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, error == GL_NO_ERROR, NULL,
+        ERROR, (error = glGetError ()) == GL_NO_ERROR, NULL,
         "GL create shader(:%s) failed in source loading, error:%d.",
         XCAM_STR (info.name), error);
+
     glCompileShader (shader_id);
+    error = glGetError ();
 
     GLint status;
     glGetShaderiv (shader_id, GL_COMPILE_STATUS, &status);
@@ -67,7 +73,7 @@ GLShader::compile_shader (const GLShaderInfo &info)
         glGetShaderInfoLog (shader_id, length, &length, &compile_log[0]);
         XCAM_LOG_ERROR (
             "GL create sharder(:%s) compile failed, error:%d, log:%s",
-            XCAM_STR (info.name), glGetError (), compile_log.data());
+            XCAM_STR (info.name), error, compile_log.data());
         return NULL;
     }
 

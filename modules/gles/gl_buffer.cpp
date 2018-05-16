@@ -70,16 +70,24 @@ XCamReturn
 GLBuffer::bind ()
 {
     glBindBuffer (_target, _buf_id);
+    GLenum error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, glGetError () == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
-        "GL bind buffer:%d failed. error:%d", _buf_id, glGetError ());
+        ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
+        "GL bind buffer:%d failed. error:%d", _buf_id, error);
     return XCAM_RETURN_NO_ERROR;
 }
 
 GLBuffer::~GLBuffer ()
 {
-    if (_buf_id)
+    if (_buf_id) {
         glDeleteBuffers (1, &_buf_id);
+
+        GLenum error = glGetError ();
+        if (error != GL_NO_ERROR) {
+            XCAM_LOG_WARNING (
+                "GL Buffer delete buffer failed, error_no:%d", error);
+        }
+    }
 }
 
 SmartPtr<GLBuffer>
@@ -92,21 +100,22 @@ GLBuffer::create_buffer (
 
     GLuint buf_id = 0;
     glGenBuffers (1, &buf_id);
+    GLenum error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, buf_id, NULL,
-        "GL buffer creation failed. error:%d", glGetError());
+        ERROR, buf_id && (error == GL_NO_ERROR), NULL,
+        "GL buffer creation failed. error:%d", error);
 
     glBindBuffer (target, buf_id);
     XCAM_FAIL_RETURN (
-        ERROR, glGetError () == GL_NO_ERROR, NULL,
+        ERROR, (error = glGetError ()) == GL_NO_ERROR, NULL,
         "GL buffer creation failed when bind buffer:%d. error:%d",
-        buf_id, glGetError ());
+        buf_id, error);
 
     glBufferData (target, size, data, usage);
     XCAM_FAIL_RETURN (
-        ERROR, glGetError () == GL_NO_ERROR, NULL,
+        ERROR, (error = glGetError ()) == GL_NO_ERROR, NULL,
         "GL buffer creation failed in glBufferData, id:%d. error:%d",
-        buf_id, glGetError ());
+        buf_id, error);
 
     SmartPtr<GLBuffer> buf_obj =
         new GLBuffer (buf_id, target, usage, size);
@@ -134,10 +143,11 @@ GLBuffer::map_range (uint32_t offset, uint32_t length, GLbitfield flags)
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     void *ptr = glMapBufferRange (_target, offset, length, flags);
+    GLenum error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, ptr, NULL,
+        ERROR, ptr && (error == GL_NO_ERROR), NULL,
         "GL buffer map range failed, buf_id:%d, offset:%d, len:%d, flags:%d, error:%d",
-        _buf_id, offset, length, flags, glGetError ());
+        _buf_id, offset, length, flags, error);
 
     _mapped_range.offset = offset;
     _mapped_range.len = length;
@@ -165,11 +175,12 @@ GLBuffer::flush_map ()
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     glFlushMappedBufferRange (_target, _mapped_range.offset,  _mapped_range.len);
+    GLenum error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, glGetError () == GL_NO_ERROR,
+        ERROR, error == GL_NO_ERROR,
         XCAM_RETURN_ERROR_GLES,
         "GL buffer flush_map buf:%d failed, error:%d",
-        _buf_id, glGetError ());
+        _buf_id, error);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -204,10 +215,11 @@ GLBuffer::bind_buffer_base (uint32_t index)
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     glBindBufferBase (_target, index, _buf_id);
+    GLenum error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, glGetError () == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
+        ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
         "GL bind buffer base failed. buf_id:%d failed, idx:%d, error:%d",
-        _buf_id, index, glGetError ());
+        _buf_id, index, error);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -221,10 +233,11 @@ GLBuffer::bind_buffer_range (uint32_t index, uint32_t offset, uint32_t size)
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     glBindBufferRange (_target, index, _buf_id, offset, size);
+    GLenum error = glGetError ();
     XCAM_FAIL_RETURN (
-        ERROR, glGetError () == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
+        ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
         "GL bind buffer range failed. buf_id:%d failed, idx:%d, error:%d",
-        _buf_id, index, glGetError ());
+        _buf_id, index, error);
 
     return XCAM_RETURN_NO_ERROR;
 }
