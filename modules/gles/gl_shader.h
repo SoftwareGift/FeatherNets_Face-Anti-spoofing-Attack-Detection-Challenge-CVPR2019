@@ -22,16 +22,29 @@
 #define XCAM_GL_SHADER_H
 
 #include <gles/gles_std.h>
+#include <list>
 #include <map>
 
 namespace XCam {
+
+XCAM_BEGIN_DECLARE
+
+typedef struct _GLShaderInfo {
+    GLenum          type;
+    const GLchar   *name;
+    const GLchar   *src;
+    GLint           len;
+} GLShaderInfo;
+
+XCAM_END_DECLARE
+
+typedef std::list<const GLShaderInfo *> GLShaderInfoList;
 
 class GLShader
 {
 public:
     ~GLShader ();
-    static SmartPtr<GLShader> compile_shader (
-        GLenum type, const char *src, uint32_t length = -1, const char *name = NULL);
+    static SmartPtr<GLShader> compile_shader (const GLShaderInfo &info);
 
 #if 0
     static SmartPtr<GLShader> create_binary_shader (
