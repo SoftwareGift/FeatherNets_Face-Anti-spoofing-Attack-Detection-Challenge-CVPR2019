@@ -187,8 +187,9 @@ class GLCmdBindBufRange
     : public GLCommand
 {
 public:
-    GLCmdBindBufRange (const SmartPtr<GLBuffer> &buf, uint32_t index);
-    GLCmdBindBufRange (const SmartPtr<GLBuffer> &buf, uint32_t index, NV12PlaneIdx plane);
+    GLCmdBindBufRange (const SmartPtr<GLBuffer> &buf, uint32_t index, uint32_t offset_x = 0);
+    GLCmdBindBufRange (
+        const SmartPtr<GLBuffer> &buf, uint32_t index, NV12PlaneIdx plane, uint32_t offset_in_plane = 0);
     virtual ~GLCmdBindBufRange ();
 
     virtual XCamReturn run (GLuint program);

@@ -219,19 +219,20 @@ GLCmdBindBufBase::run (GLuint program)
     return XCAM_RETURN_NO_ERROR;
 }
 
-GLCmdBindBufRange::GLCmdBindBufRange (const SmartPtr<GLBuffer> &buf, uint32_t index)
+GLCmdBindBufRange::GLCmdBindBufRange (const SmartPtr<GLBuffer> &buf, uint32_t index, uint32_t offset_x)
     : _index (index)
-    , _offset (0)
+    , _offset (offset_x)
     , _size (0)
 {
     XCAM_ASSERT (buf.ptr ());
     _buf = buf;
 
     const GLBufferDesc &desc = buf->get_buffer_desc ();
-    _size = desc.size;
+    _size = desc.size - offset_x;
 }
 
-GLCmdBindBufRange::GLCmdBindBufRange (const SmartPtr<GLBuffer> &buf, uint32_t index, NV12PlaneIdx plane)
+GLCmdBindBufRange::GLCmdBindBufRange (
+    const SmartPtr<GLBuffer> &buf, uint32_t index, NV12PlaneIdx plane, uint32_t offset_in_plane)
     : _index (index)
     , _offset (0)
     , _size (0)
@@ -240,8 +241,8 @@ GLCmdBindBufRange::GLCmdBindBufRange (const SmartPtr<GLBuffer> &buf, uint32_t in
     _buf = buf;
 
     const GLBufferDesc &desc = buf->get_buffer_desc ();
-    _offset = desc.offsets [plane];
-    _size = desc.slice_size [plane];
+    _offset = desc.offsets [plane] + offset_in_plane;
+    _size = desc.slice_size [plane] - offset_in_plane;
 }
 
 GLCmdBindBufRange::~GLCmdBindBufRange ()
