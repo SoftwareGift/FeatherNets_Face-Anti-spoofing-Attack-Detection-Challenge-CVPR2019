@@ -42,7 +42,8 @@ GLComputeProgram::create_compute_program (const char *name)
     GLuint prog_id = glCreateProgram ();
     XCAM_FAIL_RETURN (
         ERROR, prog_id, NULL,
-        "create GL program(%s) failed, error_no:%d", XCAM_STR (name), glGetError ());
+        "create GL program(%s) failed, prog_id: %d, error flag: %s",
+        XCAM_STR (name), prog_id, gl_error_string (gl_error ()));
 
     SmartPtr<GLComputeProgram> compute_prog = new GLComputeProgram (prog_id, name);
     XCAM_FAIL_RETURN (
@@ -56,10 +57,11 @@ bool query_max_groups_size (GLuint idx, GLint &value)
 {
     glGetIntegeri_v (GL_MAX_COMPUTE_WORK_GROUP_COUNT, idx, &value);
 
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, false,
-        "GLComputeProgram query max groups size failed, idx:%d error_no:%d", idx, error);
+        "GLComputeProgram query max groups size failed, idx:%d, error flag: %s",
+        idx, gl_error_string (error));
 
     return true;
 }
@@ -73,7 +75,7 @@ GLComputeProgram::get_max_groups_size (GLGroupsSize &size)
         query_max_groups_size (1, size.y) &&
         query_max_groups_size (2, size.z),
         false,
-        "GLComputeProgram(%s) get max groups size failed", get_name ());
+        "GLComputeProgram(%s) get max groups size failed", XCAM_STR (get_name ()));
 
     return true;
 }
@@ -88,7 +90,7 @@ GLComputeProgram::check_groups_size (const GLGroupsSize &size)
         size.z > 0 && size.z <= _max_groups_size.z,
         false,
         "GLComputeProgram(%s) invalid groups size: %dx%dx%d",
-        get_name (), size.x, size.y, size.z);
+        XCAM_STR (get_name ()), size.x, size.y, size.z);
 
     return true;
 }
@@ -99,7 +101,7 @@ GLComputeProgram::set_groups_size (const GLGroupsSize &size)
     XCAM_FAIL_RETURN (
         ERROR, check_groups_size (size), false,
         "GLComputeProgram(%s) set groups size failed, groups size: %dx%dx%d",
-        get_name (), size.x, size.y, size.z);
+        XCAM_STR (get_name ()), size.x, size.y, size.z);
 
     _groups_size = size;
 
@@ -112,15 +114,15 @@ GLComputeProgram::dispatch ()
     XCAM_FAIL_RETURN (
         ERROR, check_groups_size (_groups_size), XCAM_RETURN_ERROR_PARAM,
         "GLComputeProgram(%s) dispatch invalid groups size: %dx%dx%d",
-        get_name (), _groups_size.x, _groups_size.y, _groups_size.z);
+        XCAM_STR (get_name ()), _groups_size.x, _groups_size.y, _groups_size.z);
 
     glDispatchCompute (_groups_size.x, _groups_size.y, _groups_size.z);
 
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
-        "GLComputeProgram(%s) dispatch failed, error_no:%d, groups size: %dx%dx%d",
-        get_name (), error, _groups_size.x, _groups_size.y, _groups_size.z);
+        "GLComputeProgram(%s) dispatch failed, groups size: %dx%dx%d, error flag: %s",
+        XCAM_STR (get_name ()), _groups_size.x, _groups_size.y, _groups_size.z, gl_error_string (error));
 
     return XCAM_RETURN_NO_ERROR;
 }

@@ -70,10 +70,10 @@ XCamReturn
 GLBuffer::bind ()
 {
     glBindBuffer (_target, _buf_id);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
-        "GL bind buffer:%d failed. error:%d", _buf_id, error);
+        "GL bind buffer:%d failed, error flag: %s", _buf_id, gl_error_string (error));
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -82,10 +82,10 @@ GLBuffer::~GLBuffer ()
     if (_buf_id) {
         glDeleteBuffers (1, &_buf_id);
 
-        GLenum error = glGetError ();
+        GLenum error = gl_error ();
         if (error != GL_NO_ERROR) {
             XCAM_LOG_WARNING (
-                "GL Buffer delete buffer failed, error_no:%d", error);
+                "GL Buffer delete buffer failed, error flag: %s", gl_error_string (error));
         }
     }
 }
@@ -100,22 +100,22 @@ GLBuffer::create_buffer (
 
     GLuint buf_id = 0;
     glGenBuffers (1, &buf_id);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, buf_id && (error == GL_NO_ERROR), NULL,
-        "GL buffer creation failed. error:%d", error);
+        "GL buffer creation failed, error flag: %s", gl_error_string (error));
 
     glBindBuffer (target, buf_id);
     XCAM_FAIL_RETURN (
-        ERROR, (error = glGetError ()) == GL_NO_ERROR, NULL,
-        "GL buffer creation failed when bind buffer:%d. error:%d",
-        buf_id, error);
+        ERROR, (error = gl_error ()) == GL_NO_ERROR, NULL,
+        "GL buffer creation failed when bind buffer:%d, error flag: %s",
+        buf_id, gl_error_string (error));
 
     glBufferData (target, size, data, usage);
     XCAM_FAIL_RETURN (
-        ERROR, (error = glGetError ()) == GL_NO_ERROR, NULL,
-        "GL buffer creation failed in glBufferData, id:%d. error:%d",
-        buf_id, error);
+        ERROR, (error = gl_error ()) == GL_NO_ERROR, NULL,
+        "GL buffer creation failed in glBufferData, id:%d, error flag: %s",
+        buf_id, gl_error_string (error));
 
     SmartPtr<GLBuffer> buf_obj =
         new GLBuffer (buf_id, target, usage, size);
@@ -143,11 +143,11 @@ GLBuffer::map_range (uint32_t offset, uint32_t length, GLbitfield flags)
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     void *ptr = glMapBufferRange (_target, offset, length, flags);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, ptr && (error == GL_NO_ERROR), NULL,
-        "GL buffer map range failed, buf_id:%d, offset:%d, len:%d, flags:%d, error:%d",
-        _buf_id, offset, length, flags, error);
+        "GL buffer map range failed, buf_id:%d, offset:%d, len:%d, flags:%d, error flag: %s",
+        _buf_id, offset, length, flags, gl_error_string (error));
 
     _mapped_range.offset = offset;
     _mapped_range.len = length;
@@ -175,12 +175,12 @@ GLBuffer::flush_map ()
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     glFlushMappedBufferRange (_target, _mapped_range.offset,  _mapped_range.len);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR,
         XCAM_RETURN_ERROR_GLES,
-        "GL buffer flush_map buf:%d failed, error:%d",
-        _buf_id, error);
+        "GL buffer flush_map buf:%d failed, error flag: %s",
+        _buf_id, gl_error_string (error));
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -198,8 +198,8 @@ GLBuffer::unmap ()
 
     XCAM_FAIL_RETURN (
         ERROR, glUnmapBuffer (_target), XCAM_RETURN_ERROR_GLES,
-        "GL buffer unmap buf:%d failed, error:%d",
-        _buf_id, glGetError ());
+        "GL buffer unmap buf:%d failed, error flag: %s",
+        _buf_id, gl_error_string (gl_error ()));
 
     _mapped_range.clear ();
 
@@ -215,11 +215,11 @@ GLBuffer::bind_buffer_base (uint32_t index)
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     glBindBufferBase (_target, index, _buf_id);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
-        "GL bind buffer base failed. buf_id:%d failed, idx:%d, error:%d",
-        _buf_id, index, error);
+        "GL bind buffer base failed. buf_id:%d failed, idx:%d, error flag: %s",
+        _buf_id, index, gl_error_string (error));
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -233,11 +233,11 @@ GLBuffer::bind_buffer_range (uint32_t index, uint32_t offset, uint32_t size)
         "GL bind buffer failed, buf_id:%d", _buf_id);
 
     glBindBufferRange (_target, index, _buf_id, offset, size);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
-        "GL bind buffer range failed. buf_id:%d failed, idx:%d, error:%d",
-        _buf_id, index, error);
+        "GL bind buffer range failed. buf_id:%d failed, idx:%d, error flag: %s",
+        _buf_id, index, gl_error_string (error));
 
     return XCAM_RETURN_NO_ERROR;
 }

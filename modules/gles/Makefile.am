@@ -12,6 +12,7 @@ XCAM_GLES_LIBS =                     \
     $(NULL)
 
 xcam_gles_sources =                  \
+    gles_std.cpp                     \
     gl_buffer.cpp                    \
     gl_program.cpp                   \
     gl_shader.cpp                    \

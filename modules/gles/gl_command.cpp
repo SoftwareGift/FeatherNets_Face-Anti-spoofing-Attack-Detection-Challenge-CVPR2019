@@ -29,126 +29,126 @@ template <>
 GLenum uniform <GLfloat> (GLint location, GLfloat value)
 {
     glUniform1f (location, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform <GLint> (GLint location, GLint value)
 {
     glUniform1i (location, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform <GLuint> (GLint location, GLuint value)
 {
     glUniform1ui (location, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_array <GLfloat> (GLint location, const GLfloat *value, GLsizei count)
 {
     glUniform1fv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_array <GLint> (GLint location, const GLint *value, GLsizei count)
 {
     glUniform1iv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_array <GLuint> (GLint location, const GLuint *value, GLsizei count)
 {
     glUniform1uiv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLfloat, 2> (GLint location, const GLfloat *value, GLsizei count)
 {
     glUniform2fv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLfloat, 3> (GLint location, const GLfloat *value, GLsizei count)
 {
     glUniform3fv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLfloat, 4> (GLint location, const GLfloat *value, GLsizei count)
 {
     glUniform4fv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLint, 2> (GLint location, const GLint *value, GLsizei count)
 {
     glUniform2iv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLint, 3> (GLint location, const GLint *value, GLsizei count)
 {
     glUniform3iv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLint, 4> (GLint location, const GLint *value, GLsizei count)
 {
     glUniform4iv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLuint, 2> (GLint location, const GLuint *value, GLsizei count)
 {
     glUniform2uiv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLuint, 3> (GLint location, const GLuint *value, GLsizei count)
 {
     glUniform3uiv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_vect <GLuint, 4> (GLint location, const GLuint *value, GLsizei count)
 {
     glUniform4uiv (location, count, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_mat <GLfloat, 2> (GLint location, const GLfloat *value, GLsizei count)
 {
     glUniformMatrix2fv (location, count, GL_FALSE, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_mat <GLfloat, 3> (GLint location, const GLfloat *value, GLsizei count)
 {
     glUniformMatrix3fv (location, count, GL_FALSE, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 template <>
 GLenum uniform_mat <GLfloat, 4> (GLint location, const GLfloat *value, GLsizei count)
 {
     glUniformMatrix4fv (location, count, GL_FALSE, value);
-    return glGetError ();
+    return gl_error ();
 }
 
 }
@@ -172,7 +172,7 @@ GLCmdUniform::run (GLuint program)
     GLenum error = uniform (location);
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_UNKNOWN,
-        "uniform failed, name:%s error_no:%d", _name, error);
+        "uniform failed, name:%s, error flag: %s", _name, gl_error_string (error));
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -181,15 +181,16 @@ GLint
 GLCmdUniform::get_uniform_location (GLuint program, const GLchar *name)
 {
     GLint location = glGetUniformLocation (program, name);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, -1,
-        "get_uniform_location failed, name:%s, error_no:%d", name, error);
+        "get_uniform_location failed, name:%s, error flag: %s",
+        XCAM_STR (name), gl_error_string (error));
 
     XCAM_FAIL_RETURN (
         WARNING, location >= 0, -1,
         "get_uniform_location invalid or unnecessary parameter, name:%s location:%d",
-        name, location);
+        XCAM_STR (name), location);
 
     return location;
 }

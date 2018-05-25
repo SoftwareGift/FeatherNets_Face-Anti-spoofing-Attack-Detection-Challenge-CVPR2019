@@ -33,4 +33,15 @@
 
 #define XCAM_GL_NAME_LENGTH 64
 
+namespace XCam {
+
+inline GLenum gl_error ()
+{
+    return glGetError ();
+}
+
+const char *gl_error_string (GLenum flag);
+
+}
+
 #endif // XCAM_GLES_STD_H

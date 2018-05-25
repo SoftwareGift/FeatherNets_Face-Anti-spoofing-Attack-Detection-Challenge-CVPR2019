@@ -23,11 +23,6 @@
 
 namespace XCam {
 
-GLenum get_gl_error ()
-{
-    return glGetError ();
-}
-
 GLProgram::GLProgram (GLuint id, const char *name)
     : _program_id (id)
     , _state (GLProgram::StateIntiated)
@@ -42,10 +37,11 @@ GLProgram::~GLProgram ()
     if (_program_id) {
         glDeleteProgram (_program_id);
 
-        GLenum error = glGetError ();
+        GLenum error = gl_error ();
         if (error != GL_NO_ERROR) {
             XCAM_LOG_WARNING (
-                "GL Program delete program failed, error_no:%d", error);
+                "GL Program delete program failed, error flag: %s",
+                gl_error_string (error));
         }
     }
 }
@@ -56,8 +52,8 @@ GLProgram::create_program (const char *name)
     GLuint program_id = glCreateProgram ();
     XCAM_FAIL_RETURN (
         ERROR, program_id, NULL,
-        "Create GL program(%s) failed, err_no:%d",
-        XCAM_STR (name), get_gl_error ());
+        "Create GL program(%s) failed, error flag: %s",
+        XCAM_STR (name), gl_error_string (gl_error ()));
 
     return new GLProgram (program_id, name ? name : "null");
 }
@@ -74,11 +70,11 @@ GLProgram::attach_shader (const SmartPtr<GLShader> &shader)
         get_name(), shader_id);
 
     glAttachShader (_program_id, shader_id);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
-        "GL program(:%s) attach shader (id:%d) failed, error_no:%d",
-        get_name(), shader_id, error);
+        "GL program(:%s) attach shader (id:%d) failed, error flag: %s",
+        get_name(), shader_id, gl_error_string (error));
 
     _shaders.insert (ShaderList::value_type (shader_id, shader));
     return XCAM_RETURN_NO_ERROR;
@@ -98,11 +94,11 @@ GLProgram::detach_shader (const SmartPtr<GLShader> &shader)
         get_name(), shader_id);
 
     glDetachShader (_program_id, shader_id);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     if (error != GL_NO_ERROR) {
         XCAM_LOG_WARNING (
-            "GL program(:%s) detach shader (id:%d) failed but continued, error_no:%d",
-            get_name(), shader_id, error);
+            "GL program(:%s) detach shader (id:%d) failed but continued, error flag: %s",
+            get_name(), shader_id, gl_error_string (error));
     }
     _shaders.erase (pos);
     return XCAM_RETURN_NO_ERROR;
@@ -115,11 +111,11 @@ GLProgram::clear_shaders ()
         SmartPtr<GLShader> shader = i->second;
         glDetachShader (_program_id, shader->get_shader_id ());
 
-        GLenum error = glGetError ();
+        GLenum error = gl_error ();
         if (error != GL_NO_ERROR) {
             XCAM_LOG_WARNING (
-                "GL program(:%s) detach shader (id:%d) failed, error_no:%d",
-                get_name(), shader->get_shader_id (), error);
+                "GL program(:%s) detach shader (id:%d) failed, error flag: %s",
+                get_name(), shader->get_shader_id (), gl_error_string (error));
         }
     }
     _shaders.clear ();
@@ -132,7 +128,7 @@ GLProgram::link ()
     XCAM_ASSERT (_program_id);
 
     glLinkProgram (_program_id);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
 
     GLint status;
     std::vector<char> link_log;
@@ -143,8 +139,8 @@ GLProgram::link ()
         link_log.resize (length + 1);
         glGetProgramInfoLog (_program_id, length, &length, &link_log[0]);
         XCAM_LOG_ERROR(
-            "GL program(:%s) link failed, error_no:%d, link log:%s",
-            get_name(), error, link_log.data());
+            "GL program(:%s) link failed, error flag: %s, link log:%s",
+            get_name(), gl_error_string (error), link_log.data());
         return XCAM_RETURN_ERROR_GLES;
     }
 
@@ -162,11 +158,11 @@ GLProgram::use ()
         "GL program(:%s) use must be called after link", get_name());
 
     glUseProgram (_program_id);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
-        "GL program(:%s) use failed, error_no:%d",
-        get_name(), error);
+        "GL program(:%s) use failed, error flag: %s",
+        get_name(), gl_error_string (error));
 
     _state = StateInUse;
     return XCAM_RETURN_NO_ERROR;
@@ -179,11 +175,11 @@ GLProgram::disuse ()
         return XCAM_RETURN_BYPASS;
 
     glUseProgram (0);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     if (error != GL_NO_ERROR) {
         XCAM_LOG_WARNING (
-            "GL program(:%s) disuse failed, error_no:%d",
-            get_name(), error);
+            "GL program(:%s) disuse failed, error flag: %s",
+            get_name(), gl_error_string (error));
     }
 
     _state = StateLinked;

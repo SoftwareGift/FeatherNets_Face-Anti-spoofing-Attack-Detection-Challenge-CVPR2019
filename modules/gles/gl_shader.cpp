@@ -35,10 +35,11 @@ GLShader::~GLShader ()
     if (_shader_id) {
         glDeleteShader (_shader_id);
 
-        GLenum error = glGetError ();
+        GLenum error = gl_error ();
         if (error != GL_NO_ERROR) {
             XCAM_LOG_WARNING (
-                "GL Shader delete shader failed, error_no:%d", error);
+                "GL Shader delete shader failed, error flag: %s",
+                gl_error_string (error));
         }
     }
 }
@@ -47,21 +48,21 @@ SmartPtr<GLShader>
 GLShader::compile_shader (const GLShaderInfo &info)
 {
     GLuint shader_id = glCreateShader (info.type);
-    GLenum error = glGetError ();
+    GLenum error = gl_error ();
     XCAM_FAIL_RETURN (
         ERROR, shader_id && (error == GL_NO_ERROR), NULL,
-        "GL create shader(:%s) failed, error:%d.",
-        XCAM_STR (info.name), error);
+        "GL create shader(:%s) failed, error flag: %s",
+        XCAM_STR (info.name), gl_error_string (error));
 
     GLint tmp_len = info.len ? info.len : strlen (info.src);
     glShaderSource (shader_id, 1, &info.src, &tmp_len);
     XCAM_FAIL_RETURN (
-        ERROR, (error = glGetError ()) == GL_NO_ERROR, NULL,
-        "GL create shader(:%s) failed in source loading, error:%d.",
-        XCAM_STR (info.name), error);
+        ERROR, (error = gl_error ()) == GL_NO_ERROR, NULL,
+        "GL create shader(:%s) failed in source loading, error flag: %s",
+        XCAM_STR (info.name), gl_error_string (error));
 
     glCompileShader (shader_id);
-    error = glGetError ();
+    error = gl_error ();
 
     GLint status;
     glGetShaderiv (shader_id, GL_COMPILE_STATUS, &status);
@@ -72,8 +73,8 @@ GLShader::compile_shader (const GLShaderInfo &info)
         compile_log.resize (length + 1);
         glGetShaderInfoLog (shader_id, length, &length, &compile_log[0]);
         XCAM_LOG_ERROR (
-            "GL create sharder(:%s) compile failed, error:%d, log:%s",
-            XCAM_STR (info.name), error, compile_log.data());
+            "GL create sharder(:%s) compile failed, error flag: %s, log: %s",
+            XCAM_STR (info.name), gl_error_string (error), compile_log.data());
         return NULL;
     }
 
