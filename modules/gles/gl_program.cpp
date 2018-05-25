@@ -19,7 +19,6 @@
  */
 
 #include "gl_program.h"
-#include "gl_shader.h"
 
 namespace XCam {
 
@@ -183,6 +182,53 @@ GLProgram::disuse ()
     }
 
     _state = StateLinked;
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+GLProgram::link_shader (const GLShaderInfo &info)
+{
+    SmartPtr<GLShader> shader = GLShader::compile_shader (info);
+    XCAM_FAIL_RETURN (
+        ERROR, shader->get_shader_id (), XCAM_RETURN_ERROR_GLES,
+        "GLProgram(%s) create shader(%s) failed", get_name (), info.name);
+
+    XCamReturn ret = attach_shader (shader);
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+        "GLProgram(%s) attach shader(%s) failed", get_name (), info.name);
+
+    ret = link ();
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+        "GLProgram(%s) link program failed", get_name ());
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+GLProgram::link_shaders (const GLShaderInfoList &infos)
+{
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    for (GLShaderInfoList::const_iterator iter = infos.begin (); iter != infos.end (); ++iter) {
+        const GLShaderInfo &info = *(*iter);
+
+        SmartPtr<GLShader> shader = GLShader::compile_shader (info);
+        XCAM_FAIL_RETURN (
+            ERROR, shader->get_shader_id (), XCAM_RETURN_ERROR_GLES,
+            "GLProgram(%s) create shader(%s) failed", get_name (), info.name);
+
+        ret = attach_shader (shader);
+        XCAM_FAIL_RETURN (
+            ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+            "GLProgram(%s) attach shader(%s) failed", get_name (), info.name);
+    }
+
+    ret = link ();
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+        "GLProgram(%s) link program(%s) failed", get_name ());
+
     return XCAM_RETURN_NO_ERROR;
 }
 

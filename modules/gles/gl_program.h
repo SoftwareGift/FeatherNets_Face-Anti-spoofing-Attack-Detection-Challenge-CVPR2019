@@ -22,11 +22,10 @@
 #define XCAM_GL_PROGRAM_H
 
 #include <gles/gles_std.h>
+#include <gles/gl_shader.h>
 #include <map>
 
 namespace XCam {
-
-class GLShader;
 
 class GLProgram
 {
@@ -46,11 +45,10 @@ public:
     const char *get_name () {
         return _name;
     }
-    XCamReturn attach_shader (const SmartPtr<GLShader> &shader);
-    XCamReturn detach_shader (const SmartPtr<GLShader> &shader);
-    XCamReturn clear_shaders ();
 
-    XCamReturn link ();
+    XCamReturn link_shader (const GLShaderInfo &info);
+    XCamReturn link_shaders (const GLShaderInfoList &infos);
+
     XCamReturn use ();
     XCamReturn disuse ();
 
@@ -59,6 +57,12 @@ public:
 
 protected:
     explicit GLProgram (GLuint id, const char *name);
+
+private:
+    XCamReturn attach_shader (const SmartPtr<GLShader> &shader);
+    XCamReturn detach_shader (const SmartPtr<GLShader> &shader);
+    XCamReturn clear_shaders ();
+    XCamReturn link ();
 
 private:
     XCAM_DEAD_COPY (GLProgram);
