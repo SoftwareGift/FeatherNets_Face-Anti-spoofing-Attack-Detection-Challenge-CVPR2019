@@ -26,6 +26,8 @@ GLGroupsSize GLComputeProgram::_max_groups_size;
 
 GLComputeProgram::GLComputeProgram (GLuint id, const char *name)
     : GLProgram (id, name)
+    , _barrier (false)
+    , _barrier_bit (GL_SHADER_STORAGE_BARRIER_BIT)
 {
     if (_max_groups_size.x == 0 && _max_groups_size.y == 0 && _max_groups_size.z == 0) {
         get_max_groups_size (_max_groups_size);
@@ -106,6 +108,52 @@ GLComputeProgram::set_groups_size (const GLGroupsSize &size)
     _groups_size = size;
 
     return true;
+}
+
+XCamReturn
+GLComputeProgram::work ()
+{
+    XCamReturn ret = dispatch ();
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+        "GLComputeProgram(%s) dispatch failed", XCAM_STR (get_name ()));
+
+    if (_barrier) {
+        ret = barrier (_barrier_bit);
+        XCAM_FAIL_RETURN (
+            ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
+            "GLComputeProgram(%s) barrier failed", XCAM_STR (get_name ()));
+    }
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+GLComputeProgram::barrier (GLbitfield barrier_bit)
+{
+    glMemoryBarrier (barrier_bit);
+
+    GLenum error = gl_error ();
+    XCAM_FAIL_RETURN (
+        ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
+        "GLComputeProgram(%s) barrier failed, barrier bit: %d, error flag: %s",
+        XCAM_STR (get_name ()), barrier_bit, gl_error_string (error));
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+GLComputeProgram::finish ()
+{
+    glFinish ();
+
+    GLenum error = gl_error ();
+    XCAM_FAIL_RETURN (
+        ERROR, error == GL_NO_ERROR, XCAM_RETURN_ERROR_GLES,
+        "GLComputeProgram(%s) finish failed, error flag: %s",
+        XCAM_STR (get_name ()), gl_error_string (error));
+
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn

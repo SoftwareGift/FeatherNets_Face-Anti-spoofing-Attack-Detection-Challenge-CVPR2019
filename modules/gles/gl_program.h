@@ -54,6 +54,9 @@ public:
     XCamReturn use ();
     XCamReturn disuse ();
 
+    virtual XCamReturn work ();
+    virtual XCamReturn finish ();
+
 protected:
     explicit GLProgram (GLuint id, const char *name);
 

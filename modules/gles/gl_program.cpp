@@ -186,4 +186,16 @@ GLProgram::disuse ()
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+GLProgram::work ()
+{
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+GLProgram::finish ()
+{
+    return XCAM_RETURN_NO_ERROR;
+}
+
 }

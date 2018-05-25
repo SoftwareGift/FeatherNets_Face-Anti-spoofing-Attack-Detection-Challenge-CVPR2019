@@ -38,10 +38,19 @@ public:
     ~GLComputeProgram ();
 
     bool set_groups_size (const GLGroupsSize &size);
-    XCamReturn dispatch ();
+    void set_barrier (bool barrier, GLbitfield barrier_bit = GL_SHADER_STORAGE_BARRIER_BIT) {
+        _barrier = barrier;
+        _barrier_bit = barrier_bit;
+    }
+
+    virtual XCamReturn work ();
+    virtual XCamReturn finish ();
 
 private:
     explicit GLComputeProgram (GLuint id, const char *name);
+
+    XCamReturn dispatch ();
+    XCamReturn barrier (GLbitfield barrier_bit);
 
     bool get_max_groups_size (GLGroupsSize &size);
     bool check_groups_size (const GLGroupsSize &size);
@@ -50,6 +59,8 @@ private:
     XCAM_DEAD_COPY (GLComputeProgram);
 
 private:
+    bool                       _barrier;
+    GLbitfield                 _barrier_bit;
     GLGroupsSize               _groups_size;
     static GLGroupsSize        _max_groups_size;
 };
