@@ -32,6 +32,7 @@
 #endif
 
 #define XCAM_GL_NAME_LENGTH 64
+#define XCAM_GL_RESERVED_BUF_COUNT 4
 
 namespace XCam {
 

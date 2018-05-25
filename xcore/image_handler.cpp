@@ -39,7 +39,7 @@ ImageHandler::set_allocator (const SmartPtr<BufferPool> &allocator)
 {
     XCAM_FAIL_RETURN (
         ERROR, allocator.ptr (), false,
-        "softhandler(%s) set allocator(is NULL)", XCAM_STR(get_name ()));
+        "ImageHandler(%s) set allocator(is NULL)", XCAM_STR(get_name ()));
     _allocator = allocator;
     return true;
 }
@@ -72,13 +72,13 @@ ImageHandler::reserve_buffers (const VideoBufferInfo &info, uint32_t count)
 {
     XCAM_FAIL_RETURN (
         ERROR, _allocator.ptr (), XCAM_RETURN_ERROR_PARAM,
-        "softhandler(%s) reserve buffers failed, alloctor was not set", XCAM_STR(get_name ()));
+        "ImageHandler(%s) reserve buffers failed, alloctor was not set", XCAM_STR(get_name ()));
 
     _allocator->set_video_info (info);
 
     XCAM_FAIL_RETURN (
         ERROR, _allocator->reserve (count), XCAM_RETURN_ERROR_MEM,
-        "softhandler(%s) reserve buffers(%d) failed", XCAM_STR(get_name ()), count);
+        "ImageHandler(%s) reserve buffers(%d) failed", XCAM_STR(get_name ()), count);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -88,7 +88,7 @@ ImageHandler::get_free_buf ()
 {
     XCAM_FAIL_RETURN (
         ERROR, _allocator.ptr (), NULL,
-        "softhandler(%s) get free buffer failed since allocator was not initilized", XCAM_STR(get_name ()));
+        "ImageHandler(%s) get free buffer failed since allocator was not initilized", XCAM_STR(get_name ()));
 
     return _allocator->get_buffer (_allocator);
 }
