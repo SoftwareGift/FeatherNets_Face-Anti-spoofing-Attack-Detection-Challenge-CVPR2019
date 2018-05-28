@@ -9,6 +9,7 @@ XCAM_GLES_CXXFLAGS =                 \
 
 XCAM_GLES_LIBS =                     \
     $(LIBGL_LIBS)                    \
+    -lEGL                            \
     $(NULL)
 
 xcam_gles_sources =                  \
@@ -23,6 +24,8 @@ xcam_gles_sources =                  \
     gl_image_shader.cpp              \
     gl_image_handler.cpp             \
     gl_copy_handler.cpp              \
+    egl/egl_utils.cpp                \
+    egl/egl_base.cpp                 \
     $(NULL)
 
 libxcam_gles_la_SOURCES =    \
@@ -58,6 +61,8 @@ nobase_libxcam_glesinclude_HEADERS = \
     gl_image_shader.h                \
     gl_image_handler.h               \
     gl_copy_handler.h                \
+    egl/egl_utils.h                  \
+    egl/egl_base.h                   \
     $(NULL)
 
 noinst_HEADERS =                     \
