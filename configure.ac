@@ -372,8 +372,9 @@ AM_CONDITIONAL([ENABLE_IA_AIQ], [test "$ENABLE_IA_AIQ" -eq 1])
 AM_CONDITIONAL([USE_LOCAL_AIQ], [test "$USE_LOCAL_AIQ" -eq 1])
 
 AC_CONFIG_FILES([Makefile
-                 clx_kernel/Makefile
-                 glx_shader/Makefile
+                 shaders/Makefile
+                 shaders/clx/Makefile
+                 shaders/glslx/Makefile
                  xcore/Makefile
                  modules/Makefile
                  modules/soft/Makefile

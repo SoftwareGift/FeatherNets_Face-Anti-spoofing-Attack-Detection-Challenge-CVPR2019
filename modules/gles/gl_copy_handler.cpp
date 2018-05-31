@@ -29,8 +29,8 @@ DECLARE_WORK_CALLBACK (CbCopyShader, GLCopyHandler, copy_shader_done);
 
 const GLShaderInfo shader_info = {
     GL_COMPUTE_SHADER,
-    "shader_pyramid_copy",
-#include "shader_pyramid_copy.comp.glx"
+    "shader_copy",
+#include "shader_copy.comp.slx"
     , 0
 };
 

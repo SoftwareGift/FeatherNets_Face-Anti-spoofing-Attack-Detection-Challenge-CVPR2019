@@ -1,4 +1,4 @@
-clx_kernel_sources = \
+clx_sources = \
 	kernel_csc.clx                \
 	kernel_demo.clx               \
 	kernel_defog_dcp.clx          \
@@ -29,11 +29,11 @@ clx_kernel_sources = \
 add_quotation_marks_sh = \
 	$(top_srcdir)/tools/add-quotation-marks.sh
 
-cl_kernel_dir = $(top_srcdir)/cl_kernel
+cl_dir = $(top_srcdir)/shaders/cl
 
-all-local: $(clx_kernel_sources)
+all-local: $(clx_sources)
 
-$(clx_kernel_sources): %.clx: $(cl_kernel_dir)/%.cl
+$(clx_sources): %.clx: $(cl_dir)/%.cl
 	@$(add_quotation_marks_sh) $< $@
 
-CLEANFILES = $(clx_kernel_sources)
+CLEANFILES = $(clx_sources)

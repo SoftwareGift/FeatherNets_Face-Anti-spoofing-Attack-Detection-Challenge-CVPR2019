@@ -8,7 +8,7 @@ XCAMOCL_CXXFLAGS += \
     $(LIBCL_CFLAGS)               \
     -I$(top_srcdir)/xcore         \
     -I$(top_srcdir)/modules       \
-    -I$(top_builddir)/clx_kernel  \
+    -I$(top_builddir)/shaders/clx \
     $(NULL)
 
 XCAMOCL_LIBS += \

@@ -4,7 +4,7 @@ XCAM_GLES_CXXFLAGS =                 \
     $(LIBGL_CFLAGS)                  \
     -I$(top_srcdir)/xcore            \
     -I$(top_srcdir)/modules          \
-    -I$(top_builddir)/glx_shader     \
+    -I$(top_builddir)/shaders/glslx  \
     $(NULL)
 
 XCAM_GLES_LIBS =                     \
