@@ -67,6 +67,9 @@ protected:
     SmartPtr<BufferData> &get_buffer_data () {
         return _data;
     }
+    const SmartPtr<BufferData> &get_buffer_data () const {
+        return _data;
+    }
 
 private:
     XCAM_DEAD_COPY (BufferProxy);

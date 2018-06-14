@@ -24,28 +24,17 @@
 #include <xcam_std.h>
 #include <worker.h>
 
-#define SOFT_MAX_DIM 3
-
 namespace XCam {
 
 class ThreadPool;
 
 struct WorkRange {
-    uint32_t pos[SOFT_MAX_DIM];
-    uint32_t pos_len[SOFT_MAX_DIM];
+    uint32_t pos[WORK_MAX_DIM];
+    uint32_t pos_len[WORK_MAX_DIM];
 
     WorkRange () {
         xcam_mem_clear (pos);
         xcam_mem_clear (pos_len);
-    }
-};
-
-struct WorkSize {
-    uint32_t value[SOFT_MAX_DIM];
-    WorkSize (uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
-        value[0] = x;
-        value[1] = y;
-        value[2] = z;
     }
 };
 
@@ -65,14 +54,6 @@ public:
     }
 
     bool set_threads (const SmartPtr<ThreadPool> &threads);
-    bool set_global_size (const WorkSize &size);
-    const WorkSize &get_global_size () const {
-        return _global;
-    }
-    bool set_local_size (const WorkSize &size);
-    const WorkSize &get_local_size () const {
-        return _local;
-    }
 
     // derived from Worker
     virtual XCamReturn work (const SmartPtr<Arguments> &args);
@@ -91,8 +72,6 @@ private:
 
 private:
     SmartPtr<ThreadPool>    _threads;
-    WorkSize                _global;
-    WorkSize                _local;
     WorkSize                _work_unit;
 };
 

@@ -82,8 +82,6 @@ SyncMeta::is_error () const
 
 SoftHandler::SoftHandler (const char* name)
     : ImageHandler (name)
-    , _need_configure (true)
-    , _enable_allocator (true)
     , _wip_buf_count (0)
 {
 }
@@ -99,47 +97,29 @@ SoftHandler::set_threads (const SmartPtr<ThreadPool> &pool)
     return true;
 }
 
-bool
-SoftHandler::set_out_video_info (const VideoBufferInfo &info)
+SmartPtr<BufferPool>
+SoftHandler::create_allocator ()
 {
-    XCAM_ASSERT (info.width && info.height && info.format);
-    _out_video_info = info;
-    return true;
-}
-
-bool
-SoftHandler::enable_allocator (bool enable)
-{
-    _enable_allocator = enable;
-    return true;
+    return new SoftVideoBufAllocator;
 }
 
 XCamReturn
-SoftHandler::confirm_configured ()
+SoftHandler::configure_rest ()
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     XCAM_ASSERT (_need_configure);
-    if (_enable_allocator) {
-        XCAM_FAIL_RETURN (
-            ERROR, _out_video_info.is_valid (), XCAM_RETURN_ERROR_PARAM,
-            "soft_hander(%s) configure resource failed before reserver buffer since out video info was not set",
-            XCAM_STR (get_name ()));
-
-        set_allocator (new SoftVideoBufAllocator);
-        ret = reserve_buffers (_out_video_info, DEFAULT_SOFT_BUF_COUNT);
-        XCAM_FAIL_RETURN (
-            ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
-            "soft_hander(%s) configure resource failed in reserving buffers", XCAM_STR (get_name ()));
-    }
+    ret = ImageHandler::configure_rest ();
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), ret,
+        "soft_hander(%s) configure reset failed on ImageHandler::configure_rest", XCAM_STR (get_name ()));
 
     if (_threads.ptr () && !_threads->is_running ()) {
         ret = _threads->start ();
         XCAM_FAIL_RETURN (
-            ERROR, ret == XCAM_RETURN_NO_ERROR, ret,
-            "soft_hander(%s) configure resource failed when starting threads", XCAM_STR (get_name ()));
+            ERROR, xcam_ret_is_ok (ret), ret,
+            "soft_hander(%s) configure reset failed when starting threads", XCAM_STR (get_name ()));
     }
-    _need_configure = false;
 
     return ret;
 }
@@ -160,10 +140,12 @@ SoftHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bo
             WARNING, xcam_ret_is_ok (ret), ret,
             "soft_hander(%s) configure resource failed", XCAM_STR (get_name ()));
 
-        ret = confirm_configured ();
+        ret = configure_rest ();
         XCAM_FAIL_RETURN (
             WARNING, xcam_ret_is_ok (ret), ret,
             "soft_hander(%s) confirm configure failed", XCAM_STR (get_name ()));
+
+        _need_configure = false;
     }
 
     if (!param->out_buf.ptr () && _enable_allocator) {

@@ -103,8 +103,6 @@ WorkItem::done (XCamReturn err)
 
 SoftWorker::SoftWorker (const char *name, const SmartPtr<Callback> &cb)
     : Worker (name, cb)
-    , _global (1, 1, 1)
-    , _local (1, 1, 1)
     , _work_unit (1, 1, 1)
 {
 }
@@ -136,30 +134,6 @@ SoftWorker::set_threads (const SmartPtr<ThreadPool> &threads)
     return true;
 }
 
-bool
-SoftWorker::set_global_size (const WorkSize &size)
-{
-    XCAM_FAIL_RETURN (
-        ERROR, size.value[0] && size.value[1] && size.value[2], false,
-        "SoftWorker(%s) set global size(x:%d, y:%d, z:%d) failed.",
-        XCAM_STR (get_name ()), size.value[0], size.value[1], size.value[2]);
-
-    _global = size;
-    return true;
-}
-
-bool
-SoftWorker::set_local_size (const WorkSize &size)
-{
-    XCAM_FAIL_RETURN (
-        ERROR, size.value[0] && size.value[1] && size.value[2], false,
-        "SoftWorker(%s) set local size(x:%d, y:%d, z:%d) failed.",
-        XCAM_STR (get_name ()), size.value[0], size.value[1], size.value[2]);
-
-    _local = size;
-    return true;
-}
-
 XCamReturn
 SoftWorker::stop ()
 {
@@ -172,14 +146,17 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
-    XCAM_ASSERT (_local.value[0] * _local.value[1] * _local.value[2]);
-    XCAM_ASSERT (_global.value[0] * _global.value[1] * _global.value[2]);
+    const WorkSize &global = get_global_size ();
+    const WorkSize &local = get_local_size ();
+
+    XCAM_ASSERT (local.value[0] * local.value[1] * local.value[2]);
+    XCAM_ASSERT (global.value[0] * global.value[1] * global.value[2]);
 
     WorkSize items;
     uint32_t max_items = 1;
 
-    for (uint32_t i = 0; i < SOFT_MAX_DIM; ++i) {
-        items.value[i] = xcam_ceil (_global.value[i],  _local.value[i]) / _local.value[i];
+    for (uint32_t i = 0; i < WORK_MAX_DIM; ++i) {
+        items.value[i] = xcam_ceil (global.value[i],  local.value[i]) / local.value[i];
         max_items *= items.value[i];
     }
 
@@ -238,13 +215,16 @@ WorkRange
 SoftWorker::get_range (const WorkSize &item)
 {
     WorkRange range;
-    for (uint32_t i = 0; i < SOFT_MAX_DIM; ++i) {
-        range.pos[i] = item.value[i] * _local.value[i];
-        XCAM_ASSERT (range.pos[i] < _global.value[i]);
-        if (range.pos[i] + _local.value[i] > _global.value[i])
-            range.pos_len[i] = _global.value[i] - range.pos[i];
+    const WorkSize &global = get_global_size ();
+    const WorkSize &local = get_local_size ();
+
+    for (uint32_t i = 0; i < WORK_MAX_DIM; ++i) {
+        range.pos[i] = item.value[i] * local.value[i];
+        XCAM_ASSERT (range.pos[i] < global.value[i]);
+        if (range.pos[i] + local.value[i] > global.value[i])
+            range.pos_len[i] = global.value[i] - range.pos[i];
         else
-            range.pos_len[i] = _local.value[i];
+            range.pos_len[i] = local.value[i];
     }
     return range;
 }

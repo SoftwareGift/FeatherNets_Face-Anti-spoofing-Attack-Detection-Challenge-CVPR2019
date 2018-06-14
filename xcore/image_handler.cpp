@@ -23,7 +23,10 @@
 namespace XCam {
 
 ImageHandler::ImageHandler (const char* name)
-    : _name (NULL)
+    : _need_configure (true)
+    , _enable_allocator (false)
+    , _buf_capacity (0)
+    , _name (NULL)
 {
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
@@ -32,6 +35,31 @@ ImageHandler::ImageHandler (const char* name)
 ImageHandler::~ImageHandler()
 {
     xcam_mem_clear (_name);
+}
+
+bool
+ImageHandler::set_out_video_info (const VideoBufferInfo &info)
+{
+    XCAM_ASSERT (info.width && info.height && info.format);
+    _out_video_info = info;
+    return true;
+}
+
+bool
+ImageHandler::enable_allocator (bool enable, uint32_t buf_count)
+{
+
+    if (enable && !buf_count) {
+        XCAM_LOG_ERROR (
+            "ImageHandler(%s) enable allocator must with buf_count>0", XCAM_STR(get_name ()));
+        return false;
+    }
+
+    _enable_allocator = enable;
+    if (enable)
+        _buf_capacity = buf_count;
+
+    return true;
 }
 
 bool
@@ -45,11 +73,73 @@ ImageHandler::set_allocator (const SmartPtr<BufferPool> &allocator)
 }
 
 XCamReturn
+ImageHandler::configure_rest ()
+{
+    if (_enable_allocator) {
+        XCAM_FAIL_RETURN (
+            ERROR, _out_video_info.is_valid (), XCAM_RETURN_ERROR_PARAM,
+            "image_hander(%s) configure reset failed before reserver buffer since out_video_info was not set",
+            XCAM_STR (get_name ()));
+
+        SmartPtr<BufferPool> allocator = create_allocator ();
+        XCAM_FAIL_RETURN (
+            ERROR, allocator.ptr (), XCAM_RETURN_ERROR_PARAM,
+            "image_hander(%s) configure reset failed since allocator not created", XCAM_STR (get_name ()));
+        _allocator = allocator;
+        XCamReturn ret = reserve_buffers (_out_video_info, _buf_capacity);
+        XCAM_FAIL_RETURN (
+            ERROR, xcam_ret_is_ok (ret), ret,
+            "soft_hander(%s) configure resource failed in reserving buffers", XCAM_STR (get_name ()));
+    }
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+ImageHandler::execute_buffer (const SmartPtr<ImageHandler::Parameters> &param, bool sync)
+{
+    XCAM_UNUSED (sync);
+
+    XCamReturn ret = XCAM_RETURN_NO_ERROR;
+
+    XCAM_FAIL_RETURN (
+        ERROR, param.ptr (), XCAM_RETURN_ERROR_PARAM,
+        "image_handler(%s) execute buffer failed, params is null",
+        XCAM_STR (get_name ()));
+
+    if (_need_configure) {
+        ret = configure_resource (param);
+        XCAM_FAIL_RETURN (
+            WARNING, xcam_ret_is_ok (ret), ret,
+            "image_handler(%s) configure resource failed", XCAM_STR (get_name ()));
+
+        ret = configure_rest ();
+        XCAM_FAIL_RETURN (
+            WARNING, xcam_ret_is_ok (ret), ret,
+            "image_handler(%s) configure rest failed", XCAM_STR (get_name ()));
+        _need_configure = false;
+    }
+
+    if (!param->out_buf.ptr () && _enable_allocator) {
+        param->out_buf = get_free_buf ();
+        XCAM_FAIL_RETURN (
+            ERROR, param->out_buf.ptr (), XCAM_RETURN_ERROR_PARAM,
+            "image_handler:%s execute buffer failed, output buffer failed in allocation.",
+            XCAM_STR (get_name ()));
+    }
+
+    ret = start_work (param);
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), ret,
+        "image_handler(%s) execute buffer failed in starting workers", XCAM_STR (get_name ()));
+
+    return ret;
+}
+
+XCamReturn
 ImageHandler::finish ()
 {
     return XCAM_RETURN_NO_ERROR;
 }
-
 
 XCamReturn
 ImageHandler::terminate ()

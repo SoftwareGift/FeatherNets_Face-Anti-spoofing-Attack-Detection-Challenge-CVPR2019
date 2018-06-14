@@ -33,27 +33,16 @@ public:
     explicit GLImageHandler (const char* name);
     ~GLImageHandler ();
 
-    bool set_out_video_info (const VideoBufferInfo &info);
-    bool enable_allocator (bool enable);
-
-    // derive from ImageHandler
-    virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &param, bool sync);
-
 protected:
-    virtual XCamReturn configure_resource (const SmartPtr<Parameters> &param) = 0;
-    virtual XCamReturn start_work (const SmartPtr<Parameters> &param) = 0;
     virtual void execute_done (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
 
 private:
-    XCamReturn create_allocator ();
+    SmartPtr<BufferPool> create_allocator ();
 
 private:
     XCAM_DEAD_COPY (GLImageHandler);
 
 private:
-    VideoBufferInfo        _out_video_info;
-    bool                   _need_configure;
-    bool                   _enable_allocator;
 };
 
 }

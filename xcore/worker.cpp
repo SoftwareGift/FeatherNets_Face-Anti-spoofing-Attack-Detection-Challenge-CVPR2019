@@ -25,6 +25,8 @@ namespace XCam {
 Worker::Worker (const char *name, const SmartPtr<Callback> &cb)
     : _name (NULL)
     , _callback (cb)
+    , _global (1, 1, 1)
+    , _local (1, 1, 1)
 {
     if (name)
         _name = strndup (name, XCAM_MAX_STR_SIZE);
@@ -68,6 +70,31 @@ Worker::status_check (const SmartPtr<Worker::Arguments> &args, const XCamReturn 
     if (_callback.ptr ())
         _callback->work_status (this, args, error);
 }
+
+bool
+Worker::set_global_size (const WorkSize &size)
+{
+    XCAM_FAIL_RETURN (
+        ERROR, size.value[0] && size.value[1] && size.value[2], false,
+        "Worker(%s) set global size(x:%d, y:%d, z:%d) failed.",
+        XCAM_STR (get_name ()), size.value[0], size.value[1], size.value[2]);
+
+    _global = size;
+    return true;
+}
+
+bool
+Worker::set_local_size (const WorkSize &size)
+{
+    XCAM_FAIL_RETURN (
+        ERROR, size.value[0] && size.value[1] && size.value[2], false,
+        "Worker(%s) set local size(x:%d, y:%d, z:%d) failed.",
+        XCAM_STR (get_name ()), size.value[0], size.value[1], size.value[2]);
+
+    _local = size;
+    return true;
+}
+
 
 #if ENABLE_FUNC_OBJ
 bool

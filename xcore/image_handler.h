@@ -85,14 +85,21 @@ public:
     const char *get_name () const {
         return _name;
     }
+    bool set_out_video_info (const VideoBufferInfo &info);
+    bool enable_allocator (bool enable, uint32_t buf_count = 4);
 
     // virtual functions
     // execute_buffer params should  NOT be const
-    virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &params, bool sync) = 0;
+    virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &params, bool sync);
     virtual XCamReturn finish ();
     virtual XCamReturn terminate ();
 
 protected:
+    virtual XCamReturn configure_resource (const SmartPtr<Parameters> &param) = 0;
+    virtual SmartPtr<BufferPool> create_allocator () = 0;
+    virtual XCamReturn configure_rest ();
+    virtual XCamReturn start_work (const SmartPtr<Parameters> &param) = 0;
+
     virtual void execute_status_check (const SmartPtr<Parameters> &params, const XCamReturn error);
 
     bool set_allocator (const SmartPtr<BufferPool> &allocator);
@@ -105,9 +112,15 @@ protected:
 private:
     XCAM_DEAD_COPY (ImageHandler);
 
+protected:
+    bool                    _need_configure;
+    bool                    _enable_allocator;
+
 private:
     SmartPtr<Callback>      _callback;
+    VideoBufferInfo         _out_video_info;
     SmartPtr<BufferPool>    _allocator;
+    uint32_t                _buf_capacity;
     char                   *_name;
 };
 

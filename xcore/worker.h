@@ -23,6 +23,8 @@
 
 #include <xcam_std.h>
 
+#define WORK_MAX_DIM 3
+
 #define ENABLE_FUNC_OBJ 0
 
 #define DECLARE_WORK_CALLBACK(CbClass, Handler, mem_func)                 \
@@ -37,6 +39,15 @@
     }
 
 namespace XCam {
+
+struct WorkSize {
+    uint32_t value[WORK_MAX_DIM];
+    WorkSize (uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
+        value[0] = x;
+        value[1] = y;
+        value[2] = z;
+    }
+};
 
 class Worker
     : public RefObj
@@ -82,6 +93,15 @@ public:
     const char *get_name () const {
         return _name;
     }
+    bool set_global_size (const WorkSize &size);
+    const WorkSize &get_global_size () const {
+        return _global;
+    }
+    bool set_local_size (const WorkSize &size);
+    const WorkSize &get_local_size () const {
+        return _local;
+    }
+
 #if ENABLE_FUNC_OBJ
     bool set_func_obj (const SmartPtr<FuncObj> &obj);
 #endif
@@ -99,6 +119,9 @@ private:
 private:
     char                      *_name;
     SmartPtr<Callback>         _callback;
+    WorkSize                   _global;
+    WorkSize                   _local;
+
 #if ENABLE_FUNC_OBJ
     SmartPtr<FuncObj>          _func_obj;
 #endif
