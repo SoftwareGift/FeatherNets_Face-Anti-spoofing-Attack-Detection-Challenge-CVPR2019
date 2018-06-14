@@ -24,6 +24,7 @@ xcam_gles_sources =                  \
     gl_image_shader.cpp              \
     gl_image_handler.cpp             \
     gl_copy_handler.cpp              \
+    gl_geomap_handler.cpp            \
     egl/egl_utils.cpp                \
     egl/egl_base.cpp                 \
     $(NULL)
@@ -61,6 +62,7 @@ nobase_libxcam_glesinclude_HEADERS = \
     gl_image_shader.h                \
     gl_image_handler.h               \
     gl_copy_handler.h                \
+    gl_geomap_handler.h              \
     egl/egl_utils.h                  \
     egl/egl_base.h                   \
     $(NULL)

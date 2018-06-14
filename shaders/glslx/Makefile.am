@@ -1,5 +1,6 @@
 glslx_sources = \
 	shader_copy.comp.slx        \
+	shader_geomap.comp.slx      \
 	$(NULL)
 
 add_quotation_marks_sh = \
