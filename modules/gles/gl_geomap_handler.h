@@ -34,7 +34,7 @@ public:
     struct Args : GLArgs {
         SmartPtr<GLBuffer>        in_buf, out_buf;
         SmartPtr<GLBuffer>        lut_buf;
-        //Float2                    factors;
+        float                     factors[4];
 
         Args (const SmartPtr<ImageHandler::Parameters> &param)
             : GLArgs (param)
@@ -44,12 +44,19 @@ public:
 public:
     explicit GLGeoMapShader (const SmartPtr<Worker::Callback> &cb)
         : GLImageShader ("GLGeoMapShader", cb)
-    {}
+    {
+        xcam_mem_clear (_lut_std_step);
+    }
 
     ~GLGeoMapShader () {}
+    bool set_std_step (float factor_x, float factor_y);
 
 private:
     virtual XCamReturn prepare_arguments (const SmartPtr<Worker::Arguments> &args, GLCmdList &cmds);
+    XCAM_DEAD_COPY (GLGeoMapShader);
+
+private:
+    float        _lut_std_step[2];
 };
 
 class GLGeoMapHandler
@@ -62,6 +69,7 @@ public:
     ~GLGeoMapHandler ();
 
     bool set_lookup_table (const PointFloat2 *data, uint32_t width, uint32_t height);
+
     XCamReturn remap (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> &out_buf);
 
     //derived from ImageHandler
@@ -80,9 +88,40 @@ private:
     virtual void geomap_shader_done (
         const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
 
-private:
+    XCAM_DEAD_COPY (GLGeoMapHandler);
+
+protected:
     SmartPtr<GLBuffer>              _lut_buf;
     SmartPtr<GLGeoMapShader>        _geomap_shader;
+};
+
+class GLDualConstGeoMapHandler
+    : public GLGeoMapHandler
+{
+public:
+    GLDualConstGeoMapHandler (const char *name = "GLDualConstGeoMapHandler");
+    ~GLDualConstGeoMapHandler ();
+
+    bool set_left_factors (float x, float y);
+    void get_left_factors (float &x, float &y) {
+        x = _left_factor_x;
+        y = _left_factor_y;
+    }
+    bool set_right_factors (float x, float y);
+    void get_right_factors (float &x, float &y) {
+        x = _right_factor_x;
+        y = _right_factor_y;
+    }
+
+private:
+    virtual bool init_factors ();
+    virtual XCamReturn start_geomap_shader (const SmartPtr<ImageHandler::Parameters> &param);
+
+private:
+    float        _left_factor_x;
+    float        _left_factor_y;
+    float        _right_factor_x;
+    float        _right_factor_y;
 };
 
 }

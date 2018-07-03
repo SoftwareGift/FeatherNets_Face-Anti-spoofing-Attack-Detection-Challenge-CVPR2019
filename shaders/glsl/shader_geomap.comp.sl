@@ -18,7 +18,7 @@ layout (binding = 3) writeonly buffer OutBufUV {
     uint data[];
 } out_buf_uv;
 
-layout(binding = 4) readonly buffer GeoMapTable {
+layout (binding = 4) readonly buffer GeoMapTable {
     vec2 data[];
 } lut;
 
@@ -26,9 +26,13 @@ uniform uint in_img_width;
 uniform uint in_img_height;
 
 uniform uint out_img_width;
+uniform uint out_img_height;
 
 uniform uint lut_width;
-uniform vec2 lut_step;
+uniform uint lut_height;
+
+uniform vec4 lut_step;
+uniform vec2 lut_std_step;
 
 #define UNIT_SIZE 4u
 
@@ -52,9 +56,14 @@ void main ()
     uint g_x = gl_GlobalInvocationID.x;
     uint g_y = gl_GlobalInvocationID.y * 2u;
 
-    float start_x = float (g_x * UNIT_SIZE) * lut_step.x;
-    vec4 lut_x = vec4 (start_x, start_x + lut_step.x * 1.0f, start_x + lut_step.x * 2.0f, start_x + lut_step.x * 3.0f);
-    vec4 lut_y = vec4 (g_y) * lut_step.y;
+    vec2 cent = (vec2 (out_img_width, out_img_height) - 1.0f) / 2.0f;
+    vec2 step = g_x < uint (cent.x) ? lut_step.xy : lut_step.zw;
+
+    vec2 start = (vec2 (g_x, g_y) - cent) * step + cent * lut_std_step;
+    vec4 lut_x = start.x * float (UNIT_SIZE) + vec4 (0.0f, step.x, step.x * 2.0f, step.x * 3.0f);
+    vec4 lut_y = start.yyyy;
+    lut_x = clamp (lut_x, 0.0f, float (lut_width) - 1.0f);
+    lut_y = clamp (lut_y, 0.0f, float (lut_height) - 1.0f - step.y);
 
     uint out_data;
     vec4 in_img_x, in_img_y;
@@ -72,7 +81,7 @@ void main ()
     }
     out_buf_uv.data[g_y / 2u * out_img_width + g_x] = out_data;
 
-    lut_y += lut_step.y;
+    lut_y += step.y;
     geomap_y (lut_x, lut_y, in_img_x, in_img_y, out_bound, out_data);
     out_buf_y.data[(g_y + 1u) * out_img_width + g_x] = out_data;
 }

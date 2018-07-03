@@ -35,11 +35,31 @@ const GLShaderInfo shader_info = {
     , 0
 };
 
+bool
+GLGeoMapShader::set_std_step (float factor_x, float factor_y)
+{
+    XCAM_FAIL_RETURN (
+        ERROR, !XCAM_DOUBLE_EQUAL_AROUND (factor_x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (factor_y, 0.0f), false,
+        "GLGeoMapShader(%s) invalid standard factors: x:%f, y:%f", XCAM_STR (get_name ()), factor_x, factor_y);
+
+    _lut_std_step[0] = 1.0f / factor_x;
+    _lut_std_step[1] = 1.0f / factor_y;
+
+    return true;
+}
+
 XCamReturn
 GLGeoMapShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCmdList &cmds)
 {
     SmartPtr<GLGeoMapShader::Args> args = base.dynamic_cast_ptr<GLGeoMapShader::Args> ();
     XCAM_ASSERT (args.ptr () && args->in_buf.ptr () && args->out_buf.ptr () && args->lut_buf.ptr ());
+    XCAM_FAIL_RETURN (
+        ERROR,
+        !XCAM_DOUBLE_EQUAL_AROUND (args->factors[0], 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (args->factors[1], 0.0f) &&
+        !XCAM_DOUBLE_EQUAL_AROUND (args->factors[2], 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (args->factors[3], 0.0f),
+        XCAM_RETURN_ERROR_PARAM,
+        "GLGeoMapHandler(%s) invalid factors: %f, %f, %f, %f",
+        XCAM_STR (get_name ()), args->factors[0], args->factors[1], args->factors[2], args->factors[3]);
 
     const GLBufferDesc &in_desc = args->in_buf->get_buffer_desc ();
     const GLBufferDesc &out_desc = args->out_buf->get_buffer_desc ();
@@ -57,12 +77,18 @@ GLGeoMapShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCm
     cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_width", in_img_width));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_height", in_desc.height));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("out_img_width", out_img_width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("out_img_height", out_desc.height));
 
-    float lut_step[2];
-    lut_step[0] = (lut_desc.width - 1.0f) / out_desc.width;
-    lut_step[1] = (lut_desc.height - 1.0f) / out_desc.height;
-    cmds.push_back (new GLCmdUniformTVect<float, 2> ("lut_step", lut_step));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("lut_width", lut_desc.width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("lut_height", lut_desc.height));
+
+    float lut_step[4];
+    lut_step[0] = 1.0f / args->factors[0];
+    lut_step[1] = 1.0f / args->factors[1];
+    lut_step[2] = 1.0f / args->factors[2];
+    lut_step[3] = 1.0f / args->factors[3];
+    cmds.push_back (new GLCmdUniformTVect<float, 4> ("lut_step", lut_step));
+    cmds.push_back (new GLCmdUniformTVect<float, 2> ("lut_std_step", _lut_std_step));
 
     GLGroupsSize groups_size;
     groups_size.x = XCAM_ALIGN_UP (out_img_width, 8) / 8;
@@ -167,7 +193,7 @@ GLGeoMapHandler::configure_resource (const SmartPtr<Parameters> &param)
     XCAM_FAIL_RETURN (
         ERROR, in_info.format == V4L2_PIX_FMT_NV12, XCAM_RETURN_ERROR_PARAM,
         "GLGeoMapHandler(%s) only support NV12 format, but input format is %s",
-        XCAM_STR(get_name ()), xcam_fourcc_to_string (in_info.format));
+        XCAM_STR (get_name ()), xcam_fourcc_to_string (in_info.format));
 
     uint32_t width, height;
     get_output_size (width, height);
@@ -185,6 +211,10 @@ GLGeoMapHandler::configure_resource (const SmartPtr<Parameters> &param)
     XCAM_FAIL_RETURN (
         ERROR, _geomap_shader.ptr (), XCAM_RETURN_ERROR_PARAM,
         "GLGeoMapHandler(%s) create geomap shader failed", XCAM_STR (get_name ()));
+
+    float factor_x, factor_y;
+    get_factors (factor_x, factor_y);
+    _geomap_shader->set_std_step (factor_x, factor_y);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -237,11 +267,18 @@ GLGeoMapHandler::start_geomap_shader (const SmartPtr<ImageHandler::Parameters> &
     XCAM_ASSERT (_geomap_shader.ptr ());
     XCAM_ASSERT (_lut_buf.ptr ());
 
+    float factor_x, factor_y;
+    get_factors (factor_x, factor_y);
+
     SmartPtr<GLGeoMapShader::Args> args = new GLGeoMapShader::Args (param);
     XCAM_ASSERT (args.ptr ());
     args->in_buf = get_glbuffer (param->in_buf);
     args->out_buf = get_glbuffer (param->out_buf);
     args->lut_buf = _lut_buf;
+    args->factors[0] = factor_x;
+    args->factors[1] = factor_y;
+    args->factors[2] = args->factors[0];
+    args->factors[3] = args->factors[1];
 
     return _geomap_shader->work (args);
 }
@@ -259,6 +296,93 @@ GLGeoMapHandler::geomap_shader_done (
     XCAM_ASSERT (param.ptr ());
 
     execute_done (param, error);
+}
+
+GLDualConstGeoMapHandler::GLDualConstGeoMapHandler (const char *name)
+    : GLGeoMapHandler (name)
+    , _left_factor_x (0.0f)
+    , _left_factor_y (0.0f)
+    , _right_factor_x (0.0f)
+    , _right_factor_y (0.0f)
+{
+}
+
+GLDualConstGeoMapHandler::~GLDualConstGeoMapHandler ()
+{
+}
+
+bool
+GLDualConstGeoMapHandler::set_left_factors (float x, float y)
+{
+    XCAM_FAIL_RETURN (
+        ERROR, !XCAM_DOUBLE_EQUAL_AROUND (x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (y, 0.0f), false,
+        "GLGeoMapHandler(%s) set factors failed: x:%f, y:%f", XCAM_STR (get_name ()), x, y);
+
+    _left_factor_x = x;
+    _left_factor_y = y;
+
+    return true;
+}
+
+bool
+GLDualConstGeoMapHandler::set_right_factors (float x, float y)
+{
+    XCAM_FAIL_RETURN (
+        ERROR, !XCAM_DOUBLE_EQUAL_AROUND (x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (y, 0.0f), false,
+        "GLGeoMapHandler(%s) set factors failed: x:%f, y:%f", XCAM_STR (get_name ()), x, y);
+
+    _right_factor_x = x;
+    _right_factor_y = y;
+
+    return true;
+}
+
+bool
+GLDualConstGeoMapHandler::init_factors ()
+{
+    float factor_x, factor_y;
+    get_factors (factor_x, factor_y);
+
+    if (!XCAM_DOUBLE_EQUAL_AROUND (factor_x, 0.0f) && !XCAM_DOUBLE_EQUAL_AROUND (factor_y, 0.0f))
+        return true;
+
+    const GLBufferDesc &lut_desc = _lut_buf->get_buffer_desc ();
+    XCAM_FAIL_RETURN (
+        ERROR, auto_calculate_factors (lut_desc.width, lut_desc.height), false,
+        "GLGeoMapHandler(%s) auto calculate factors failed");
+
+    get_factors (factor_x, factor_y);
+    _left_factor_x = factor_x;
+    _left_factor_y = factor_y;
+    _right_factor_x = _left_factor_x;
+    _right_factor_y = _left_factor_y;
+
+    return true;
+}
+
+XCamReturn
+GLDualConstGeoMapHandler::start_geomap_shader (const SmartPtr<ImageHandler::Parameters> &param)
+{
+    XCAM_ASSERT (param.ptr () && param->in_buf.ptr () && param->out_buf.ptr ());
+    XCAM_ASSERT (_geomap_shader.ptr ());
+    XCAM_ASSERT (_lut_buf.ptr ());
+
+    SmartPtr<GLGeoMapShader::Args> args = new GLGeoMapShader::Args (param);
+    XCAM_ASSERT (args.ptr ());
+    args->in_buf = get_glbuffer (param->in_buf);
+    args->out_buf = get_glbuffer (param->out_buf);
+    args->lut_buf = _lut_buf;
+
+    float factor_x, factor_y;
+    get_left_factors (factor_x, factor_y);
+    args->factors[0] = factor_x;
+    args->factors[1] = factor_y;
+
+    get_right_factors (factor_x, factor_y);
+    args->factors[2] = factor_x;
+    args->factors[3] = factor_y;
+
+    return _geomap_shader->work (args);
 }
 
 }
