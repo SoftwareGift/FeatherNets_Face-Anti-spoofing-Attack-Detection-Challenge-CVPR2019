@@ -16,5 +16,11 @@ else
 GLES_DIR =
 endif
 
+if HAVE_VULKAN
+VULKAN_DIR = vulkan
+else
+VULKAN_DIR =
+endif
 
-SUBDIRS = soft $(ISP_DIR) $(OCL_DIR) $(GLES_DIR)
+
+SUBDIRS = soft $(ISP_DIR) $(OCL_DIR) $(GLES_DIR) $(VULKAN_DIR)
