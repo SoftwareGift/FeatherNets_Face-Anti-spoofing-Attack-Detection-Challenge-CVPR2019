@@ -129,6 +129,9 @@ private:
     bool                     _started;
 };
 
+class VKDevice;
+SmartPtr<BufferPool> create_vk_buffer_pool (const SmartPtr<VKDevice> dev);
+
 };
 
 #endif //XCAM_BUFFER_POOL_H
