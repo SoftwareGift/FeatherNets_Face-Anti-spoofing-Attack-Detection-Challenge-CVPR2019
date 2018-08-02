@@ -32,11 +32,11 @@ transform_bowl_coord_to_image_x (
     const float bowl_x, const float bowl_y,
     const uint32_t img_width)
 {
-    float offset_radian = (bowl_x < 0.0f) ? PI : ((bowl_y >= 0.0f) ? 2.0f * PI : 0.0f);
-    float arctan_radian = (bowl_x != 0.0f) ? atan (-bowl_y / bowl_x) : ((bowl_y >= 0.0f) ? -PI / 2.0f : PI / 2.0f);
+    float offset_radian = (bowl_x < 0.0f) ? XCAM_PI : ((bowl_y >= 0.0f) ? 2.0f * XCAM_PI : 0.0f);
+    float arctan_radian = (bowl_x != 0.0f) ? atan (-bowl_y / bowl_x) : ((bowl_y >= 0.0f) ? -XCAM_PI / 2.0f : XCAM_PI / 2.0f);
 
     float img_x = arctan_radian + offset_radian;
-    img_x *= img_width / (2.0f * PI);
+    img_x *= img_width / (2.0f * XCAM_PI);
     return XCAM_CLAMP (img_x, 0.0f, img_width - 1.0f);
 }
 
@@ -106,13 +106,13 @@ PointFloat3 bowl_view_image_to_world (
         angle = degree2radian (config.angle_start + img_pos.x * angle_step);
         float r2 = 1 - (world.z - config.center_z) * (world.z - config.center_z) / (c * c);
 
-        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
+        if(XCAM_DOUBLE_EQUAL_AROUND (angle, XCAM_PI / 2)) {
             world.x = 0.0f;
             world.y = -sqrt(r2 * b * b);
-        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
+        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, XCAM_PI * 3 / 2)) {
             world.x = 0.0f;
             world.y = sqrt(r2 * b * b);
-        } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
+        } else if((angle < XCAM_PI / 2) || (angle > XCAM_PI * 3 / 2)) {
             world.x = sqrt(r2 * a * a * b * b / (b * b + a * a * tan(angle) * tan(angle)));
             world.y = -world.x * tan(angle);
         } else {
@@ -132,13 +132,13 @@ PointFloat3 bowl_view_image_to_world (
 
         angle = degree2radian (config.angle_start + img_pos.x * angle_step);
 
-        if(XCAM_DOUBLE_EQUAL_AROUND (angle, PI / 2)) {
+        if(XCAM_DOUBLE_EQUAL_AROUND (angle, XCAM_PI / 2)) {
             world.x = 0.0f;
             world.y = -b;
-        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, PI * 3 / 2)) {
+        } else if (XCAM_DOUBLE_EQUAL_AROUND (angle, XCAM_PI * 3 / 2)) {
             world.x = 0.0f;
             world.y = b;
-        } else if((angle < PI / 2) || (angle > PI * 3 / 2)) {
+        } else if((angle < XCAM_PI / 2) || (angle > XCAM_PI * 3 / 2)) {
             world.x = a * b / sqrt(b * b + a * a * tan(angle) * tan(angle));
             world.y = -world.x * tan(angle);
         } else {

@@ -119,7 +119,10 @@
 #define PRIuS "u"
 #endif
 
-#define PI 3.1415926f
-#define degree2radian(degree) ((degree) * PI / 180.0f)
+#ifndef XCAM_PI
+#define XCAM_PI 3.1415926f
+#endif
+
+#define degree2radian(degree) ((degree) * XCAM_PI / 180.0f)
 
 #endif //XCAM_DEFS_H

@@ -317,8 +317,8 @@ generate_rectifiedview_map_table (
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
             float plane_point_coords[3];
-            plane_point_coords[0] = (center_x - col) * length_per_pixel_x * cos (PI / 2 - degree2radian (angle_center)) + plane_center_coords[0];
-            plane_point_coords[1] = (center_x - col) * length_per_pixel_x * sin (PI / 2 - degree2radian (angle_center)) + plane_center_coords[1];
+            plane_point_coords[0] = (center_x - col) * length_per_pixel_x * cos (XCAM_PI / 2 - degree2radian (angle_center)) + plane_center_coords[0];
+            plane_point_coords[1] = (center_x - col) * length_per_pixel_x * sin (XCAM_PI / 2 - degree2radian (angle_center)) + plane_center_coords[1];
             plane_point_coords[2] = (center_y - row) * length_per_pixel_y + plane_center_coords[2];
 
             float rate_xz, rate_yz;

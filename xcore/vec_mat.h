@@ -27,10 +27,6 @@
 
 namespace XCam {
 
-#ifndef PI
-#define PI 3.14159265358979323846
-#endif
-
 #ifndef FLT_EPSILON
 #define FLT_EPSILON 1.19209290e-07F // float
 #endif
@@ -40,11 +36,11 @@ namespace XCam {
 #endif
 
 #ifndef DEGREE_2_RADIANS
-#define DEGREE_2_RADIANS(x) (((x) * PI) / 180.0)
+#define DEGREE_2_RADIANS(x) (((x) * XCAM_PI) / 180.0)
 #endif
 
 #ifndef RADIANS_2_DEGREE
-#define RADIANS_2_DEGREE(x) (((x) * 180.0) / PI)
+#define RADIANS_2_DEGREE(x) (((x) * 180.0) / XCAM_PI)
 #endif
 
 #define XCAM_VECT2_OPERATOR_VECT2(op)                       \
