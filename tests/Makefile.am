@@ -124,3 +124,22 @@ test_soft_image_LDADD =                           \
 	$(top_builddir)/modules/soft/libxcam_soft.la  \
 	$(TEST_BASE_LA)          \
 	$(NULL)
+
+if HAVE_VULKAN
+noinst_PROGRAMS +=     \
+	test-vk-handler    \
+	$(NULL)
+
+test_vk_handler_SOURCES = test-vk-handler.cpp
+test_vk_handler_CXXFLAGS =      \
+	$(TEST_BASE_CXXFLAGS)       \
+	$(LIBVULKAN_CFLAGS)         \
+	$(NULL)
+
+test_vk_handler_LDADD =         \
+	$(top_builddir)/modules/vulkan/libxcam_vulkan.la    \
+	$(TEST_BASE_LA)             \
+	$(LIBVULKAN_LIBS)           \
+	$(NULL)
+
+endif
