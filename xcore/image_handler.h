@@ -37,6 +37,8 @@
             _h->mem_func (handler, params, error);  }                    \
     }
 
+#define XCAM_DEFAULT_HANDLER_BUF_CAP 4
+
 namespace XCam {
 
 class ImageHandler;
@@ -86,7 +88,7 @@ public:
         return _name;
     }
     bool set_out_video_info (const VideoBufferInfo &info);
-    bool enable_allocator (bool enable, uint32_t buf_count = 4);
+    bool enable_allocator (bool enable, uint32_t buf_count = XCAM_DEFAULT_HANDLER_BUF_CAP);
 
     // virtual functions
     // execute_buffer params should  NOT be const

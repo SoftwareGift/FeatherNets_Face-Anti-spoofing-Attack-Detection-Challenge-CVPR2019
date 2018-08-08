@@ -24,8 +24,8 @@ namespace XCam {
 
 ImageHandler::ImageHandler (const char* name)
     : _need_configure (true)
-    , _enable_allocator (false)
-    , _buf_capacity (0)
+    , _enable_allocator (true)
+    , _buf_capacity (XCAM_DEFAULT_HANDLER_BUF_CAP)
     , _name (NULL)
 {
     if (name)
