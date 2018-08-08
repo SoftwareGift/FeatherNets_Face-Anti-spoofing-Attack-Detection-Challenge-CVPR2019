@@ -25,13 +25,13 @@
 #include <safe_list.h>
 #include <xcam_mutex.h>
 #include <buffer_pool.h>
-#include <x3a_stats_pool.h>
 #include <ocl/cl_context.h>
 
 namespace XCam {
 
 class CLBuffer;
 class CLVideoBufferPool;
+class X3aStats;
 
 class CLVideoBufferData
     : public BufferData

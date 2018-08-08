@@ -27,6 +27,7 @@
 #include <ocl/cl_blender.h>
 #include <image_file_handle.h>
 #include <ocl/cl_geo_map_handler.h>
+#include <ocl/cl_video_buffer.h>
 #if HAVE_LIBDRM
 #include <drm_display.h>
 #endif

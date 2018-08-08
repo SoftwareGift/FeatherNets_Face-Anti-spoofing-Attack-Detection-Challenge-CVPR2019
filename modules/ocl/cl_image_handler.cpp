@@ -25,6 +25,7 @@
 #include "drm_bo_buffer.h"
 #endif
 #include "cl_device.h"
+#include "cl_video_buffer.h"
 #include "swapped_buffer.h"
 
 namespace XCam {

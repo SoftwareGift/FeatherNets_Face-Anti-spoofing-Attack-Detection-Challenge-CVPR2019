@@ -22,6 +22,7 @@
 #include "ocl/cl_memory.h"
 #include "ocl/cl_device.h"
 #include "ocl/cl_video_buffer.h"
+#include "x3a_stats_pool.h"
 
 namespace XCam {
 

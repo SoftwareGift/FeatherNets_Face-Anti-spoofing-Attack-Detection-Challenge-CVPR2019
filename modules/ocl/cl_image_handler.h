@@ -27,11 +27,11 @@
 #include <ocl/cl_kernel.h>
 #include <ocl/cl_argument.h>
 #include <ocl/cl_memory.h>
-#include <ocl/cl_video_buffer.h>
 
 namespace XCam {
 
 class CLImageHandler;
+class X3aResult;
 
 class CLImageKernel
     : public CLKernel
