@@ -25,6 +25,7 @@ xcam_gles_sources =                  \
     gl_image_handler.cpp             \
     gl_copy_handler.cpp              \
     gl_geomap_handler.cpp            \
+    gl_blender_shaders_priv.cpp      \
     egl/egl_utils.cpp                \
     egl/egl_base.cpp                 \
     $(NULL)
@@ -68,6 +69,7 @@ nobase_libxcam_glesinclude_HEADERS = \
     $(NULL)
 
 noinst_HEADERS =                     \
+    gl_blender_shaders_priv.h        \
     $(NULL)
 
 libxcam_gles_la_LIBTOOLFLAGS = --tag=disable-static

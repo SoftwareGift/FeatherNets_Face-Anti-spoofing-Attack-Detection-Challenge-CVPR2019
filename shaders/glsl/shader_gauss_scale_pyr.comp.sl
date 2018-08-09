@@ -1,0 +1,170 @@
+#version 310 es
+
+layout (local_size_x = 8, local_size_y = 8) in;
+
+layout (binding = 0) readonly buffer InBufY {
+    uint data[];
+} in_buf_y;
+
+layout (binding = 1) readonly buffer InBufUV {
+    uint data[];
+} in_buf_uv;
+
+layout (binding = 2) writeonly buffer OutBufY {
+    uint data[];
+} out_buf_y;
+
+layout (binding = 3) writeonly buffer OutBufUV {
+    uint data[];
+} out_buf_uv;
+
+uniform uint in_img_width;
+uniform uint in_img_height;
+
+uniform uint out_img_width;
+
+uniform uint merge_width;
+
+const float coeffs[5] = float[] (0.152f, 0.222f, 0.252f, 0.222f, 0.152f);
+
+#define unpack_unorm(buf, pixel, idx) \
+    { \
+        pixel[0] = unpackUnorm4x8 (buf.data[idx]); \
+        pixel[1] = unpackUnorm4x8 (buf.data[idx + 1u]); \
+        pixel[2] = unpackUnorm4x8 (buf.data[idx + 2u]); \
+        pixel[3] = unpackUnorm4x8 (buf.data[idx + 3u]); \
+    }
+
+#define multiply_coeff(sum, pixel, idx) \
+    { \
+        sum[0] += pixel[0] * coeffs[idx]; \
+        sum[1] += pixel[1] * coeffs[idx]; \
+        sum[2] += pixel[2] * coeffs[idx]; \
+        sum[3] += pixel[3] * coeffs[idx]; \
+    }
+
+void gauss_scale_y (uvec2 y_id);
+void gauss_scale_uv (uvec2 uv_id);
+
+void main ()
+{
+    uvec2 g_id = gl_GlobalInvocationID.xy;
+    g_id.x = clamp (g_id.x, 0u, merge_width - 1u);
+
+    uvec2 y_id = g_id * uvec2 (1u, 2u);
+    gauss_scale_y (y_id);
+
+    gauss_scale_uv (g_id);
+}
+
+void gauss_scale_y (uvec2 y_id)
+{
+    uvec2 in_id = y_id * 2u;
+    uvec2 gauss_start = in_id - uvec2 (1u, 2u);
+    gauss_start.y = clamp (gauss_start.y, 0u, in_img_height - 7u);
+
+    vec4 sum0[4] = vec4[] (vec4 (0.0f), vec4 (0.0f), vec4 (0.0f), vec4 (0.0f));
+    vec4 sum1[4] = vec4[] (vec4 (0.0f), vec4 (0.0f), vec4 (0.0f), vec4 (0.0f));
+
+    vec4 pixel_y[4];
+    uint in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (gauss_start.y * in_img_width + gauss_start.x);
+    unpack_unorm (in_buf_y, pixel_y, in_idx);
+    multiply_coeff (sum0, pixel_y, 0u);
+
+    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    unpack_unorm (in_buf_y, pixel_y, in_idx);
+    multiply_coeff (sum0, pixel_y, 1u);
+
+    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    unpack_unorm (in_buf_y, pixel_y, in_idx);
+    multiply_coeff (sum0, pixel_y, 2u);
+    multiply_coeff (sum1, pixel_y, 0u);
+
+    in_idx += in_img_width;
+    unpack_unorm (in_buf_y, pixel_y, in_idx);
+    multiply_coeff (sum0, pixel_y, 3u);
+    multiply_coeff (sum1, pixel_y, 1u);
+
+    in_idx += in_img_width;
+    unpack_unorm (in_buf_y, pixel_y, in_idx);
+    multiply_coeff (sum0, pixel_y, 4u);
+    multiply_coeff (sum1, pixel_y, 2u);
+
+    in_idx += in_img_width;
+    unpack_unorm (in_buf_y, pixel_y, in_idx);
+    multiply_coeff (sum1, pixel_y, 3u);
+
+    in_idx += in_img_width;
+    unpack_unorm (in_buf_y, pixel_y, in_idx);
+    multiply_coeff (sum1, pixel_y, 4u);
+
+    sum0[0] = (in_id.x == 0u) ? vec4 (sum0[1].x) : sum0[0];
+    sum1[0] = (in_id.x == 0u) ? vec4 (sum1[1].x) : sum1[0];
+    sum0[3] = (in_id.x == merge_width - 2u) ? vec4 (sum0[2].w) : sum0[3];
+    sum1[3] = (in_id.x == merge_width - 2u) ? vec4 (sum1[2].w) : sum1[3];
+
+    vec4 out_data0 =
+        vec4 (sum0[0].z, sum0[1].x, sum0[1].z, sum0[2].x) * coeffs[0] +
+        vec4 (sum0[0].w, sum0[1].y, sum0[1].w, sum0[2].y) * coeffs[1] +
+        vec4 (sum0[1].x, sum0[1].z, sum0[2].x, sum0[2].z) * coeffs[2] +
+        vec4 (sum0[1].y, sum0[1].w, sum0[2].y, sum0[2].w) * coeffs[3] +
+        vec4 (sum0[1].z, sum0[2].x, sum0[2].z, sum0[3].x) * coeffs[4];
+
+    vec4 out_data1 =
+        vec4 (sum1[0].z, sum1[1].x, sum1[1].z, sum1[2].x) * coeffs[0] +
+        vec4 (sum1[0].w, sum1[1].y, sum1[1].w, sum1[2].y) * coeffs[1] +
+        vec4 (sum1[1].x, sum1[1].z, sum1[2].x, sum1[2].z) * coeffs[2] +
+        vec4 (sum1[1].y, sum1[1].w, sum1[2].y, sum1[2].w) * coeffs[3] +
+        vec4 (sum1[1].z, sum1[2].x, sum1[2].z, sum1[3].x) * coeffs[4];
+
+    out_data0 = clamp (out_data0, 0.0f, 1.0f);
+    out_data1 = clamp (out_data1, 0.0f, 1.0f);
+
+    y_id.x = clamp (y_id.x, 0u, out_img_width - 1u);
+    uint out_idx = y_id.y * out_img_width + y_id.x;
+    out_buf_y.data[out_idx] = packUnorm4x8 (out_data0);
+    out_buf_y.data[out_idx + out_img_width] = packUnorm4x8 (out_data1);
+}
+
+void gauss_scale_uv (uvec2 uv_id)
+{
+    uvec2 in_id = uv_id * 2u;
+    uvec2 gauss_start = in_id - uvec2 (1u, 2u);
+    gauss_start.y = clamp (gauss_start.y, 0u, in_img_height / 2u - 5u);
+
+    vec4 sum[4] = vec4[] (vec4 (0.0f), vec4 (0.0f), vec4 (0.0f), vec4 (0.0f));
+    uint in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (gauss_start.y * in_img_width + gauss_start.x);
+    vec4 pixel_uv[4];
+    unpack_unorm (in_buf_uv, pixel_uv, in_idx);
+    multiply_coeff (sum, pixel_uv, 0u);
+
+    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    unpack_unorm (in_buf_uv, pixel_uv, in_idx);
+    multiply_coeff (sum, pixel_uv, 1u);
+
+    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    unpack_unorm (in_buf_uv, pixel_uv, in_idx);
+    multiply_coeff (sum, pixel_uv, 2u);
+
+    in_idx += in_img_width;
+    unpack_unorm (in_buf_uv, pixel_uv, in_idx);
+    multiply_coeff (sum, pixel_uv, 3u);
+
+    in_idx += in_img_width;
+    unpack_unorm (in_buf_uv, pixel_uv, in_idx);
+    multiply_coeff (sum, pixel_uv, 4u);
+
+    sum[0] = (in_id.x == 0u) ? vec4 (sum[1]) : sum[0];
+    sum[3] = (in_id.x == merge_width - 2u) ? vec4 (sum[2]) : sum[3];
+
+    vec4 out_data =
+        vec4 (sum[0].x, sum[0].y, sum[1].x, sum[1].y) * coeffs[0] +
+        vec4 (sum[0].z, sum[0].w, sum[1].z, sum[1].w) * coeffs[1] +
+        vec4 (sum[1].x, sum[1].y, sum[2].x, sum[2].y) * coeffs[2] +
+        vec4 (sum[1].z, sum[1].w, sum[2].z, sum[2].w) * coeffs[3] +
+        vec4 (sum[2].x, sum[2].y, sum[3].x, sum[3].y) * coeffs[4];
+
+    out_data = clamp (out_data, 0.0f, 1.0f);
+    uv_id.x = clamp (uv_id.x, 0u, out_img_width - 1u);
+    out_buf_uv.data[uv_id.y * out_img_width + uv_id.x] = packUnorm4x8 (out_data);
+}
