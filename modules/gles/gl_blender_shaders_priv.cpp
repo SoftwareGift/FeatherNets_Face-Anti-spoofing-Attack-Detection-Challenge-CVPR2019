@@ -27,7 +27,8 @@ namespace XCamGLShaders {
 enum {
     ShaderGaussScalePyr = 0,
     ShaderLapTransPyr,
-    ShaderBlendPyr
+    ShaderBlendPyr,
+    ShaderReconstructPyr
 };
 
 static const GLShaderInfo shaders_info[] = {
@@ -47,6 +48,12 @@ static const GLShaderInfo shaders_info[] = {
         GL_COMPUTE_SHADER,
         "shader_blend_pyr",
 #include "shader_blend_pyr.comp.slx"
+        , 0
+    },
+    {
+        GL_COMPUTE_SHADER,
+        "shader_reconstruct_pyr",
+#include "shader_reconstruct_pyr.comp.slx"
         , 0
     }
 };
@@ -237,6 +244,85 @@ GLBlendPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GL
     return XCAM_RETURN_NO_ERROR;
 }
 
+bool
+GLReconstructPyrShader::check_desc (
+    const GLBufferDesc &lap0_desc, const GLBufferDesc &lap1_desc, const GLBufferDesc &out_desc,
+    const GLBufferDesc &prev_blend_desc, const GLBufferDesc &mask_desc, const Rect &merge_area)
+{
+    XCAM_FAIL_RETURN (
+        ERROR,
+        merge_area.pos_y == 0 && merge_area.height == (int32_t)out_desc.height &&
+        merge_area.pos_x + merge_area.width <= (int32_t)out_desc.width &&
+        merge_area.width == (int32_t)lap0_desc.width && merge_area.height == (int32_t)lap0_desc.height &&
+        lap0_desc.width == lap1_desc.width && lap0_desc.height == lap1_desc.height &&
+        lap0_desc.width == prev_blend_desc.width * 2 && lap0_desc.height == prev_blend_desc.height * 2 &&
+        lap0_desc.width == mask_desc.width,
+        false,
+        "invalid buffer size: lap0:%dx%d, lap1:%dx%d, output:%dx%d, prev_blend:%dx%d, mask:%dx%d, merge_area:%dx%d",
+        lap0_desc.width, lap0_desc.height, lap1_desc.width, lap1_desc.height,
+        out_desc.width, out_desc.height, prev_blend_desc.width, prev_blend_desc.height,
+        mask_desc.width, mask_desc.height, merge_area.width, merge_area.height);
+
+    XCAM_FAIL_RETURN (
+        ERROR, mask_desc.height == 1, false,
+        "mask buffer only supports one-dimensional array");
+
+    return true;
+}
+
+XCamReturn
+GLReconstructPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCmdList &cmds)
+{
+    SmartPtr<GLReconstructPyrShader::Args> args = base.dynamic_cast_ptr<GLReconstructPyrShader::Args> ();
+    XCAM_ASSERT (args.ptr () && args->lap0_glbuf.ptr () && args->lap1_glbuf.ptr () && args->out_glbuf.ptr ());
+    XCAM_ASSERT (args->mask_glbuf.ptr ());
+
+    const GLBufferDesc &lap0_desc = args->lap0_glbuf->get_buffer_desc ();
+    const GLBufferDesc &lap1_desc = args->lap1_glbuf->get_buffer_desc ();
+    const GLBufferDesc &out_desc = args->out_glbuf->get_buffer_desc ();
+    const GLBufferDesc &prev_blend_desc = args->prev_blend_glbuf->get_buffer_desc ();
+    const GLBufferDesc &mask_desc = args->mask_glbuf->get_buffer_desc ();
+    const Rect &merge_area = args->merge_area;
+    XCAM_FAIL_RETURN (
+        ERROR, check_desc (lap0_desc, lap1_desc, out_desc, prev_blend_desc, mask_desc, merge_area),
+        XCAM_RETURN_ERROR_PARAM,
+        "GLReconstructPyrShader(%s) check buffer description failed, level:%d",
+        XCAM_STR (get_name ()), args->level);
+
+    cmds.push_back (new GLCmdBindBufRange (args->lap0_glbuf, 0, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->lap0_glbuf, 1, NV12PlaneUVIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->lap1_glbuf, 2, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->lap1_glbuf, 3, NV12PlaneUVIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 4, NV12PlaneYIdx, merge_area.pos_x));
+    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 5, NV12PlaneUVIdx, merge_area.pos_x));
+    cmds.push_back (new GLCmdBindBufRange (args->prev_blend_glbuf, 6, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->prev_blend_glbuf, 7, NV12PlaneUVIdx));
+    cmds.push_back (new GLCmdBindBufBase (args->mask_glbuf, 8));
+
+    size_t unit_bytes = sizeof (uint32_t) * 2;
+    uint32_t lap_img_width = XCAM_ALIGN_UP (lap0_desc.width, unit_bytes) / unit_bytes;
+    uint32_t out_img_width = XCAM_ALIGN_UP (out_desc.width, unit_bytes) / unit_bytes;
+    uint32_t prev_blend_img_width = XCAM_ALIGN_UP (prev_blend_desc.width, sizeof (uint32_t)) / sizeof (uint32_t);
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("lap_img_width", lap_img_width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("lap_img_height", lap0_desc.height));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("out_img_width", out_img_width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("prev_blend_img_width", prev_blend_img_width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("prev_blend_img_height", prev_blend_desc.height));
+
+    GLGroupsSize groups_size;
+    groups_size.x = XCAM_ALIGN_UP (lap_img_width, 8) / 8;
+    groups_size.y = XCAM_ALIGN_UP (lap0_desc.height, 32) / 32;
+    groups_size.z = 1;
+
+    SmartPtr<GLComputeProgram> prog;
+    XCAM_FAIL_RETURN (
+        ERROR, get_compute_program (prog), XCAM_RETURN_ERROR_PARAM,
+        "GLReconstructPyrShader(%s) get compute program failed", XCAM_STR (get_name ()));
+    prog->set_groups_size (groups_size);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 SmartPtr<GLGaussScalePyrShader>
 create_gauss_scale_pyr_shader (SmartPtr<Worker::Callback> &cb)
 {
@@ -281,6 +367,22 @@ create_blend_pyr_shader (SmartPtr<Worker::Callback> &cb)
     XCAM_FAIL_RETURN (
         ERROR, ret == XCAM_RETURN_NO_ERROR, NULL,
         "create blend pyramid program failed");
+
+    return shader;
+}
+
+SmartPtr<GLReconstructPyrShader>
+create_reconstruct_pyr_shader (SmartPtr<Worker::Callback> &cb)
+{
+    XCAM_ASSERT (cb.ptr ());
+
+    SmartPtr<GLReconstructPyrShader> shader = new GLReconstructPyrShader (cb);
+    XCAM_ASSERT (shader.ptr ());
+
+    XCamReturn ret = shader->create_compute_program (shaders_info[ShaderReconstructPyr], "reconstruct_pyr_program");
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, NULL,
+        "create reconstruct pyramid program failed");
 
     return shader;
 }

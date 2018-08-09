@@ -135,6 +135,39 @@ private:
         const GLBufferDesc &out_desc, const GLBufferDesc &mask_desc);
 };
 
+class GLReconstructPyrShader
+    : public GLImageShader
+{
+public:
+    struct Args : GLArgs {
+        SmartPtr<GLBuffer>       lap0_glbuf;
+        SmartPtr<GLBuffer>       lap1_glbuf;
+        SmartPtr<GLBuffer>       out_glbuf;
+        SmartPtr<GLBuffer>       prev_blend_glbuf;
+        SmartPtr<GLBuffer>       mask_glbuf;
+        Rect                     merge_area;
+
+        const uint32_t           level;
+        SmartPtr<VideoBuffer>    out_video_buf;
+
+        Args (const SmartPtr<ImageHandler::Parameters> &param, uint32_t l)
+            : GLArgs (param)
+            , level (l)
+        {}
+    };
+
+public:
+    explicit GLReconstructPyrShader (const SmartPtr<Worker::Callback> &cb)
+        : GLImageShader ("GLReconstructPyrShader", cb)
+    {}
+
+private:
+    virtual XCamReturn prepare_arguments (const SmartPtr<Worker::Arguments> &args, GLCmdList &cmds);
+    bool check_desc (
+        const GLBufferDesc &lap0_desc, const GLBufferDesc &lap1_desc, const GLBufferDesc &out_desc,
+        const GLBufferDesc &prev_blend_desc, const GLBufferDesc &mask_desc, const Rect &merge_area);
+};
+
 SmartPtr<GLGaussScalePyrShader>
 create_gauss_scale_pyr_shader (SmartPtr<Worker::Callback> &cb);
 
@@ -143,6 +176,9 @@ create_lap_trans_pyr_shader (SmartPtr<Worker::Callback> &cb);
 
 SmartPtr<GLBlendPyrShader>
 create_blend_pyr_shader (SmartPtr<Worker::Callback> &cb);
+
+SmartPtr<GLReconstructPyrShader>
+create_reconstruct_pyr_shader (SmartPtr<Worker::Callback> &cb);
 
 }
 
