@@ -51,6 +51,12 @@ TEST_BASE_LA += $(OPENCV_LIBS)
 endif
 endif
 
+if HAVE_GLES
+noinst_PROGRAMS += \
+	test-gles-handler \
+	$(NULL)
+endif
+
 TEST_BASE_LA +=  \
     $(top_builddir)/xcore/libxcam_core.la \
 	$(NULL)
@@ -142,4 +148,13 @@ test_vk_handler_LDADD =         \
 	$(LIBVULKAN_LIBS)           \
 	$(NULL)
 
+endif
+
+if HAVE_GLES
+test_gles_handler_SOURCES = test-gles-handler.cpp
+test_gles_handler_CXXFLAGS = $(TEST_BASE_CXXFLAGS)
+test_gles_handler_LDADD = \
+	$(top_builddir)/modules/gles/libxcam_gles.la \
+	$(TEST_BASE_LA) \
+	$(NULL)
 endif
