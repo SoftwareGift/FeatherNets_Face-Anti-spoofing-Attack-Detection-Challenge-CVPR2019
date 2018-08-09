@@ -25,15 +25,10 @@
 #include <gles/gl_image_shader.h>
 #include <gles/gl_image_handler.h>
 #include <gles/gl_buffer.h>
+#include <gles/gl_blender.h>
 
 #define GL_BLENDER_ALIGN_X 8
 #define GL_BLENDER_ALIGN_Y 4
-
-enum BufIdx {
-    Idx0 = 0,
-    Idx1,
-    BufIdxCount
-};
 
 namespace XCam {
 
@@ -49,12 +44,12 @@ public:
         Rect                       merge_area;
 
         const uint32_t             level;
-        const BufIdx               idx;
+        const GLBlender::BufIdx    idx;
         SmartPtr<VideoBuffer>      out_video_buf;
 
         Args (
             const SmartPtr<ImageHandler::Parameters> &param,
-            uint32_t l, BufIdx i)
+            uint32_t l, GLBlender::BufIdx i)
             : GLArgs (param)
             , level (l)
             , idx (i)
@@ -82,12 +77,12 @@ public:
         Rect                       merge_area;
 
         const uint32_t             level;
-        const BufIdx               idx;
+        const GLBlender::BufIdx    idx;
         SmartPtr<VideoBuffer>      out_video_buf;
 
         Args (
             const SmartPtr<ImageHandler::Parameters> &param,
-            uint32_t l, BufIdx i)
+            uint32_t l, GLBlender::BufIdx i)
             : GLArgs (param)
             , level (l)
             , idx (i)

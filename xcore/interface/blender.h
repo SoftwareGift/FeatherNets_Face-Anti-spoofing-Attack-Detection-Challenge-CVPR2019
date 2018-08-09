@@ -38,6 +38,7 @@ public:
     virtual ~Blender ();
     static SmartPtr<Blender> create_ocl_blender ();
     static SmartPtr<Blender> create_soft_blender ();
+    static SmartPtr<Blender> create_gl_blender ();
 
     void set_output_size (uint32_t width, uint32_t height);
     void get_output_size (uint32_t &width, uint32_t &height) const {
