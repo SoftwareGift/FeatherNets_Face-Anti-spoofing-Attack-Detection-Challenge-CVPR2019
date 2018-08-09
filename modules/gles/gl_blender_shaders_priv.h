@@ -71,8 +71,46 @@ private:
     bool check_desc (const GLBufferDesc &in_desc, const GLBufferDesc &out_desc, const Rect &merge_area);
 };
 
+class GLLapTransPyrShader
+    : public GLImageShader
+{
+public:
+    struct Args : GLArgs {
+        SmartPtr<GLBuffer>         in_glbuf;
+        SmartPtr<GLBuffer>         out_glbuf;
+        SmartPtr<GLBuffer>         gaussscale_glbuf;
+        Rect                       merge_area;
+
+        const uint32_t             level;
+        const BufIdx               idx;
+        SmartPtr<VideoBuffer>      out_video_buf;
+
+        Args (
+            const SmartPtr<ImageHandler::Parameters> &param,
+            uint32_t l, BufIdx i)
+            : GLArgs (param)
+            , level (l)
+            , idx (i)
+        {}
+    };
+
+public:
+    explicit GLLapTransPyrShader (const SmartPtr<Worker::Callback> &cb)
+        : GLImageShader ("GLLapTransPyrShader", cb)
+    {}
+
+private:
+    virtual XCamReturn prepare_arguments (const SmartPtr<Worker::Arguments> &args, GLCmdList &cmds);
+    bool check_desc (
+        const GLBufferDesc &in_desc, const GLBufferDesc &out_desc,
+        const GLBufferDesc &gs_desc, const Rect &merge_area);
+};
+
 SmartPtr<GLGaussScalePyrShader>
 create_gauss_scale_pyr_shader (SmartPtr<Worker::Callback> &cb);
+
+SmartPtr<GLLapTransPyrShader>
+create_lap_trans_pyr_shader (SmartPtr<Worker::Callback> &cb);
 
 }
 
