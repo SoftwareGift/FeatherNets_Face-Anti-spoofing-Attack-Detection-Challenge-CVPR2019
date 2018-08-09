@@ -25,13 +25,15 @@
 #include <gles/egl/egl_base.h>
 #include <gles/gl_copy_handler.h>
 #include <gles/gl_geomap_handler.h>
+#include <interface/blender.h>
 
 using namespace XCam;
 
 enum GLType {
     GLTypeNone    = 0,
     GLTypeCopy,
-    GLTypeRemap
+    GLTypeRemap,
+    GLTypeBlender
 };
 
 class GLStream
@@ -84,9 +86,10 @@ calc_hor_flip_table (uint32_t width, uint32_t height, PointFloat2 *&map_table)
 static void usage (const char *arg0)
 {
     printf ("Usage:\n"
-            "%s --input0 input.nv12 --output output.nv12 ...\n"
-            "\t--type              processing type, selected from: copy, remap\n"
+            "%s --type TYPE --input0 input.nv12 --input1 input1.nv12 --output output.nv12 ...\n"
+            "\t--type              processing type, selected from: copy, remap, blend\n"
             "\t--input0            input image(NV12)\n"
+            "\t--input1            input image(NV12)\n"
             "\t--output            output image(NV12/MP4)\n"
             "\t--in-w              optional, input width, default: 1280\n"
             "\t--in-h              optional, input height, default: 800\n"
@@ -115,6 +118,7 @@ int main (int argc, char **argv)
     const struct option long_opts[] = {
         {"type", required_argument, NULL, 't'},
         {"input0", required_argument, NULL, 'i'},
+        {"input1", required_argument, NULL, 'j'},
         {"output", required_argument, NULL, 'o'},
         {"in-w", required_argument, NULL, 'w'},
         {"in-h", required_argument, NULL, 'h'},
@@ -135,6 +139,8 @@ int main (int argc, char **argv)
                 type = GLTypeCopy;
             else if (!strcasecmp (optarg, "remap"))
                 type = GLTypeRemap;
+            else if (!strcasecmp (optarg, "blend"))
+                type = GLTypeBlender;
             else {
                 XCAM_LOG_ERROR ("unknown type:%s", optarg);
                 usage (argv[0]);
@@ -142,6 +148,10 @@ int main (int argc, char **argv)
             }
             break;
         case 'i':
+            XCAM_ASSERT (optarg);
+            PUSH_STREAM (GLStream, ins, optarg);
+            break;
+        case 'j':
             XCAM_ASSERT (optarg);
             PUSH_STREAM (GLStream, ins, optarg);
             break;
@@ -255,6 +265,39 @@ int main (int argc, char **argv)
             if (save_output)
                 outs[0]->write_buf ();
             FPS_CALCULATION (gl-remap, XCAM_OBJ_DUR_FRAME_NUM);
+        }
+        break;
+    }
+    case GLTypeBlender: {
+        CHECK_EXP (ins.size () == 2, "Error: blender needs 2 input files.");
+        SmartPtr<Blender> blender = Blender::create_gl_blender ();
+        XCAM_ASSERT (blender.ptr ());
+        blender->set_output_size (output_width, output_height);
+
+        Rect area;
+        area.pos_x = 0;
+        area.pos_y = 0;
+        area.width = output_width;
+        area.height = output_height;
+        blender->set_merge_window (area);
+        area.pos_x = 0;
+        area.pos_y = 0;
+        area.width = input_width;
+        area.height = input_height;
+        blender->set_input_merge_area (area, 0);
+        area.pos_x = 0;
+        area.pos_y = 0;
+        area.width = input_width;
+        area.height = input_height;
+        blender->set_input_merge_area (area, 1);
+
+        CHECK (ins[0]->read_buf(), "read buffer from file(%s) failed.", ins[0]->get_file_name ());
+        CHECK (ins[1]->read_buf(), "read buffer from file(%s) failed.", ins[1]->get_file_name ());
+        for (int i = 0; i < loop; ++i) {
+            CHECK (blender->blend (ins[0]->get_buf (), ins[1]->get_buf (), outs[0]->get_buf ()), "blend buffer failed");
+            if (save_output)
+                outs[0]->write_buf ();
+            FPS_CALCULATION (gl-blend, XCAM_OBJ_DUR_FRAME_NUM);
         }
         break;
     }
