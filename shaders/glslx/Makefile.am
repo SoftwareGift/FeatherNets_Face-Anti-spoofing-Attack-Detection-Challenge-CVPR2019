@@ -3,6 +3,7 @@ glslx_sources = \
 	shader_geomap.comp.slx             \
 	shader_gauss_scale_pyr.comp.slx    \
 	shader_lap_trans_pyr.comp.slx      \
+	shader_blend_pyr.comp.slx          \
 	$(NULL)
 
 add_quotation_marks_sh = \

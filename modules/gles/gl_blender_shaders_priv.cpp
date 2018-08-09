@@ -26,7 +26,8 @@ namespace XCamGLShaders {
 
 enum {
     ShaderGaussScalePyr = 0,
-    ShaderLapTransPyr
+    ShaderLapTransPyr,
+    ShaderBlendPyr
 };
 
 static const GLShaderInfo shaders_info[] = {
@@ -40,6 +41,12 @@ static const GLShaderInfo shaders_info[] = {
         GL_COMPUTE_SHADER,
         "shader_lap_trans_pyr",
 #include "shader_lap_trans_pyr.comp.slx"
+        , 0
+    },
+    {
+        GL_COMPUTE_SHADER,
+        "shader_blend_pyr",
+#include "shader_blend_pyr.comp.slx"
         , 0
     }
 };
@@ -167,6 +174,69 @@ GLLapTransPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base,
     return XCAM_RETURN_NO_ERROR;
 }
 
+bool
+GLBlendPyrShader::check_desc (
+    const GLBufferDesc &in0_desc, const GLBufferDesc &in1_desc,
+    const GLBufferDesc &out_desc, const GLBufferDesc &mask_desc)
+{
+    XCAM_FAIL_RETURN (
+        ERROR,
+        in0_desc.width == in1_desc.width && in0_desc.height == in1_desc.height &&
+        in0_desc.width == out_desc.width && in0_desc.height == out_desc.height &&
+        in0_desc.width == mask_desc.width,
+        false,
+        "invalid buffer size: intput0:%dx%d, intput1:%dx%d, output:%dx%d, mask:%dx%d",
+        in0_desc.width, in0_desc.height, in1_desc.width, in1_desc.height,
+        out_desc.width, out_desc.height, mask_desc.width, mask_desc.height);
+
+    XCAM_FAIL_RETURN (
+        ERROR, mask_desc.height == 1, false,
+        "mask buffer only supports one-dimensional array");
+
+    return true;
+}
+
+XCamReturn
+GLBlendPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCmdList &cmds)
+{
+    SmartPtr<GLBlendPyrShader::Args> args = base.dynamic_cast_ptr<GLBlendPyrShader::Args> ();
+    XCAM_ASSERT (args.ptr () && args->in0_glbuf.ptr () && args->in1_glbuf.ptr () && args->out_glbuf.ptr ());
+    XCAM_ASSERT (args->mask_glbuf.ptr ());
+
+    const GLBufferDesc &in0_desc = args->in0_glbuf->get_buffer_desc ();
+    const GLBufferDesc &in1_desc = args->in1_glbuf->get_buffer_desc ();
+    const GLBufferDesc &out_desc = args->out_glbuf->get_buffer_desc ();
+    const GLBufferDesc &mask_desc = args->mask_glbuf->get_buffer_desc ();
+    XCAM_FAIL_RETURN (
+        ERROR, check_desc (in0_desc, in1_desc, out_desc, mask_desc), XCAM_RETURN_ERROR_PARAM,
+        "GLBlendPyrShader(%s) check buffer description failed", XCAM_STR (get_name ()));
+
+    cmds.push_back (new GLCmdBindBufRange (args->in0_glbuf, 0, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->in0_glbuf, 1, NV12PlaneUVIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->in1_glbuf, 2, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->in1_glbuf, 3, NV12PlaneUVIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 4, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 5, NV12PlaneUVIdx));
+    cmds.push_back (new GLCmdBindBufBase (args->mask_glbuf, 6));
+
+    size_t unit_bytes = sizeof (uint32_t) * 2;
+    uint32_t in_img_width = XCAM_ALIGN_UP (in0_desc.width, unit_bytes) / unit_bytes;
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_width", in_img_width));
+
+    GLGroupsSize groups_size;
+    groups_size.x = XCAM_ALIGN_UP (in_img_width, 8) / 8;
+    groups_size.y = XCAM_ALIGN_UP (in0_desc.height, 16) / 16;
+    groups_size.z = 1;
+
+    SmartPtr<GLComputeProgram> prog;
+    XCAM_FAIL_RETURN (
+        ERROR, get_compute_program (prog), XCAM_RETURN_ERROR_PARAM,
+        "GLBlendPyrShader(%s) get compute program failed", XCAM_STR (get_name ()));
+    prog->set_groups_size (groups_size);
+
+    return XCAM_RETURN_NO_ERROR;
+}
+
 SmartPtr<GLGaussScalePyrShader>
 create_gauss_scale_pyr_shader (SmartPtr<Worker::Callback> &cb)
 {
@@ -195,6 +265,22 @@ create_lap_trans_pyr_shader (SmartPtr<Worker::Callback> &cb)
     XCAM_FAIL_RETURN (
         ERROR, ret == XCAM_RETURN_NO_ERROR, NULL,
         "create laplace transformation pyramid program failed");
+
+    return shader;
+}
+
+SmartPtr<GLBlendPyrShader>
+create_blend_pyr_shader (SmartPtr<Worker::Callback> &cb)
+{
+    XCAM_ASSERT (cb.ptr ());
+
+    SmartPtr<GLBlendPyrShader> shader = new GLBlendPyrShader (cb);
+    XCAM_ASSERT (shader.ptr ());
+
+    XCamReturn ret = shader->create_compute_program (shaders_info[ShaderBlendPyr], "blend_pyr_program");
+    XCAM_FAIL_RETURN (
+        ERROR, ret == XCAM_RETURN_NO_ERROR, NULL,
+        "create blend pyramid program failed");
 
     return shader;
 }
