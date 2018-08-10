@@ -20,7 +20,8 @@ TEST_BASE_LA = \
 
 noinst_PROGRAMS = \
 	test-device-manager  \
-	test-soft-image  \
+	test-soft-image    \
+	test-surround-view \
 	$(NULL)
 
 if ENABLE_IA_AIQ
@@ -158,3 +159,10 @@ test_gles_handler_LDADD = \
 	$(TEST_BASE_LA) \
 	$(NULL)
 endif
+
+test_surround_view_SOURCES = test-surround-view.cpp
+test_surround_view_CXXFLAGS = $(TEST_BASE_CXXFLAGS)
+test_surround_view_LDADD = \
+	$(top_builddir)/modules/soft/libxcam_soft.la \
+	$(TEST_BASE_LA) \
+	$(NULL)
