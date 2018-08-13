@@ -126,6 +126,7 @@ public:
     virtual ~Stitcher ();
     static SmartPtr<Stitcher> create_ocl_stitcher ();
     static SmartPtr<Stitcher> create_soft_stitcher ();
+    static SmartPtr<Stitcher> create_gl_stitcher ();
 
     bool set_bowl_config (const BowlDataConfig &config);
     const BowlDataConfig &get_bowl_config () {

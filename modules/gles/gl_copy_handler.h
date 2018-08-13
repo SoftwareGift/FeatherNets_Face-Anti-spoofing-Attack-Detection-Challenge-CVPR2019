@@ -63,12 +63,15 @@ public:
     ~GLCopyHandler ();
 
     bool set_copy_area (uint32_t idx, const Rect &in_area, const Rect &out_area);
+    uint32_t get_index () {
+        return _index;
+    }
     XCamReturn copy (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> &out_buf);
 
-protected:
     //derived from ImageHandler
     virtual XCamReturn terminate ();
 
+protected:
     //derived from GLImageHandler
     virtual XCamReturn configure_resource (const SmartPtr<Parameters> &param);
     virtual XCamReturn start_work (const SmartPtr<Parameters> &param);

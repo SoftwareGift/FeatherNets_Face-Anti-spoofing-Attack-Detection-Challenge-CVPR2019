@@ -20,10 +20,14 @@
 
 #include "test_common.h"
 #include "test_stream.h"
-#include <soft/soft_video_buf_allocator.h>
 #include <interface/geo_mapper.h>
 #include <interface/stitcher.h>                                                                                                                                                                                
 #include <calibration_parser.h>
+#include <soft/soft_video_buf_allocator.h>
+#if HAVE_GLES
+#include <gles/gl_video_buffer.h>
+#include <gles/egl/egl_base.h>
+#endif
 
 using namespace XCam;
 
@@ -34,7 +38,8 @@ enum FrameMode {
 
 enum SVModule {
     SVModuleNone    = 0,
-    SVModuleSoft
+    SVModuleSoft,
+    SVModulegles
 };
 
 class SVStream
@@ -83,11 +88,14 @@ SVStream::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
 
     SmartPtr<BufferPool> pool;
     if (_module == SVModuleSoft) {
-        pool = new SoftVideoBufAllocator ();
+        pool = new SoftVideoBufAllocator (info);
+    } else if (_module == SVModulegles) {
+#if HAVE_GLES
+        pool = new GLVideoBufferPool (info);
+#endif
     }
     XCAM_ASSERT (pool.ptr ());
 
-    pool->set_video_info (info);
     if (!pool->reserve (count)) {
         XCAM_LOG_ERROR ("create buffer pool failed");
         return XCAM_RETURN_ERROR_MEM;
@@ -104,6 +112,10 @@ create_stitcher (SVModule module)
 
     if (module == SVModuleSoft) {
         stitcher = Stitcher::create_soft_stitcher ();
+    } else if (module == SVModulegles) {
+#if HAVE_GLES
+        stitcher = Stitcher::create_gl_stitcher ();
+#endif
     }
     XCAM_ASSERT (stitcher.ptr ());
 
@@ -344,7 +356,7 @@ static void usage(const char* arg0)
 {
     printf ("Usage:\n"
             "%s --module MODULE --input0 input.nv12 --input1 input1.nv12 --input2 input2.nv12 ...\n"
-            "\t--module            processing module, selected from: soft\n"
+            "\t--module            processing module, selected from: soft, gles\n"
             "\t--                  read calibration files from exported path $FISHEYE_CONFIG_PATH\n"
             "\t--input0            input image(NV12)\n"
             "\t--input1            input image(NV12)\n"
@@ -416,7 +428,9 @@ int main (int argc, char *argv[])
             XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "soft"))
                 module = SVModuleSoft;
-            else {
+            else if (!strcasecmp (optarg, "gles")) {
+                module = SVModulegles;
+            } else {
                 XCAM_LOG_ERROR ("unknown module:%s", optarg);
                 usage (argv[0]);
                 return -1;
@@ -533,6 +547,22 @@ int main (int argc, char *argv[])
     printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("save topview:\t\t%s\n", save_topview ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
+
+    if (module == SVModulegles) {
+#if !HAVE_GLES
+        XCAM_LOG_ERROR ("GLES module unsupported");
+        return -1;
+#endif
+    }
+
+#if HAVE_GLES
+    SmartPtr<EGLBase> egl;
+    if (module == SVModulegles) {
+        egl = new EGLBase ();
+        XCAM_ASSERT (egl.ptr ());
+        XCAM_FAIL_RETURN (ERROR, egl->init (), -1, "init EGL failed");
+    }
+#endif
 
     VideoBufferInfo in_info;
     in_info.init (V4L2_PIX_FMT_NV12, input_width, input_height);
