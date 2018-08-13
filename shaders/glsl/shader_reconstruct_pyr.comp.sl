@@ -42,6 +42,7 @@ uniform uint lap_img_width;
 uniform uint lap_img_height;
 
 uniform uint out_img_width;
+uniform uint out_offset_x;
 
 uniform uint prev_blend_img_width;
 uniform uint prev_blend_img_height;
@@ -105,7 +106,7 @@ void reconstruct_y (uvec2 y_id, uvec2 blend_id)
 
     vec4 out0 = prev_blend_inter00 + lap_blend0 * 2.0f - 1.0f;
     vec4 out1 = prev_blend_inter01 + lap_blend1 * 2.0f - 1.0f;
-    uint out_idx = y_id.y * out_img_width + y_id.x;
+    uint out_idx = y_id.y * out_img_width + out_offset_x + y_id.x;
     out_buf_y.data[out_idx] = uvec2 (packUnorm4x8 (out0), packUnorm4x8 (out1));
 
     idx = (y_id.y >= lap_img_height - 1u) ? idx : idx + lap_img_width;
@@ -175,7 +176,7 @@ void reconstruct_uv (uvec2 uv_id, uvec2 blend_id)
 
     vec4 out0 = prev_blend_inter00 + lap_blend0 * 2.0f - 1.0f;
     vec4 out1 = prev_blend_inter01 + lap_blend1 * 2.0f - 1.0f;
-    uint out_idx = uv_id.y * out_img_width + uv_id.x;
+    uint out_idx = uv_id.y * out_img_width + out_offset_x + uv_id.x;
     out_buf_uv.data[out_idx] = uvec2 (packUnorm4x8 (out0), packUnorm4x8 (out1));
 
     idx = (uv_id.y >= (lap_img_height / 2u - 1u)) ? idx : idx + lap_img_width;

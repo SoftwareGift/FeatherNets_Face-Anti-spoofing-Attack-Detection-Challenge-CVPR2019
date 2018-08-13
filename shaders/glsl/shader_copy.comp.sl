@@ -11,7 +11,10 @@ layout (binding = 1) writeonly buffer OutBuf {
 } out_buf;
 
 uniform uint in_img_width;
+uniform uint in_x_offset;
+
 uniform uint out_img_width;
+uniform uint out_x_offset;
 
 uniform uint copy_width;
 
@@ -23,5 +26,5 @@ void main ()
     if (g_x >= copy_width)
         return;
 
-    out_buf.data[g_y * out_img_width + g_x] = in_buf.data[g_y * in_img_width + g_x];
+    out_buf.data[g_y * out_img_width + out_x_offset + g_x] = in_buf.data[g_y * in_img_width + in_x_offset + g_x];
 }

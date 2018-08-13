@@ -88,17 +88,19 @@ GLGaussScalePyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &bas
         "GLGaussScalePyrShader(%s) check buffer description failed, level:%d idx:%d",
         XCAM_STR (get_name ()), args->level, (int)args->idx);
 
-    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 0, NV12PlaneYIdx, merge_area.pos_x));
-    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 1, NV12PlaneUVIdx, merge_area.pos_x));
+    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 0, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 1, NV12PlaneUVIdx));
     cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 2, NV12PlaneYIdx));
     cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 3, NV12PlaneUVIdx));
 
     size_t unit_bytes = sizeof (uint32_t);
     uint32_t in_img_width = XCAM_ALIGN_UP (in_desc.width, unit_bytes) / unit_bytes;
+    uint32_t in_offset_x = XCAM_ALIGN_UP (merge_area.pos_x, unit_bytes) / unit_bytes;
     uint32_t out_img_width = XCAM_ALIGN_UP (out_desc.width, unit_bytes) / unit_bytes;
     uint32_t merge_width = XCAM_ALIGN_UP (merge_area.width, unit_bytes) / unit_bytes;
     cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_width", in_img_width));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_height", in_desc.height));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("in_offset_x", in_offset_x));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("out_img_width", out_img_width));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("merge_width", merge_width));
 
@@ -150,8 +152,8 @@ GLLapTransPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base,
         "GLLapTransPyrShader(%s) check buffer description failed, level:%d idx:%d",
         XCAM_STR (get_name ()), args->level, (int)args->idx);
 
-    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 0, NV12PlaneYIdx, merge_area.pos_x));
-    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 1, NV12PlaneUVIdx, merge_area.pos_x));
+    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 0, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->in_glbuf, 1, NV12PlaneUVIdx));
     cmds.push_back (new GLCmdBindBufRange (args->gaussscale_glbuf, 2, NV12PlaneYIdx));
     cmds.push_back (new GLCmdBindBufRange (args->gaussscale_glbuf, 3, NV12PlaneUVIdx));
     cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 4, NV12PlaneYIdx));
@@ -159,10 +161,12 @@ GLLapTransPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base,
 
     size_t unit_bytes = sizeof (uint32_t) * 2;
     uint32_t in_img_width = XCAM_ALIGN_UP (in_desc.width, unit_bytes) / unit_bytes;
+    uint32_t in_offset_x = XCAM_ALIGN_UP (merge_area.pos_x, unit_bytes) / unit_bytes;
     uint32_t gaussscale_img_width = XCAM_ALIGN_UP (gs_desc.width, sizeof (uint32_t)) / sizeof (uint32_t);
     uint32_t merge_width = XCAM_ALIGN_UP (merge_area.width, unit_bytes) / unit_bytes;
     cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_width", in_img_width));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_height", in_desc.height));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("in_offset_x", in_offset_x));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("gaussscale_img_width", gaussscale_img_width));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("gaussscale_img_height", gs_desc.height));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("merge_width", merge_width));
@@ -293,8 +297,8 @@ GLReconstructPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &ba
     cmds.push_back (new GLCmdBindBufRange (args->lap0_glbuf, 1, NV12PlaneUVIdx));
     cmds.push_back (new GLCmdBindBufRange (args->lap1_glbuf, 2, NV12PlaneYIdx));
     cmds.push_back (new GLCmdBindBufRange (args->lap1_glbuf, 3, NV12PlaneUVIdx));
-    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 4, NV12PlaneYIdx, merge_area.pos_x));
-    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 5, NV12PlaneUVIdx, merge_area.pos_x));
+    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 4, NV12PlaneYIdx));
+    cmds.push_back (new GLCmdBindBufRange (args->out_glbuf, 5, NV12PlaneUVIdx));
     cmds.push_back (new GLCmdBindBufRange (args->prev_blend_glbuf, 6, NV12PlaneYIdx));
     cmds.push_back (new GLCmdBindBufRange (args->prev_blend_glbuf, 7, NV12PlaneUVIdx));
     cmds.push_back (new GLCmdBindBufBase (args->mask_glbuf, 8));
@@ -302,10 +306,12 @@ GLReconstructPyrShader::prepare_arguments (const SmartPtr<Worker::Arguments> &ba
     size_t unit_bytes = sizeof (uint32_t) * 2;
     uint32_t lap_img_width = XCAM_ALIGN_UP (lap0_desc.width, unit_bytes) / unit_bytes;
     uint32_t out_img_width = XCAM_ALIGN_UP (out_desc.width, unit_bytes) / unit_bytes;
+    uint32_t out_offset_x = XCAM_ALIGN_UP (merge_area.pos_x, unit_bytes) / unit_bytes;
     uint32_t prev_blend_img_width = XCAM_ALIGN_UP (prev_blend_desc.width, sizeof (uint32_t)) / sizeof (uint32_t);
     cmds.push_back (new GLCmdUniformT<uint32_t> ("lap_img_width", lap_img_width));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("lap_img_height", lap0_desc.height));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("out_img_width", out_img_width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("out_offset_x", out_offset_x));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("prev_blend_img_width", prev_blend_img_width));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("prev_blend_img_height", prev_blend_desc.height));
 

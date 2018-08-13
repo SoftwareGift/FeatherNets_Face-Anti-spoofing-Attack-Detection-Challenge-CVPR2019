@@ -28,6 +28,7 @@ layout (binding = 5) writeonly buffer OutBufUV {
 
 uniform uint in_img_width;
 uniform uint in_img_height;
+uniform uint in_offset_x;
 
 uniform uint gaussscale_img_width;
 uniform uint gaussscale_img_height;
@@ -62,7 +63,7 @@ void lap_trans_y (uvec2 y_id, uvec2 gs_id)
     y_id.y = clamp (y_id.y, 0u, in_img_height - 1u);
     gs_id.y = clamp (gs_id.y, 0u, gaussscale_img_height - 1u);
 
-    uint y_idx = y_id.y * in_img_width + y_id.x;
+    uint y_idx = y_id.y * in_img_width + in_offset_x + y_id.x;
     uvec2 in_pack = in_buf_y.data[y_idx];
     vec4 in0 = unpackUnorm4x8 (in_pack.x);
     vec4 in1 = unpackUnorm4x8 (in_pack.y);
@@ -106,7 +107,7 @@ void lap_trans_uv (uvec2 uv_id, uvec2 gs_id)
     uv_id.y = clamp (uv_id.y, 0u, in_img_height / 2u - 1u);
     gs_id.y = clamp (gs_id.y, 0u, gaussscale_img_height / 2u - 1u);
 
-    uint uv_idx = uv_id.y * in_img_width + uv_id.x;
+    uint uv_idx = uv_id.y * in_img_width + in_offset_x + uv_id.x;
     uvec2 in_pack = in_buf_uv.data[uv_idx];
     vec4 in0 = unpackUnorm4x8 (in_pack.x);
     vec4 in1 = unpackUnorm4x8 (in_pack.y);

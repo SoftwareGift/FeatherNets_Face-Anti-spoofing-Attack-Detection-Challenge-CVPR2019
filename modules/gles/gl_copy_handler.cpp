@@ -49,17 +49,21 @@ GLCopyShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCmdL
     XCAM_ASSERT (in_area.width == out_area.width && in_area.height == out_area.height);
     XCAM_ASSERT (uint32_t(in_area.height) == in_desc.height && uint32_t(out_area.height) == out_desc.height);
 
-    cmds.push_back (new GLCmdBindBufRange (args->in_buf, 0, in_area.pos_x));
-    cmds.push_back (new GLCmdBindBufRange (args->out_buf, 1, out_area.pos_x));
+    cmds.push_back (new GLCmdBindBufRange (args->in_buf, 0));
+    cmds.push_back (new GLCmdBindBufRange (args->out_buf, 1));
 
     size_t unit_bytes = 4 * sizeof (uint32_t);
     uint32_t in_img_width = XCAM_ALIGN_UP (in_desc.aligned_width, unit_bytes) / unit_bytes;
+    uint32_t in_x_offset = XCAM_ALIGN_UP (in_area.pos_x, unit_bytes) / unit_bytes;
     uint32_t out_img_width = XCAM_ALIGN_UP (out_desc.aligned_width, unit_bytes) / unit_bytes;
+    uint32_t out_x_offset = XCAM_ALIGN_UP (out_area.pos_x, unit_bytes) / unit_bytes;
     uint32_t copy_width = XCAM_ALIGN_UP (in_area.width, unit_bytes) / unit_bytes;
     uint32_t copy_height = XCAM_ALIGN_UP (in_area.height, 2) / 2 * 3;
 
     cmds.push_back (new GLCmdUniformT<uint32_t> ("in_img_width", in_img_width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("in_x_offset", in_x_offset));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("out_img_width", out_img_width));
+    cmds.push_back (new GLCmdUniformT<uint32_t> ("out_x_offset", out_x_offset));
     cmds.push_back (new GLCmdUniformT<uint32_t> ("copy_width", copy_width));
 
     GLGroupsSize groups_size;
@@ -70,7 +74,7 @@ GLCopyShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCmdL
     SmartPtr<GLComputeProgram> prog;
     XCAM_FAIL_RETURN (
         ERROR, get_compute_program (prog), XCAM_RETURN_ERROR_PARAM,
-        "GLCopyShader(%s) get compute program (idx:%d) failed", args->index, XCAM_STR (get_name ()));
+        "GLCopyShader(%s) get compute program (idx:%d) failed", XCAM_STR (get_name ()), args->index);
     prog->set_groups_size (groups_size);
     prog->set_barrier (false);
 
@@ -143,7 +147,7 @@ GLCopyHandler::configure_resource (const SmartPtr<Parameters> &param)
     _copy_shader = create_copy_shader ();
     XCAM_FAIL_RETURN (
         ERROR, _copy_shader.ptr (), XCAM_RETURN_ERROR_PARAM,
-        "GLCopyHandler(%s) create copy shader (idx:%d) failed", _index, XCAM_STR (get_name ()));
+        "GLCopyHandler(%s) create copy shader (idx:%d) failed", XCAM_STR (get_name ()), _index);
 
     return XCAM_RETURN_NO_ERROR;
 }
@@ -156,7 +160,7 @@ GLCopyHandler::start_work (const SmartPtr<ImageHandler::Parameters> &param)
     XCamReturn ret = start_copy_shader (param);
     XCAM_FAIL_RETURN (
         ERROR, xcam_ret_is_ok (ret), ret,
-        "GLCopyHandler(%s) start work (idx:%d) failed", _index, XCAM_STR (get_name ()));
+        "GLCopyHandler(%s) start work (idx:%d) failed", XCAM_STR (get_name ()), _index);
 
     param->in_buf.release ();
 

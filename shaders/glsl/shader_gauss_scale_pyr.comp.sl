@@ -20,6 +20,7 @@ layout (binding = 3) writeonly buffer OutBufUV {
 
 uniform uint in_img_width;
 uniform uint in_img_height;
+uniform uint in_offset_x;
 
 uniform uint out_img_width;
 
@@ -68,14 +69,15 @@ void gauss_scale_y (uvec2 y_id)
 
     vec4 pixel_y[4];
     uint in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (gauss_start.y * in_img_width + gauss_start.x);
+    in_idx += in_offset_x;
     unpack_unorm (in_buf_y, pixel_y, in_idx);
     multiply_coeff (sum0, pixel_y, 0u);
 
-    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    in_idx = (in_id.y == 0u) ? in_idx : (in_idx + in_img_width);
     unpack_unorm (in_buf_y, pixel_y, in_idx);
     multiply_coeff (sum0, pixel_y, 1u);
 
-    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    in_idx = (in_id.y == 0u) ? in_idx : (in_idx + in_img_width);
     unpack_unorm (in_buf_y, pixel_y, in_idx);
     multiply_coeff (sum0, pixel_y, 2u);
     multiply_coeff (sum1, pixel_y, 0u);
@@ -134,15 +136,17 @@ void gauss_scale_uv (uvec2 uv_id)
 
     vec4 sum[4] = vec4[] (vec4 (0.0f), vec4 (0.0f), vec4 (0.0f), vec4 (0.0f));
     uint in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (gauss_start.y * in_img_width + gauss_start.x);
+    in_idx += in_offset_x;
+
     vec4 pixel_uv[4];
     unpack_unorm (in_buf_uv, pixel_uv, in_idx);
     multiply_coeff (sum, pixel_uv, 0u);
 
-    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    in_idx = (in_id.y == 0u) ? in_idx : (in_idx + in_img_width);
     unpack_unorm (in_buf_uv, pixel_uv, in_idx);
     multiply_coeff (sum, pixel_uv, 1u);
 
-    in_idx = (in_id.y == 0u) ? (in_id.x - 1u) : (in_idx + in_img_width);
+    in_idx = (in_id.y == 0u) ? in_idx : (in_idx + in_img_width);
     unpack_unorm (in_buf_uv, pixel_uv, in_idx);
     multiply_coeff (sum, pixel_uv, 2u);
 
