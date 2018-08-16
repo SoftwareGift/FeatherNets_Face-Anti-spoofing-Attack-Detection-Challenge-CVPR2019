@@ -35,6 +35,9 @@ uniform uint gaussscale_img_height;
 
 uniform uint merge_width;
 
+// normalization of half gray level
+const float norm_half_gl = 128.0f / 255.0f;
+
 void lap_trans_y (uvec2 y_id, uvec2 gs_id);
 void lap_trans_uv (uvec2 uv_id, uvec2 gs_id);
 
@@ -77,8 +80,11 @@ void lap_trans_y (uvec2 y_id, uvec2 gs_id)
     vec4 inter00 = vec4 (gs0.x, inter.x, gs0.y, inter.y);
     vec4 inter01 = vec4 (gs0.z, inter.z, gs0.w, inter.w);
 
-    vec4 lap0 = (in0 - inter00) * 0.5f + 0.5f;
-    vec4 lap1 = (in1 - inter01) * 0.5f + 0.5f;
+    vec4 lap0 = (in0 - inter00) * 0.5f + norm_half_gl;
+    vec4 lap1 = (in1 - inter01) * 0.5f + norm_half_gl;
+    lap0 = clamp (lap0, 0.0f, 1.0f);
+    lap1 = clamp (lap1, 0.0f, 1.0f);
+
     uint out_idx = y_id.y * merge_width + y_id.x;
     out_buf_y.data[out_idx] = uvec2 (packUnorm4x8 (lap0), packUnorm4x8 (lap1));
 
@@ -96,8 +102,11 @@ void lap_trans_y (uvec2 y_id, uvec2 gs_id)
     vec4 inter10 = (inter00 + vec4 (gs0.x, inter.x, gs0.y, inter.y)) * 0.5f;
     vec4 inter11 = (inter01 + vec4 (gs0.z, inter.z, gs0.w, inter.w)) * 0.5f;
 
-    lap0 = (in0 - inter10) * 0.5f + 0.5f;
-    lap1 = (in1 - inter11) * 0.5f + 0.5f;
+    lap0 = (in0 - inter10) * 0.5f + norm_half_gl;
+    lap1 = (in1 - inter11) * 0.5f + norm_half_gl;
+    lap0 = clamp (lap0, 0.0f, 1.0f);
+    lap1 = clamp (lap1, 0.0f, 1.0f);
+
     out_idx += merge_width;
     out_buf_y.data[out_idx] = uvec2 (packUnorm4x8 (lap0), packUnorm4x8 (lap1));
 }
@@ -121,8 +130,11 @@ void lap_trans_uv (uvec2 uv_id, uvec2 gs_id)
     vec4 inter00 = vec4 (gs0.xy, inter.xy);
     vec4 inter01 = vec4 (gs0.zw, inter.zw);
 
-    vec4 lap0 = (in0 - inter00) * 0.5f + 0.5f;
-    vec4 lap1 = (in1 - inter01) * 0.5f + 0.5f;
+    vec4 lap0 = (in0 - inter00) * 0.5f + norm_half_gl;
+    vec4 lap1 = (in1 - inter01) * 0.5f + norm_half_gl;
+    lap0 = clamp (lap0, 0.0f, 1.0f);
+    lap1 = clamp (lap1, 0.0f, 1.0f);
+
     uint out_idx = uv_id.y * merge_width + uv_id.x;
     out_buf_uv.data[out_idx] = uvec2 (packUnorm4x8 (lap0), packUnorm4x8 (lap1));
 
@@ -140,8 +152,11 @@ void lap_trans_uv (uvec2 uv_id, uvec2 gs_id)
     vec4 inter10 = (inter00 + vec4 (gs0.xy, inter.xy)) * 0.5f;
     vec4 inter11 = (inter01 + vec4 (gs0.zw, inter.zw)) * 0.5f;
 
-    lap0 = (in0 - inter10) * 0.5f + 0.5f;
-    lap1 = (in1 - inter11) * 0.5f + 0.5f;
+    lap0 = (in0 - inter10) * 0.5f + norm_half_gl;
+    lap1 = (in1 - inter11) * 0.5f + norm_half_gl;
+    lap0 = clamp (lap0, 0.0f, 1.0f);
+    lap1 = clamp (lap1, 0.0f, 1.0f);
+
     out_idx += merge_width;
     out_buf_uv.data[out_idx] = uvec2 (packUnorm4x8 (lap0), packUnorm4x8 (lap1));
 }

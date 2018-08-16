@@ -47,6 +47,9 @@ uniform uint out_offset_x;
 uniform uint prev_blend_img_width;
 uniform uint prev_blend_img_height;
 
+// normalization of gray level
+const float norm_gl = 256.0f / 255.0f;
+
 void reconstruct_y (uvec2 y_id, uvec2 blend_id);
 void reconstruct_uv (uvec2 uv_id, uvec2 blend_id);
 
@@ -92,8 +95,6 @@ void reconstruct_y (uvec2 y_id, uvec2 blend_id)
 
     vec4 lap_blend0 = (lap00 - lap10) * mask0 + lap10;
     vec4 lap_blend1 = (lap01 - lap11) * mask1 + lap11;
-    lap_blend0 = clamp (lap_blend0, 0.0f, 1.0f);
-    lap_blend1 = clamp (lap_blend1, 0.0f, 1.0f);
 
     uint prev_blend_idx = blend_id.y * prev_blend_img_width + blend_id.x;
     vec4 prev_blend0 = unpackUnorm4x8 (prev_blend_y.data[prev_blend_idx]);
@@ -104,8 +105,11 @@ void reconstruct_y (uvec2 y_id, uvec2 blend_id)
     vec4 prev_blend_inter00 = vec4 (prev_blend0.x, inter.x, prev_blend0.y, inter.y);
     vec4 prev_blend_inter01 = vec4 (prev_blend0.z, inter.z, prev_blend0.w, inter.w);
 
-    vec4 out0 = prev_blend_inter00 + lap_blend0 * 2.0f - 1.0f;
-    vec4 out1 = prev_blend_inter01 + lap_blend1 * 2.0f - 1.0f;
+    vec4 out0 = prev_blend_inter00 + lap_blend0 * 2.0f - norm_gl;
+    vec4 out1 = prev_blend_inter01 + lap_blend1 * 2.0f - norm_gl;
+    out0 = clamp (out0, 0.0f, 1.0f);
+    out1 = clamp (out1, 0.0f, 1.0f);
+
     uint out_idx = y_id.y * out_img_width + out_offset_x + y_id.x;
     out_buf_y.data[out_idx] = uvec2 (packUnorm4x8 (out0), packUnorm4x8 (out1));
 
@@ -120,8 +124,6 @@ void reconstruct_y (uvec2 y_id, uvec2 blend_id)
 
     lap_blend0 = (lap00 - lap10) * mask0 + lap10;
     lap_blend1 = (lap01 - lap11) * mask1 + lap11;
-    lap_blend0 = clamp (lap_blend0, 0.0f, 1.0f);
-    lap_blend1 = clamp (lap_blend1, 0.0f, 1.0f);
 
     prev_blend_idx = (blend_id.y >= prev_blend_img_height - 1u) ? prev_blend_idx : prev_blend_idx + prev_blend_img_width;
     prev_blend0 = unpackUnorm4x8 (prev_blend_y.data[prev_blend_idx]);
@@ -134,8 +136,11 @@ void reconstruct_y (uvec2 y_id, uvec2 blend_id)
     prev_blend_inter10 = (prev_blend_inter00 + prev_blend_inter10) * 0.5f;
     prev_blend_inter11 = (prev_blend_inter01 + prev_blend_inter11) * 0.5f;
 
-    out0 = prev_blend_inter10 + lap_blend0 * 2.0f - 1.0f;
-    out1 = prev_blend_inter11 + lap_blend1 * 2.0f - 1.0f;
+    out0 = prev_blend_inter10 + lap_blend0 * 2.0f - norm_gl;
+    out1 = prev_blend_inter11 + lap_blend1 * 2.0f - norm_gl;
+    out0 = clamp (out0, 0.0f, 1.0f);
+    out1 = clamp (out1, 0.0f, 1.0f);
+
     out_idx += out_img_width;
     out_buf_y.data[out_idx] = uvec2 (packUnorm4x8 (out0), packUnorm4x8 (out1));
 }
@@ -162,8 +167,6 @@ void reconstruct_uv (uvec2 uv_id, uvec2 blend_id)
     mask1.yw = mask1.xz;
     vec4 lap_blend0 = (lap00 - lap10) * mask0 + lap10;
     vec4 lap_blend1 = (lap01 - lap11) * mask1 + lap11;
-    lap_blend0 = clamp (lap_blend0, 0.0f, 1.0f);
-    lap_blend1 = clamp (lap_blend1, 0.0f, 1.0f);
 
     uint prev_blend_idx = blend_id.y * prev_blend_img_width + blend_id.x;
     vec4 prev_blend0 = unpackUnorm4x8 (prev_blend_uv.data[prev_blend_idx]);
@@ -174,8 +177,11 @@ void reconstruct_uv (uvec2 uv_id, uvec2 blend_id)
     vec4 prev_blend_inter00 = vec4 (prev_blend0.xy, inter.xy);
     vec4 prev_blend_inter01 = vec4 (prev_blend0.zw, inter.zw);
 
-    vec4 out0 = prev_blend_inter00 + lap_blend0 * 2.0f - 1.0f;
-    vec4 out1 = prev_blend_inter01 + lap_blend1 * 2.0f - 1.0f;
+    vec4 out0 = prev_blend_inter00 + lap_blend0 * 2.0f - norm_gl;
+    vec4 out1 = prev_blend_inter01 + lap_blend1 * 2.0f - norm_gl;
+    out0 = clamp (out0, 0.0f, 1.0f);
+    out1 = clamp (out1, 0.0f, 1.0f);
+
     uint out_idx = uv_id.y * out_img_width + out_offset_x + uv_id.x;
     out_buf_uv.data[out_idx] = uvec2 (packUnorm4x8 (out0), packUnorm4x8 (out1));
 
@@ -190,10 +196,9 @@ void reconstruct_uv (uvec2 uv_id, uvec2 blend_id)
 
     lap_blend0 = (lap00 - lap10) * mask0 + lap10;
     lap_blend1 = (lap01 - lap11) * mask1 + lap11;
-    lap_blend0 = clamp (lap_blend0, 0.0f, 1.0f);
-    lap_blend1 = clamp (lap_blend1, 0.0f, 1.0f);
 
-    prev_blend_idx = (blend_id.y >= (prev_blend_img_height / 2u - 1u)) ? prev_blend_idx : prev_blend_idx + prev_blend_img_width;
+    prev_blend_idx = (blend_id.y >= (prev_blend_img_height / 2u - 1u)) ?
+                     prev_blend_idx : prev_blend_idx + prev_blend_img_width;
     prev_blend0 = unpackUnorm4x8 (prev_blend_uv.data[prev_blend_idx]);
     prev_blend1 = unpackUnorm4x8 (prev_blend_uv.data[prev_blend_idx + 1u]);
     prev_blend1 = (blend_id.x == prev_blend_img_width - 1u) ? prev_blend0.zwzw : prev_blend1;
@@ -204,8 +209,11 @@ void reconstruct_uv (uvec2 uv_id, uvec2 blend_id)
     prev_blend_inter10 = (prev_blend_inter00 + prev_blend_inter10) * 0.5f;
     prev_blend_inter11 = (prev_blend_inter01 + prev_blend_inter11) * 0.5f;
 
-    out0 = prev_blend_inter10 + lap_blend0 * 2.0f - 1.0f;
-    out1 = prev_blend_inter11 + lap_blend1 * 2.0f - 1.0f;
+    out0 = prev_blend_inter10 + lap_blend0 * 2.0f - norm_gl;
+    out1 = prev_blend_inter11 + lap_blend1 * 2.0f - norm_gl;
+    out0 = clamp (out0, 0.0f, 1.0f);
+    out1 = clamp (out1, 0.0f, 1.0f);
+
     out_idx += out_img_width;
     out_buf_uv.data[out_idx] = uvec2 (packUnorm4x8 (out0), packUnorm4x8 (out1));
 }
