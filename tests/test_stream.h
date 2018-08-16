@@ -114,11 +114,11 @@ public:
     XCamReturn rewind ();
 
     XCamReturn read_buf ();
-    XCamReturn write_buf (char *img_name = NULL, char *frame_str = NULL);
+    XCamReturn write_buf (char *frame_str = NULL);
     virtual XCamReturn create_buf_pool (const VideoBufferInfo &info, uint32_t count) = 0;
 
 #if XCAM_TEST_OPENCV
-    void debug_write_image (char *img_name, char *frame_str, char *idx_str);
+    void debug_write_image (char *img_name, char *frame_str = NULL, char *idx_str = NULL);
 #endif
 
 protected:
@@ -129,7 +129,7 @@ protected:
 private:
 #if XCAM_TEST_OPENCV
     XCamReturn cv_open_writer ();
-    void cv_write_buf (char *img_name, char *frame_str);
+    void cv_write_buf (char *frame_str = NULL);
 #endif
 
 private:
@@ -243,14 +243,13 @@ Stream::read_buf ()
 }
 
 XCamReturn
-Stream::write_buf (char *img_name, char *frame_str) {
+Stream::write_buf (char *frame_str) {
     if (_format == FileNV12) {
         _file.write_buf (_buf);
     } else if (_format == FileMP4) {
 #if XCAM_TEST_OPENCV
-        cv_write_buf (img_name, frame_str);
+        cv_write_buf (frame_str);
 #else
-        XCAM_UNUSED (img_name);
         XCAM_UNUSED (frame_str);
         XCAM_LOG_ERROR ("stream(%s) unsupported MP4 format without opencv", _file_name);
         return XCAM_RETURN_ERROR_PARAM;
@@ -307,16 +306,14 @@ Stream::cv_open_writer ()
 }
 
 void
-Stream::cv_write_buf (char *img_name, char *frame_str)
+Stream::cv_write_buf (char *frame_str)
 {
     cv::Mat mat;
 
 #if XCAM_TEST_STREAM_DEBUG
-    XCAM_ASSERT (img_name && frame_str);
     convert_to_mat (_buf, mat);
     cv::putText (mat, frame_str, cv::Point(20, 50), fontFace, 2.0, color, 2, 8, false);
 #else
-    XCAM_UNUSED (img_name);
     XCAM_UNUSED (frame_str);
 #endif
 
@@ -331,12 +328,13 @@ Stream::cv_write_buf (char *img_name, char *frame_str)
 void
 Stream::debug_write_image (char *img_name, char *frame_str, char *idx_str)
 {
-    XCAM_ASSERT (img_name && frame_str && idx_str);
+    XCAM_ASSERT (img_name);
 
     cv::Mat mat;
     convert_to_mat (_buf, mat);
 
-    cv::putText (mat, frame_str, cv::Point(20, 50), fontFace, 2.0, color, 2, 8, false);
+    if(frame_str)
+        cv::putText (mat, frame_str, cv::Point(20, 50), fontFace, 2.0, color, 2, 8, false);
     if(idx_str)
         cv::putText (mat, idx_str, cv::Point(20, 110), fontFace, 2.0, color, 2, 8, false);
 

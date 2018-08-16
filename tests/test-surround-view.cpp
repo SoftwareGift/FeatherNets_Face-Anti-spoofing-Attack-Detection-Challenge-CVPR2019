@@ -187,21 +187,22 @@ write_image (const SVStreams &ins, const SVStreams &outs, uint32_t stream_idx)
     outs[stream_idx]->write_buf ();
 #else
     static uint32_t frame_num = 0;
-    char img_name[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
     char frame_str[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
     std::snprintf (frame_str, XCAM_TEST_MAX_STR_SIZE, "frame:%d", frame_num);
+    outs[stream_idx]->write_buf (frame_str);
 
 #if XCAM_TEST_OPENCV
+    char img_name[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
     char idx_str[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
     for (uint32_t i = 0; i < ins.size (); ++i) {
         std::snprintf (idx_str, XCAM_TEST_MAX_STR_SIZE, "idx:%d", i);
         std::snprintf (img_name, XCAM_TEST_MAX_STR_SIZE, "orig_fisheye_%d_%d.jpg", frame_num, i);
         ins[i]->debug_write_image (img_name, frame_str, idx_str);
     }
-#endif
 
     std::snprintf (img_name, XCAM_TEST_MAX_STR_SIZE, "%s_%d.jpg", outs[stream_idx]->get_file_name (), frame_num);
-    outs[stream_idx]->write_buf (img_name, frame_str);
+    outs[stream_idx]->debug_write_image (img_name, frame_str);
+#endif
 
     frame_num++;
 #endif
