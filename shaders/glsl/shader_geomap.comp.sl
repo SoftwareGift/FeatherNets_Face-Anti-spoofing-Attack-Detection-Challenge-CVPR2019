@@ -77,6 +77,7 @@ void main ()
     } else {
         vec2 in_uv_x = in_img_x.xz;
         vec2 in_uv_y = in_img_y.xz / 2.0f;
+        in_uv_y = clamp (in_uv_y, 0.0f, float (in_img_height / 2u - 1u));
         geomap_uv (in_uv_x, in_uv_y, out_bound_uv, out_data);
     }
     out_buf_uv.data[g_y / 2u * out_img_width + g_x] = out_data;
