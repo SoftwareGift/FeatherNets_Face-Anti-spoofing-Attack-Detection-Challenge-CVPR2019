@@ -124,5 +124,7 @@ private:
     float        _right_factor_y;
 };
 
+extern SmartPtr<GLImageHandler> create_gl_geo_mapper ();
+
 }
 #endif // XCAM_GL_GEOMAP_HANDER_H

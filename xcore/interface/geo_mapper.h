@@ -34,6 +34,7 @@ public:
     virtual ~GeoMapper ();
     static SmartPtr<GeoMapper> create_ocl_geo_mapper ();
     static SmartPtr<GeoMapper> create_soft_geo_mapper ();
+    static SmartPtr<GeoMapper> create_gl_geo_mapper ();
 
     //2D table
     virtual bool set_lookup_table (const PointFloat2 *data, uint32_t width, uint32_t height) = 0;

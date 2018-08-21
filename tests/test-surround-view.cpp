@@ -210,8 +210,8 @@ write_image (const SVStreams &ins, const SVStreams &outs, uint32_t stream_idx)
 
 static XCamReturn
 create_topview_mapper (
-    const SmartPtr<Stitcher> &stitcher,
-    const SmartPtr<SVStream> &stitch, const SmartPtr<SVStream> &topview)
+    const SmartPtr<Stitcher> &stitcher, const SmartPtr<SVStream> &stitch,
+    const SmartPtr<SVStream> &topview, SVModule module)
 {
     BowlModel bowl_model (stitcher->get_bowl_config (), stitch->get_width (), stitch->get_height ());
     BowlModel::PointMap points;
@@ -221,7 +221,14 @@ create_topview_mapper (
     XCAM_LOG_INFO ("Max Topview Area (L%.2fmm, W%.2fmm)", length_mm, width_mm);
 
     bowl_model.get_topview_rect_map (points, topview->get_width (), topview->get_height (), length_mm, width_mm);
-    SmartPtr<GeoMapper> mapper = GeoMapper::create_soft_geo_mapper ();
+    SmartPtr<GeoMapper> mapper;
+    if (module == SVModuleSoft) {
+        mapper = GeoMapper::create_soft_geo_mapper ();
+    } else if (module == SVModulegles) {
+#if HAVE_GLES
+        mapper = GeoMapper::create_gl_geo_mapper ();
+#endif
+    }
     XCAM_ASSERT (mapper.ptr ());
 
     mapper->set_output_size (topview->get_width (), topview->get_height ());
@@ -622,7 +629,7 @@ int main (int argc, char *argv[])
         CHECK (outs[1]->estimate_file_format (), "%s: estimate file format failed", outs[1]->get_file_name ());
         CHECK (outs[1]->open_writer ("wb"), "open output file(%s) failed", outs[1]->get_file_name ());
 
-        create_topview_mapper (stitcher, outs[0], outs[1]);
+        create_topview_mapper (stitcher, outs[0], outs[1], module);
     }
 
     CHECK_EXP (

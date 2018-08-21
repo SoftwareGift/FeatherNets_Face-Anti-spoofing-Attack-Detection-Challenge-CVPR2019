@@ -385,4 +385,19 @@ GLDualConstGeoMapHandler::start_geomap_shader (const SmartPtr<ImageHandler::Para
     return _geomap_shader->work (args);
 }
 
+SmartPtr<GLImageHandler> create_gl_geo_mapper ()
+{
+    SmartPtr<GLImageHandler> mapper = new GLGeoMapHandler ();
+    XCAM_ASSERT (mapper.ptr ());
+
+    return mapper;
+}
+
+SmartPtr<GeoMapper>
+GeoMapper::create_gl_geo_mapper ()
+{
+    SmartPtr<GLImageHandler> handler = XCam::create_gl_geo_mapper ();
+    return handler.dynamic_cast_ptr<GeoMapper> ();
+}
+
 }
