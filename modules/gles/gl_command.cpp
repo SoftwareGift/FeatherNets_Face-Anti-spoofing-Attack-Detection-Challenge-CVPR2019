@@ -156,7 +156,7 @@ GLenum uniform_mat <GLfloat, 4> (GLint location, const GLfloat *value, GLsizei c
 GLCmdUniform::GLCmdUniform (const GLchar *name)
 {
     XCAM_ASSERT (name);
-    strncpy (_name, name, sizeof (_name) - 1);
+    strncpy (_name, name, XCAM_GL_NAME_LENGTH - 1);
 }
 
 GLCmdUniform::~GLCmdUniform ()

@@ -27,7 +27,7 @@ GLShader::GLShader (GLuint id, GLenum type, const char *name)
     , _shader_id (id)
 {
     XCAM_ASSERT (name);
-    strncpy (_name, name, sizeof (_name) - 1);
+    strncpy (_name, name, XCAM_GL_NAME_LENGTH - 1);
 }
 
 GLShader::~GLShader ()

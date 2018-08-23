@@ -26,7 +26,7 @@ GLProgram::GLProgram (GLuint id, const char *name)
     : _program_id (id)
     , _state (GLProgram::StateIntiated)
 {
-    strncpy (_name, name, sizeof (_name) - 1);
+    strncpy (_name, XCAM_STR (name), XCAM_GL_NAME_LENGTH - 1);
 }
 
 GLProgram::~GLProgram ()
