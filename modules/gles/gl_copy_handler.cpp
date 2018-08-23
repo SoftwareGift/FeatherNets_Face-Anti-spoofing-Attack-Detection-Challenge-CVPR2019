@@ -76,7 +76,6 @@ GLCopyShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCmdL
         ERROR, get_compute_program (prog), XCAM_RETURN_ERROR_PARAM,
         "GLCopyShader(%s) get compute program (idx:%d) failed", XCAM_STR (get_name ()), args->index);
     prog->set_groups_size (groups_size);
-    prog->set_barrier (false);
 
     return XCAM_RETURN_NO_ERROR;
 }

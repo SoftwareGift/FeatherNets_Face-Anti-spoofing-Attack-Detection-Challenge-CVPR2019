@@ -73,12 +73,12 @@ GLImageShader::work (const SmartPtr<Worker::Arguments> &args)
         WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
         "GLImageShader(%s) work failed", XCAM_STR (get_name ()));
 
+#if ENABLE_DEBUG_SHADER
     ret = _program->finish ();
     XCAM_FAIL_RETURN (
         WARNING, ret == XCAM_RETURN_NO_ERROR, ret,
         "GLImageShader(%s) finish failed", XCAM_STR (get_name ()));
 
-#if ENABLE_DEBUG_SHADER
     char name[XCAM_GL_NAME_LENGTH] = {'\0'};
     snprintf (name, sizeof (name), "%s-%p", XCAM_STR (get_name ()), this);
     XCAM_OBJ_PROFILING_END (name, XCAM_OBJ_DUR_FRAME_NUM);

@@ -141,6 +141,8 @@ public:
 
     XCamReturn fisheye_dewarp_to_table ();
 
+    const SmartPtr<GLComputeProgram> &get_sync_prog ();
+
 private:
     SmartPtr<GLGeoMapHandler> create_geo_mapper (const Stitcher::RoundViewSlice &view_slice);
 
@@ -148,13 +150,27 @@ private:
     bool init_dewarp_factors (uint32_t idx);
 
 private:
-    FisheyeDewarp        _fisheye[XCAM_STITCH_MAX_CAMERAS];
-    Overlap              _overlaps[XCAM_STITCH_MAX_CAMERAS];
-    Copiers              _copiers;
+    FisheyeDewarp                 _fisheye[XCAM_STITCH_MAX_CAMERAS];
+    Overlap                       _overlaps[XCAM_STITCH_MAX_CAMERAS];
+    Copiers                       _copiers;
 
-    Mutex                _map_mutex;
-    GLStitcher          *_stitcher;
+    Mutex                         _map_mutex;
+    GLStitcher                   *_stitcher;
+    SmartPtr<GLComputeProgram>    _sync_prog;
 };
+
+const SmartPtr<GLComputeProgram> &
+StitcherImpl::get_sync_prog ()
+{
+    if (_sync_prog.ptr ())
+        return _sync_prog;
+
+    SmartPtr<GLComputeProgram> prog = GLComputeProgram::create_compute_program ("sync_program");
+    XCAM_FAIL_RETURN (ERROR, prog.ptr (), NULL, "create sync program failed");
+    _sync_prog = prog;
+
+    return _sync_prog;
+}
 
 bool
 StitcherImpl::init_dewarp_factors (uint32_t idx)
@@ -632,6 +648,10 @@ GLStitcher::start_work (const SmartPtr<Parameters> &base)
     XCAM_FAIL_RETURN (
         ERROR, xcam_ret_is_ok (ret), XCAM_RETURN_ERROR_PARAM,
         "gl_stitcher(%s) start dewarps failed", XCAM_STR (get_name ()));
+
+    const SmartPtr<GLComputeProgram> prog = _impl->get_sync_prog ();
+    XCAM_ASSERT (prog.ptr ());
+    ret = prog->finish ();
 
     return ret;
 }

@@ -100,7 +100,6 @@ GLGeoMapShader::prepare_arguments (const SmartPtr<Worker::Arguments> &base, GLCm
         ERROR, get_compute_program (prog), XCAM_RETURN_ERROR_PARAM,
         "GLGeoMapShader(%s) get compute program failed", XCAM_STR (get_name ()));
     prog->set_groups_size (groups_size);
-    prog->set_barrier (true);
 
     return XCAM_RETURN_NO_ERROR;
 }
