@@ -185,4 +185,22 @@ VKCopyHandler::copy_done (
     vk_worker->wait_fence ();
 }
 
+XCamReturn
+VKCopyHandler::copy (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> &out_buf)
+{
+    SmartPtr<ImageHandler::Parameters> param = new ImageHandler::Parameters (in_buf, out_buf);
+    XCAM_ASSERT (param.ptr ());
+
+    XCamReturn ret = execute_buffer (param, false);
+    XCAM_FAIL_RETURN (
+        ERROR, xcam_ret_is_ok (ret), ret,
+        "VKCopyHandler(%s) copy failed", XCAM_STR (get_name ()));
+
+    if (!out_buf.ptr ()) {
+        out_buf = param->out_buf;
+    }
+
+    return ret;
+}
+
 };
