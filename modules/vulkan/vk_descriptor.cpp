@@ -169,7 +169,8 @@ void
 Pool::destroy_desc_set (VkDescriptorSet set_id)
 {
     XCAM_ASSERT (XCAM_IS_VALID_VK_ID (_pool_id));
-    _dev->free_desc_set (set_id, _pool_id);
+    if (xcam_ret_is_ok (_dev->free_desc_set (set_id, _pool_id)))
+        ++_set_size;
 }
 
 Set::Set (VkDescriptorSet set_id, const SmartPtr<Pool> pool)

@@ -288,13 +288,19 @@ VKDevice::allocate_desc_set (const VkDescriptorSetAllocateInfo &info)
 
 }
 
-void
+XCamReturn
 VKDevice::free_desc_set (VkDescriptorSet set, VkDescriptorPool pool)
 {
     XCAM_ASSERT (XCAM_IS_VALID_VK_ID (_dev_id));
     XCAM_ASSERT (XCAM_IS_VALID_VK_ID (set));
     XCAM_ASSERT (XCAM_IS_VALID_VK_ID (pool));
-    vkFreeDescriptorSets (_dev_id, pool, 1, &set);
+
+    XCAM_VK_CHECK_RETURN (
+        ERROR,
+        vkFreeDescriptorSets (_dev_id, pool, 1, &set),
+        XCAM_RETURN_ERROR_VULKAN,
+        "vkdevice free desriptor set from pool failed");
+    return XCAM_RETURN_NO_ERROR;
 }
 
 XCamReturn

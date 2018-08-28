@@ -84,7 +84,7 @@ protected:
     void destroy_desc_pool (VkDescriptorPool pool);
 
     VkDescriptorSet allocate_desc_set (const VkDescriptorSetAllocateInfo &info);
-    void free_desc_set (VkDescriptorSet set, VkDescriptorPool pool);
+    XCamReturn free_desc_set (VkDescriptorSet set, VkDescriptorPool pool);
 
     XCamReturn update_desc_set (const std::vector<VkWriteDescriptorSet> &sets);
     VkCommandPool create_cmd_pool (VkFlags queue_flag = VK_QUEUE_COMPUTE_BIT);

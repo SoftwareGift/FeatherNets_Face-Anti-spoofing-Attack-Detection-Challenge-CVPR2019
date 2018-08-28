@@ -205,6 +205,9 @@ VKComputePipeline::update_bindings (const VKDescriptor::SetBindInfoArray &bind_a
         ERROR, _pool.ptr () && XCAM_IS_VALID_VK_ID (_desc_layout), XCAM_RETURN_ERROR_PARAM,
         "vk compute pipeline update bindins failed, pool was not set or desc_layout not ensured");
 
+    if (_desc_set.ptr ())
+        _desc_set.release ();
+
     _desc_set = _pool->allocate_set (bind_array, _desc_layout);
     XCAM_FAIL_RETURN (
         ERROR, _desc_set.ptr (), XCAM_RETURN_ERROR_UNKNOWN,
