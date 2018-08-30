@@ -212,7 +212,7 @@ Stream::open_writer (const char *option)
         return XCAM_RETURN_ERROR_PARAM;
 #endif
     } else {
-        XCAM_LOG_ERROR ("stream(%s) invalid file format: %d", _format, _file_name);
+        XCAM_LOG_ERROR ("stream(%s) invalid file format: %d", _file_name, (int)_format);
         return XCAM_RETURN_ERROR_PARAM;
     }
 
@@ -255,7 +255,7 @@ Stream::write_buf (char *frame_str) {
         return XCAM_RETURN_ERROR_PARAM;
 #endif
     } else {
-        XCAM_LOG_ERROR ("stream(%s) invalid file format: %d", _file_name, _format);
+        XCAM_LOG_ERROR ("stream(%s) invalid file format: %d", _file_name, (int)_format);
         return XCAM_RETURN_ERROR_PARAM;
     }
 
