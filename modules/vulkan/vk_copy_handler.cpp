@@ -177,7 +177,7 @@ VKCopyHandler::copy_done (
 {
     XCAM_UNUSED (worker);
     XCAM_UNUSED (args);
-    if (xcam_ret_is_ok (error)) {
+    if (!xcam_ret_is_ok (error)) {
         XCAM_LOG_ERROR ("VKCopyHandler(%s) copy failed.", XCAM_STR (get_name ()));
     }
     SmartPtr<VKWorker> vk_worker = worker.dynamic_cast_ptr<VKWorker> ();

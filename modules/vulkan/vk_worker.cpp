@@ -182,6 +182,8 @@ VKWorker::work (const SmartPtr<Worker::Arguments> &args)
         ERROR, xcam_ret_is_ok (ret), ret,
         "vk woker(%s) submit compute queue failed.", XCAM_STR (get_name ()));
 
+    status_check (args, ret);
+
     return XCAM_RETURN_NO_ERROR;
 }
 
@@ -204,7 +206,7 @@ VKWorker::wait_fence ()
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (_fence.ptr ()) {
         ret = _fence->wait ();
-        if (xcam_ret_is_ok (ret)) {
+        if (!xcam_ret_is_ok (ret)) {
             XCAM_LOG_ERROR ("vk woker(%s) wait fence failed.", XCAM_STR (get_name ()));
         }
         _fence->reset ();
