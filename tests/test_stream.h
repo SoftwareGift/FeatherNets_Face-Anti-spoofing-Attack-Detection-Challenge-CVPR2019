@@ -58,31 +58,18 @@ enum TestFileFormat {
     }
 
 template <typename TType>
-bool check_stream (const TType &streams, uint32_t idx)
-{
-    if (idx >= streams.size ())
-        return false;
-
-    if (!streams[idx].ptr()) {
-        XCAM_LOG_ERROR ("streams[%d] ptr is NULL", idx);
-        return false;
-    }
-
-    XCAM_FAIL_RETURN (
-        ERROR, streams[idx]->get_width () && streams[idx]->get_height (), false,
-        "streams[%d]: invalid parameters width:%d height:%d, please set buffer size first",
-        idx, streams[idx]->get_width (), streams[idx]->get_height ());
-
-    return true;
-}
-
-template <typename TType>
 XCamReturn check_streams (const TType &streams)
 {
     for (uint32_t i = 0; i < streams.size (); ++i) {
+        if (!streams[i].ptr()) {
+            XCAM_LOG_ERROR ("streams[%d] ptr is NULL", i);
+            return XCAM_RETURN_ERROR_PARAM;
+        }
+
         XCAM_FAIL_RETURN (
-            ERROR, check_stream<TType> (streams, i), XCAM_RETURN_ERROR_PARAM,
-            "invalid streams index:%d", i);
+            ERROR, streams[i]->get_width () && streams[i]->get_height (), XCAM_RETURN_ERROR_PARAM,
+            "streams[%d]: invalid parameters width:%d height:%d, please set buffer size first",
+            i, streams[i]->get_width (), streams[i]->get_height ());
     }
 
     return XCAM_RETURN_NO_ERROR;

@@ -21,7 +21,7 @@
 #include "test_common.h"
 #include "test_stream.h"
 #include <interface/geo_mapper.h>
-#include <interface/stitcher.h>                                                                                                                                                                                
+#include <interface/stitcher.h>
 #include <calibration_parser.h>
 #include <soft/soft_video_buf_allocator.h>
 #if HAVE_GLES
@@ -40,6 +40,12 @@ enum SVModule {
     SVModuleNone    = 0,
     SVModuleSoft,
     SVModulegles
+};
+
+enum SVOutIdx {
+    IdxStitch    = 0,
+    IdxTopView,
+    IdxCount
 };
 
 class SVStream
@@ -176,22 +182,17 @@ add_stream (SVStreams &streams, const char *stream_name, uint32_t width, uint32_
     combine_name (streams[0]->get_file_name (), stream_name, file_name);
 
     SmartPtr<SVStream> stream = new SVStream (file_name, width, height);
+    XCAM_ASSERT (stream.ptr ());
     streams.push_back (stream);
 }
 
 static void
-write_image (const SVStreams &ins, const SVStreams &outs, uint32_t stream_idx)
+write_in_image (const SVStreams &ins, uint32_t frame_num)
 {
-#if !XCAM_TEST_STREAM_DEBUG
-    XCAM_UNUSED (ins);
-    outs[stream_idx]->write_buf ();
-#else
-    static uint32_t frame_num = 0;
+#if (XCAM_TEST_STREAM_DEBUG) && (XCAM_TEST_OPENCV)
     char frame_str[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
     std::snprintf (frame_str, XCAM_TEST_MAX_STR_SIZE, "frame:%d", frame_num);
-    outs[stream_idx]->write_buf (frame_str);
 
-#if XCAM_TEST_OPENCV
     char img_name[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
     char idx_str[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
     for (uint32_t i = 0; i < ins.size (); ++i) {
@@ -199,12 +200,28 @@ write_image (const SVStreams &ins, const SVStreams &outs, uint32_t stream_idx)
         std::snprintf (img_name, XCAM_TEST_MAX_STR_SIZE, "orig_fisheye_%d_%d.jpg", frame_num, i);
         ins[i]->debug_write_image (img_name, frame_str, idx_str);
     }
-
-    std::snprintf (img_name, XCAM_TEST_MAX_STR_SIZE, "%s_%d.jpg", outs[stream_idx]->get_file_name (), frame_num);
-    outs[stream_idx]->debug_write_image (img_name, frame_str);
+#else
+    XCAM_UNUSED (ins);
+    XCAM_UNUSED (frame_num);
 #endif
+}
 
-    frame_num++;
+static void
+write_out_image (const SmartPtr<SVStream> &out, uint32_t frame_num)
+{
+#if !XCAM_TEST_STREAM_DEBUG
+    XCAM_UNUSED (frame_num);
+    out->write_buf ();
+#else
+    char frame_str[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+    std::snprintf (frame_str, XCAM_TEST_MAX_STR_SIZE, "frame:%d", frame_num);
+    out->write_buf (frame_str);
+
+#if XCAM_TEST_OPENCV
+    char img_name[XCAM_TEST_MAX_STR_SIZE] = {'\0'};
+    std::snprintf (img_name, XCAM_TEST_MAX_STR_SIZE, "%s_%d.jpg", out->get_file_name (), frame_num);
+    out->debug_write_image (img_name, frame_str);
+#endif
 #endif
 }
 
@@ -253,6 +270,25 @@ remap_topview_buf (const SmartPtr<SVStream> &stitch, const SmartPtr<SVStream> &t
     return XCAM_RETURN_NO_ERROR;
 }
 
+static void
+write_image (
+    const SVStreams &ins, const SVStreams &outs, bool save_output, bool save_topview)
+{
+    static uint32_t frame_num = 0;
+
+    write_in_image (ins, frame_num);
+
+    if (save_output)
+        write_out_image (outs[IdxStitch], frame_num);
+
+    if (save_topview) {
+        remap_topview_buf (outs[IdxStitch], outs[IdxTopView]);
+        write_out_image (outs[IdxTopView], frame_num);
+    }
+
+    frame_num++;
+}
+
 static int
 single_frame (
     const SmartPtr<Stitcher> &stitcher,
@@ -273,16 +309,10 @@ single_frame (
     }
 
     while (loop--) {
-        CHECK (stitcher->stitch_buffers (in_buffers, outs[0]->get_buf ()), "stitch buffer failed.");
-        if (save_output)
-            write_image (ins, outs, 0);
+        CHECK (stitcher->stitch_buffers (in_buffers, outs[IdxStitch]->get_buf ()), "stitch buffer failed.");
 
-        if (save_topview) {
-            if (check_stream<SVStreams> (outs, 1)) {
-                CHECK (remap_topview_buf (outs[0], outs[1]), "run topview failed");
-            }
-            write_image (ins, outs, 1);
-        }
+        if (save_output || save_topview)
+            write_image (ins, outs, save_output, save_topview);
 
         FPS_CALCULATION (surround-view, XCAM_OBJ_DUR_FRAME_NUM);
     }
@@ -319,19 +349,11 @@ multi_frame (
                 break;
 
             CHECK (
-                stitcher->stitch_buffers (in_buffers, outs[0]->get_buf ()),
+                stitcher->stitch_buffers (in_buffers, outs[IdxStitch]->get_buf ()),
                 "stitch buffer failed.");
 
-            if (save_output)
-                write_image (ins, outs, 0);
-
-            if (save_topview) {
-                if (check_stream<SVStreams> (outs, 1)) {
-                    CHECK (remap_topview_buf (outs[0], outs[1]), "run topview failed");
-                }
-
-                write_image (ins, outs, 1);
-            }
+            if (save_output || save_topview)
+                write_image (ins, outs, save_output, save_topview);
 
             FPS_CALCULATION (surround-view, XCAM_OBJ_DUR_FRAME_NUM);
         } while (true);
@@ -530,19 +552,19 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    CHECK_EXP (ins.size () == 4, "surrond view needs 4 input stream");
-
-    if (ins.empty () || outs.empty () ||
-            !strlen (ins[0]->get_file_name ()) || !strlen (outs[0]->get_file_name ())) {
-        XCAM_LOG_ERROR ("input or output file name was not set");
-        usage (argv[0]);
-        return -1;
+    CHECK_EXP (ins.size () == 4, "surrond view needs 4 input streams");
+    for (uint32_t i = 0; i < ins.size (); ++i) {
+        CHECK_EXP (ins[i].ptr (), "input stream is NULL, index:%d", i);
+        CHECK_EXP (strlen (ins[i]->get_file_name ()), "input file name was not set, index:%d", i);
     }
+
+    CHECK_EXP (outs.size () == 1 && outs[IdxStitch].ptr (), "surrond view needs 1 output stream");
+    CHECK_EXP (strlen (outs[IdxStitch]->get_file_name ()), "output file name was not set");
 
     for (uint32_t i = 0; i < ins.size (); ++i) {
         printf ("input%d file:\t\t%s\n", i, ins[i]->get_file_name ());
     }
-    printf ("output file:\t\t%s\n", outs[0]->get_file_name ());
+    printf ("output file:\t\t%s\n", outs[IdxStitch]->get_file_name ());
     printf ("input width:\t\t%d\n", input_width);
     printf ("input height:\t\t%d\n", input_height);
     printf ("output width:\t\t%d\n", output_width);
@@ -581,10 +603,11 @@ int main (int argc, char *argv[])
         CHECK (ins[i]->open_reader ("rb"), "open input file(%s) failed", ins[i]->get_file_name ());
     }
 
-    outs[0]->set_buf_size (output_width, output_height);
+    outs[IdxStitch]->set_buf_size (output_width, output_height);
     if (save_output) {
-        CHECK (outs[0]->estimate_file_format (), "%s: estimate file format failed", outs[0]->get_file_name ());
-        CHECK (outs[0]->open_writer ("wb"), "open output file(%s) failed", outs[0]->get_file_name ());
+        CHECK (outs[IdxStitch]->estimate_file_format (),
+            "%s: estimate file format failed", outs[IdxStitch]->get_file_name ());
+        CHECK (outs[IdxStitch]->open_writer ("wb"), "open output file(%s) failed", outs[IdxStitch]->get_file_name ());
     }
 
     SmartPtr<Stitcher> stitcher = create_stitcher (module);
@@ -626,10 +649,13 @@ int main (int argc, char *argv[])
 
     if (save_topview) {
         add_stream (outs, "topview", topview_width, topview_height);
-        CHECK (outs[1]->estimate_file_format (), "%s: estimate file format failed", outs[1]->get_file_name ());
-        CHECK (outs[1]->open_writer ("wb"), "open output file(%s) failed", outs[1]->get_file_name ());
+        XCAM_ASSERT (outs.size () >= IdxCount);
 
-        create_topview_mapper (stitcher, outs[0], outs[1], module);
+        CHECK (outs[IdxTopView]->estimate_file_format (),
+            "%s: estimate file format failed", outs[IdxTopView]->get_file_name ());
+        CHECK (outs[IdxTopView]->open_writer ("wb"), "open output file(%s) failed", outs[IdxTopView]->get_file_name ());
+
+        create_topview_mapper (stitcher, outs[IdxStitch], outs[IdxTopView], module);
     }
 
     CHECK_EXP (
