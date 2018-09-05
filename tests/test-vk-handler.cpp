@@ -218,6 +218,8 @@ int main (int argc, char **argv)
         CHECK (ins[i]->open_reader ("rb"), "open input file(%s) failed", ins[i]->get_file_name ());
     }
 
+    VideoBufferInfo out_info;
+    out_info.init (V4L2_PIX_FMT_NV12, output_width, output_height);
     outs[0]->set_buf_size (output_width, output_height);
     if (save_output) {
         CHECK (outs[0]->estimate_file_format (), "%s: estimate file format failed", outs[0]->get_file_name ());
@@ -228,6 +230,12 @@ int main (int argc, char **argv)
     case VKTypeCopy: {
         SmartPtr<VKCopyHandler> copyer = new VKCopyHandler (vk_device, "vk-copy");
         XCAM_ASSERT (copyer.ptr ());
+
+        Rect in_area = Rect (0, 0, input_width, input_height);
+        Rect out_area = Rect (0, 0, output_width, output_height);
+        XCAM_ASSERT (in_area.width == out_area.width && in_area.height == out_area.height);
+        copyer->set_copy_area (0, in_area, out_area);
+        copyer->set_out_video_info (out_info);
 
         CHECK (ins[0]->read_buf(), "read buffer from file(%s) failed", ins[0]->get_file_name ());
         for (int i = 0; i < loop; ++i) {

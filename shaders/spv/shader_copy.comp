@@ -12,17 +12,17 @@ layout (binding = 1) writeonly buffer OutBuf {
 
 layout (push_constant) uniform PushConsts {
     uint in_img_width;
+    uint in_x_offset;
     uint out_img_width;
+    uint out_x_offset;
     uint copy_width;
 } prop;
 
 void main ()
 {
-    uint g_x = gl_GlobalInvocationID.x;
-    uint g_y = gl_GlobalInvocationID.y;
+    uvec2 g_id = gl_GlobalInvocationID.xy;
+    g_id.x = min (g_id.x, prop.copy_width - 1u);
 
-    if (g_x >= prop.copy_width)
-        return;
-
-    out_buf.data[g_y * prop.out_img_width + g_x] = in_buf.data[g_y * prop.in_img_width + g_x];
+    out_buf.data[g_id.y * prop.out_img_width + prop.out_x_offset + g_id.x] =
+        in_buf.data[g_id.y * prop.in_img_width + prop.in_x_offset + g_id.x];
 }

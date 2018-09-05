@@ -27,6 +27,7 @@
 #include "vk_device.h"
 
 #define COPY_SHADER_BINDING_COUNT 2
+#define INVALID_INDEX (uint32_t)(-1)
 
 namespace XCam {
 
@@ -90,14 +91,41 @@ VKCopyArguments::prepare_bindings (VKDescriptor::SetBindInfoArray &binding_array
 
 VKCopyHandler::PushConstsProp::PushConstsProp ()
     : in_img_width (0)
+    , in_x_offset (0)
     , out_img_width (0)
+    , out_x_offset (0)
     , copy_width (0)
 {
 }
 
 VKCopyHandler::VKCopyHandler (const SmartPtr<VKDevice> dev, const char* name)
     : VKHandler (dev, name)
+    , _index (INVALID_INDEX)
 {
+}
+
+bool
+VKCopyHandler::set_copy_area (uint32_t idx, const Rect &in_area, const Rect &out_area)
+{
+    XCAM_FAIL_RETURN (
+        ERROR,
+        idx != INVALID_INDEX &&
+        in_area.width && in_area.height &&
+        in_area.width == out_area.width && in_area.height == out_area.height,
+        false,
+        "VKCopyHandler(%s): set copy area(idx:%d) failed, input size:%dx%d output size:%dx%d",
+        XCAM_STR (get_name ()), idx, in_area.width, in_area.height, out_area.width, out_area.height);
+
+    _index = idx;
+    _in_area = in_area;
+    _out_area = out_area;
+
+    XCAM_LOG_DEBUG ("VKCopyHandler: copy area(idx:%d) input area(%d, %d, %d, %d) output area(%d, %d, %d, %d)",
+        idx,
+        in_area.pos_x, in_area.pos_y, in_area.width, in_area.height,
+        out_area.pos_x, out_area.pos_y, out_area.width, out_area.height);
+
+    return true;
 }
 
 #define UNIT_BYTES (4*sizeof(uint32_t))
@@ -106,21 +134,34 @@ XCamReturn
 VKCopyHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &param)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
+    XCAM_ASSERT (param.ptr ());
+    XCAM_ASSERT (!_worker.ptr ());
 
     XCAM_FAIL_RETURN (
         ERROR, param->in_buf.ptr (), XCAM_RETURN_ERROR_VULKAN,
         "VKCopyHandler(%s) param.in_buf is empty.", XCAM_STR (get_name ()));
+    XCAM_FAIL_RETURN (
+        ERROR, _index != INVALID_INDEX, XCAM_RETURN_ERROR_PARAM,
+        "VKCopyHandler(%s) invalid copy area, need set copy area first", XCAM_STR (get_name ()));
 
-    VideoBufferInfo out_info = param->in_buf->get_video_info ();
-    XCAM_ASSERT (out_info.format == V4L2_PIX_FMT_NV12);
-    set_out_video_info (out_info);
+    VideoBufferInfo in_info = param->in_buf->get_video_info ();
+    VideoBufferInfo out_info;
+    if (param->out_buf.ptr ())
+        out_info = param->out_buf->get_video_info ();
+    else
+        out_info = get_out_video_info ();
+    XCAM_FAIL_RETURN (
+        ERROR, out_info.is_valid (), XCAM_RETURN_ERROR_PARAM,
+        "VKCopyHandler(%s) invalid out info.", XCAM_STR (get_name ()));
 
-    _image_prop.in_img_width =
-        _image_prop.out_img_width = out_info.aligned_width / UNIT_BYTES;
-    _image_prop.copy_width = out_info.width / UNIT_BYTES;
+    _image_prop.in_img_width = in_info.aligned_width / UNIT_BYTES;
+    _image_prop.in_x_offset = _in_area.pos_x / UNIT_BYTES;
+    _image_prop.out_img_width = out_info.aligned_width / UNIT_BYTES;
+    _image_prop.out_x_offset = _out_area.pos_x / UNIT_BYTES;
+    _image_prop.copy_width = _in_area.width / UNIT_BYTES;
     WorkSize global_size (
-        XCAM_ALIGN_UP (_image_prop.in_img_width, 8 ) / 8,
-        XCAM_ALIGN_UP (out_info.height * 3 / 2, 8 ) / 8);
+        XCAM_ALIGN_UP (_image_prop.copy_width, 8 ) / 8,
+        XCAM_ALIGN_UP (_in_area.height * 3 / 2, 8 ) / 8);
 
     _binding_layout.clear ();
     for (int i = 0; i < COPY_SHADER_BINDING_COUNT; ++i) {
@@ -175,11 +216,11 @@ VKCopyHandler::copy_done (
     const SmartPtr<Worker::Arguments> &args,
     const XCamReturn error)
 {
-    XCAM_UNUSED (worker);
     XCAM_UNUSED (args);
     if (!xcam_ret_is_ok (error)) {
         XCAM_LOG_ERROR ("VKCopyHandler(%s) copy failed.", XCAM_STR (get_name ()));
     }
+
     SmartPtr<VKWorker> vk_worker = worker.dynamic_cast_ptr<VKWorker> ();
     XCAM_ASSERT (vk_worker.ptr ());
     vk_worker->wait_fence ();

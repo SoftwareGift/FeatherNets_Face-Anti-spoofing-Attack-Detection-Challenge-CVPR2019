@@ -111,6 +111,10 @@ protected:
     XCamReturn reserve_buffers (const VideoBufferInfo &info, uint32_t count);
     SmartPtr<VideoBuffer> get_free_buf ();
 
+    const VideoBufferInfo &get_out_video_info () {
+        return _out_video_info;
+    }
+
 private:
     XCAM_DEAD_COPY (ImageHandler);
 

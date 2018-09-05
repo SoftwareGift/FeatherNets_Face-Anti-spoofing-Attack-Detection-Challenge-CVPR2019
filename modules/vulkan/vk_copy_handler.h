@@ -21,6 +21,7 @@
 #ifndef XCAM_VK_COPY_HANDLER_H
 #define XCAM_VK_COPY_HANDLER_H
 
+#include <xcam_utils.h>
 #include <vulkan/vulkan_std.h>
 #include <vulkan/vk_worker.h>
 #include <vulkan/vk_handler.h>
@@ -48,14 +49,19 @@ class VKCopyHandler
 {
 public:
     struct PushConstsProp {
-        uint in_img_width;
-        uint out_img_width;
-        uint copy_width;
+        uint    in_img_width;
+        uint    in_x_offset;
+        uint    out_img_width;
+        uint    out_x_offset;
+        uint    copy_width;
+
         PushConstsProp ();
     };
 
 public:
     explicit VKCopyHandler (const SmartPtr<VKDevice> dev, const char* name = "vk-copy-handler");
+
+    bool set_copy_area (uint32_t idx, const Rect &in_area, const Rect &out_area);
 
     XCamReturn copy (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> &out_buf);
     void copy_done (
@@ -71,6 +77,10 @@ private:
     SmartPtr<VKWorker>               _worker;
     PushConstsProp                   _image_prop;
     VKDescriptor::BindingArray       _binding_layout;
+
+    uint32_t                         _index;
+    Rect                             _in_area;
+    Rect                             _out_area;
 };
 
 }
