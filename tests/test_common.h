@@ -24,6 +24,7 @@
 
 #include <unistd.h>
 #include <getopt.h>
+#include <string>
 
 #define TEST_CAMERA_POSITION_OFFSET_X 2000
 
