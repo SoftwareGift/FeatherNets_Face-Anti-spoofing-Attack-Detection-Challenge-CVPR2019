@@ -21,14 +21,16 @@
 #include "test_common.h"
 #include "test_stream.h"
 
-#include "vulkan/vk_device.h"
-#include "vulkan/vk_copy_handler.h"
+#include <vulkan/vk_device.h>
+#include <vulkan/vk_copy_handler.h>
+#include <vulkan/vk_geomap_handler.h>
 
 using namespace XCam;
 
 enum VKType {
     VKTypeNone    = 0,
-    VKTypeCopy
+    VKTypeCopy,
+    VKTypeRemap
 };
 
 class VKStream
@@ -81,11 +83,26 @@ VKStream::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
 }
 
 static void
+calc_hor_flip_table (uint32_t width, uint32_t height, PointFloat2 *&map_table)
+{
+    XCAM_ASSERT (map_table);
+
+    float lut_size[2] = {8, 8};
+    for (uint32_t i = 0; i < height; ++i) {
+        PointFloat2 *line = &map_table[i * width];
+        for (uint32_t j = 0; j < width; j++) {
+            line[j].x = (width - j) * lut_size[0];
+            line[j].y = i * lut_size[1];
+        }
+    }
+}
+
+static void
 print_help (const char *arg0)
 {
     printf ("Usage:\n"
             "%s --type TYPE --input0 input.nv12 --output output.nv12 ...\n"
-            "\t--type              processing type, selected from: copy\n"
+            "\t--type              processing type, selected from: copy, remap\n"
             "\t--input0            input image(NV12)\n"
             "\t--output            output image(NV12/MP4)\n"
             "\t--in-w              optional, input width, default: 1280\n"
@@ -139,6 +156,8 @@ int main (int argc, char **argv)
             XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "copy"))
                 type = VKTypeCopy;
+            else if (!strcasecmp (optarg, "remap"))
+                type = VKTypeRemap;
             else {
                 XCAM_LOG_ERROR ("unknown type:%s", optarg);
                 print_help (argv[0]);
@@ -243,6 +262,26 @@ int main (int argc, char **argv)
             if (save_output)
                 outs[0]->write_buf ();
             FPS_CALCULATION (vk-copy, XCAM_OBJ_DUR_FRAME_NUM);
+        }
+        break;
+    }
+    case VKTypeRemap: {
+        SmartPtr<VKGeoMapHandler> mapper = new VKGeoMapHandler (vk_device, "vk-remap");
+        XCAM_ASSERT (mapper.ptr ());
+        mapper->set_output_size (output_width, output_height);
+
+        uint32_t lut_width = XCAM_ALIGN_UP (output_width, 8) / 8;
+        uint32_t lut_height = XCAM_ALIGN_UP (output_height, 8) / 8;
+        PointFloat2 *map_table = new PointFloat2[lut_width * lut_height];
+        calc_hor_flip_table (lut_width, lut_height, map_table);
+        mapper->set_lookup_table (map_table, lut_width, lut_height);
+
+        CHECK (ins[0]->read_buf(), "read buffer from file(%s) failed", ins[0]->get_file_name ());
+        for (int i = 0; i < loop; ++i) {
+            CHECK (mapper->remap (ins[0]->get_buf (), outs[0]->get_buf ()), "remap buffer failed");
+            if (save_output)
+                outs[0]->write_buf ();
+            FPS_CALCULATION (vk-remap, XCAM_OBJ_DUR_FRAME_NUM);
         }
         break;
     }

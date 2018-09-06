@@ -25,6 +25,7 @@ xcam_vulkan_sources =                \
     vk_worker.cpp                    \
     vulkan_common.cpp                \
     vk_copy_handler.cpp              \
+    vk_geomap_handler.cpp            \
     $(NULL)
 
 libxcam_vulkan_la_SOURCES =    \
@@ -62,6 +63,7 @@ nobase_libxcam_vulkaninclude_HEADERS = \
     vk_worker.h                        \
     vulkan_common.h                    \
     vk_copy_handler.h                  \
+    vk_geomap_handler.h                \
     $(NULL)
 
 noinst_HEADERS =                       \
