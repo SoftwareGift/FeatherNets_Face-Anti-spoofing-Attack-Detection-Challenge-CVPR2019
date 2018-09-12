@@ -20,11 +20,9 @@ uniform uint copy_width;
 
 void main ()
 {
-    uint g_x = gl_GlobalInvocationID.x;
-    uint g_y = gl_GlobalInvocationID.y;
+    uvec2 g_id = gl_GlobalInvocationID.xy;
+    g_id.x = min (g_id.x, copy_width - 1u);
 
-    if (g_x >= copy_width)
-        return;
-
-    out_buf.data[g_y * out_img_width + out_x_offset + g_x] = in_buf.data[g_y * in_img_width + in_x_offset + g_x];
+    out_buf.data[g_id.y * out_img_width + out_x_offset + g_id.x] =
+        in_buf.data[g_id.y * in_img_width + in_x_offset + g_id.x];
 }
