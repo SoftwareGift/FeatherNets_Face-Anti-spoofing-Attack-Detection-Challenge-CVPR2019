@@ -280,9 +280,9 @@ GLBlenderPriv::BlenderPrivConfig::scale_down_masks (uint32_t level, uint32_t wid
     }
     XCAM_ASSERT (prev_mask.ptr ());
 
-    const GLBufferDesc prve_desc = prev_mask->get_buffer_desc ();
-    uint8_t *prve_ptr = (uint8_t *) prev_mask->map_range (0, prve_desc.size, GL_MAP_READ_BIT);
-    XCAM_FAIL_RETURN (ERROR, prve_ptr, XCAM_RETURN_ERROR_PARAM, "map range failed");
+    const GLBufferDesc prev_desc = prev_mask->get_buffer_desc ();
+    uint8_t *prev_ptr = (uint8_t *) prev_mask->map_range (0, prev_desc.size, GL_MAP_READ_BIT);
+    XCAM_FAIL_RETURN (ERROR, prev_ptr, XCAM_RETURN_ERROR_PARAM, "map range failed");
 
     uint8_t *cur_ptr = (uint8_t *) buf->map_range (0, desc.size, GL_MAP_WRITE_BIT);
     XCAM_FAIL_RETURN (ERROR, cur_ptr, XCAM_RETURN_ERROR_PARAM, "map range failed");
@@ -292,8 +292,8 @@ GLBlenderPriv::BlenderPrivConfig::scale_down_masks (uint32_t level, uint32_t wid
         float sum = 0.0f;
 
         for (int j = 0; j < GAUSS_DIAMETER; ++j) {
-            int prev_idx = XCAM_CLAMP (prev_start + j, 0, (int)prve_desc.width);
-            sum += prve_ptr[prev_idx] * gauss_coeffs[j];
+            int prev_idx = XCAM_CLAMP (prev_start + j, 0, (int)prev_desc.width);
+            sum += prev_ptr[prev_idx] * gauss_coeffs[j];
         }
 
         cur_ptr[i] = XCAM_CLAMP (sum, 0.0f, 255.0f);
