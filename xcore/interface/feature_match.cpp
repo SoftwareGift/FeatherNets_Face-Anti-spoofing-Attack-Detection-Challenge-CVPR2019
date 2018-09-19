@@ -66,7 +66,7 @@ FeatureMatch::reset_offsets ()
 bool
 FeatureMatch::get_mean_offset (std::vector<float> &offsets, float sum, int &count, float &mean_offset)
 {
-    if (count < _config.min_corners)
+    if (count < _config.min_corners || count <= 0)
         return false;
 
     mean_offset = sum / count;
