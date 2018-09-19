@@ -27,8 +27,7 @@
 #include <xcam_mutex.h>
 #include <ocl/cl_context.h>
 
-#include <opencv/cv.hpp>
-#include <opencv/highgui.h>
+#include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
 
 namespace XCam {

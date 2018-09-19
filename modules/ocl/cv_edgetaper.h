@@ -25,11 +25,7 @@
 #include <xcam_std.h>
 #include <ocl/cv_base_class.h>
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/ocl.hpp>
-
 namespace XCam {
-
 
 class CVEdgetaper : public CVBaseClass
 {

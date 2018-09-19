@@ -27,6 +27,10 @@ XCAM_LT_LDFLAGS="-version-number $XCAM_LT_VERSION"
 AC_SUBST(XCAM_LT_VERSION)
 AC_SUBST(XCAM_LT_LDFLAGS)
 
+#xcam required OpenCV version
+XCAM_REQUIRE_CV_MIN=3.0.0
+XCAM_REQUIRE_CV_MAX=3.4.3
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
@@ -165,12 +169,21 @@ if test "$HAVE_LIBCL" -eq 1; then
     fi
 fi
 
-# check opencv minimum version number
+# check opencv version number
 HAVE_OPENCV=0
 if test "$enable_opencv" = "yes"; then
-    OPENCV_VERSION_STR=`$PKG_CONFIG --modversion opencv`
-        PKG_CHECK_MODULES([OPENCV], [opencv >= 3.0.0], [HAVE_OPENCV=1], [HAVE_OPENCV=0])
-        echo "OpenCV version:"$OPENCV_VERSION_STR "minimum required version:3.0.0" "have opencv:"$HAVE_OPENCV
+    PKG_CHECK_MODULES(
+        [OPENCV],
+        [opencv >= $XCAM_REQUIRE_CV_MIN opencv <= $XCAM_REQUIRE_CV_MAX],
+        [HAVE_OPENCV=1],
+        [HAVE_OPENCV=0])
+
+    XCAM_CV_VERSION=`$PKG_CONFIG --modversion opencv`
+    AC_MSG_NOTICE(OpenCV version: $XCAM_CV_VERSION)
+
+    if test "$HAVE_OPENCV" -eq 0; then
+        AC_MSG_ERROR(OpenCV required version: >= $XCAM_REQUIRE_CV_MIN && <= $XCAM_REQUIRE_CV_MAX)
+    fi
 fi
 
 # check opencv videostab module

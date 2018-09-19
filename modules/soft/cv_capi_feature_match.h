@@ -30,7 +30,8 @@
 #ifdef ANDROID
 #include <cv.h>
 #else
-#include <cv.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/video/tracking_c.h>
 #endif
 
 namespace XCam {
