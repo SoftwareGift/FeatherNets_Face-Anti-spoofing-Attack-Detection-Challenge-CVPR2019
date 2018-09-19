@@ -284,7 +284,7 @@ Stream::cv_open_writer ()
         "stream(%s) invalid size width:%d height:%d", _file_name, _width, _height);
 
     cv::Size frame_size = cv::Size (_width, _height);
-    if (!_writer.open (_file_name, CV_FOURCC('X', '2', '6', '4'), 30, frame_size)) {
+    if (!_writer.open (_file_name, cv::VideoWriter::fourcc ('X', '2', '6', '4'), 30, frame_size)) {
         XCAM_LOG_ERROR ("stream(%s) open file failed", _file_name);
         return XCAM_RETURN_ERROR_FILE;
     }

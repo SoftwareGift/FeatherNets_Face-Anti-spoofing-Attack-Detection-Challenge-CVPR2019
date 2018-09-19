@@ -37,13 +37,13 @@ CVEdgetaper::create_weights (const cv::Mat &image, const cv::Mat &psf, cv::Mat &
     cv::Mat rows_proj_border, cols_proj_border;
     cv::Mat rows_cor, cols_cor;
     // get psf rows and cols projections
-    cv::reduce (psf, rows_proj, 1, CV_REDUCE_SUM, -1);
-    cv::reduce (psf, cols_proj, 0, CV_REDUCE_SUM, -1);
+    cv::reduce (psf, rows_proj, 1, cv::REDUCE_SUM, -1);
+    cv::reduce (psf, cols_proj, 0, cv::REDUCE_SUM, -1);
     // calculate correlation for psf projections
     cv::copyMakeBorder (rows_proj, rows_proj_border, (psf.rows - 1) / 2, (psf.rows - 1) / 2, 0, 0, cv::BORDER_CONSTANT, cv::Scalar::all (0));
     cv::copyMakeBorder (cols_proj, cols_proj_border, 0, 0,  (psf.cols - 1) / 2, (psf.cols - 1) / 2, cv::BORDER_CONSTANT, cv::Scalar::all (0));
-    cv::matchTemplate (rows_proj_border, rows_proj, rows_cor, CV_TM_CCORR);
-    cv::matchTemplate (cols_proj_border, cols_proj, cols_cor, CV_TM_CCORR);
+    cv::matchTemplate (rows_proj_border, rows_proj, rows_cor, cv::TM_CCORR);
+    cv::matchTemplate (cols_proj_border, cols_proj, cols_cor, cv::TM_CCORR);
     // make it symmetric on both sides
     cv::Mat rows_add = cv::Mat_<float>(1, 1) << rows_proj.at<float> (0, 0);
     cv::Mat cols_add = cv::Mat_<float>(1, 1) << cols_proj.at<float> (0, 0);

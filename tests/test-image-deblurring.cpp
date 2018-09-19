@@ -58,7 +58,7 @@ static void
 non_blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
 {
     SmartPtr<CVWienerFilter> wiener_filter = new CVWienerFilter ();
-    cv::cvtColor (input_image, input_image, CV_BGR2GRAY);
+    cv::cvtColor (input_image, input_image, cv::COLOR_BGR2GRAY);
     // use simple motion blur kernel
     int kernel_size = 13;
     cv::Mat kernel = cv::Mat::zeros (kernel_size, kernel_size, CV_32FC1);
@@ -144,7 +144,7 @@ int main (int argc, char *argv[])
     printf ("----------------------\n");
 
     SmartPtr<CVImageSharp> sharp = new CVImageSharp ();
-    cv::Mat input_image = cv::imread (file_in_name, CV_LOAD_IMAGE_COLOR);
+    cv::Mat input_image = cv::imread (file_in_name, cv::IMREAD_COLOR);
     cv::Mat output_image;
     if (input_image.empty ())
     {

@@ -155,7 +155,7 @@ void
 CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size, float noise_power, bool use_edgetaper)
 {
     cv::Mat gray_blurred;
-    cv::cvtColor (blurred, gray_blurred, CV_BGR2GRAY);
+    cv::cvtColor (blurred, gray_blurred, cv::COLOR_BGR2GRAY);
     if (noise_power < 0)
     {
         cv::Mat median_blurred;

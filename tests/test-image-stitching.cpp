@@ -37,6 +37,10 @@
 #define XCAM_TEST_STITCH_DEBUG 0
 #define XCAM_ALIGNED_WIDTH 16
 
+#if HAVE_OPENCV
+#define FOURCC_X264 cv::VideoWriter::fourcc ('X', '2', '6', '4')
+#endif
+
 #define CHECK_ACCESS(fliename) \
     if (access (fliename, F_OK) != 0) {            \
         XCAM_LOG_ERROR ("%s not found", fliename); \
@@ -479,21 +483,21 @@ int main (int argc, char *argv[])
     cv::VideoWriter rectified_view_writer;
     if (need_save_output) {
         cv::Size dst_size = cv::Size (output_width, output_height);
-        if (!writer.open (file_out_name, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
+        if (!writer.open (file_out_name, FOURCC_X264, framerate, dst_size)) {
             XCAM_LOG_ERROR ("open file %s failed", file_out_name);
             return -1;
         }
     }
     if (save_top_view) {
         cv::Size dst_size = cv::Size (top_view_width, top_view_height);
-        if (!top_view_writer.open (top_view_filename, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
+        if (!top_view_writer.open (top_view_filename, FOURCC_X264, framerate, dst_size)) {
             XCAM_LOG_ERROR ("open file %s failed", top_view_filename);
             return -1;
         }
     }
     if (save_free_view) {
         cv::Size dst_size = cv::Size (rectified_view_width, rectified_view_height);
-        if (!rectified_view_writer.open (rectified_view_filename, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
+        if (!rectified_view_writer.open (rectified_view_filename, FOURCC_X264, framerate, dst_size)) {
             XCAM_LOG_ERROR ("open file %s failed", rectified_view_filename);
             return -1;
         }

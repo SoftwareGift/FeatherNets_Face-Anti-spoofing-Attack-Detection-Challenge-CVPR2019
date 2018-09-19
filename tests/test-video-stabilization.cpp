@@ -213,7 +213,7 @@ int main (int argc, char *argv[])
     cv::VideoWriter writer;
     if (need_save_output) {
         cv::Size dst_size = cv::Size (output_width, output_height);
-        if (!writer.open (file_out_name, CV_FOURCC('X', '2', '6', '4'), framerate, dst_size)) {
+        if (!writer.open (file_out_name, cv::VideoWriter::fourcc ('X', '2', '6', '4'), framerate, dst_size)) {
             XCAM_LOG_ERROR ("open file %s failed", file_out_name);
             return -1;
         }
