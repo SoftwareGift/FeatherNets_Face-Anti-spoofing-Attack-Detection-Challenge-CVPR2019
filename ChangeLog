@@ -1,3 +1,21 @@
+2017/10/16: release libxcam version 1.2.0
+ * GLES compute framework enabling.
+   - enabled GL image processing framework.
+   - enable features of multi-band blender, geometry remap and data-copy.
+
+ * GLES surround-view stitching enabling.
+   - GLES stitching enabled (feature-match may support later).
+   - performance optimized on compute shaders.
+
+ * Vulkan compute framework enabling.
+   - enabled Vulkan image processing under xcam framework.
+   - vk-copy-handler as sample code.
+
+ * suggest OpenCV version [3.0.0 - 3.4.3]
+ * support CPU stitching based on dual-const and dual-curve scaling factors.
+ * support OpenCL stitching based on auto-scale in vertical 2D-direction.
+ * change test-soft-image to test-surround-view
+
 2017/03/01: release libxcam version 1.1.0
  * CPU stitching enabled for automotive surround view in Linux/Android.
    - enable CPU multi-thread image processing framework.

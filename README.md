@@ -14,10 +14,10 @@ OpenCL is used to improve performance in different platforms.
 #### Features:
   * Image processing features.
     - Advanced features.
-      - Automotive surround view(360) stitching (both OpenCL version and CPU version).
+      - Automotive surround view(360) stitching (OpenCL/CPU/GLES).
          - Support bowl view 3D model stitching by 4 video input.
          - Enable geometry remap for WFoV camera calibration(intrinsic and extrinsic data).
-         - Quality improved (OCL version done, CPU version WIP).
+         - Quality and performance improved (OpenCL/CPU/GLES).
          - CPU version upstreamed into AOSP for automotive surround view.
       - 360 video stitching (Equirectangular mode via OpenCL).
         - Support 2-fisheye (>180 degree) video stream stitching.
@@ -25,7 +25,7 @@ OpenCL is used to improve performance in different platforms.
       - Digital Video Stabilization:
         - OpenCV feature-matched based video stabilization.
         - gyroscope 3-DoF (orientation) based video stabilization.
-      - Blender: multi-band blender (OpenCL).
+      - Blender: multi-band blender (OpenCL/CPU/GLES).
       - Noise reduction (OpenCL).
         - adaptive NR based on wavelet-haar and Bayersian shrinkage.
         - 3D-NR with inter-block and intra-block reference.
@@ -56,7 +56,7 @@ OpenCL is used to improve performance in different platforms.
   * Linux kernel > 3.10
   * install ocl-icd-dev, ocl-icd-opencl-dev
   * If --enable-libcl, need compile ocl driver <https://www.freedesktop.org/wiki/Software/Beignet/>
-  * If --enable-opencv, need compile opencv <http://opencv.org> (or: <https://github.com/opencv/opencv/wiki>)
+  * If --enable-opencv, suggest opencv versions [3.0.0 - 3.4.3]<http://opencv.org> (or: <https://github.com/opencv/opencv/wiki>)
   * If --enable-gst, need install libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev
   * If --enable-aiq, need get ia_imaging lib which we don't support.
 
