@@ -275,6 +275,7 @@ int main (int argc, char **argv)
         PointFloat2 *map_table = new PointFloat2[lut_width * lut_height];
         calc_hor_flip_table (lut_width, lut_height, map_table);
         mapper->set_lookup_table (map_table, lut_width, lut_height);
+        delete [] map_table;
 
         CHECK (ins[0]->read_buf(), "read buffer from file(%s) failed", ins[0]->get_file_name ());
         for (int i = 0; i < loop; ++i) {
