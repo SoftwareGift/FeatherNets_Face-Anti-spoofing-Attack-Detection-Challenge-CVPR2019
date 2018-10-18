@@ -165,9 +165,8 @@ StitcherImpl::get_sync_prog ()
     if (_sync_prog.ptr ())
         return _sync_prog;
 
-    SmartPtr<GLComputeProgram> prog = GLComputeProgram::create_compute_program ("sync_program");
-    XCAM_FAIL_RETURN (ERROR, prog.ptr (), NULL, "create sync program failed");
-    _sync_prog = prog;
+    _sync_prog = GLComputeProgram::create_compute_program ("sync_program");
+    XCAM_FAIL_RETURN (ERROR, _sync_prog.ptr (), _sync_prog, "create sync program failed");
 
     return _sync_prog;
 }
