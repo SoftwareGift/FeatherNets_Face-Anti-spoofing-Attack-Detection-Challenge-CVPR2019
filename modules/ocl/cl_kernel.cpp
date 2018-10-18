@@ -34,18 +34,16 @@ namespace XCam {
 CLKernel::KernelMap CLKernel::_kernel_map;
 Mutex CLKernel::_kernel_map_mutex;
 
-static char*
+static const char*
 default_cache_path () {
-    static char path[XCAM_MAX_STR_SIZE] = {0};
-    const char * home_dir = std::getenv ("HOME");
-    if (!home_dir)
-        home_dir = "/tmp";
+    static std::string path = "/tmp";
+    const char *home_dir = std::getenv ("HOME");
+    if (home_dir)
+        path.assign (home_dir, strlen (home_dir));
 
-    snprintf (
-        path, XCAM_MAX_STR_SIZE - 1,
-        "%s/%s", home_dir, ".xcam/");
+    path += "/.xcam";
 
-    return path;
+    return path.c_str ();
 }
 
 const char* CLKernel::_kernel_cache_path = default_cache_path ();
@@ -138,15 +136,15 @@ CLKernel::build_kernel (const XCamKernelInfo& info, const char* options)
     bool load_cache = false;
     struct timeval ts;
 
-    const char* cache_path = std::getenv ("XCAM_CL_KERNEL_CACHE_PATH");
-    if (NULL == cache_path) {
-        cache_path = _kernel_cache_path;
-    }
+    std::string cache_path = _kernel_cache_path;
+    const char *env = std::getenv ("XCAM_CL_KERNEL_CACHE_PATH");
+    if (env)
+        cache_path.assign (env, strlen (env));
 
     snprintf (
         cache_filename, XCAM_MAX_STR_SIZE - 1,
         "%s/%s",
-        cache_path, key_str);
+        cache_path.c_str (), key_str);
 
     {
         SmartLock locker (_kernel_map_mutex);
@@ -157,8 +155,8 @@ CLKernel::build_kernel (const XCamKernelInfo& info, const char* options)
             single_kernel = new CLKernel (context, info.kernel_name);
             XCAM_ASSERT (single_kernel.ptr ());
 
-            if (access (cache_path, F_OK) == -1) {
-                mkdir (cache_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            if (access (cache_path.c_str (), F_OK) == -1) {
+                mkdir (cache_path.c_str (), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
             }
 
             ret = cache_file.open (cache_filename, "r");

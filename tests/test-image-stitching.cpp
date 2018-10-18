@@ -72,18 +72,19 @@ parse_calibration_params (
         "extrinsic_camera_rear.txt", "extrinsic_camera_left.txt"
     };
 
-    const char *fisheye_config_path = getenv (FISHEYE_CONFIG_ENV_VAR);
-    if (!fisheye_config_path)
-        fisheye_config_path = FISHEYE_CONFIG_PATH;
-    XCAM_LOG_INFO ("calibration config path:%s", XCAM_STR (fisheye_config_path));
+    std::string fisheye_config_path = FISHEYE_CONFIG_PATH;
+    const char *env = std::getenv (FISHEYE_CONFIG_ENV_VAR);
+    if (env)
+        fisheye_config_path.assign (env, strlen (env));
+    XCAM_LOG_INFO ("calibration config path:%s", fisheye_config_path.c_str ());
 
     CalibrationParser calib_parser;
     XCAM_ASSERT (fisheye_num <= 4);
 
     char intrinsic_path[1024], extrinsic_path[1024];
     for(int index = 0; index < fisheye_num; index++) {
-        snprintf (intrinsic_path, 1023, "%s/%s", fisheye_config_path, instrinsic_names[index]);
-        snprintf (extrinsic_path, 1023, "%s/%s", fisheye_config_path, exstrinsic_names[index]);
+        snprintf (intrinsic_path, 1023, "%s/%s", fisheye_config_path.c_str (), instrinsic_names[index]);
+        snprintf (extrinsic_path, 1023, "%s/%s", fisheye_config_path.c_str (), exstrinsic_names[index]);
 
         CHECK_ACCESS (intrinsic_path);
         CHECK_ACCESS (extrinsic_path);
@@ -389,7 +390,7 @@ int main (int argc, char *argv[])
         for (int i = 0; i < input_count; i++)
             printf ("input file %d:\t\t%s\n", i, file_in_name[i]);
     }
-    printf ("output file:\t\t%s\n", file_out_name);
+    printf ("output file:\t\t%s\n", XCAM_STR (file_out_name));
     printf ("input width:\t\t%d\n", input_width);
     printf ("input height:\t\t%d\n", input_height);
     printf ("output width:\t\t%d\n", output_width);

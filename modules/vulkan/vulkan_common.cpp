@@ -66,7 +66,11 @@ vk_error_str(VkResult id)
 const std::string
 xcam_default_shader_path ()
 {
-    std::string home = std::getenv("HOME");
+    std::string home = "~";
+    const char *env = std::getenv ("HOME");
+    if (env)
+        home.assign (env, strlen (env));
+
     return home + "/.xcam/vk";
 }
 

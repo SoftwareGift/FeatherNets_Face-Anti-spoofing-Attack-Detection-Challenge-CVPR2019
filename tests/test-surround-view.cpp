@@ -614,14 +614,15 @@ int main (int argc, char *argv[])
     XCAM_ASSERT (stitcher.ptr ());
 
     CameraInfo cam_info[4];
-    const char *fisheye_config_path = getenv (FISHEYE_CONFIG_ENV_VAR);
-    if (!fisheye_config_path)
-        fisheye_config_path = FISHEYE_CONFIG_PATH;
-    XCAM_LOG_INFO ("calibration config path:%s", XCAM_STR (fisheye_config_path));
+    std::string fisheye_config_path = FISHEYE_CONFIG_PATH;
+    const char *env = std::getenv (FISHEYE_CONFIG_ENV_VAR);
+    if (env)
+        fisheye_config_path.assign (env, strlen (env));
+    XCAM_LOG_INFO ("calibration config path:%s", fisheye_config_path.c_str ());
 
     uint32_t camera_count = ins.size ();
     for (uint32_t i = 0; i < camera_count; ++i) {
-        if (parse_camera_info (fisheye_config_path, i, cam_info[i], camera_count) != 0) {
+        if (parse_camera_info (fisheye_config_path.c_str (), i, cam_info[i], camera_count) != 0) {
             XCAM_LOG_ERROR ("parse fisheye dewarp info(idx:%d) failed.", i);
             return -1;
         }
