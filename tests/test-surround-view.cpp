@@ -39,7 +39,7 @@ enum FrameMode {
 enum SVModule {
     SVModuleNone    = 0,
     SVModuleSoft,
-    SVModulegles
+    SVModuleGLES
 };
 
 enum SVOutIdx {
@@ -95,7 +95,7 @@ SVStream::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
     SmartPtr<BufferPool> pool;
     if (_module == SVModuleSoft) {
         pool = new SoftVideoBufAllocator (info);
-    } else if (_module == SVModulegles) {
+    } else if (_module == SVModuleGLES) {
 #if HAVE_GLES
         pool = new GLVideoBufferPool (info);
 #endif
@@ -118,7 +118,7 @@ create_stitcher (SVModule module)
 
     if (module == SVModuleSoft) {
         stitcher = Stitcher::create_soft_stitcher ();
-    } else if (module == SVModulegles) {
+    } else if (module == SVModuleGLES) {
 #if HAVE_GLES
         stitcher = Stitcher::create_gl_stitcher ();
 #endif
@@ -241,7 +241,7 @@ create_topview_mapper (
     SmartPtr<GeoMapper> mapper;
     if (module == SVModuleSoft) {
         mapper = GeoMapper::create_soft_geo_mapper ();
-    } else if (module == SVModulegles) {
+    } else if (module == SVModuleGLES) {
 #if HAVE_GLES
         mapper = GeoMapper::create_gl_geo_mapper ();
 #endif
@@ -459,7 +459,7 @@ int main (int argc, char *argv[])
             if (!strcasecmp (optarg, "soft"))
                 module = SVModuleSoft;
             else if (!strcasecmp (optarg, "gles")) {
-                module = SVModulegles;
+                module = SVModuleGLES;
             } else {
                 XCAM_LOG_ERROR ("unknown module:%s", optarg);
                 usage (argv[0]);
@@ -578,7 +578,7 @@ int main (int argc, char *argv[])
     printf ("save topview:\t\t%s\n", save_topview ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 
-    if (module == SVModulegles) {
+    if (module == SVModuleGLES) {
 #if !HAVE_GLES
         XCAM_LOG_ERROR ("GLES module unsupported");
         return -1;
@@ -587,7 +587,7 @@ int main (int argc, char *argv[])
 
 #if HAVE_GLES
     SmartPtr<EGLBase> egl;
-    if (module == SVModulegles) {
+    if (module == SVModuleGLES) {
         egl = new EGLBase ();
         XCAM_ASSERT (egl.ptr ());
         XCAM_FAIL_RETURN (ERROR, egl->init (), -1, "init EGL failed");
