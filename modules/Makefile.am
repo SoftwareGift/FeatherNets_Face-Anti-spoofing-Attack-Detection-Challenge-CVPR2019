@@ -22,5 +22,10 @@ else
 VULKAN_DIR =
 endif
 
+if HAVE_OSG
+RENDER_DIR = render
+else
+RENDER_DIR =
+endif
 
-SUBDIRS = soft $(ISP_DIR) $(OCL_DIR) $(GLES_DIR) $(VULKAN_DIR)
+SUBDIRS = soft $(ISP_DIR) $(OCL_DIR) $(GLES_DIR) $(VULKAN_DIR) $(RENDER_DIR)

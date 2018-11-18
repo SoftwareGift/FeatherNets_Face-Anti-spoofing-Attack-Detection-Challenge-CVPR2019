@@ -24,6 +24,12 @@ noinst_PROGRAMS = \
 	test-surround-view \
 	$(NULL)
 
+if HAVE_OSG
+noinst_PROGRAMS += \
+	test-render-surround-view \
+	$(NULL)
+endif
+
 if ENABLE_IA_AIQ
 noinst_PROGRAMS += \
 	test-poll-thread     \
@@ -166,7 +172,31 @@ test_surround_view_LDADD = \
 	$(top_builddir)/modules/soft/libxcam_soft.la \
 	$(TEST_BASE_LA) \
 	$(NULL)
+
 if HAVE_GLES
 test_surround_view_LDADD += \
+	$(top_builddir)/modules/gles/libxcam_gles.la \
+	$(NULL)
+endif
+
+if HAVE_OSG
+test_render_surround_view_SOURCES = test-render-surround-view.cpp
+test_render_surround_view_CXXFLAGS = $(TEST_BASE_CXXFLAGS)
+test_render_surround_view_LDADD = \
+	$(top_builddir)/modules/soft/libxcam_soft.la \
+	$(top_builddir)/modules/render/libxcam_render.la \
+	$(TEST_BASE_LA) \
+	-losgGA         \
+    -losgDB         \
+    -losgUtil       \
+    -losgFX         \
+    -losgText       \
+    -losgViewer     \
+    -losg           \
+	$(NULL)
+if HAVE_GLES
+test_render_surround_view_LDADD += \
 	$(top_builddir)/modules/gles/libxcam_gles.la
+endif
+
 endif

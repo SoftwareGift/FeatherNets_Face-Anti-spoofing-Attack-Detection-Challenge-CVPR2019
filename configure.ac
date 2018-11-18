@@ -89,6 +89,10 @@ AC_ARG_ENABLE(capi,
                    [enable libxcam-capi library, @<:@default=yes@:>@]),
     [], [enable_capi="yes"])
 
+AC_ARG_ENABLE(osg,
+    AS_HELP_STRING([--enable-osg],
+                   [enable open scene graph library, @<:@default=no@:>@]),
+    [], [enable_osg="no"])
 # documentation
 AC_ARG_ENABLE(docs,
     [AC_HELP_STRING([--enable-docs],
@@ -142,6 +146,12 @@ fi
 HAVE_VULKAN=0
 if test "$enable_vulkan" = "yes"; then
     PKG_CHECK_MODULES(LIBVULKAN, [vulkan], [HAVE_VULKAN=1], [HAVE_VULKAN=0])
+fi
+
+# check open sence graph
+HAVE_OSG=0
+if test "$enable_osg" = "yes"; then
+    PKG_CHECK_MODULES(LIBOSG, [openscenegraph-osg], [HAVE_OSG=1], [HAVE_OSG=0])
 fi
 
 if test "$enable_libcl" = "yes" && test "$HAVE_LIBCL" -eq 0; then
@@ -371,6 +381,9 @@ AC_DEFINE_UNQUOTED([HAVE_VULKAN], $HAVE_VULKAN,
     [have vulkan])
 AM_CONDITIONAL([HAVE_VULKAN], [test "$HAVE_VULKAN" -eq 1])
 
+AC_DEFINE_UNQUOTED([HAVE_OSG], $HAVE_OSG,
+    [have open scene graph])
+AM_CONDITIONAL([HAVE_OSG], [test "$HAVE_OSG" -eq 1])
 
 AC_DEFINE_UNQUOTED([HAVE_OPENCV], $HAVE_OPENCV,
     [have opencv])
@@ -408,6 +421,7 @@ AC_CONFIG_FILES([Makefile
                  modules/ocl/Makefile
                  modules/gles/Makefile
                  modules/vulkan/Makefile
+                 modules/render/Makefile
                  wrapper/Makefile
                  wrapper/gstreamer/Makefile
                  wrapper/gstreamer/interface/Makefile
@@ -434,6 +448,7 @@ if test "$HAVE_LIBCL" -eq 1; then have_libcl="yes"; else  have_libcl="no"; fi
 if test "$HAVE_GLES" -eq 1; then have_gles="yes"; else  have_gles="no"; fi
 if test "$HAVE_VULKAN" -eq 1; then have_vulkan="yes"; else  have_vulkan="no"; fi
 if test "$HAVE_OPENCV" -eq 1; then have_opencv="yes"; else have_opencv="no"; fi
+if test "$HAVE_OSG" -eq 1; then have_osg="yes"; else have_osg="no"; fi
 if test "$ENABLE_DVS" -eq 1; then enable_dvs="yes"; else enable_dvs="no"; fi
 
 echo "
@@ -450,6 +465,7 @@ echo "
      have Vulkan lib            : $have_vulkan
      have OpenCL lib            : $have_libcl
      have OpenCV lib            : $have_opencv
+     have Open Scene Graph lib  : $have_osg
      enable 3a lib              : $enable_3alib
      enable smart analysis lib  : $enable_smartlib
      enable dvs                 : $enable_dvs
