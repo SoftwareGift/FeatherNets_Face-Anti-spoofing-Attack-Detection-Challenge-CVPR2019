@@ -35,6 +35,13 @@ GLImageShader::~GLImageShader ()
 }
 
 XCamReturn
+GLImageShader::finish ()
+{
+    _program->finish ();
+    return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
 GLImageShader::stop ()
 {
     return XCAM_RETURN_NO_ERROR;

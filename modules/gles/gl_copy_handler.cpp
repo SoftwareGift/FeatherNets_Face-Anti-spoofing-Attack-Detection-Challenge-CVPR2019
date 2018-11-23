@@ -101,6 +101,7 @@ GLCopyHandler::copy (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> 
         ERROR, xcam_ret_is_ok (ret), ret,
         "GLCopyHandler(%s) copy failed", XCAM_STR (get_name ()));
 
+    _copy_shader->finish ();
     if (!out_buf.ptr ()) {
         out_buf = param->out_buf;
     }

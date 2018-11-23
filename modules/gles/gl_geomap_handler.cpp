@@ -124,6 +124,7 @@ GLGeoMapHandler::remap (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffe
         ERROR, xcam_ret_is_ok (ret), ret,
         "GLGeoMapHandler(%s) remap failed", XCAM_STR (get_name ()));
 
+    _geomap_shader->finish ();
     if (!out_buf.ptr ()) {
         out_buf = param->out_buf;
     }

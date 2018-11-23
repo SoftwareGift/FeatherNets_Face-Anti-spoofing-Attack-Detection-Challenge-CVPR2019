@@ -58,6 +58,7 @@ public:
 
     // derived from Worker
     virtual XCamReturn work (const SmartPtr<Arguments> &args);
+    virtual XCamReturn finish ();
     virtual XCamReturn stop ();
 
     XCamReturn create_compute_program (const GLShaderInfo &info, const char *name = NULL);
