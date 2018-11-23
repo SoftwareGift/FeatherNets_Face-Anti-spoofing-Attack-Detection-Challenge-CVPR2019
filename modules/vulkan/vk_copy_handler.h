@@ -66,7 +66,7 @@ public:
     XCamReturn copy (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> &out_buf);
     void copy_done (
         const SmartPtr<Worker> &worker,
-        const SmartPtr<Worker::Arguments> &args,
+        const SmartPtr<Worker::Arguments> &base,
         const XCamReturn error);
 
 private:

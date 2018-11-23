@@ -33,7 +33,24 @@ namespace XCam {
 
 namespace {
 
-DECLARE_WORK_CALLBACK (CbCopyTask, VKCopyHandler, copy_done);
+DECLARE_WORK_CALLBACK (CbCopyShader, VKCopyHandler, copy_done);
+
+class CopyArgs
+    : public VKWorker::VKArguments
+{
+public:
+    explicit CopyArgs (const SmartPtr<ImageHandler::Parameters> &param)
+        : _param (param)
+    {
+        XCAM_ASSERT (param.ptr ());
+    }
+    const SmartPtr<ImageHandler::Parameters> &get_param () const {
+        return _param;
+    }
+
+private:
+    SmartPtr<ImageHandler::Parameters>    _param;
+};
 
 class VKCopyPushConst
     : public VKConstRange::VKPushConstArg
@@ -171,7 +188,7 @@ VKCopyHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &par
     }
 
     if (!_worker.ptr ()) {
-        _worker = new VKWorker(get_vk_device(), "VKCopyTask", new CbCopyTask(this));
+        _worker = new VKWorker(get_vk_device(), "CbCopyShader", new CbCopyShader (this));
         XCAM_ASSERT (_worker.ptr());
 
         _worker->set_global_size (global_size);
@@ -204,7 +221,7 @@ VKCopyHandler::start_work (const SmartPtr<ImageHandler::Parameters> &param)
     bindings[1].layout = _binding_layout[1];
     bindings[1].desc = VKBufDesc (out_vk->get_vk_buf ());
 
-    SmartPtr<VKWorker::VKArguments> args = new VKWorker::VKArguments;
+    SmartPtr<CopyArgs> args = new CopyArgs (param);
     args->set_bindings (bindings);
     args->add_push_const (new VKCopyPushConst (_image_prop));
     return _worker->work (args);
@@ -213,10 +230,9 @@ VKCopyHandler::start_work (const SmartPtr<ImageHandler::Parameters> &param)
 void
 VKCopyHandler::copy_done (
     const SmartPtr<Worker> &worker,
-    const SmartPtr<Worker::Arguments> &args,
+    const SmartPtr<Worker::Arguments> &base,
     const XCamReturn error)
 {
-    XCAM_UNUSED (args);
     if (!xcam_ret_is_ok (error)) {
         XCAM_LOG_ERROR ("VKCopyHandler(%s) copy failed.", XCAM_STR (get_name ()));
     }
@@ -224,6 +240,13 @@ VKCopyHandler::copy_done (
     SmartPtr<VKWorker> vk_worker = worker.dynamic_cast_ptr<VKWorker> ();
     XCAM_ASSERT (vk_worker.ptr ());
     vk_worker->wait_fence ();
+
+    SmartPtr<CopyArgs> args = base.dynamic_cast_ptr<CopyArgs> ();
+    XCAM_ASSERT (args.ptr ());
+    const SmartPtr<ImageHandler::Parameters> param = args->get_param ();
+    XCAM_ASSERT (param.ptr ());
+
+    execute_done (param, error);
 }
 
 XCamReturn
