@@ -210,18 +210,15 @@ VKGeoMapHandler::start_work (const SmartPtr<ImageHandler::Parameters> &param)
         ERROR, in_vk.ptr () && out_vk.ptr(), XCAM_RETURN_ERROR_VULKAN,
         "VKGeoMapHandler(%s) param.in_buf or param.out_buf is not vk buffer", XCAM_STR (get_name ()));
 
-    const VideoBufferInfo in_info = in_vk->get_video_info ();
-    const VideoBufferInfo out_info = out_vk->get_video_info ();
-
     VKDescriptor::SetBindInfoArray bindings (_binding_layout.size ());
     bindings[0].layout = _binding_layout[0];
-    bindings[0].desc = VKBufDesc (in_vk->get_vk_buf ());
+    bindings[0].desc = VKBufDesc (in_vk->get_vk_buf (), NV12PlaneYIdx);
     bindings[1].layout = _binding_layout[1];
-    bindings[1].desc = VKBufDesc (in_vk->get_vk_buf (), in_info.offsets[1], in_info.size - in_info.offsets[1]);
+    bindings[1].desc = VKBufDesc (in_vk->get_vk_buf (), NV12PlaneUVIdx);
     bindings[2].layout = _binding_layout[2];
-    bindings[2].desc = VKBufDesc (out_vk->get_vk_buf ());
+    bindings[2].desc = VKBufDesc (out_vk->get_vk_buf (), NV12PlaneYIdx);
     bindings[3].layout = _binding_layout[3];
-    bindings[3].desc = VKBufDesc (out_vk->get_vk_buf (), out_info.offsets[1], out_info.size - out_info.offsets[1]);
+    bindings[3].desc = VKBufDesc (out_vk->get_vk_buf (), NV12PlaneUVIdx);
     bindings[4].layout = _binding_layout[4];
     bindings[4].desc = VKBufDesc (_lut_buf);
 

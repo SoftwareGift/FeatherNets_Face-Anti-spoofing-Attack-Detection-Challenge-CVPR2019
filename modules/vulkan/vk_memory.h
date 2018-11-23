@@ -123,6 +123,7 @@ struct VKBufDesc {
     VkDescriptorBufferInfo    desc_info;
 
     VKBufDesc ();
+    VKBufDesc (const SmartPtr<VKBuffer> &buffer, NV12PlaneIdx plane);
     VKBufDesc (const SmartPtr<VKBuffer> &buffer, uint32_t offset = 0, size_t size = VK_WHOLE_SIZE);
 };
 

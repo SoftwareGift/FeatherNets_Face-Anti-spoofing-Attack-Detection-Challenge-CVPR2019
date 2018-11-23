@@ -159,6 +159,17 @@ VKBufDesc::VKBufDesc ()
     xcam_mem_clear (desc_info);
 }
 
+VKBufDesc::VKBufDesc (const SmartPtr<VKBuffer> &buffer, NV12PlaneIdx plane)
+    : buf (buffer)
+{
+    xcam_mem_clear (desc_info);
+    const VKBufInfo info = buffer->get_buf_info ();
+
+    desc_info.buffer = buffer->get_buf_id ();
+    desc_info.offset = info.offsets[plane];
+    desc_info.range = info.slice_size[plane];
+}
+
 VKBufDesc::VKBufDesc (const SmartPtr<VKBuffer> &buffer, uint32_t offset, size_t size)
     : buf (buffer)
 {
