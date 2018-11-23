@@ -53,7 +53,7 @@ public:
 
     XCamReturn remap (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> &out_buf);
     void geomap_done (
-        const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error);
+        const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error);
 
 private:
     virtual XCamReturn configure_resource (const SmartPtr<Parameters> &param);

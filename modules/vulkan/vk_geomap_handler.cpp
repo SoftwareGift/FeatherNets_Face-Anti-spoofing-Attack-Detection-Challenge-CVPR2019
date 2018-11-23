@@ -29,7 +29,26 @@
 
 namespace XCam {
 
-DECLARE_WORK_CALLBACK (CbGeoMapTask, VKGeoMapHandler, geomap_done);
+namespace {
+
+DECLARE_WORK_CALLBACK (CbGeoMapShader, VKGeoMapHandler, geomap_done);
+
+class GeoMapArgs
+    : public VKWorker::VKArguments
+{
+public:
+    explicit GeoMapArgs (const SmartPtr<ImageHandler::Parameters> &param)
+        : _param (param)
+    {
+        XCAM_ASSERT (param.ptr ());
+    }
+    const SmartPtr<ImageHandler::Parameters> &get_param () const {
+        return _param;
+    }
+
+private:
+    SmartPtr<ImageHandler::Parameters>    _param;
+};
 
 class VKGeoMapPushConst
     : public VKConstRange::VKPushConstArg
@@ -56,6 +75,8 @@ static const VKShaderInfo geomap_shader_info (
 std::vector<uint32_t> {
 #include "shader_geomap.comp.spv"
 });
+
+}
 
 VKGeoMapHandler::PushConstsProp::PushConstsProp ()
     : in_img_width (0)
@@ -181,7 +202,7 @@ VKGeoMapHandler::configure_resource (const SmartPtr<ImageHandler::Parameters> &p
 
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_worker.ptr ()) {
-        _worker = new VKWorker (get_vk_device(), "VKGeoMapTask", new CbGeoMapTask(this));
+        _worker = new VKWorker (get_vk_device(), "CbGeoMapShader", new CbGeoMapShader (this));
         XCAM_ASSERT (_worker.ptr ());
 
         _worker->set_global_size (global_size);
@@ -229,18 +250,18 @@ VKGeoMapHandler::start_work (const SmartPtr<ImageHandler::Parameters> &param)
     _image_prop.lut_step[2] = _image_prop.lut_step[0];
     _image_prop.lut_step[3] = _image_prop.lut_step[1];
 
-    SmartPtr<VKWorker::VKArguments> args = new VKWorker::VKArguments;
+    SmartPtr<GeoMapArgs> args = new GeoMapArgs (param);
     XCAM_ASSERT (args.ptr ());
     args->set_bindings (bindings);
     args->add_push_const (new VKGeoMapPushConst (_image_prop));
+
     return _worker->work (args);
 }
 
 void
 VKGeoMapHandler::geomap_done (
-    const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &args, const XCamReturn error)
+    const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error)
 {
-    XCAM_UNUSED (args);
     if (!xcam_ret_is_ok (error)) {
         XCAM_LOG_ERROR ("VKGeoMapHandler(%s) geometry map failed.", XCAM_STR (get_name ()));
     }
@@ -248,6 +269,13 @@ VKGeoMapHandler::geomap_done (
     SmartPtr<VKWorker> vk_worker = worker.dynamic_cast_ptr<VKWorker> ();
     XCAM_ASSERT (vk_worker.ptr ());
     vk_worker->wait_fence ();
+
+    SmartPtr<GeoMapArgs> args = base.dynamic_cast_ptr<GeoMapArgs> ();
+    XCAM_ASSERT (args.ptr ());
+    const SmartPtr<ImageHandler::Parameters> param = args->get_param ();
+    XCAM_ASSERT (param.ptr ());
+
+    execute_done (param, error);
 }
 
 XCamReturn
