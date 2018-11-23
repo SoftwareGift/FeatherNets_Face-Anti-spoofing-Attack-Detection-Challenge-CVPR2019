@@ -38,23 +38,4 @@ GLImageHandler::create_allocator ()
     return new GLVideoBufferPool;
 }
 
-void
-GLImageHandler::execute_done (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err)
-{
-    XCAM_ASSERT (param.ptr ());
-
-    if (err < XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_WARNING (
-            "GLImageHandler(%s) broken with errno(%d)", XCAM_STR (get_name ()), (int)err);
-        return;
-    }
-
-    if (err > XCAM_RETURN_NO_ERROR) {
-        XCAM_LOG_WARNING (
-            "GLImageHandler(%s) continued with errno(%d)", XCAM_STR (get_name ()), (int)err);
-    }
-
-    execute_status_check (param, err);
-}
-
 }

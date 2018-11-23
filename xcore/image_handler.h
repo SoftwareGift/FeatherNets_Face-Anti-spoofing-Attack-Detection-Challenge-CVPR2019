@@ -93,6 +93,7 @@ public:
     // virtual functions
     // execute_buffer params should  NOT be const
     virtual XCamReturn execute_buffer (const SmartPtr<Parameters> &params, bool sync);
+    virtual void execute_done (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
     virtual XCamReturn finish ();
     virtual XCamReturn terminate ();
 

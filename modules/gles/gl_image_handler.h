@@ -33,9 +33,6 @@ public:
     explicit GLImageHandler (const char* name);
     ~GLImageHandler ();
 
-protected:
-    virtual void execute_done (const SmartPtr<ImageHandler::Parameters> &param, XCamReturn err);
-
 private:
     SmartPtr<BufferPool> create_allocator ();
 
