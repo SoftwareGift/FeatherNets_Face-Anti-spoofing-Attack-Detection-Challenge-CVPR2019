@@ -23,7 +23,24 @@
 
 #include <vulkan/vulkan_std.h>
 
+#define XCAM_VK_MAX_COMPONENTS 4
+
 namespace XCam {
+
+struct VKBufInfo {
+    uint32_t        format;
+    uint32_t        width;
+    uint32_t        height;
+    uint32_t        aligned_width;
+    uint32_t        aligned_height;
+    uint32_t        size;
+    uint32_t        strides[XCAM_VK_MAX_COMPONENTS];
+    uint32_t        offsets[XCAM_VK_MAX_COMPONENTS];
+    uint32_t        slice_size[XCAM_VK_MAX_COMPONENTS];
+
+    VKBufInfo ();
+    bool operator == (const VKBufInfo &info) const;
+};
 
 class VKDevice;
 
@@ -77,6 +94,13 @@ public:
         return _prop_flags;
     }
 
+    void set_buf_info (const VKBufInfo &info) {
+        _buf_info = info;
+    }
+    const VKBufInfo &get_buf_info () const {
+        return _buf_info;
+    }
+
 private:
     explicit VKBuffer (
         const SmartPtr<VKDevice> dev, VkBuffer buf_id,
@@ -91,6 +115,7 @@ private:
     VkBuffer                         _buffer_id;
     VkBufferUsageFlags               _usage_flags;
     VkMemoryPropertyFlags            _prop_flags;
+    VKBufInfo                        _buf_info;
 };
 
 struct VKBufDesc {

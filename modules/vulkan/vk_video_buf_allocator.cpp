@@ -103,6 +103,21 @@ VKVideoBufAllocator::allocate_data (const VideoBufferInfo &buffer_info)
         ERROR, vk_buf.ptr (), NULL,
         "VKVideoBufAllocator create vk memory failed. buf_size :%d", buffer_info.size);
 
+    VKBufInfo info;
+    info.format = buffer_info.format;
+    info.width = buffer_info.width;
+    info.height = buffer_info.height;
+    info.aligned_width = buffer_info.aligned_width;
+    info.aligned_height = buffer_info.aligned_height;
+    info.size = buffer_info.size;
+    info.strides[0] = buffer_info.strides[0];
+    info.strides[1] = buffer_info.strides[1];
+    info.offsets[0] = buffer_info.offsets[0];
+    info.offsets[1] = buffer_info.offsets[1];
+    info.slice_size[0] = buffer_info.strides[0] * buffer_info.aligned_height;
+    info.slice_size[1] = buffer_info.size - buffer_info.offsets[1];
+    vk_buf->set_buf_info (info);
+
     SmartPtr<VKVideoData> data = new VKVideoData (vk_buf);
     XCAM_FAIL_RETURN (
         ERROR, data.ptr () && data->is_valid (), NULL,
