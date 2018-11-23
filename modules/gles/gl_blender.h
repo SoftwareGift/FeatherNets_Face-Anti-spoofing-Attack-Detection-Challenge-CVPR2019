@@ -63,6 +63,7 @@ public:
     ~GLBlender ();
 
     //derived from GLHandler
+    virtual XCamReturn finish ();
     virtual XCamReturn terminate ();
 
     void gauss_scale_done (

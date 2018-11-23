@@ -46,6 +46,30 @@ namespace XCam {
 
 using namespace XCamGLShaders;
 
+#if DUMP_BUFFER
+#define dump_buf dump_buf_perfix_path
+
+static void
+dump_level_buf (const SmartPtr<VideoBuffer> &buf, const char *name, uint32_t level, uint32_t idx)
+{
+    XCAM_ASSERT (name);
+
+    char file_name[256];
+    snprintf (file_name, 256, "%s-L%d-Idx%d", name, level, idx);
+    dump_buf_perfix_path (buf, file_name);
+}
+#else
+static void
+dump_level_buf (const SmartPtr<VideoBuffer> &buf, ...) {
+    XCAM_UNUSED (buf);
+}
+
+static void
+dump_buf (const SmartPtr<VideoBuffer> &buf, ...) {
+    XCAM_UNUSED (buf);
+}
+#endif
+
 DECLARE_WORK_CALLBACK (CbGaussScalePyr, GLBlender, gauss_scale_done);
 DECLARE_WORK_CALLBACK (CbLapTransPyr, GLBlender, lap_trans_done);
 DECLARE_WORK_CALLBACK (CbBlendPyr, GLBlender, blend_done);
@@ -79,6 +103,7 @@ public:
 
 private:
     GLBlender                    *_blender;
+    SmartPtr<GLComputeProgram>    _sync_prog;
 
 public:
     BlenderPrivConfig (GLBlender *blender, uint32_t level)
@@ -112,33 +137,11 @@ public:
         const SmartPtr<VideoBuffer> &prev_blend_buf, uint32_t level);
     XCamReturn start_reconstruct (const SmartPtr<GLReconstructPyrShader::Args> &args, uint32_t level);
     XCamReturn stop ();
+
+    const SmartPtr<GLComputeProgram> &get_sync_prog ();
 };
 
 };
-
-#if DUMP_BUFFER
-#define dump_buf dump_buf_perfix_path
-
-static void
-dump_level_buf (const SmartPtr<VideoBuffer> &buf, const char *name, uint32_t level, uint32_t idx)
-{
-    XCAM_ASSERT (name);
-
-    char file_name[256];
-    snprintf (file_name, 256, "%s-L%d-Idx%d", name, level, idx);
-    dump_buf_perfix_path (buf, file_name);
-}
-#else
-static void
-dump_level_buf (const SmartPtr<VideoBuffer> &buf, ...) {
-    XCAM_UNUSED (buf);
-}
-
-static void
-dump_buf (const SmartPtr<VideoBuffer> &buf, ...) {
-    XCAM_UNUSED (buf);
-}
-#endif
 
 GLBlender::GLBlender (const char *name)
     : GLImageHandler (name)
@@ -152,6 +155,16 @@ GLBlender::GLBlender (const char *name)
 
 GLBlender::~GLBlender ()
 {
+}
+
+XCamReturn
+GLBlender::finish ()
+{
+    const SmartPtr<GLComputeProgram> prog = _priv_config->get_sync_prog ();
+    XCAM_ASSERT (prog.ptr ());
+    prog->finish ();
+
+    return GLImageHandler::finish ();
 }
 
 XCamReturn
@@ -173,6 +186,8 @@ GLBlender::blend (
     XCAM_ASSERT (param.ptr ());
 
     XCamReturn ret = execute_buffer (param, true);
+
+    finish ();
     if (xcam_ret_is_ok (ret) && !out_buf.ptr ()) {
         out_buf = param->out_buf;
     }
@@ -201,6 +216,18 @@ GLBlenderPriv::BlenderPrivConfig::stop ()
     }
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+const SmartPtr<GLComputeProgram> &
+GLBlenderPriv::BlenderPrivConfig::get_sync_prog ()
+{
+    if (_sync_prog.ptr ())
+        return _sync_prog;
+
+    _sync_prog = GLComputeProgram::create_compute_program ("sync_program");
+    XCAM_FAIL_RETURN (ERROR, _sync_prog.ptr (), _sync_prog, "create sync program failed");
+
+    return _sync_prog;
 }
 
 XCamReturn
