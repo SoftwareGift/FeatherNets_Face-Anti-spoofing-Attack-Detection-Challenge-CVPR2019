@@ -41,7 +41,7 @@ enum SVModule {
     SVModuleGLES
 };
 
-#define MODEL_NAME  "SmallSuv.osgb"
+#define CAR_MODEL_NAME  "Suv.osgb"
 
 static const char VtxShaderCar[] = ""
                                    "precision highp float;                                        \n"
@@ -266,14 +266,20 @@ create_surround_view_model (
 }
 
 static SmartPtr<RenderOsgModel>
-create_car_model ()
+create_car_model (const char *name)
 {
-    std::string car_model_path = FISHEYE_CONFIG_PATH + std::string(MODEL_NAME);
+    std::string car_name;
+    if (NULL != name) {
+        car_name = std::string (name);
+    } else {
+        car_name = std::string (CAR_MODEL_NAME);
+    }
+    std::string car_model_path = FISHEYE_CONFIG_PATH + car_name;
 
     const char *env_path = std::getenv (FISHEYE_CONFIG_ENV_VAR);
     if (env_path) {
         car_model_path.clear ();
-        car_model_path = std::string (env_path) + std::string (MODEL_NAME);
+        car_model_path = std::string (env_path) + car_name;
     }
 
     SmartPtr<RenderOsgModel> car_model = new RenderOsgModel (car_model_path.c_str(), true);
@@ -368,6 +374,7 @@ static void usage(const char* arg0)
             "\t--out-h             optional, output height, default: 640\n"
             "\t--scale-mode        optional, scaling mode for geometric mapping,\n"
             "\t                    select from [singleconst/dualconst/dualcurve], default: singleconst\n"
+            "\t--car               optional, car model name"
             "\t--save              optional, save file or not, select from [true/false], default: true\n"
             "\t--loop              optional, how many loops need to run, default: 1\n"
             "\t--help              usage\n",
@@ -386,6 +393,8 @@ int main (int argc, char *argv[])
 
     bool save_output = true;
 
+    const char *car_name = NULL;
+
     SVModule module = SVModuleSoft;
     GeoMapScaleMode scale_mode = ScaleSingleConst;
 
@@ -403,6 +412,7 @@ int main (int argc, char *argv[])
         {"out-w", required_argument, NULL, 'W'},
         {"out-h", required_argument, NULL, 'H'},
         {"scale-mode", required_argument, NULL, 'S'},
+        {"car", required_argument, NULL, 'c'},
         {"save", required_argument, NULL, 's'},
         {"loop", required_argument, NULL, 'L'},
         {"help", no_argument, NULL, 'e'},
@@ -464,6 +474,10 @@ int main (int argc, char *argv[])
                 return -1;
             }
             break;
+        case 'c':
+            XCAM_ASSERT (optarg);
+            car_name = optarg;
+            break;
         case 's':
             save_output = (strcasecmp (optarg, "false") == 0 ? false : true);
             break;
@@ -502,6 +516,7 @@ int main (int argc, char *argv[])
     printf ("output height:\t\t%d\n", output_height);
     printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" :
             ((scale_mode == ScaleDualConst) ? "dualconst" : "dualcurve"));
+    printf ("car model name:\t\t%s\n", car_name);
     printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 
@@ -580,7 +595,7 @@ int main (int argc, char *argv[])
     SmartPtr<RenderOsgModel> svm_model = create_surround_view_model (stitcher, output_width, output_height);
     render->add_model (svm_model);
 
-    SmartPtr<RenderOsgModel> car_model = create_car_model ();
+    SmartPtr<RenderOsgModel> car_model = create_car_model (car_name);
     render->add_model (car_model);
 
     render->validate_model_groups ();
