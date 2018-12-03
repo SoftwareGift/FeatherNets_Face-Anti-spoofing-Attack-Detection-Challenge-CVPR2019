@@ -65,7 +65,7 @@ RenderOsgModel::RenderOsgModel (const char *name, bool from_file)
     _model = new osg::Group ();
     _geode = new osg::Geode ();
 
-    if (from_file) {
+    if (from_file && NULL != _geode.get ()) {
         osg::ref_ptr<osg::Node> node = create_model_from_file (name);
         _geode->addChild (node);
     }
@@ -100,6 +100,7 @@ RenderOsgModel::append_model (SmartPtr<RenderOsgModel> &child_model)
 
     if (NULL == model.get () || NULL == child_model.ptr ()) {
         XCAM_LOG_ERROR ("Append child model ERROR!! NULL model  !!");
+        return;
     }
 
     model->addChild (child_model->get_model ());
@@ -112,6 +113,7 @@ RenderOsgModel::append_geode (SmartPtr<RenderOsgModel> &child_model)
 
     if (NULL == model.get () || NULL == child_model.ptr ()) {
         XCAM_LOG_ERROR ("Append child geode ERROR!! NULL model  !!");
+        return;
     }
 
     model->addChild (child_model->get_geode ());

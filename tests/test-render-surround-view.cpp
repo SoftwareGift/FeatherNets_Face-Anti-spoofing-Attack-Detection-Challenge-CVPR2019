@@ -145,6 +145,7 @@ SVStream::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
 
     if (!pool->reserve (count)) {
         XCAM_LOG_ERROR ("create buffer pool failed");
+        pool.release ();
         return XCAM_RETURN_ERROR_MEM;
     }
 
@@ -449,16 +450,16 @@ int main (int argc, char *argv[])
             PUSH_STREAM (SVStream, outs, optarg);
             break;
         case 'w':
-            input_width = atoi(optarg);
+            input_width = (uint32_t)atoi(optarg);
             break;
         case 'h':
-            input_height = atoi(optarg);
+            input_height = (uint32_t)atoi(optarg);
             break;
         case 'W':
-            output_width = atoi(optarg);
+            output_width = (uint32_t)atoi(optarg);
             break;
         case 'H':
-            output_height = atoi(optarg);
+            output_height = (uint32_t)atoi(optarg);
             break;
         case 'S':
             XCAM_ASSERT (optarg);
@@ -516,7 +517,7 @@ int main (int argc, char *argv[])
     printf ("output height:\t\t%d\n", output_height);
     printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" :
             ((scale_mode == ScaleDualConst) ? "dualconst" : "dualcurve"));
-    printf ("car model name:\t\t%s\n", car_name);
+    printf ("car model name:\t\t%s\n", car_name != NULL ? car_name : "Not specified, use default model");
     printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 
