@@ -153,7 +153,7 @@ VKVideoBuffer::get_vk_buf ()
 }
 
 SmartPtr<BufferPool>
-create_vk_buffer_pool (const SmartPtr<VKDevice> dev)
+create_vk_buffer_pool (const SmartPtr<VKDevice> &dev)
 {
     XCAM_FAIL_RETURN (
         ERROR, dev.ptr () && XCAM_IS_VALID_VK_ID(dev->get_dev_id()), NULL,

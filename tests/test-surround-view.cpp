@@ -28,6 +28,9 @@
 #include <gles/gl_video_buffer.h>
 #include <gles/egl/egl_base.h>
 #endif
+#if HAVE_VULKAN
+#include <vulkan/vk_device.h>
+#endif
 
 using namespace XCam;
 
@@ -39,7 +42,8 @@ enum FrameMode {
 enum SVModule {
     SVModuleNone    = 0,
     SVModuleSoft,
-    SVModuleGLES
+    SVModuleGLES,
+    SVModuleVulkan
 };
 
 enum SVOutIdx {
@@ -68,6 +72,16 @@ public:
         return _mapper;
     }
 
+#if HAVE_VULKAN
+    void set_vk_device (SmartPtr<VKDevice> &device) {
+        XCAM_ASSERT (device.ptr ());
+        _vk_dev = device;
+    }
+    SmartPtr<VKDevice> &get_vk_device () {
+        return _vk_dev;
+    }
+#endif
+
     virtual XCamReturn create_buf_pool (const VideoBufferInfo &info, uint32_t count);
 
 private:
@@ -76,6 +90,9 @@ private:
 private:
     SVModule               _module;
     SmartPtr<GeoMapper>    _mapper;
+#if HAVE_VULKAN
+    SmartPtr<VKDevice>     _vk_dev;
+#endif
 };
 typedef std::vector<SmartPtr<SVStream>> SVStreams;
 
@@ -99,6 +116,13 @@ SVStream::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
 #if HAVE_GLES
         pool = new GLVideoBufferPool (info);
 #endif
+    } else if (_module == SVModuleVulkan) {
+#if HAVE_VULKAN
+        XCAM_ASSERT (_vk_dev.ptr ());
+        pool = create_vk_buffer_pool (_vk_dev);
+        XCAM_ASSERT (pool.ptr ());
+        pool->set_video_info (info);
+#endif
     }
     XCAM_ASSERT (pool.ptr ());
 
@@ -112,7 +136,7 @@ SVStream::create_buf_pool (const VideoBufferInfo &info, uint32_t count)
 }
 
 static SmartPtr<Stitcher>
-create_stitcher (SVModule module)
+create_stitcher (const SmartPtr<SVStream> &stitch, SVModule module)
 {
     SmartPtr<Stitcher> stitcher;
 
@@ -121,6 +145,14 @@ create_stitcher (SVModule module)
     } else if (module == SVModuleGLES) {
 #if HAVE_GLES
         stitcher = Stitcher::create_gl_stitcher ();
+#endif
+    } else if (module == SVModuleVulkan) {
+#if HAVE_VULKAN
+        SmartPtr<VKDevice> dev = stitch->get_vk_device ();
+        XCAM_ASSERT (dev.ptr ());
+        stitcher = Stitcher::create_vk_stitcher (dev);
+#else
+        XCAM_UNUSED (stitch);
 #endif
     }
     XCAM_ASSERT (stitcher.ptr ());
@@ -244,6 +276,12 @@ create_topview_mapper (
     } else if (module == SVModuleGLES) {
 #if HAVE_GLES
         mapper = GeoMapper::create_gl_geo_mapper ();
+#endif
+    } else if (module == SVModuleVulkan) {
+#if HAVE_VULKAN
+        SmartPtr<VKDevice> dev = stitch->get_vk_device ();
+        XCAM_ASSERT (dev.ptr ());
+        mapper = GeoMapper::create_vk_geo_mapper (dev, "topview-map");
 #endif
     }
     XCAM_ASSERT (mapper.ptr ());
@@ -386,7 +424,7 @@ static void usage(const char* arg0)
 {
     printf ("Usage:\n"
             "%s --module MODULE --input0 input.nv12 --input1 input1.nv12 --input2 input2.nv12 ...\n"
-            "\t--module            processing module, selected from: soft, gles\n"
+            "\t--module            processing module, selected from: soft, gles, vulkan\n"
             "\t--                  read calibration files from exported path $FISHEYE_CONFIG_PATH\n"
             "\t--input0            input image(NV12)\n"
             "\t--input1            input image(NV12)\n"
@@ -460,6 +498,8 @@ int main (int argc, char *argv[])
                 module = SVModuleSoft;
             else if (!strcasecmp (optarg, "gles")) {
                 module = SVModuleGLES;
+            } else if (!strcasecmp (optarg, "vulkan")) {
+                module = SVModuleVulkan;
             } else {
                 XCAM_LOG_ERROR ("unknown module:%s", optarg);
                 usage (argv[0]);
@@ -578,19 +618,43 @@ int main (int argc, char *argv[])
     printf ("save topview:\t\t%s\n", save_topview ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 
-    if (module == SVModuleGLES) {
-#if !HAVE_GLES
-        XCAM_LOG_ERROR ("GLES module unsupported");
-        return -1;
-#endif
-    }
-
 #if HAVE_GLES
     SmartPtr<EGLBase> egl;
     if (module == SVModuleGLES) {
+        if (scale_mode == ScaleDualCurve) {
+            XCAM_LOG_ERROR ("GLES module does not support dualcurve scale mode currently");
+            return -1;
+        }
+
         egl = new EGLBase ();
         XCAM_ASSERT (egl.ptr ());
         XCAM_FAIL_RETURN (ERROR, egl->init (), -1, "init EGL failed");
+    }
+#else
+    if (module == SVModuleGLES) {
+        XCAM_LOG_ERROR ("GLES module unsupported");
+        return -1;
+    }
+#endif
+
+#if HAVE_VULKAN
+    if (module == SVModuleVulkan) {
+        if (scale_mode != ScaleSingleConst) {
+            XCAM_LOG_ERROR ("vulkan module only support singleconst scale mode currently");
+            return -1;
+        }
+
+        SmartPtr<VKDevice> vk_dev = VKDevice::default_device ();
+        for (uint32_t i = 0; i < ins.size (); ++i) {
+            ins[i]->set_vk_device (vk_dev);
+        }
+        XCAM_ASSERT (outs[IdxStitch].ptr ());
+        outs[IdxStitch]->set_vk_device (vk_dev);
+    }
+#else
+    if (module == SVModuleVulkan) {
+        XCAM_LOG_ERROR ("vulkan module unsupported");
+        return -1;
     }
 #endif
 
@@ -610,7 +674,7 @@ int main (int argc, char *argv[])
         CHECK (outs[IdxStitch]->open_writer ("wb"), "open output file(%s) failed", outs[IdxStitch]->get_file_name ());
     }
 
-    SmartPtr<Stitcher> stitcher = create_stitcher (module);
+    SmartPtr<Stitcher> stitcher = create_stitcher (outs[IdxStitch], module);
     XCAM_ASSERT (stitcher.ptr ());
 
     CameraInfo cam_info[4];

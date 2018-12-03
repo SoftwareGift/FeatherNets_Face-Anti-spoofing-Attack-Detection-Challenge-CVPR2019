@@ -115,7 +115,7 @@ VKCopyHandler::PushConstsProp::PushConstsProp ()
 {
 }
 
-VKCopyHandler::VKCopyHandler (const SmartPtr<VKDevice> dev, const char* name)
+VKCopyHandler::VKCopyHandler (const SmartPtr<VKDevice> &dev, const char* name)
     : VKHandler (dev, name)
     , _index (INVALID_INDEX)
 {

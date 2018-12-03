@@ -32,9 +32,9 @@ class VKHandler
     : public ImageHandler
 {
 public:
-    explicit VKHandler (const SmartPtr<VKDevice> dev, const char* name = "vk-handler");
+    explicit VKHandler (const SmartPtr<VKDevice> &dev, const char* name = "vk-handler");
     ~VKHandler ();
-    SmartPtr<VKDevice> get_vk_device () const {
+    const SmartPtr<VKDevice> &get_vk_device () const {
         return _device;
     }
 

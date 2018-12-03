@@ -109,7 +109,7 @@ public:
     ~Pool ();
     bool add_set_bindings (const BindingArray &binds);
     XCamReturn create ();
-    const SmartPtr<VKDevice>  get_device() const {
+    const SmartPtr<VKDevice> &get_device() const {
         return _dev;
     }
 

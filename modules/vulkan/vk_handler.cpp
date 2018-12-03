@@ -24,7 +24,7 @@
 
 namespace XCam {
 
-VKHandler::VKHandler (const SmartPtr<VKDevice> dev, const char* name)
+VKHandler::VKHandler (const SmartPtr<VKDevice> &dev, const char* name)
     : ImageHandler (name)
     , _device (dev)
 {

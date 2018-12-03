@@ -47,7 +47,7 @@ public:
     };
 
 public:
-    explicit VKGeoMapHandler (const SmartPtr<VKDevice> dev, const char* name = "vk-geomap-handler");
+    explicit VKGeoMapHandler (const SmartPtr<VKDevice> &dev, const char* name = "vk-geomap-handler");
 
     bool set_lookup_table (const PointFloat2 *data, uint32_t width, uint32_t height);
 
@@ -71,6 +71,8 @@ private:
     uint32_t                         _lut_width;
     uint32_t                         _lut_height;
 };
+
+extern SmartPtr<VKHandler> create_vk_geo_mapper (const SmartPtr<VKDevice> &dev, const char* name);
 
 }
 #endif // XCAM_VK_GEOMAP_HANDLER_H

@@ -27,6 +27,8 @@
 
 namespace XCam {
 
+class VKDevice;
+
 class GeoMapper
 {
 public:
@@ -35,6 +37,7 @@ public:
     static SmartPtr<GeoMapper> create_ocl_geo_mapper ();
     static SmartPtr<GeoMapper> create_soft_geo_mapper ();
     static SmartPtr<GeoMapper> create_gl_geo_mapper ();
+    static SmartPtr<GeoMapper> create_vk_geo_mapper (const SmartPtr<VKDevice> &dev, const char* name);
 
     //2D table
     virtual bool set_lookup_table (const PointFloat2 *data, uint32_t width, uint32_t height) = 0;

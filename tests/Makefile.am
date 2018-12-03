@@ -172,11 +172,14 @@ test_surround_view_LDADD = \
 	$(top_builddir)/modules/soft/libxcam_soft.la \
 	$(TEST_BASE_LA) \
 	$(NULL)
-
 if HAVE_GLES
 test_surround_view_LDADD += \
 	$(top_builddir)/modules/gles/libxcam_gles.la \
 	$(NULL)
+endif
+if HAVE_VULKAN
+test_surround_view_LDADD += \
+	$(top_builddir)/modules/vulkan/libxcam_vulkan.la
 endif
 
 if ENABLE_RENDER

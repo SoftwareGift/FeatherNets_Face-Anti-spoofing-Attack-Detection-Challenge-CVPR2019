@@ -130,7 +130,7 @@ private:
 };
 
 class VKDevice;
-SmartPtr<BufferPool> create_vk_buffer_pool (const SmartPtr<VKDevice> dev);
+SmartPtr<BufferPool> create_vk_buffer_pool (const SmartPtr<VKDevice> &dev);
 
 };
 

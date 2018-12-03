@@ -90,7 +90,7 @@ VKGeoMapHandler::PushConstsProp::PushConstsProp ()
     xcam_mem_clear (lut_std_step);
 }
 
-VKGeoMapHandler::VKGeoMapHandler (const SmartPtr<VKDevice> dev, const char* name)
+VKGeoMapHandler::VKGeoMapHandler (const SmartPtr<VKDevice> &dev, const char* name)
     : VKHandler (dev, name)
 {
 }
@@ -294,6 +294,21 @@ VKGeoMapHandler::remap (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffe
     }
 
     return ret;
+}
+
+SmartPtr<VKHandler> create_vk_geo_mapper (const SmartPtr<VKDevice> &dev, const char* name)
+{
+    SmartPtr<VKHandler> mapper = new VKGeoMapHandler (dev, name);
+    XCAM_ASSERT (mapper.ptr ());
+
+    return mapper;
+}
+
+SmartPtr<GeoMapper>
+GeoMapper::create_vk_geo_mapper (const SmartPtr<VKDevice> &dev, const char* name)
+{
+    SmartPtr<VKHandler> handler = XCam::create_vk_geo_mapper (dev, name);
+    return handler.dynamic_cast_ptr<GeoMapper> ();
 }
 
 };

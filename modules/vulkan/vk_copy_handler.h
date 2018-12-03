@@ -59,9 +59,12 @@ public:
     };
 
 public:
-    explicit VKCopyHandler (const SmartPtr<VKDevice> dev, const char* name = "vk-copy-handler");
+    explicit VKCopyHandler (const SmartPtr<VKDevice> &dev, const char* name = "vk-copy-handler");
 
     bool set_copy_area (uint32_t idx, const Rect &in_area, const Rect &out_area);
+    uint32_t get_index () {
+        return _index;
+    }
 
     XCamReturn copy (const SmartPtr<VideoBuffer> &in_buf, SmartPtr<VideoBuffer> &out_buf);
     void copy_done (

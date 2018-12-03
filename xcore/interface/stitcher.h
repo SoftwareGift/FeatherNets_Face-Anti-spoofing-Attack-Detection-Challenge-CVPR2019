@@ -70,6 +70,8 @@ struct CameraInfo {
     float             angle_range;;
 };
 
+class VKDevice;
+
 class Stitcher
 {
 public:
@@ -127,6 +129,7 @@ public:
     static SmartPtr<Stitcher> create_ocl_stitcher ();
     static SmartPtr<Stitcher> create_soft_stitcher ();
     static SmartPtr<Stitcher> create_gl_stitcher ();
+    static SmartPtr<Stitcher> create_vk_stitcher (const SmartPtr<VKDevice> dev);
 
     bool set_bowl_config (const BowlDataConfig &config);
     const BowlDataConfig &get_bowl_config () {
