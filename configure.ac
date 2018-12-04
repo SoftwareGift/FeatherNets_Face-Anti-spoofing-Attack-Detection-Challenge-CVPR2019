@@ -31,6 +31,9 @@ AC_SUBST(XCAM_LT_LDFLAGS)
 XCAM_REQUIRE_CV_MIN=3.0.0
 XCAM_REQUIRE_CV_MAX=3.4.3
 
+#xcam required OpenSceneGraph version
+XCAM_REQUIRE_OSG_MIN=3.3.2
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
@@ -77,7 +80,7 @@ AC_ARG_ENABLE([gles],
 AC_ARG_ENABLE([vulkan],
     AS_HELP_STRING([--enable-vulkan],
                    [enable vulkan, @<:@default=no@:>@]),
-    [], [enable_vulkan="yes"])
+    [], [enable_vulkan="no"])
 
 AC_ARG_ENABLE(opencv,
     AS_HELP_STRING([--enable-opencv],
@@ -89,10 +92,10 @@ AC_ARG_ENABLE(capi,
                    [enable libxcam-capi library, @<:@default=yes@:>@]),
     [], [enable_capi="yes"])
 
-AC_ARG_ENABLE(osg,
-    AS_HELP_STRING([--enable-osg],
-                   [enable open scene graph library, @<:@default=no@:>@]),
-    [], [enable_osg="no"])
+AC_ARG_ENABLE([render],
+    AS_HELP_STRING([--enable-render],
+                   [enable texture render with OpenSceneGraph library, @<:@default=no@:>@]),
+    [], [enable_render="no"])
 # documentation
 AC_ARG_ENABLE(docs,
     [AC_HELP_STRING([--enable-docs],
@@ -149,9 +152,23 @@ if test "$enable_vulkan" = "yes"; then
 fi
 
 # check open sence graph
-HAVE_OSG=0
-if test "$enable_osg" = "yes"; then
-    PKG_CHECK_MODULES(LIBOSG, [openscenegraph-osg], [HAVE_OSG=1], [HAVE_OSG=0])
+ENABLE_RENDER=0
+if test "$enable_render" = "yes"; then
+    PKG_CHECK_MODULES(
+        [LIBOSG],
+        [openscenegraph >= $XCAM_REQUIRE_OSG_MIN],
+        [HAVE_OSG=1],
+        [HAVE_OSG=0])
+
+    XCAM_OSG_VERSION=`$PKG_CONFIG --modversion openscenegraph`
+    AC_MSG_NOTICE(OpenSceneGraph version: $XCAM_OSG_VERSION)
+
+    if test "$HAVE_OSG" -eq 1; then
+        ENABLE_RENDER=1
+    else
+        AC_MSG_WARN(OpenSceneGraph required version: >= $XCAM_REQUIRE_OSG_MIN)
+        ENABLE_RENDER=0
+    fi
 fi
 
 if test "$enable_libcl" = "yes" && test "$HAVE_LIBCL" -eq 0; then
@@ -381,9 +398,9 @@ AC_DEFINE_UNQUOTED([HAVE_VULKAN], $HAVE_VULKAN,
     [have vulkan])
 AM_CONDITIONAL([HAVE_VULKAN], [test "$HAVE_VULKAN" -eq 1])
 
-AC_DEFINE_UNQUOTED([HAVE_OSG], $HAVE_OSG,
-    [have open scene graph])
-AM_CONDITIONAL([HAVE_OSG], [test "$HAVE_OSG" -eq 1])
+AC_DEFINE_UNQUOTED([ENABLE_RENDER], $ENABLE_RENDER,
+    [enable texture render])
+AM_CONDITIONAL([ENABLE_RENDER], [test "$ENABLE_RENDER" -eq 1])
 
 AC_DEFINE_UNQUOTED([HAVE_OPENCV], $HAVE_OPENCV,
     [have opencv])
@@ -448,7 +465,7 @@ if test "$HAVE_LIBCL" -eq 1; then have_libcl="yes"; else  have_libcl="no"; fi
 if test "$HAVE_GLES" -eq 1; then have_gles="yes"; else  have_gles="no"; fi
 if test "$HAVE_VULKAN" -eq 1; then have_vulkan="yes"; else  have_vulkan="no"; fi
 if test "$HAVE_OPENCV" -eq 1; then have_opencv="yes"; else have_opencv="no"; fi
-if test "$HAVE_OSG" -eq 1; then have_osg="yes"; else have_osg="no"; fi
+if test "$ENABLE_RENDER" -eq 1; then enable_render="yes"; else enable_render="no"; fi
 if test "$ENABLE_DVS" -eq 1; then enable_dvs="yes"; else enable_dvs="no"; fi
 
 echo "
@@ -461,11 +478,11 @@ echo "
      build aiq analyzer         : $enable_aiq
      use local aiq              : $use_local_aiq
      use local atomisp          : $use_local_atomisp
-     have GLES lib              : $have_gles
-     have Vulkan lib            : $have_vulkan
-     have OpenCL lib            : $have_libcl
-     have OpenCV lib            : $have_opencv
-     have Open Scene Graph lib  : $have_osg
+     enable OpenCV              : $have_opencv
+     enable OpenCL              : $have_libcl
+     enable GLES                : $have_gles
+     enable Vulkan              : $have_vulkan
+     enable OSG render          : $enable_render
      enable 3a lib              : $enable_3alib
      enable smart analysis lib  : $enable_smartlib
      enable dvs                 : $enable_dvs

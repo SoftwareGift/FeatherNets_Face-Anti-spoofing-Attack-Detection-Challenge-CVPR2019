@@ -22,7 +22,7 @@ else
 VULKAN_DIR =
 endif
 
-if HAVE_OSG
+if ENABLE_RENDER
 RENDER_DIR = render
 else
 RENDER_DIR =

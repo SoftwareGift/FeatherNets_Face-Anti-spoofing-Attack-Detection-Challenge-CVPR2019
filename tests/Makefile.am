@@ -24,7 +24,7 @@ noinst_PROGRAMS = \
 	test-surround-view \
 	$(NULL)
 
-if HAVE_OSG
+if ENABLE_RENDER
 noinst_PROGRAMS += \
 	test-render-surround-view \
 	$(NULL)
@@ -179,7 +179,7 @@ test_surround_view_LDADD += \
 	$(NULL)
 endif
 
-if HAVE_OSG
+if ENABLE_RENDER
 test_render_surround_view_SOURCES = test-render-surround-view.cpp
 test_render_surround_view_CXXFLAGS = $(TEST_BASE_CXXFLAGS)
 test_render_surround_view_LDADD = \
