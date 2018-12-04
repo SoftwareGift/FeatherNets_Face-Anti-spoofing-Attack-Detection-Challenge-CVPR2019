@@ -89,8 +89,8 @@ AC_ARG_ENABLE(opencv,
 
 AC_ARG_ENABLE(capi,
     AS_HELP_STRING([--enable-capi],
-                   [enable libxcam-capi library, @<:@default=yes@:>@]),
-    [], [enable_capi="yes"])
+                   [enable libxcam-capi library, @<:@default=no@:>@]),
+    [], [enable_capi="no"])
 
 AC_ARG_ENABLE([render],
     AS_HELP_STRING([--enable-render],
@@ -255,7 +255,8 @@ fi
 
 # check capi build
 ENABLE_CAPI=0
-if test "$enable_capi" = "yes"; then
+if test "$enable_capi" = "yes" && test "$HAVE_LIBCL" -eq 1; then
+    AC_MSG_NOTICE(enable capi && have libcl: $HAVE_LIBCL)
     ENABLE_CAPI=1
 fi
 
@@ -467,6 +468,7 @@ if test "$HAVE_VULKAN" -eq 1; then have_vulkan="yes"; else  have_vulkan="no"; fi
 if test "$HAVE_OPENCV" -eq 1; then have_opencv="yes"; else have_opencv="no"; fi
 if test "$ENABLE_RENDER" -eq 1; then enable_render="yes"; else enable_render="no"; fi
 if test "$ENABLE_DVS" -eq 1; then enable_dvs="yes"; else enable_dvs="no"; fi
+if test "$ENABLE_CAPI" -eq 1; then enable_capi="yes"; else enable_capi="no"; fi
 
 echo "
      libxcam configuration summary
