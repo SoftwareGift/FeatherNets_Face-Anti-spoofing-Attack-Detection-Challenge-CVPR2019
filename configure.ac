@@ -156,11 +156,11 @@ ENABLE_RENDER=0
 if test "$enable_render" = "yes"; then
     PKG_CHECK_MODULES(
         [LIBOSG],
-        [openscenegraph >= $XCAM_REQUIRE_OSG_MIN],
+        [openscenegraph-osg >= $XCAM_REQUIRE_OSG_MIN],
         [HAVE_OSG=1],
         [HAVE_OSG=0])
 
-    XCAM_OSG_VERSION=`$PKG_CONFIG --modversion openscenegraph`
+    XCAM_OSG_VERSION=`$PKG_CONFIG --modversion openscenegraph-osg`
     AC_MSG_NOTICE(OpenSceneGraph version: $XCAM_OSG_VERSION)
 
     if test "$HAVE_OSG" -eq 1; then
