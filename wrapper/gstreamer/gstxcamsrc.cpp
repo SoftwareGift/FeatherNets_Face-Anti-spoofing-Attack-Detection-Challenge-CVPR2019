@@ -83,6 +83,8 @@ using namespace GstXCam;
 #define DEFAULT_PROP_IMAGE_PROCESSOR    ISP_IMAGE_PROCESSOR
 #elif HAVE_LIBCL
 #define DEFAULT_PROP_IMAGE_PROCESSOR    CL_IMAGE_PROCESSOR
+#else
+#define DEFAULT_PROP_IMAGE_PROCESSOR    NONE_IMAGE_PROCESSOR
 #endif
 #if HAVE_LIBCL
 #define DEFAULT_PROP_WDR_MODE           NONE_WDR
@@ -1221,7 +1223,7 @@ translate_format_to_xcam (GstVideoFormat format)
     case GST_VIDEO_FORMAT_Y42B:
         return V4L2_PIX_FMT_YUV422P;
 
-        //RGB
+    //RGB
     case GST_VIDEO_FORMAT_RGBx:
         return V4L2_PIX_FMT_RGB32;
     case GST_VIDEO_FORMAT_BGRx:
