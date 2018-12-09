@@ -737,6 +737,7 @@ GLBlender::gauss_scale_done (
     const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error)
 {
     XCAM_UNUSED (worker);
+    XCAM_UNUSED (error);
     XCAM_ASSERT (base.ptr ());
 
     SmartPtr<GLGaussScalePyrShader::Args> args = base.dynamic_cast_ptr<GLGaussScalePyrShader::Args> ();
@@ -761,8 +762,6 @@ GLBlender::gauss_scale_done (
         ret = _priv_config->start_gauss_scale (param, args->out_video_buf, next_level, idx);
         CHECK_RET (ret, "execute gauss scale failed, level:%d idx:%d", next_level, idx);
     }
-
-    execute_done (param, error);
 }
 
 void
@@ -770,6 +769,7 @@ GLBlender::lap_trans_done (
     const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error)
 {
     XCAM_UNUSED (worker);
+    XCAM_UNUSED (error);
     XCAM_ASSERT (base.ptr ());
 
     SmartPtr<GLLapTransPyrShader::Args> args = base.dynamic_cast_ptr<GLLapTransPyrShader::Args> ();
@@ -785,8 +785,6 @@ GLBlender::lap_trans_done (
 
     XCamReturn ret = _priv_config->start_reconstruct_by_lap (param, args->out_video_buf, level, idx);
     CHECK_RET (ret, "execute reconstruct by lap failed, level:%d idx:%d", level, idx);
-
-    execute_done (param, error);
 }
 
 void
@@ -794,6 +792,7 @@ GLBlender::blend_done (
     const SmartPtr<Worker> &worker, const SmartPtr<Worker::Arguments> &base, const XCamReturn error)
 {
     XCAM_UNUSED (worker);
+    XCAM_UNUSED (error);
     XCAM_ASSERT (base.ptr ());
 
     SmartPtr<GLBlendPyrShader::Args> args = base.dynamic_cast_ptr<GLBlendPyrShader::Args> ();
@@ -805,8 +804,6 @@ GLBlender::blend_done (
 
     XCamReturn ret = _priv_config->start_reconstruct_by_gauss (param, args->out_video_buf, _priv_config->pyr_levels - 1);
     CHECK_RET (ret, "execute reconstruct by gauss failed, level:%d", _priv_config->pyr_levels - 1);
-
-    execute_done (param, error);
 }
 
 void
@@ -833,8 +830,6 @@ GLBlender::reconstruct_done (
 
     XCamReturn ret = _priv_config->start_reconstruct_by_gauss (param, args->out_video_buf, level - 1);
     CHECK_RET (ret, "execute reconstruct by gauss failed, level:%d", level - 1);
-
-    execute_done (param, error);
 }
 
 SmartPtr<GLImageHandler>
