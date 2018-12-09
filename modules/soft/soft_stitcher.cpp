@@ -492,7 +492,7 @@ StitcherImpl::fisheye_dewarp_to_table ()
         _fisheye[i].dewarp->set_output_size (view_slice.width, view_slice.height);
         if (bowl.angle_end < bowl.angle_start)
             bowl.angle_start -= 360.0f;
-        XCAM_LOG_INFO (
+        XCAM_LOG_DEBUG (
             "soft-stitcher:%s camera(idx:%d) info (angle start:%.2f, range:%.2f), bowl info (angle start%.2f, end:%.2f)",
             XCAM_STR (_stitcher->get_name ()), i,
             view_slice.hori_angle_start, view_slice.hori_angle_range,
@@ -859,7 +859,7 @@ SoftStitcher::dewarp_done (
     if (!check_work_continue (param, error))
         return;
 
-    XCAM_LOG_INFO ("soft-stitcher:%s camera(idx:%d) dewarp done", XCAM_STR (get_name ()), dewarp_param->idx);
+    XCAM_LOG_DEBUG ("soft-stitcher:%s camera(idx:%d) dewarp done", XCAM_STR (get_name ()), dewarp_param->idx);
     stitcher_dump_buf (dewarp_param->out_buf, dewarp_param->idx, "stitcher-dewarp");
 
     //start both blender and feature match
@@ -892,7 +892,7 @@ SoftStitcher::blender_done (
     }
 
     stitcher_dump_buf (blender_param->out_buf, blender_param->idx, "stitcher-blend");
-    XCAM_LOG_INFO ("blender:(%s) overlap:%d done", XCAM_STR (handler->get_name ()), blender_param->idx);
+    XCAM_LOG_DEBUG ("blender:(%s) overlap:%d done", XCAM_STR (handler->get_name ()), blender_param->idx);
 
     if (_impl->dec_task_count (param) == 0) {
         work_well_done (param, error);
@@ -917,7 +917,7 @@ SoftStitcher::copy_task_done (
         _impl->remove_task_count (param);
         return;
     }
-    XCAM_LOG_INFO ("soft-stitcher:%s camera(idx:%d) copy done", XCAM_STR (get_name ()), args->idx);
+    XCAM_LOG_DEBUG ("soft-stitcher:%s camera(idx:%d) copy done", XCAM_STR (get_name ()), args->idx);
 
     if (_impl->dec_task_count (param) == 0) {
         work_well_done (param, error);
