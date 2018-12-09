@@ -341,7 +341,7 @@ StitcherImpl::fisheye_dewarp_to_table ()
         if (bowl.angle_end < bowl.angle_start)
             bowl.angle_start -= 360.0f;
 
-        XCAM_LOG_INFO (
+        XCAM_LOG_DEBUG (
             "gl-stitcher(%s) camera(idx:%d) info(angle start:%.2f, range:%.2f), bowl info(angle start:%.2f, end:%.2f)",
             XCAM_STR (_stitcher->get_name ()), i,
             view_slice.hori_angle_start, view_slice.hori_angle_range,
@@ -669,7 +669,7 @@ GLStitcher::dewarp_done (
 
     execute_done (param, error);
 
-    XCAM_LOG_INFO ("gl-stitcher(%s) camera(idx:%d) dewarp done", XCAM_STR (get_name ()), dewarp_param->idx);
+    XCAM_LOG_DEBUG ("gl-stitcher(%s) camera(idx:%d) dewarp done", XCAM_STR (get_name ()), dewarp_param->idx);
     dump_buf (dewarp_param->out_buf, dewarp_param->idx, "stitcher-dewarp");
 
     XCamReturn ret = _impl->start_blenders (param, dewarp_param->idx, dewarp_param->out_buf);
@@ -695,7 +695,7 @@ GLStitcher::blender_done (
 
     execute_done (param, error);
 
-    XCAM_LOG_INFO ("gl-stitcher(%s) overlap:%d done", XCAM_STR (handler->get_name ()), blender_param->idx);
+    XCAM_LOG_DEBUG ("gl-stitcher(%s) overlap:%d done", XCAM_STR (handler->get_name ()), blender_param->idx);
     dump_buf (blender_param->out_buf, blender_param->idx, "stitcher-blend");
 }
 
@@ -713,7 +713,7 @@ GLStitcher::copier_done (
 
     execute_done (param, error);
 
-    XCAM_LOG_INFO ("gl-stitcher(%s) camera(idx:%d) copy done", XCAM_STR (get_name ()), copy_param->idx);
+    XCAM_LOG_DEBUG ("gl-stitcher(%s) camera(idx:%d) copy done", XCAM_STR (get_name ()), copy_param->idx);
 }
 
 SmartPtr<Stitcher>
