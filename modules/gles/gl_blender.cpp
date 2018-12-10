@@ -107,9 +107,11 @@ private:
 
 public:
     BlenderPrivConfig (GLBlender *blender, uint32_t level)
-        : pyr_levels (level)
+        : pyr_levels (level - 1)
         , _blender (blender)
-    {}
+    {
+        XCAM_ASSERT (level >= 2 && level <= XCAM_GL_PYRAMID_MAX_LEVEL);
+    }
 
     XCamReturn init_first_masks (uint32_t width, uint32_t height);
     XCamReturn scale_down_masks (uint32_t level, uint32_t width, uint32_t height);
