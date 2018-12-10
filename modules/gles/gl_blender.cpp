@@ -75,10 +75,10 @@ DECLARE_WORK_CALLBACK (CbLapTransPyr, GLBlender, lap_trans_done);
 DECLARE_WORK_CALLBACK (CbBlendPyr, GLBlender, blend_done);
 DECLARE_WORK_CALLBACK (CbReconstructPyr, GLBlender, reconstruct_done);
 
+namespace GLBlenderPriv {
+
 typedef std::map<void*, SmartPtr<GLBlendPyrShader::Args>> MapBlendArgs;
 typedef std::map<void*, SmartPtr<GLReconstructPyrShader::Args>> MapReconstructArgs;
-
-namespace GLBlenderPriv {
 
 struct PyramidResource {
     SmartPtr<BufferPool>                overlap_pool;
@@ -141,62 +141,8 @@ public:
     const SmartPtr<GLComputeProgram> &get_sync_prog ();
 };
 
-};
-
-GLBlender::GLBlender (const char *name)
-    : GLImageHandler (name)
-    , Blender (GL_BLENDER_ALIGN_X, GL_BLENDER_ALIGN_Y)
-{
-    SmartPtr<GLBlenderPriv::BlenderPrivConfig> config =
-        new GLBlenderPriv::BlenderPrivConfig (this, XCAM_GL_PYRAMID_DEFAULT_LEVEL);
-    XCAM_ASSERT (config.ptr ());
-    _priv_config = config;
-}
-
-GLBlender::~GLBlender ()
-{
-}
-
 XCamReturn
-GLBlender::finish ()
-{
-    const SmartPtr<GLComputeProgram> prog = _priv_config->get_sync_prog ();
-    XCAM_ASSERT (prog.ptr ());
-    prog->finish ();
-
-    return GLImageHandler::finish ();
-}
-
-XCamReturn
-GLBlender::terminate ()
-{
-    _priv_config->stop ();
-    return GLImageHandler::terminate ();
-}
-
-XCamReturn
-GLBlender::blend (
-    const SmartPtr<VideoBuffer> &in0,
-    const SmartPtr<VideoBuffer> &in1,
-    SmartPtr<VideoBuffer> &out_buf)
-{
-    XCAM_ASSERT (in0.ptr () && in1.ptr ());
-
-    SmartPtr<BlenderParam> param = new BlenderParam (in0, in1, out_buf);
-    XCAM_ASSERT (param.ptr ());
-
-    XCamReturn ret = execute_buffer (param, true);
-
-    finish ();
-    if (xcam_ret_is_ok (ret) && !out_buf.ptr ()) {
-        out_buf = param->out_buf;
-    }
-
-    return ret;
-}
-
-XCamReturn
-GLBlenderPriv::BlenderPrivConfig::stop ()
+BlenderPrivConfig::stop ()
 {
     for (uint32_t i = 0; i < pyr_levels; ++i) {
         pyr_layer[i].gauss_scale[GLBlender::Idx0].release ();
@@ -219,7 +165,7 @@ GLBlenderPriv::BlenderPrivConfig::stop ()
 }
 
 const SmartPtr<GLComputeProgram> &
-GLBlenderPriv::BlenderPrivConfig::get_sync_prog ()
+BlenderPrivConfig::get_sync_prog ()
 {
     if (_sync_prog.ptr ())
         return _sync_prog;
@@ -231,7 +177,7 @@ GLBlenderPriv::BlenderPrivConfig::get_sync_prog ()
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::init_first_masks (uint32_t width, uint32_t height)
+BlenderPrivConfig::init_first_masks (uint32_t width, uint32_t height)
 {
     XCAM_ASSERT (!first_mask.ptr ());
     XCAM_ASSERT (width && (width % GL_BLENDER_ALIGN_X == 0));
@@ -282,7 +228,7 @@ GLBlenderPriv::BlenderPrivConfig::init_first_masks (uint32_t width, uint32_t hei
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::scale_down_masks (uint32_t level, uint32_t width, uint32_t height)
+BlenderPrivConfig::scale_down_masks (uint32_t level, uint32_t width, uint32_t height)
 {
     XCAM_ASSERT (width && (width % GL_BLENDER_ALIGN_X == 0));
     XCAM_FAIL_RETURN (
@@ -335,7 +281,7 @@ GLBlenderPriv::BlenderPrivConfig::scale_down_masks (uint32_t level, uint32_t wid
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::start_gauss_scale (
+BlenderPrivConfig::start_gauss_scale (
     const SmartPtr<ImageHandler::Parameters> &param,
     const SmartPtr<VideoBuffer> &in_buf,
     uint32_t level, GLBlender::BufIdx idx)
@@ -389,7 +335,7 @@ GLBlenderPriv::BlenderPrivConfig::start_gauss_scale (
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::start_lap_trans (
+BlenderPrivConfig::start_lap_trans (
     const SmartPtr<ImageHandler::Parameters> &param,
     const SmartPtr<GLGaussScalePyrShader::Args> &gauss_scale_args,
     uint32_t level, GLBlender::BufIdx idx)
@@ -423,7 +369,7 @@ GLBlenderPriv::BlenderPrivConfig::start_lap_trans (
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::start_blend (
+BlenderPrivConfig::start_blend (
     const SmartPtr<ImageHandler::Parameters> &param,
     const SmartPtr<VideoBuffer> &buf, GLBlender::BufIdx idx)
 {
@@ -473,7 +419,7 @@ GLBlenderPriv::BlenderPrivConfig::start_blend (
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::start_reconstruct (
+BlenderPrivConfig::start_reconstruct (
     const SmartPtr<GLReconstructPyrShader::Args> &args, uint32_t level)
 {
     XCAM_ASSERT (args.ptr ());
@@ -531,7 +477,7 @@ GLBlenderPriv::BlenderPrivConfig::start_reconstruct (
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::start_reconstruct_by_gauss (
+BlenderPrivConfig::start_reconstruct_by_gauss (
     const SmartPtr<ImageHandler::Parameters> &param,
     const SmartPtr<VideoBuffer> &prev_blend_buf, uint32_t level)
 {
@@ -563,7 +509,7 @@ GLBlenderPriv::BlenderPrivConfig::start_reconstruct_by_gauss (
 }
 
 XCamReturn
-GLBlenderPriv::BlenderPrivConfig::start_reconstruct_by_lap (
+BlenderPrivConfig::start_reconstruct_by_lap (
     const SmartPtr<ImageHandler::Parameters> &param,
     const SmartPtr<VideoBuffer> &lap,
     uint32_t level, GLBlender::BufIdx idx)
@@ -597,6 +543,60 @@ GLBlenderPriv::BlenderPrivConfig::start_reconstruct_by_lap (
     }
 
     return start_reconstruct (args, level);
+}
+
+}
+
+GLBlender::GLBlender (const char *name)
+    : GLImageHandler (name)
+    , Blender (GL_BLENDER_ALIGN_X, GL_BLENDER_ALIGN_Y)
+{
+    SmartPtr<GLBlenderPriv::BlenderPrivConfig> config =
+        new GLBlenderPriv::BlenderPrivConfig (this, XCAM_GL_PYRAMID_DEFAULT_LEVEL);
+    XCAM_ASSERT (config.ptr ());
+    _priv_config = config;
+}
+
+GLBlender::~GLBlender ()
+{
+}
+
+XCamReturn
+GLBlender::finish ()
+{
+    const SmartPtr<GLComputeProgram> prog = _priv_config->get_sync_prog ();
+    XCAM_ASSERT (prog.ptr ());
+    prog->finish ();
+
+    return GLImageHandler::finish ();
+}
+
+XCamReturn
+GLBlender::terminate ()
+{
+    _priv_config->stop ();
+    return GLImageHandler::terminate ();
+}
+
+XCamReturn
+GLBlender::blend (
+    const SmartPtr<VideoBuffer> &in0,
+    const SmartPtr<VideoBuffer> &in1,
+    SmartPtr<VideoBuffer> &out_buf)
+{
+    XCAM_ASSERT (in0.ptr () && in1.ptr ());
+
+    SmartPtr<BlenderParam> param = new BlenderParam (in0, in1, out_buf);
+    XCAM_ASSERT (param.ptr ());
+
+    XCamReturn ret = execute_buffer (param, true);
+
+    finish ();
+    if (xcam_ret_is_ok (ret) && !out_buf.ptr ()) {
+        out_buf = param->out_buf;
+    }
+
+    return ret;
 }
 
 XCamReturn
