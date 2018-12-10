@@ -26,7 +26,7 @@
 #include <soft/soft_handler.h>
 
 #define XCAM_SOFT_PYRAMID_MAX_LEVEL 4
-#define XCAM_SOFT_PYRAMID_DEFAULT_LEVEL 3
+#define XCAM_SOFT_PYRAMID_DEFAULT_LEVEL 2
 
 namespace XCam {
 
