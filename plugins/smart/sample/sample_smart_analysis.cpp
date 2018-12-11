@@ -228,10 +228,11 @@ SampleHandler::update_params (const XCamSmartAnalysisParam *params)
 XCamReturn
 SampleHandler::analyze (XCamVideoBuffer *buffer)
 {
-    XCAM_LOG_DEBUG ("Smart SampleHandler::analyze on ts:" XCAM_TIMESTAMP_FORMAT, XCAM_TIMESTAMP_ARGS (buffer->timestamp));
     if (NULL == buffer) {
         return XCAM_RETURN_ERROR_PARAM;
     }
+    XCAM_LOG_DEBUG ("Smart SampleHandler::analyze on ts:" XCAM_TIMESTAMP_FORMAT, XCAM_TIMESTAMP_ARGS (buffer->timestamp));
+
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
     XCAM_LOG_DEBUG ("format(0x%x), color_bits(%d)", buffer->info.format, buffer->info.color_bits);
