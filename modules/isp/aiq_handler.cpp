@@ -1526,8 +1526,9 @@ AiqCompositor::limit_nr_levels (struct atomisp_parameters *isp_param)
                 isp_param->tnr_config->threshold_y = 0;
                 isp_param->tnr_config->threshold_uv = 0;
             }
+
+            XCAM_LOG_DEBUG ("set TNR gain:%u", isp_param->tnr_config->gain);
         }
-        XCAM_LOG_DEBUG ("set TNR gain:%u", isp_param->tnr_config->gain);
     }
 
     return XCAM_RETURN_NO_ERROR;
