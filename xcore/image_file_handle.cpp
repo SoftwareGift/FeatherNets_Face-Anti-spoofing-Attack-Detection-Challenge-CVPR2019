@@ -48,6 +48,12 @@ ImageFileHandle::read_buf (const SmartPtr<VideoBuffer> &buf)
     XCAM_ASSERT (is_valid ());
 
     memory = buf->map ();
+
+    if (NULL == memory) {
+        XCAM_LOG_ERROR ("ImageFileHandle::read_buf map buffer memory(%p) \n", memory);
+        buf->unmap ();
+        return ret;
+    }
     for (uint32_t index = 0; index < info.components; index++) {
         info.get_planar_info (planar, index);
         uint32_t line_bytes = planar.width * planar.pixel_bytes;

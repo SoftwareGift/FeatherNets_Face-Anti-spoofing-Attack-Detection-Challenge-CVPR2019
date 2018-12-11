@@ -28,12 +28,15 @@
 #include <interface/data_types.h>
 #include <interface/stitcher.h>
 #include <xcam_mutex.h>
+#include <xcam_thread.h>
 
 namespace XCam {
 
 class RenderOsgModel;
 
-class RenderOsgViewer {
+class RenderOsgViewer
+    : public Thread
+{
 public:
 
     explicit RenderOsgViewer ();
@@ -47,12 +50,16 @@ public:
     void set_camera_manipulator (osg::ref_ptr<osgGA::StandardManipulator> &manipulator);
 
     void add_model (SmartPtr<RenderOsgModel> &model);
-
     void validate_model_groups ();
 
     void start_render ();
+    void stop_render ();
+
+protected:
+    virtual bool loop ();
 
 private:
+    XCAM_DEAD_COPY (RenderOsgViewer);
     XCamReturn initialize ();
 
 private:

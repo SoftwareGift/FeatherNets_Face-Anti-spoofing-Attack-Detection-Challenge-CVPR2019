@@ -255,20 +255,23 @@ RenderOsgModel::update_texture (SmartPtr<VideoBuffer> &buffer)
         osg::ref_ptr<osg::Image> image_uv = new osg::Image ();
 
         uint8_t* image_buffer = buffer->map ();
+        if (NULL == image_buffer) {
+            result = XCAM_RETURN_ERROR_MEM;
+        } else {
+            uint8_t* src_y = image_buffer;
+            uint8_t* src_uv = image_buffer + image_width * image_height;
 
-        uint8_t* src_y = image_buffer;
-        uint8_t* src_uv = image_buffer + image_width * image_height;
+            image_y->setImage (image_width, image_height, 1,
+                               GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                               src_y, osg::Image::NO_DELETE);
 
-        image_y->setImage (image_width, image_height, 1,
-                           GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE,
-                           src_y, osg::Image::NO_DELETE);
+            image_uv->setImage (image_width / 2, image_height / 2, 1,
+                                GL_LUMINANCE, GL_RG, GL_UNSIGNED_BYTE,
+                                src_uv, osg::Image::NO_DELETE);
 
-        image_uv->setImage (image_width / 2, image_height / 2, 1,
-                            GL_LUMINANCE, GL_RG, GL_UNSIGNED_BYTE,
-                            src_uv, osg::Image::NO_DELETE);
-
-        _texture->_texture_y->setImage (image_y);
-        _texture->_texture_uv->setImage (image_uv);
+            _texture->_texture_y->setImage (image_y);
+            _texture->_texture_uv->setImage (image_uv);
+        }
 
         buffer->unmap ();
     }

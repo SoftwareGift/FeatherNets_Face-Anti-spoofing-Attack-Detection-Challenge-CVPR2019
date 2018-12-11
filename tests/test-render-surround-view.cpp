@@ -310,8 +310,7 @@ create_car_model (const char *name)
 
 static int
 run_stitcher (
-    const SmartPtr<Stitcher> &stitcher,
-    const SmartPtr<RenderOsgViewer> &render, const SmartPtr<RenderOsgModel> &model,
+    const SmartPtr<Stitcher> &stitcher, const SmartPtr<RenderOsgModel> &model,
     const SVStreams &ins, const SVStreams &outs, bool save_output)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
@@ -350,9 +349,8 @@ run_stitcher (
         }
 
         model->update_texture (outs[0]->get_buf ());
-        render->start_render ();
 
-        FPS_CALCULATION (surround - view, XCAM_OBJ_DUR_FRAME_NUM);
+        FPS_CALCULATION (surround view, XCAM_OBJ_DUR_FRAME_NUM);
     } while (true);
 
     return 0;
@@ -396,7 +394,7 @@ int main (int argc, char *argv[])
 
     const char *car_name = NULL;
 
-    SVModule module = SVModuleSoft;
+    SVModule module = SVModuleGLES;
     GeoMapScaleMode scale_mode = ScaleSingleConst;
 
     int loop = 1;
@@ -427,6 +425,8 @@ int main (int argc, char *argv[])
             XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "soft")) {
                 module = SVModuleSoft;
+            } else if (!strcasecmp (optarg, "gles")) {
+                module = SVModuleGLES;
             }
             break;
         case 'i':
@@ -593,19 +593,23 @@ int main (int argc, char *argv[])
 
     SmartPtr<RenderOsgViewer> render = new RenderOsgViewer ();
 
-    SmartPtr<RenderOsgModel> svm_model = create_surround_view_model (stitcher, output_width, output_height);
-    render->add_model (svm_model);
+    SmartPtr<RenderOsgModel> sv_model = create_surround_view_model (stitcher, output_width, output_height);
+    render->add_model (sv_model);
 
     SmartPtr<RenderOsgModel> car_model = create_car_model (car_name);
     render->add_model (car_model);
 
     render->validate_model_groups ();
 
+    render->start_render ();
+
     while (loop--) {
         CHECK_EXP (
-            run_stitcher (stitcher, render, svm_model, ins, outs, save_output) == 0,
+            run_stitcher (stitcher, sv_model, ins, outs, save_output) == 0,
             "run stitcher failed");
     }
+
+    render->stop_render ();
 
     return 0;
 }

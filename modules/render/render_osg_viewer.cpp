@@ -27,7 +27,8 @@
 namespace XCam {
 
 RenderOsgViewer::RenderOsgViewer ()
-    : _viewer (NULL)
+    : Thread ("RenderOsgViewerThread")
+    , _viewer (NULL)
     , _model_groups (NULL)
     , _initialized (false)
 {
@@ -81,6 +82,29 @@ RenderOsgViewer::initialize ()
 }
 
 void
+RenderOsgViewer::start_render ()
+{
+    Thread::start ();
+}
+
+void
+RenderOsgViewer::stop_render ()
+{
+    Thread::stop ();
+}
+
+bool
+RenderOsgViewer::loop ()
+{
+    if (!_viewer->done ())
+    {
+        _viewer->frame ();
+    }
+
+    return true;
+}
+
+void
 RenderOsgViewer::set_camera_manipulator (osg::ref_ptr<osgGA::StandardManipulator> &manipulator)
 {
     _viewer->setCameraManipulator (manipulator);
@@ -109,13 +133,5 @@ RenderOsgViewer::validate_model_groups ()
     _viewer->setSceneData (_model_groups->get_model ());
 }
 
-void
-RenderOsgViewer::start_render ()
-{
-    if (!_viewer->done ())
-    {
-        _viewer->frame ();
-    }
-}
-
 } // namespace XCam
+

@@ -103,6 +103,8 @@ public:
 
 private:
 
+    XCAM_DEAD_COPY (RenderOsgModel);
+
     NV12Texture* create_texture (uint32_t width, uint32_t height);
     XCamReturn add_texture (osg::ref_ptr<NV12Texture> &texture);
 
