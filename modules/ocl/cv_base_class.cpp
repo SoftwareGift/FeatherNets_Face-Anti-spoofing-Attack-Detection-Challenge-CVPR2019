@@ -52,7 +52,7 @@ CVBaseClass::convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image)
 
     cv::Mat mat = cv::Mat (info.aligned_height * 3 / 2, info.width, CV_8UC1, ptr, info.strides[0]);
     cv::cvtColor (mat, image, cv::COLOR_YUV2BGR_NV12);
-    //buffer->unmap ();
+    buffer->unmap ();
 
     return true;
 }
