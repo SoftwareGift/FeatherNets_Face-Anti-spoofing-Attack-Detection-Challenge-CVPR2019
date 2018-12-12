@@ -256,6 +256,7 @@ RenderOsgModel::update_texture (SmartPtr<VideoBuffer> &buffer)
 
         uint8_t* image_buffer = buffer->map ();
         if (NULL == image_buffer) {
+            XCAM_LOG_ERROR ("buffer map return NULL!!");
             result = XCAM_RETURN_ERROR_MEM;
         } else {
             uint8_t* src_y = image_buffer;
@@ -272,8 +273,7 @@ RenderOsgModel::update_texture (SmartPtr<VideoBuffer> &buffer)
             _texture->_texture_y->setImage (image_y);
             _texture->_texture_uv->setImage (image_uv);
         }
-
-        buffer->unmap ();
+        //buffer->unmap ();
     }
 
     return result;

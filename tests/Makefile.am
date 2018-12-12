@@ -199,7 +199,13 @@ test_render_surround_view_LDADD = \
 	$(NULL)
 if HAVE_GLES
 test_render_surround_view_LDADD += \
-	$(top_builddir)/modules/gles/libxcam_gles.la
+	$(top_builddir)/modules/gles/libxcam_gles.la \
+	$(NULL)
+endif
+if HAVE_VULKAN
+test_render_surround_view_LDADD += \
+	$(top_builddir)/modules/vulkan/libxcam_vulkan.la \
+	$(NULL)
 endif
 
 endif
