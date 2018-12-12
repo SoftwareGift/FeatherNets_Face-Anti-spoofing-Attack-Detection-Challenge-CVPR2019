@@ -344,8 +344,7 @@ run_stitcher (
     const SmartPtr<Stitcher> &stitcher,
     const SmartPtr<RenderOsgModel> &model,
     const SVStreams &ins,
-    const SVStreams &outs,
-    bool save_output)
+    const SVStreams &outs)
 {
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
 
@@ -376,10 +375,6 @@ run_stitcher (
             CHECK (
                 stitcher->stitch_buffers (in_buffers, outs[0]->get_buf ()),
                 "stitch buffer failed.");
-
-            if (save_output) {
-                outs[0]->write_buf ();
-            }
         }
 
         model->update_texture (outs[0]->get_buf ());
@@ -423,8 +418,7 @@ int main (int argc, char *argv[])
 
     SVStreams ins;
     SVStreams outs;
-
-    bool save_output = true;
+    PUSH_STREAM (SVStream, outs, NULL);
 
     const char *car_name = NULL;
 
@@ -439,14 +433,12 @@ int main (int argc, char *argv[])
         {"input1", required_argument, NULL, 'j'},
         {"input2", required_argument, NULL, 'k'},
         {"input3", required_argument, NULL, 'l'},
-        {"output", required_argument, NULL, 'o'},
         {"in-w", required_argument, NULL, 'w'},
         {"in-h", required_argument, NULL, 'h'},
         {"out-w", required_argument, NULL, 'W'},
         {"out-h", required_argument, NULL, 'H'},
         {"scale-mode", required_argument, NULL, 'S'},
         {"car", required_argument, NULL, 'c'},
-        {"save", required_argument, NULL, 's'},
         {"loop", required_argument, NULL, 'L'},
         {"help", no_argument, NULL, 'e'},
         {NULL, 0, NULL, 0},
@@ -481,10 +473,6 @@ int main (int argc, char *argv[])
             XCAM_ASSERT (optarg);
             PUSH_STREAM (SVStream, ins, optarg);
             break;
-        case 'o':
-            XCAM_ASSERT (optarg);
-            PUSH_STREAM (SVStream, outs, optarg);
-            break;
         case 'w':
             input_width = (uint32_t)atoi(optarg);
             break;
@@ -515,9 +503,6 @@ int main (int argc, char *argv[])
             XCAM_ASSERT (optarg);
             car_name = optarg;
             break;
-        case 's':
-            save_output = (strcasecmp (optarg, "false") == 0 ? false : true);
-            break;
         case 'L':
             loop = atoi(optarg);
             break;
@@ -541,12 +526,10 @@ int main (int argc, char *argv[])
     }
 
     CHECK_EXP (outs.size () == 1 && outs[0].ptr (), "surrond view needs 1 output stream");
-    CHECK_EXP (strlen (outs[0]->get_file_name ()), "output file name was not set");
 
     for (uint32_t i = 0; i < ins.size (); ++i) {
         printf ("input%d file:\t\t%s\n", i, ins[i]->get_file_name ());
     }
-    printf ("output file:\t\t%s\n", outs[0]->get_file_name ());
     printf ("input width:\t\t%d\n", input_width);
     printf ("input height:\t\t%d\n", input_height);
     printf ("output width:\t\t%d\n", output_width);
@@ -554,7 +537,6 @@ int main (int argc, char *argv[])
     printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" :
             ((scale_mode == ScaleDualConst) ? "dualconst" : "dualcurve"));
     printf ("car model name:\t\t%s\n", car_name != NULL ? car_name : "Not specified, use default model");
-    printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("loop count:\t\t%d\n", loop);
 
     if (module == SVModuleGLES) {
@@ -610,11 +592,6 @@ int main (int argc, char *argv[])
     }
 
     outs[0]->set_buf_size (output_width, output_height);
-    if (save_output) {
-        CHECK (outs[0]->estimate_file_format (),
-               "%s: estimate file format failed", outs[0]->get_file_name ());
-        CHECK (outs[0]->open_writer ("wb"), "open output file(%s) failed", outs[0]->get_file_name ());
-    }
 
     SmartPtr<Stitcher> stitcher = create_stitcher (outs[0], module);
     XCAM_ASSERT (stitcher.ptr ());
@@ -668,7 +645,7 @@ int main (int argc, char *argv[])
 
     while (loop--) {
         CHECK_EXP (
-            run_stitcher (stitcher, sv_model, ins, outs, save_output) == 0,
+            run_stitcher (stitcher, sv_model, ins, outs) == 0,
             "run stitcher failed");
     }
 
