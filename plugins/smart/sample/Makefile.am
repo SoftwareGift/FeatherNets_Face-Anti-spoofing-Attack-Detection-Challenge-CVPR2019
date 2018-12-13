@@ -39,7 +39,6 @@ libxcam_sample_smart_la_LIBADD = \
 libxcam_sample_smart_la_LDFLAGS = \
     -module -avoid-version                 \
     $(top_builddir)/xcore/libxcam_core.la  \
-    $(PTHREAD_LDFLAGS)                     \
     $(NULL)
 endif
 

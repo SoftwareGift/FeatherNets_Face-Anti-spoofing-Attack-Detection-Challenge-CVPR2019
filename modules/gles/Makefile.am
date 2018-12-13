@@ -48,7 +48,6 @@ libxcam_gles_la_LIBADD =                  \
 
 libxcam_gles_la_LDFLAGS =   \
     $(XCAM_LT_LDFLAGS)      \
-    $(PTHREAD_LDFLAGS)      \
     $(NULL)
 
 libxcam_glesincludedir = $(includedir)/xcam/gles

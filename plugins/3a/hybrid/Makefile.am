@@ -24,7 +24,6 @@ libxcam_3a_hybrid_la_LIBADD = \
 libxcam_3a_hybrid_la_LDFLAGS = \
     -module -avoid-version                 \
     $(top_builddir)/xcore/libxcam_core.la  \
-    $(PTHREAD_LDFLAGS)                     \
     $(NULL)
 
 libxcam_3a_hybrid_la_LIBTOOLFLAGS = --tag=disable-static

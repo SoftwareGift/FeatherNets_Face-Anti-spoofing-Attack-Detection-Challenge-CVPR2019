@@ -68,8 +68,7 @@ libgstxcamsrc_la_LIBADD = $(XCAMGST_LIBS) \
     $(NULL)
 
 libgstxcamsrc_la_LDFLAGS = \
-    -module -avoid-version         \
-    $(PTHREAD_LDFLAGS) $(XCORE_LA) \
+    -module -avoid-version $(XCORE_LA) \
     $(NULL)
 
 libgstxcamsrc_la_LIBTOOLFLAGS = --tag=disable-static

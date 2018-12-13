@@ -1,9 +1,11 @@
 lib_LTLIBRARIES = libxcam_core.la
 
-XCAM_CORE_CXXFLAGS = $(XCAM_CXXFLAGS)
+XCAM_CORE_CXXFLAGS = \
+    $(XCAM_CXXFLAGS) \
+    -pthread         \
+    $(NULL)
 XCAM_CORE_LIBS = \
-    -ldl      \
-    -lpthread \
+    -ldl \
     $(NULL)
 
 xcam_sources = \
@@ -78,8 +80,8 @@ libxcam_core_la_SOURCES = \
 
 libxcam_core_la_LDFLAGS = \
     -no-undefined       \
+    -pthread            \
     $(XCAM_LT_LDFLAGS)  \
-    $(PTHREAD_LDFLAGS)  \
     $(NULL)
 
 libxcam_core_la_LIBADD = \

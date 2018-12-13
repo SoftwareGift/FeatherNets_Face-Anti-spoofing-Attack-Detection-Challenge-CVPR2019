@@ -40,7 +40,6 @@ libxcam_plugin_dvs_la_LIBADD =                  \
 libxcam_plugin_dvs_la_LDFLAGS =            \
     -module -avoid-version                 \
     $(top_builddir)/xcore/libxcam_core.la  \
-    $(PTHREAD_LDFLAGS)                     \
     $(OPENCV_LIBS) \
     $(NULL)
 

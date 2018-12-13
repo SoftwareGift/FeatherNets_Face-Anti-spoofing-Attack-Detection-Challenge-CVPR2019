@@ -41,7 +41,6 @@ libxcam_capi_la_LIBADD =           \
 
 libxcam_capi_la_LDFLAGS =          \
     $(XCAM_LT_LDFLAGS)             \
-    $(PTHREAD_LDFLAGS)             \
     $(NULL)
 
 libxcam_capiincludedir = $(includedir)/xcam/capi

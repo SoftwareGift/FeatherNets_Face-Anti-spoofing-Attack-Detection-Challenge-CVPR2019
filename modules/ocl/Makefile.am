@@ -104,7 +104,6 @@ libxcam_ocl_la_LIBADD = \
 
 libxcam_ocl_la_LDFLAGS = \
     $(XCAM_LT_LDFLAGS) \
-    $(PTHREAD_LDFLAGS) \
     $(NULL)
 
 libxcam_oclincludedir = $(includedir)/xcam/ocl

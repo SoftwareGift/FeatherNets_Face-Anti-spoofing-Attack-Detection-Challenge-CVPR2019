@@ -75,7 +75,6 @@ libxcam_isp_la_LIBADD = \
 
 libxcam_isp_la_LDFLAGS = \
     $(XCAM_LT_LDFLAGS)  \
-    $(PTHREAD_LDFLAGS)  \
     $(NULL)
 
 libxcam_isp_la_LIBTOOLFLAGS = --tag=disable-static

@@ -47,7 +47,6 @@ libxcam_soft_la_LIBADD =                  \
 
 libxcam_soft_la_LDFLAGS =   \
     $(XCAM_LT_LDFLAGS)      \
-    $(PTHREAD_LDFLAGS)      \
     $(NULL)
 
 libxcam_softincludedir = $(includedir)/xcam/soft

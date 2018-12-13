@@ -38,7 +38,6 @@ libxcam_render_la_LIBADD =                  \
 
 libxcam_render_la_LDFLAGS =   \
     $(XCAM_LT_LDFLAGS)        \
-    $(PTHREAD_LDFLAGS)        \
     $(NULL)
 
 libxcam_renderincludedir = $(includedir)/xcam/render

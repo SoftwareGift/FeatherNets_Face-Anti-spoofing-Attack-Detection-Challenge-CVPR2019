@@ -46,7 +46,6 @@ libxcam_vulkan_la_LIBADD =                  \
 
 libxcam_vulkan_la_LDFLAGS =    \
     $(XCAM_LT_LDFLAGS)         \
-    $(PTHREAD_LDFLAGS)         \
     $(NULL)
 
 libxcam_vulkanincludedir = $(includedir)/xcam/vulkan
