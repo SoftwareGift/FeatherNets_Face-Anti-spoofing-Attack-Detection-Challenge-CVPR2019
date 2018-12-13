@@ -19,7 +19,7 @@ EXTRA_OECONF = "--enable-gst --enable-drm --enable-libcl --enable-smartlib --ena
 
 CFLAGS += "-fPIE -fPIC"
 CFLAGS += "-O2 -D_FORTIFY_SOURCE=2"
-CFLAGS += "-Wformat -Wformat-security"
+CFLAGS += "-Wall -Wno-unused-parameter"
 CFLAGS += "-fstack-protector"
 
 LDFLAGS += "-z noexecstack"

@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 # XCam Version Num 1.1.0
 XCAM_VERSION_CFLAGS := -DXCAM_VERSION=0x110
 
-XCAM_CFLAGS := -fPIC -W -Wall -D_REENTRANT -Wformat -Wno-unused-parameter -Wformat-security -fstack-protector
+XCAM_CFLAGS := -fPIC -Wall -Wno-unused-parameter -fstack-protector
 XCAM_CFLAGS += $(XCAM_VERSION_CFLAGS) -DANDROID
 
 ifeq ($(ENABLE_DEBUG), 1)

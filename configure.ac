@@ -368,7 +368,7 @@ fi
 AM_CONDITIONAL([ENABLE_GST], [test "$ENABLE_GST" -eq 1])
 
 dnl set XCAM_CFLAGS and XCAM_CXXFLAGS
-XCAM_CFLAGS=" -fPIC -DSTDC99 -W -Wall -D_REENTRANT -Wformat -Wformat-security -fstack-protector"
+XCAM_CFLAGS=" -fPIC -Wall -fstack-protector"
 if test "$enable_debug" = "yes"; then
     XCAM_CFLAGS="$XCAM_CFLAGS -g -DDEBUG"
 fi
