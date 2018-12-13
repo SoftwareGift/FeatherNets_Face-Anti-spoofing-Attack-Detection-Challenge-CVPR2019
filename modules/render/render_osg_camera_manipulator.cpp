@@ -151,7 +151,7 @@ RenderOsgCameraManipulator::handleMouseWheel (const osgGA::GUIEventAdapter &ea, 
     if (sm == osgGA::GUIEventAdapter::SCROLL_DOWN || sm == osgGA::GUIEventAdapter::SCROLL_RIGHT) {
         rotate (0.1);
         eventHandled = true;
-    } else if (osgGA::GUIEventAdapter::SCROLL_UP || sm == osgGA::GUIEventAdapter::SCROLL_LEFT) {
+    } else if (sm == osgGA::GUIEventAdapter::SCROLL_UP || sm == osgGA::GUIEventAdapter::SCROLL_LEFT) {
         rotate (-0.1);
         eventHandled = true;
     }
