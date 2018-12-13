@@ -387,6 +387,7 @@ create_kernel_dark_channel (const SmartPtr<CLContext> &context, SmartPtr<CLDefog
     return kernel;
 }
 
+#if 0
 static SmartPtr<CLMinFilterKernel>
 create_kernel_min_filter (
     const SmartPtr<CLContext> &context,
@@ -410,6 +411,7 @@ create_kernel_min_filter (
 
     return kernel;
 }
+#endif
 
 static SmartPtr<CLBiFilterKernel>
 create_kernel_bi_filter (
