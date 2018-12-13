@@ -395,15 +395,13 @@ static void usage(const char* arg0)
             "\t--input1            input image(NV12)\n"
             "\t--input2            input image(NV12)\n"
             "\t--input3            input image(NV12)\n"
-            "\t--output            output image(NV12/MP4)\n"
             "\t--in-w              optional, input width, default: 1280\n"
             "\t--in-h              optional, input height, default: 800\n"
             "\t--out-w             optional, output width, default: 1920\n"
             "\t--out-h             optional, output height, default: 640\n"
             "\t--scale-mode        optional, scaling mode for geometric mapping,\n"
             "\t                    select from [singleconst/dualconst/dualcurve], default: singleconst\n"
-            "\t--car               optional, car model name"
-            "\t--save              optional, save file or not, select from [true/false], default: true\n"
+            "\t--car               optional, car model name\n"
             "\t--loop              optional, how many loops need to run, default: 1\n"
             "\t--help              usage\n",
             arg0);
