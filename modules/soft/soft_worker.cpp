@@ -149,8 +149,8 @@ SoftWorker::work (const SmartPtr<Worker::Arguments> &args)
     const WorkSize &global = get_global_size ();
     const WorkSize &local = get_local_size ();
 
-    XCAM_ASSERT (local.value[0] * local.value[1] * local.value[2]);
-    XCAM_ASSERT (global.value[0] * global.value[1] * global.value[2]);
+    XCAM_ASSERT (local.value[0] && local.value[1] && local.value[2]);
+    XCAM_ASSERT (global.value[0] && global.value[1] && global.value[2]);
 
     WorkSize items;
     uint32_t max_items = 1;
