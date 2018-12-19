@@ -19,6 +19,7 @@ OpenCL is used to improve performance in different platforms.
          - Enable geometry remap for WFoV camera calibration(intrinsic and extrinsic data).
          - Quality and performance improved (OpenCL/CPU/GLES).
          - CPU version upstreamed into AOSP for automotive surround view.
+         - Enable Vulkan to improve performance.
       - 360 video stitching (Equirectangular mode via OpenCL).
         - Support 2-fisheye (>180 degree) video stream stitching.
         - Performance and quality improved.
@@ -59,6 +60,9 @@ OpenCL is used to improve performance in different platforms.
   * If --enable-opencv, suggest opencv versions [3.0.0 - 3.4.3]<http://opencv.org> (or: <https://github.com/opencv/opencv/wiki>)
   * If --enable-gst, need install libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev
   * If --enable-aiq, need get ia_imaging lib which we don't support.
+  * If --enable-render, need compile OpenSceneGraph library with configure option "-DOSG_WINDOWING_SYSTEM=X11" <https://github.com/openscenegraph/OpenSceneGraph.git>
+  * If --enable-gles, need to install mesa-3d library
+  * If --enable-vulkan, need to install mesa-3d library
 
 #### Building and installing:
   * Environment variable settings<BR>
@@ -78,20 +82,23 @@ OpenCL is used to improve performance in different platforms.
         --prefix=PREFIX         install architecture-independent files in PREFIX [default=/usr/local]
         --enable-debug          enable debug, [default=no]
         --enable-profiling      enable profiling, [default=no]
-        --enable-drm            enable drm buffer, [default=yes]
+        --enable-drm            enable drm buffer, [default=no]
         --enable-aiq            enable Aiq 3A algorithm build, [default=no]
         --enable-gst            enable gstreamer plugin build, [default=no]
         --enable-libcl          enable libcl image processor, [default=yes]
         --enable-opencv         enable opencv library, [default=no]
-        --enable-capi           enable libxcam-capi library, [default=yes]
+        --enable-capi           enable libxcam-capi library, [default=no]
         --enable-docs           build Doxygen documentation [default=no]
         --enable-3alib          enable 3A lib build, [default=no]
         --enable-smartlib       enable smart analysis lib build, [default=no]
+        --enable-gles           enable gles, [default=no]
+        --enable-vulkan         enable vulkan, [default=no]
+        --enable-render         enable 3D texture render, [default=no]
 
     For example:
 
         $ ./autogen.sh --prefix=/usr --enable-gst --enable-libcl --enable-opencv \
-          --enable-smartlib --enable-profiling
+          --enable-smartlib --enable-profiling --enable-gles --enable-render
 
   * $ make
   * $ sudo make install

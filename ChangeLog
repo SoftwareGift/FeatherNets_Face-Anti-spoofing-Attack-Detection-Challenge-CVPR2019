@@ -1,6 +1,16 @@
-2017/10/16: release libxcam version 1.2.0
+2018/12/19: release libxcam version 1.2.1
+ * Vulkan surround-view stitching enabling.
+   - enable features of multi-band blender and geometry remap.
+   - enable Vulkan image stitching. (feature-match may support later)
+
+ * Surrond-view texture rendering.
+   - enable 3D surround view scene rendering and manipulation.
+
+ * require OpenSceneGraph minimal version 3.3.2
+
+2018/10/16: release libxcam version 1.2.0
  * GLES compute framework enabling.
-   - enabled GL image processing framework.
+   - enable GL image processing framework.
    - enable features of multi-band blender, geometry remap and data-copy.
 
  * GLES surround-view stitching enabling.
@@ -16,7 +26,7 @@
  * support OpenCL stitching based on auto-scale in vertical 2D-direction.
  * change test-soft-image to test-surround-view
 
-2017/03/01: release libxcam version 1.1.0
+2018/03/01: release libxcam version 1.1.0
  * CPU stitching enabled for automotive surround view in Linux/Android.
    - enable CPU multi-thread image processing framework.
    - enable multi-band blender, geometry remap, data-copy, OpenCV feature match.
