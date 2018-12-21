@@ -859,6 +859,7 @@ CLImage360Stitch::execute_done (SmartPtr<VideoBuffer> &output)
     return CLMultiImageHandler::execute_done (output);
 }
 
+#if HAVE_OPENCV
 static void
 convert_to_stitch_rect (Rect xcam_rect, Rect &stitch_rect, SurroundMode surround_mode)
 {
@@ -879,7 +880,7 @@ convert_to_xcam_rect (Rect stitch_rect, Rect &xcam_rect)
     xcam_rect.pos_x = stitch_rect.pos_x;
     xcam_rect.width = stitch_rect.width;
 }
-
+#endif
 
 XCamReturn
 CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)

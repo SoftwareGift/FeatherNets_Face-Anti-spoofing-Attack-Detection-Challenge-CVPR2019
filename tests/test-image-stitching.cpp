@@ -506,13 +506,15 @@ int main (int argc, char *argv[])
 #endif
 
     SmartPtr<VideoBuffer> pre_buf, cur_buf;
-#if (HAVE_OPENCV) && (XCAM_TEST_STITCH_DEBUG)
+    int frame_id = 0;
+#if (HAVE_OPENCV)
+#if XCAM_TEST_STITCH_DEBUG
     SmartPtr<VideoBuffer> input_bufs[XCAM_STITCH_FISHEYE_MAX_NUM];
 #endif
-    int frame_id = 0;
     std::vector<PointFloat2> top_view_map_table;
     std::vector<PointFloat2> rectified_view_map_table;
     float rectified_start_angle = -45.0f, rectified_end_angle = 45.0f;
+#endif
 
     while (loop--) {
         for (int i = 0; i < input_count; i++) {
