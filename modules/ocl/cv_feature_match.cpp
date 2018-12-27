@@ -34,7 +34,6 @@ CVFeatureMatch::CVFeatureMatch ()
     : CVBaseClass ()
     , FeatureMatch ()
 {
-    XCAM_ASSERT (_cv_context.ptr ());
 }
 
 CVFeatureMatch::~CVFeatureMatch ()

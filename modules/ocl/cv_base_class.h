@@ -24,7 +24,8 @@
 
 #include <xcam_std.h>
 #include <video_buffer.h>
-#include <ocl/cv_context.h>
+
+#include <opencv2/opencv.hpp>
 
 namespace XCam {
 
@@ -32,16 +33,14 @@ class CVBaseClass
 {
 public:
     explicit CVBaseClass ();
+    bool convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &image);
 
-    bool convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image);
-
-protected:
+private:
     XCAM_DEAD_COPY (CVBaseClass);
-    SmartPtr<CVContext>  _cv_context;
 };
 
 extern bool
-convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image);
+convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &image);
 
 }
 

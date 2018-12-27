@@ -29,7 +29,6 @@ namespace XCam {
 CVFeatureMatchCluster::CVFeatureMatchCluster ()
     : CVFeatureMatch ()
 {
-    XCAM_ASSERT (_cv_context.ptr ());
 }
 
 bool

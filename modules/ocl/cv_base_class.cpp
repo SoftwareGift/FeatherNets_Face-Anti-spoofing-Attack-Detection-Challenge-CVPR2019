@@ -25,14 +25,11 @@ namespace XCam {
 
 CVBaseClass::CVBaseClass ()
 {
-    _cv_context = CVContext::instance ();
-    XCAM_ASSERT (_cv_context.ptr ());
 }
 
 bool
-CVBaseClass::convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image)
+CVBaseClass::convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &image)
 {
-
     VideoBufferInfo info = buffer->get_video_info ();
     XCAM_FAIL_RETURN (WARNING, info.format == V4L2_PIX_FMT_NV12, false, "convert_to_mat only support NV12 format");
 
@@ -47,7 +44,7 @@ CVBaseClass::convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image)
 }
 
 bool
-convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image)
+convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &image)
 {
     CVBaseClass cv_obj;
     return cv_obj.convert_to_mat (buffer, image);

@@ -72,7 +72,6 @@ xcam_ocl_sources = \
     $(NULL)
 
 if HAVE_OPENCV
-xcam_ocl_sources += cv_context.cpp
 xcam_ocl_sources += cv_base_class.cpp
 xcam_ocl_sources += cv_image_process_helper.cpp
 xcam_ocl_sources += cv_image_sharp.cpp
@@ -151,7 +150,6 @@ nobase_libxcam_oclinclude_HEADERS = \
     $(NULL)
 
 if HAVE_OPENCV
-nobase_libxcam_oclinclude_HEADERS += cv_context.h
 nobase_libxcam_oclinclude_HEADERS += cv_base_class.h
 nobase_libxcam_oclinclude_HEADERS += cv_image_process_helper.h
 nobase_libxcam_oclinclude_HEADERS += cv_image_sharp.h
