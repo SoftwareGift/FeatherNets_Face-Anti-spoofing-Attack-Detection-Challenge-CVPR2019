@@ -94,13 +94,6 @@ public:
         return _scale_global_output;
     }
 
-    void set_feature_match_ocl (bool use_ocl);
-#if HAVE_OPENCV
-    void init_feature_match_config ();
-    void set_feature_match_config (const int idx, CVFMConfig config);
-    CVFMConfig get_feature_match_config (const int idx);
-#endif
-
 protected:
     virtual XCamReturn prepare_buffer_pool_video_info (const VideoBufferInfo &input, VideoBufferInfo &output);
     virtual XCamReturn prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<VideoBuffer> &output);
@@ -120,7 +113,13 @@ protected:
 
     void calc_fisheye_initial_info (SmartPtr<VideoBuffer> &output);
     void update_image_overlap ();
-    void update_scale_factors (uint32_t fm_idx, Rect crop_left, Rect crop_right);
+
+private:
+    void init_opencv_ocl ();
+    void init_feature_match ();
+    void update_scale_factors (uint32_t fm_idx, const Rect &crop_left, const Rect &crop_right);
+    void set_fm_buf_mem (
+        const SmartPtr<VideoBuffer> &buf_left, const SmartPtr<VideoBuffer> &buf_right, int fm_idx);
 
 private:
     XCAM_DEAD_COPY (CLImage360Stitch);

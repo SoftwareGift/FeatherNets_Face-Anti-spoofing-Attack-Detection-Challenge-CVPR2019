@@ -21,7 +21,6 @@
 #include "cv_feature_match_cluster.h"
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
-#include "cl_utils.h"
 
 #define XCAM_CV_FM_DEBUG 0
 #define XCAM_CV_OF_DRAW_SCALE 2
@@ -284,7 +283,6 @@ CVFeatureMatchCluster::detect_and_match_cluster (
     cv::calcOpticalFlowPyrLK (
         img_left, img_right, corner_left, corner_right, status, err, win_size, 3,
         cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01f));
-    cv::ocl::finish();
 
     calc_of_match_cluster (img_left, img_right, corner_left, corner_right,
                            status, err, mean_offset_x, mean_offset_y, x_offset, y_offset);
@@ -305,24 +303,23 @@ CVFeatureMatchCluster::optical_flow_feature_match (
     const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
     Rect &left_crop_rect, Rect &right_crop_rect, int dst_width)
 {
+#if HAVE_LIBCL
     cv::UMat left_umat, right_umat;
-    cv::Mat left_mat, right_mat;
-    cv::_InputArray left_img, right_img;
-
-    if (!get_crop_image (left_buf, left_crop_rect, left_umat)
-            || !get_crop_image (right_buf, right_crop_rect, right_umat))
+    if (!get_crop_image_umat (left_buf, left_crop_rect, left_umat, BufId0)
+            || !get_crop_image_umat (right_buf, right_crop_rect, right_umat, BufId1))
         return;
 
-    if (_use_ocl) {
-        left_img = cv::_InputArray (left_umat);
-        right_img = cv::_InputArray (right_umat);
-    } else {
-        left_mat = left_umat.getMat (cv::ACCESS_READ);
-        right_mat = right_umat.getMat (cv::ACCESS_READ);
+    cv::Mat left_mat = left_umat.getMat (cv::ACCESS_READ);
+    cv::Mat right_mat = right_umat.getMat (cv::ACCESS_READ);
+#else
+    cv::Mat left_mat, left_mat;
+    if (!get_crop_image_mat (left_buf, left_crop_rect, left_mat)
+            || !get_crop_image_mat (right_buf, right_crop_rect, left_mat))
+        return;
+#endif
 
-        left_img = cv::_InputArray (left_mat);
-        right_img = cv::_InputArray (right_mat);
-    }
+    cv::_InputArray left_img = cv::_InputArray (left_mat);
+    cv::_InputArray right_img = cv::_InputArray (right_mat);
 
     detect_and_match_cluster (left_img, right_img, left_crop_rect, right_crop_rect,
                               _mean_offset, _mean_offset_y, _x_offset, _y_offset);

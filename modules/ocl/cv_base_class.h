@@ -32,16 +32,12 @@ class CVBaseClass
 {
 public:
     explicit CVBaseClass ();
-    bool set_ocl (bool use_ocl);
-    bool is_ocl_path () {
-        return _use_ocl;
-    }
+
     bool convert_to_mat (SmartPtr<VideoBuffer> buffer, cv::Mat &image);
 
 protected:
     XCAM_DEAD_COPY (CVBaseClass);
     SmartPtr<CVContext>  _cv_context;
-    bool                 _use_ocl;
 };
 
 extern bool

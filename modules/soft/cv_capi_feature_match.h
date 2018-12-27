@@ -46,13 +46,6 @@ public:
         const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
         Rect &left_img_crop, Rect &right_img_crop, int dst_width = 0);
 
-    void set_ocl (bool use_ocl) {
-        XCAM_UNUSED (use_ocl);
-    }
-    bool is_ocl_path () {
-        return false;
-    }
-
 protected:
     bool get_crop_image (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect,
                          std::vector<char> &crop_image, CvMat &img);

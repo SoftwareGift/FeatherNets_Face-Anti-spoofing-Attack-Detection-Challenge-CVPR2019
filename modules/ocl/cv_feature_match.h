@@ -28,10 +28,6 @@
 #include <interface/feature_match.h>
 #include <interface/data_types.h>
 
-#include <ocl/cl_context.h>
-#include <ocl/cl_device.h>
-#include <ocl/cl_memory.h>
-
 namespace XCam {
 
 class CVFeatureMatch
@@ -39,21 +35,25 @@ class CVFeatureMatch
     , public FeatureMatch
 {
 public:
+    enum BufId {
+        BufId0    = 0,
+        BufId1,
+        BufIdMax
+    };
+
+public:
     explicit CVFeatureMatch ();
+    virtual ~CVFeatureMatch ();
 
     virtual void optical_flow_feature_match (
         const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
         Rect &left_img_crop, Rect &right_img_crop, int dst_width = 0);
 
-    void set_ocl (bool use_ocl) {
-        CVBaseClass::set_ocl (use_ocl);
-    }
-    bool is_ocl_path () {
-        return CVBaseClass::is_ocl_path ();
-    }
+    void set_cl_buf_mem (void *mem, BufId id);
 
 protected:
-    bool get_crop_image (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img);
+    bool get_crop_image_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::Mat &img);
+    bool get_crop_image_umat (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img, BufId id);
 
     void add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
     void get_valid_offsets (std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
@@ -77,6 +77,7 @@ protected:
 private:
     XCAM_DEAD_COPY (CVFeatureMatch);
 
+    void        *_cl_buf_mem[BufIdMax];
 };
 
 }

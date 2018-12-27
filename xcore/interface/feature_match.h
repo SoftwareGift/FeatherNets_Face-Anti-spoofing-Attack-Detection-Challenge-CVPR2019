@@ -56,7 +56,7 @@ public:
     explicit FeatureMatch ();
     virtual ~FeatureMatch () {};
 
-    void set_config (CVFMConfig config);
+    void set_config (CVFMConfig &config);
     CVFMConfig get_config ();
 
     void set_fm_index (int idx);
@@ -74,9 +74,6 @@ public:
     float get_current_left_offset_y () const {
         return _y_offset;
     }
-
-    virtual void set_ocl (bool use_ocl) = 0;
-    virtual bool is_ocl_path () = 0;
 
 protected:
     bool get_mean_offset (std::vector<float> &offsets, float sum, int &count, float &mean_offset);

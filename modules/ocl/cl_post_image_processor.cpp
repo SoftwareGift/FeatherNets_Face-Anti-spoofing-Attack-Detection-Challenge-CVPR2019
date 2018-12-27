@@ -59,7 +59,6 @@ CLPostImageProcessor::CLPostImageProcessor ()
     , _stitch_enable_seam (false)
     , _stitch_fisheye_map (false)
     , _stitch_lsc (false)
-    , _stitch_fm_ocl (false)
     , _stitch_scale_mode (CLBlenderScaleLocal)
     , _stitch_width (0)
     , _stitch_height (0)
@@ -411,9 +410,6 @@ CLPostImageProcessor::create_handlers ()
         XCAM_RETURN_ERROR_CL,
         "CLPostImageProcessor create image stitch handler failed");
     _stitch->set_output_size (_stitch_width, _stitch_height);
-#if HAVE_OPENCV
-    _stitch->set_feature_match_ocl (_stitch_fm_ocl);
-#endif
     image_handler->set_pool_type (CLImageHandler::CLVideoPoolType);
     image_handler->set_pool_size (XCAM_CL_POST_IMAGE_MAX_POOL_SIZE);
     image_handler->enable_handler (_enable_stitch);
@@ -512,7 +508,7 @@ CLPostImageProcessor::set_image_warp (bool enable)
 bool
 CLPostImageProcessor::set_image_stitch (
     bool enable_stitch, bool enable_seam, CLBlenderScaleMode scale_mode, bool enable_fisheye_map,
-    bool lsc, bool fm_ocl, uint32_t stitch_width, uint32_t stitch_height, uint32_t res_mode)
+    bool lsc, uint32_t stitch_width, uint32_t stitch_height, uint32_t res_mode)
 {
     XCAM_ASSERT (scale_mode < CLBlenderScaleMax);
 
@@ -528,12 +524,6 @@ CLPostImageProcessor::set_image_stitch (
     _stitch_width = stitch_width;
     _stitch_height = stitch_height;
     _stitch_res_mode = res_mode;
-
-#if HAVE_OPENCV
-    _stitch_fm_ocl = fm_ocl;
-#else
-    XCAM_UNUSED (fm_ocl);
-#endif
 
     STREAM_LOCK;
 

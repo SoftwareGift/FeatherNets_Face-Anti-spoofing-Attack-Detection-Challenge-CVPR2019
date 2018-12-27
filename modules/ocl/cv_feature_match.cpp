@@ -22,7 +22,9 @@
 #include "cv_feature_match.h"
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
-#include "cl_utils.h"
+#if HAVE_LIBCL
+#include <opencv2/core/ocl.hpp>
+#endif
 
 #define XCAM_CV_FM_DEBUG 0
 #define XCAM_CV_OF_DRAW_SCALE 2
@@ -35,16 +37,42 @@ CVFeatureMatch::CVFeatureMatch ()
     XCAM_ASSERT (_cv_context.ptr ());
 }
 
-bool
-CVFeatureMatch::get_crop_image (
-    const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img)
+CVFeatureMatch::~CVFeatureMatch ()
 {
-    SmartPtr<CLBuffer> cl_buffer = convert_to_clbuffer (_cv_context->get_cl_context (), buffer);
+    xcam_mem_clear (_cl_buf_mem);
+}
+
+void
+CVFeatureMatch::set_cl_buf_mem (void *mem, BufId id)
+{
+#if HAVE_LIBCL
+    XCAM_ASSERT (mem);
+    _cl_buf_mem[id] = mem;
+#else
+    XCAM_LOG_DEBUG ("non-OpenCL mode, failed to set cl buffer memory");
+#endif
+}
+
+bool
+CVFeatureMatch::get_crop_image_mat (
+    const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::Mat &img)
+{
+    cv::Mat mat;
+    convert_to_mat (buffer, mat);
+    img = mat (cv::Rect (crop_rect.pos_x, crop_rect.pos_y, crop_rect.width, crop_rect.height));
+
+    return true;
+}
+
+bool
+CVFeatureMatch::get_crop_image_umat (
+    const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img, BufId id)
+{
+#if HAVE_LIBCL
     VideoBufferInfo info = buffer->get_video_info ();
-    cl_mem cl_mem_id = cl_buffer->get_mem_id ();
 
     cv::UMat umat;
-    cv::ocl::convertFromBuffer (cl_mem_id, info.strides[0], info.height, info.width, CV_8U, umat);
+    cv::ocl::convertFromBuffer (_cl_buf_mem[id], info.strides[0], info.height, info.width, CV_8U, umat);
     if (umat.empty ()) {
         XCAM_LOG_ERROR ("FeatureMatch(idx:%d): convert bo buffer to UMat failed", _fm_idx);
         return false;
@@ -53,6 +81,10 @@ CVFeatureMatch::get_crop_image (
     img = umat (cv::Rect(crop_rect.pos_x, crop_rect.pos_y, crop_rect.width, crop_rect.height));
 
     return true;
+#else
+    XCAM_LOG_ERROR ("FeatureMatch(idx:%d): non-OpenCL mode, failed to get umat", _fm_idx);
+    return false;
+#endif
 }
 
 void
@@ -222,7 +254,6 @@ CVFeatureMatch::detect_and_match (
     cv::calcOpticalFlowPyrLK (
         img_left, img_right, corner_left, corner_right, status, err, win_size, 3,
         cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 10, 0.01f));
-    cv::ocl::finish();
 
     calc_of_match (img_left, img_right, corner_left, corner_right,
                    status, err, valid_count, mean_offset, x_offset);
@@ -241,24 +272,23 @@ CVFeatureMatch::optical_flow_feature_match (
     const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
     Rect &left_crop_rect, Rect &right_crop_rect, int dst_width)
 {
+#if HAVE_LIBCL
     cv::UMat left_umat, right_umat;
-    cv::Mat left_mat, right_mat;
-    cv::_InputArray left_img, right_img;
-
-    if (!get_crop_image (left_buf, left_crop_rect, left_umat)
-            || !get_crop_image (right_buf, right_crop_rect, right_umat))
+    if (!get_crop_image_umat (left_buf, left_crop_rect, left_umat, BufId0)
+            || !get_crop_image_umat (right_buf, right_crop_rect, right_umat, BufId1))
         return;
 
-    if (_use_ocl) {
-        left_img = cv::_InputArray (left_umat);
-        right_img = cv::_InputArray (right_umat);
-    } else {
-        left_mat = left_umat.getMat (cv::ACCESS_READ);
-        right_mat = right_umat.getMat (cv::ACCESS_READ);
+    cv::Mat left_mat = left_umat.getMat (cv::ACCESS_READ);
+    cv::Mat right_mat = right_umat.getMat (cv::ACCESS_READ);
+#else
+    cv::Mat left_mat, left_mat;
+    if (!get_crop_image_mat (left_buf, left_crop_rect, left_mat)
+            || !get_crop_image_mat (right_buf, right_crop_rect, left_mat))
+        return;
+#endif
 
-        left_img = cv::_InputArray (left_mat);
-        right_img = cv::_InputArray (right_mat);
-    }
+    cv::_InputArray left_img = cv::_InputArray (left_mat);
+    cv::_InputArray right_img = cv::_InputArray (right_mat);
 
     detect_and_match (left_img, right_img, left_crop_rect, right_crop_rect,
                       _valid_count, _mean_offset, _x_offset, dst_width);

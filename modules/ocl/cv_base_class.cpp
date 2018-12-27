@@ -27,17 +27,6 @@ CVBaseClass::CVBaseClass ()
 {
     _cv_context = CVContext::instance ();
     XCAM_ASSERT (_cv_context.ptr ());
-    _use_ocl = _cv_context->is_ocl_enabled ();
-}
-
-bool
-CVBaseClass::set_ocl (bool use_ocl)
-{
-    if (use_ocl && !_cv_context->is_ocl_enabled ()) {
-        return false;
-    }
-    _use_ocl = use_ocl;
-    return true;
 }
 
 bool

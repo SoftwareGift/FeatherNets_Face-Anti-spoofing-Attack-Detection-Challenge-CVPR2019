@@ -20,14 +20,11 @@
  */
 
 #include "cv_context.h"
-#include "cl_device.h"
-#include "cl_memory.h"
 
 namespace XCam {
 
 Mutex CVContext::_init_mutex;
 SmartPtr<CVContext> CVContext::_instance;
-
 
 SmartPtr<CVContext>
 CVContext::instance ()
@@ -37,46 +34,15 @@ CVContext::instance ()
         return _instance;
 
     _instance = new CVContext ();
-    _instance->init_opencv_ocl ();
     return _instance;
-}
-
-void
-CVContext::init_opencv_ocl ()
-{
-    _context = CLDevice::instance()->get_context();
-    cl_platform_id platform_id = CLDevice::instance()->get_platform_id ();
-    char *platform_name = CLDevice::instance()->get_platform_name ();
-    cl_device_id device_id = CLDevice::instance()->get_device_id ();
-    cl_context _context_id = _context->get_context_id ();
-    cv::ocl::attachContext (platform_name, platform_id, _context_id, device_id);
-    cv::ocl::setUseOpenCL (cv::ocl::haveOpenCL());
-    XCAM_LOG_DEBUG("Use OpenCL is:  %s", cv::ocl::haveOpenCL() ? "true" : "false");
-}
-
-bool
-CVContext::enable_ocl (bool flag)
-{
-    if (flag && !cv::ocl::haveOpenCL()) {
-        return false;
-    }
-    cv::ocl::setUseOpenCL (flag);
-    return true;
-}
-
-bool
-CVContext::is_ocl_enabled () const
-{
-    return cv::ocl::useOpenCL ();
 }
 
 CVContext::CVContext ()
 {
-
 }
 
-CVContext::~CVContext () {
-
+CVContext::~CVContext ()
+{
 }
 
 }

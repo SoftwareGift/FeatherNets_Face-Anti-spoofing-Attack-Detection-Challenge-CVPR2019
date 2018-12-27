@@ -95,7 +95,7 @@ public:
     virtual bool set_image_warp (bool enable);
     virtual bool set_image_stitch (
         bool enable_stitch, bool enable_seam, CLBlenderScaleMode scale_mode, bool enable_fisheye_map,
-        bool lsc, bool fm_ocl, uint32_t stitch_width, uint32_t stitch_height, uint32_t res_mode);
+        bool lsc, uint32_t stitch_width, uint32_t stitch_height, uint32_t res_mode);
 
 protected:
     virtual bool can_process_result (SmartPtr<X3aResult> &result);
@@ -141,7 +141,6 @@ private:
     bool                                      _stitch_enable_seam;
     bool                                      _stitch_fisheye_map;
     bool                                      _stitch_lsc;
-    bool                                      _stitch_fm_ocl;
     CLBlenderScaleMode                        _stitch_scale_mode;
     uint32_t                                  _stitch_width;
     uint32_t                                  _stitch_height;

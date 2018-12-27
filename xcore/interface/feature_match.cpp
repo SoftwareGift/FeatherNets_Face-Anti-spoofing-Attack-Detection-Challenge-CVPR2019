@@ -37,7 +37,7 @@ FeatureMatch::FeatureMatch ()
 }
 
 void
-FeatureMatch::set_config (CVFMConfig config)
+FeatureMatch::set_config (CVFMConfig &config)
 {
     _config = config;
 }
