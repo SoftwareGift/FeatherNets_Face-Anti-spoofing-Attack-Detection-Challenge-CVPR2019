@@ -22,8 +22,8 @@
 #include "cl_device.h"
 #include "cl_image_360_stitch.h"
 #if HAVE_OPENCV
-#include "cv_feature_match.h"
-#include "cv_feature_match_cluster.h"
+#include "ocv/cv_feature_match.h"
+#include "ocv/cv_feature_match_cluster.h"
 #include <opencv2/core/ocl.hpp>
 #endif
 

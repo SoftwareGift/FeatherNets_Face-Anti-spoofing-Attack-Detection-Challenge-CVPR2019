@@ -33,7 +33,7 @@
 #if HAVE_OPENCV
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/ocl.hpp>
-#include <ocl/cv_base_class.h>
+#include "ocv/cv_base_class.h"
 #endif
 
 using namespace XCam;

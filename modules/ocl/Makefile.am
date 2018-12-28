@@ -15,17 +15,20 @@ XCAMOCL_LIBS += \
     $(LIBCL_LIBS)  \
     $(NULL)
 
+if HAVE_OPENCV
+XCAMOCL_CXXFLAGS += $(OPENCV_CFLAGS)
+XCAMOCL_LIBS += \
+    $(OPENCV_LIBS)                             \
+    $(top_builddir)/modules/ocv/libxcam_ocv.la \
+    $(NULL)
+endif
+
 if HAVE_LIBDRM
 XCAMOCL_CXXFLAGS += $(LIBDRM_CFLAGS)
 XCAMOCL_LIBS += \
     -ldrm_intel     \
     $(LIBDRM_LIBS)  \
     $(NULL)
-endif
-
-if HAVE_OPENCV
-XCAMOCL_CXXFLAGS += $(OPENCV_CFLAGS)
-XCAMOCL_LIBS += $(OPENCV_LIBS)
 endif
 
 xcam_ocl_sources = \
@@ -70,17 +73,6 @@ xcam_ocl_sources = \
     cl_video_buffer.cpp                \
     priority_buffer_queue.cpp          \
     $(NULL)
-
-if HAVE_OPENCV
-xcam_ocl_sources += cv_base_class.cpp
-xcam_ocl_sources += cv_image_process_helper.cpp
-xcam_ocl_sources += cv_image_sharp.cpp
-xcam_ocl_sources += cv_edgetaper.cpp
-xcam_ocl_sources += cv_wiener_filter.cpp
-xcam_ocl_sources += cv_feature_match.cpp
-xcam_ocl_sources += cv_feature_match_cluster.cpp
-xcam_ocl_sources += cv_image_deblurring.cpp
-endif
 
 if HAVE_LIBDRM
 xcam_ocl_sources += intel/cl_intel_context.cpp
@@ -148,17 +140,6 @@ nobase_libxcam_oclinclude_HEADERS = \
     cl_video_stabilizer.h           \
     cl_video_buffer.h               \
     $(NULL)
-
-if HAVE_OPENCV
-nobase_libxcam_oclinclude_HEADERS += cv_base_class.h
-nobase_libxcam_oclinclude_HEADERS += cv_image_process_helper.h
-nobase_libxcam_oclinclude_HEADERS += cv_image_sharp.h
-nobase_libxcam_oclinclude_HEADERS += cv_edgetaper.h
-nobase_libxcam_oclinclude_HEADERS += cv_wiener_filter.h
-nobase_libxcam_oclinclude_HEADERS += cv_feature_match.h
-nobase_libxcam_oclinclude_HEADERS += cv_feature_match_cluster.h
-nobase_libxcam_oclinclude_HEADERS += cv_image_deblurring.h
-endif
 
 if HAVE_LIBDRM
 nobase_libxcam_oclinclude_HEADERS += intel/cl_intel_context.h

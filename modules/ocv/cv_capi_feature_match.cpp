@@ -25,7 +25,7 @@
 #define XCAM_CV_CAPI_FM_DEBUG 0
 
 #if XCAM_CV_CAPI_FM_DEBUG
-#include "ocl/cv_base_class.h"
+#include "cv_base_class.h"
 #endif
 
 namespace XCam {

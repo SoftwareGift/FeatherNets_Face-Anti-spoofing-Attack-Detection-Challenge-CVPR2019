@@ -8,6 +8,10 @@ XCAMSOFT_CXXFLAGS =               \
 
 XCAMSOFT_LIBS =
 
+if HAVE_OPENCV
+XCAMSOFT_LIBS += $(top_builddir)/modules/ocv/libxcam_ocv.la
+endif
+
 xcam_soft_sources =                  \
     soft_handler.cpp                 \
     soft_video_buf_allocator.cpp     \
@@ -19,17 +23,6 @@ xcam_soft_sources =                  \
     soft_copy_task.cpp               \
     soft_stitcher.cpp                \
    $(NULL)
-
-if HAVE_OPENCV
-XCAMSOFT_CXXFLAGS += $(OPENCV_CFLAGS)
-
-XCAMSOFT_LIBS += $(OPENCV_LIBS)
-
-xcam_soft_sources +=                 \
-    cv_capi_feature_match.cpp        \
-   $(NULL)
-
-endif
 
 libxcam_soft_la_SOURCES =   \
     $(xcam_soft_sources)    \
@@ -66,9 +59,5 @@ noinst_HEADERS =                       \
     soft_blender_tasks_priv.h          \
     soft_geo_tasks_priv.h              \
     $(NULL)
-
-if HAVE_OPENCV
-noinst_HEADERS += cv_capi_feature_match.h
-endif
 
 libxcam_soft_la_LIBTOOLFLAGS = --tag=disable-static

@@ -431,6 +431,7 @@ AC_CONFIG_FILES([Makefile
                  shaders/glslx/Makefile
                  xcore/Makefile
                  modules/Makefile
+                 modules/ocv/Makefile
                  modules/soft/Makefile
                  modules/isp/Makefile
                  modules/ocl/Makefile

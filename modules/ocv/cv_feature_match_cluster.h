@@ -21,7 +21,7 @@
 #ifndef XCAM_CV_FEATURE_MATCH_CLUSTER_H
 #define XCAM_CV_FEATURE_MATCH_CLUSTER_H
 
-#include <ocl/cv_feature_match.h>
+#include "cv_feature_match.h"
 
 namespace XCam {
 

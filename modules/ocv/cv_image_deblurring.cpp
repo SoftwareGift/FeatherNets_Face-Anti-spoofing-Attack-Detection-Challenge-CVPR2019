@@ -23,7 +23,6 @@
 
 namespace XCam {
 
-
 CVImageDeblurring::CVImageDeblurring ()
     : CVBaseClass ()
 {
@@ -196,7 +195,7 @@ CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred,
     }
     cv::merge (deblurred_rgb, result_deblurred);
     result_deblurred.convertTo (result_deblurred, CV_8UC3);
-    fastNlMeansDenoisingColored (result_deblurred, deblurred, 3, 3, 7, 21);
+    cv::fastNlMeansDenoisingColored (result_deblurred, deblurred, 3, 3, 7, 21);
     kernel = result_kernel.clone ();
 }
 

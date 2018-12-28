@@ -1,3 +1,9 @@
+if HAVE_OPENCV
+OCV_DIR = ocv
+else
+OCV_DIR =
+endif
+
 if HAVE_LIBCL
 OCL_DIR = ocl
 else
@@ -28,4 +34,4 @@ else
 RENDER_DIR =
 endif
 
-SUBDIRS = soft $(ISP_DIR) $(OCL_DIR) $(GLES_DIR) $(VULKAN_DIR) $(RENDER_DIR)
+SUBDIRS = $(OCV_DIR) soft $(ISP_DIR) $(OCL_DIR) $(GLES_DIR) $(VULKAN_DIR) $(RENDER_DIR)

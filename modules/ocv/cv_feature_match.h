@@ -24,9 +24,9 @@
 
 #include <xcam_std.h>
 #include <video_buffer.h>
-#include <ocl/cv_base_class.h>
 #include <interface/feature_match.h>
 #include <interface/data_types.h>
+#include "cv_base_class.h"
 
 namespace XCam {
 

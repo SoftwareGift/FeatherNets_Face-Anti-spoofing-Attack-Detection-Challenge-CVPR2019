@@ -23,7 +23,7 @@
 #define XCAM_CV_EDGETAPER_H
 
 #include <xcam_std.h>
-#include <ocl/cv_base_class.h>
+#include "cv_base_class.h"
 
 namespace XCam {
 

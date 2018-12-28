@@ -54,7 +54,10 @@ noinst_PROGRAMS += \
 	$(NULL)
 
 TEST_BASE_CXXFLAGS += $(OPENCV_CFLAGS)
-TEST_BASE_LA += $(OPENCV_LIBS)
+TEST_BASE_LA += \
+    $(OPENCV_LIBS)                             \
+    $(top_builddir)/modules/ocv/libxcam_ocv.la \
+    $(NULL)
 endif
 endif
 

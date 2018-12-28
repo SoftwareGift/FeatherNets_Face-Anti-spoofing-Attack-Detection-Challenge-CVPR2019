@@ -31,7 +31,7 @@
 #define ENABLE_FEATURE_MATCH HAVE_OPENCV
 
 #if ENABLE_FEATURE_MATCH
-#include "cv_capi_feature_match.h"
+#include "ocv/cv_capi_feature_match.h"
 #ifndef ANDROID
 #include <opencv2/core/ocl.hpp>
 #endif

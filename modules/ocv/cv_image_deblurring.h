@@ -24,11 +24,11 @@
 
 #include <xcam_std.h>
 #include <video_buffer.h>
-#include <ocl/cv_base_class.h>
-#include <ocl/cv_image_process_helper.h>
-#include <ocl/cv_image_sharp.h>
-#include <ocl/cv_edgetaper.h>
-#include <ocl/cv_wiener_filter.h>
+#include "cv_base_class.h"
+#include "cv_image_process_helper.h"
+#include "cv_image_sharp.h"
+#include "cv_edgetaper.h"
+#include "cv_wiener_filter.h"
 
 namespace XCam {
 
