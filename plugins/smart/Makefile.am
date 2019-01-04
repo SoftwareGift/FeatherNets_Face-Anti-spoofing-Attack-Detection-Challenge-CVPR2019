@@ -1,13 +1,11 @@
-
 if ENABLE_DVS
 if HAVE_LIBCL
 DVS_DIR = dvs
-else
-DVS_DIR =
 endif
-else
-DVS_DIR =
 endif
 
-SUBDIRS = $(DVS_DIR) sample
+if ENABLE_IA_AIQ
+SAMPLE_DIR = sample
+endif
 
+SUBDIRS = $(DVS_DIR) $(SAMPLE_DIR)
