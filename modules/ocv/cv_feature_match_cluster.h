@@ -39,15 +39,15 @@ protected:
     bool calc_mean_offset (std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
                            std::vector<uchar> &status, std::vector<float> &error,
                            float &mean_offset_x, float &mean_offset_y,
-                           cv::InputOutputArray debug_img, cv::Size &img0_size, cv::Size &img1_size);
+                           cv::Mat debug_img, cv::Size &img0_size, cv::Size &img1_size);
 
-    void calc_of_match_cluster (cv::InputArray image0, cv::InputArray image1,
+    void calc_of_match_cluster (cv::Mat image0, cv::Mat image1,
                                 std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
                                 std::vector<uchar> &status, std::vector<float> &error,
                                 float &last_mean_offset_x, float &last_mean_offset_y,
                                 float &out_x_offset, float &out_y_offset);
 
-    void detect_and_match_cluster (cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
+    void detect_and_match_cluster (cv::Mat img_left, cv::Mat img_right, Rect &crop_left, Rect &crop_right,
                                    float &mean_offset_x, float &mean_offset_y,
                                    float &x_offset, float &y_offset);
 

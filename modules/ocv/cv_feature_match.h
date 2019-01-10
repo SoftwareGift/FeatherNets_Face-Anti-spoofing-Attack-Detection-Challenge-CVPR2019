@@ -52,18 +52,18 @@ protected:
     bool get_crop_image_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::Mat &img);
     bool get_crop_image_umat (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img, BufId id);
 
-    void add_detected_data (cv::InputArray image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
+    void add_detected_data (cv::Mat image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
     void get_valid_offsets (std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
                             std::vector<uchar> &status, std::vector<float> &error,
                             std::vector<float> &offsets, float &sum, int &count,
-                            cv::InputOutputArray debug_img, cv::Size &img0_size);
+                            cv::Mat debug_img, cv::Size &img0_size);
 
-    void calc_of_match (cv::InputArray image0, cv::InputArray image1,
+    void calc_of_match (cv::Mat image0, cv::Mat image1,
                         std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
                         std::vector<uchar> &status, std::vector<float> &error,
                         int &last_count, float &last_mean_offset, float &out_x_offset);
 
-    void detect_and_match (cv::InputArray img_left, cv::InputArray img_right, Rect &crop_left, Rect &crop_right,
+    void detect_and_match (cv::Mat img_left, cv::Mat img_right, Rect &crop_left, Rect &crop_right,
                            int &valid_count, float &mean_offset, float &x_offset, int dst_width);
 
     void adjust_stitch_area (int dst_width, float &x_offset, Rect &stitch0, Rect &stitch1);
