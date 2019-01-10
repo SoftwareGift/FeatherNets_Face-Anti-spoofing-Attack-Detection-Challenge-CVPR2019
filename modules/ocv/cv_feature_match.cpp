@@ -52,17 +52,6 @@ CVFeatureMatch::set_cl_buf_mem (void *mem, BufId id)
 }
 
 bool
-CVFeatureMatch::get_crop_image_mat (
-    const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::Mat &img)
-{
-    cv::Mat mat;
-    convert_to_mat (buffer, mat);
-    img = mat (cv::Rect (crop_rect.pos_x, crop_rect.pos_y, crop_rect.width, crop_rect.height));
-
-    return true;
-}
-
-bool
 CVFeatureMatch::get_crop_image_umat (
     const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img, BufId id)
 {
@@ -262,8 +251,8 @@ CVFeatureMatch::optical_flow_feature_match (
     cv::Mat right_img = right_umat.getMat (cv::ACCESS_READ);
 #else
     cv::Mat left_img, right_img;
-    if (!get_crop_image_mat (left_buf, left_crop_rect, left_img)
-            || !get_crop_image_mat (right_buf, right_crop_rect, right_img))
+    if (!convert_range_to_mat (left_buf, left_crop_rect, left_img)
+            || !convert_range_to_mat (right_buf, right_crop_rect, right_img))
         return;
 #endif
 

@@ -49,7 +49,6 @@ public:
     void set_cl_buf_mem (void *mem, BufId id);
 
 protected:
-    bool get_crop_image_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::Mat &img);
     bool get_crop_image_umat (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img, BufId id);
 
     void add_detected_data (cv::Mat image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);

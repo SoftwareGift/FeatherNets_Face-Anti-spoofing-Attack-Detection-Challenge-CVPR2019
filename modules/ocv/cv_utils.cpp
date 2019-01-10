@@ -37,4 +37,18 @@ bool convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &img)
     return true;
 }
 
+bool convert_range_to_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &range, cv::Mat &img)
+{
+    VideoBufferInfo info = buffer->get_video_info ();
+
+    uint8_t *mem = buffer->map ();
+    XCAM_FAIL_RETURN (ERROR, mem, false, "convert_range_to_mat buffer map failed");
+
+    uint8_t *start = mem + range.pos_y * info.strides[0] + range.pos_x;
+    img = cv::Mat (range.height, range.width, CV_8UC1, start, info.strides[0]);
+    buffer->unmap ();
+
+    return true;
+}
+
 }

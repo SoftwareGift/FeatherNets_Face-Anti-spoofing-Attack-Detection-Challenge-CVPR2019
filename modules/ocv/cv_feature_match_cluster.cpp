@@ -289,8 +289,8 @@ CVFeatureMatchCluster::optical_flow_feature_match (
     cv::Mat right_img = right_umat.getMat (cv::ACCESS_READ);
 #else
     cv::Mat left_img, right_img;
-    if (!get_crop_image_mat (left_buf, left_crop_rect, left_img)
-            || !get_crop_image_mat (right_buf, right_crop_rect, right_img))
+    if (!convert_range_to_mat (left_buf, left_crop_rect, left_img)
+            || !convert_range_to_mat (right_buf, right_crop_rect, right_img))
         return;
 #endif
 

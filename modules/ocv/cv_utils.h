@@ -28,6 +28,7 @@
 namespace XCam {
 
     bool convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &img);
+    bool convert_range_to_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &range, cv::Mat &img);
 
 }
 
