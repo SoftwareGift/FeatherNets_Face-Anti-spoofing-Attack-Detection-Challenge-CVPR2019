@@ -24,7 +24,6 @@
 namespace XCam {
 
 CVImageDeblurring::CVImageDeblurring ()
-    : CVBaseClass ()
 {
     _helper = new CVImageProcessHelper ();
     _sharp = new CVImageSharp ();

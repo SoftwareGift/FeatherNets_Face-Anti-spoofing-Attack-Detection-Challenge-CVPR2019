@@ -22,18 +22,15 @@
 #ifndef XCAM_CV_IMAGE_PROCESS_HELPER_H
 #define XCAM_CV_IMAGE_PROCESS_HELPER_H
 
-#include <xcam_std.h>
 #include <video_buffer.h>
-#include "cv_base_class.h"
+#include "cv_std.h"
 
 namespace XCam {
 
-
-class CVImageProcessHelper : public CVBaseClass
+class CVImageProcessHelper
 {
-
 public:
-    explicit CVImageProcessHelper ();
+    explicit CVImageProcessHelper () {}
 
     void compute_dft (const cv::Mat &image, cv::Mat &result);
     void compute_idft (cv::Mat *input, cv::Mat &result);

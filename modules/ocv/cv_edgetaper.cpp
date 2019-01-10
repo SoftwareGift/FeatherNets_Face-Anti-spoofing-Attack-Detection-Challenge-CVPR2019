@@ -23,13 +23,6 @@
 
 namespace XCam {
 
-
-CVEdgetaper::CVEdgetaper ()
-    : CVBaseClass ()
-{
-
-}
-
 void
 CVEdgetaper::create_weights (const cv::Mat &image, const cv::Mat &psf, cv::Mat &coefficients)
 {

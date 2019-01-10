@@ -22,16 +22,14 @@
 #ifndef XCAM_CV_WIENER_FILTER_H
 #define XCAM_CV_WIENER_FILTER_H
 
-#include <xcam_std.h>
 #include <video_buffer.h>
-#include "cv_base_class.h"
+#include "cv_std.h"
 #include "cv_image_process_helper.h"
 
 namespace XCam {
 
-class CVWienerFilter : public CVBaseClass
+class CVWienerFilter
 {
-
 public:
     explicit CVWienerFilter ();
 

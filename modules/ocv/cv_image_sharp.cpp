@@ -23,13 +23,6 @@
 
 namespace XCam {
 
-
-CVImageSharp::CVImageSharp ()
-    : CVBaseClass ()
-{
-
-}
-
 cv::Mat
 CVImageSharp::sharp_image_gray (const cv::Mat &image, float sigmar)
 {

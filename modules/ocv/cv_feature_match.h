@@ -22,17 +22,14 @@
 #ifndef XCAM_CV_FEATURE_MATCH_H
 #define XCAM_CV_FEATURE_MATCH_H
 
-#include <xcam_std.h>
 #include <video_buffer.h>
 #include <interface/feature_match.h>
-#include <interface/data_types.h>
-#include "cv_base_class.h"
+#include "cv_utils.h"
 
 namespace XCam {
 
 class CVFeatureMatch
-    : public CVBaseClass
-    , public FeatureMatch
+    : public FeatureMatch
 {
 public:
     enum BufId {

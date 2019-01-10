@@ -31,7 +31,7 @@
 #include <ocl/cl_image_360_stitch.h>
 #include <ocl/cl_utils.h>
 #if HAVE_OPENCV
-#include "ocv/cv_base_class.h"
+#include "ocv/cv_utils.h"
 #endif
 
 #define XCAM_TEST_STITCH_DEBUG 0

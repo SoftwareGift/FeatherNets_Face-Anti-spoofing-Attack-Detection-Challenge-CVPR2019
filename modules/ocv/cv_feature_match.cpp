@@ -19,9 +19,9 @@
  * Author: Yinhang Liu <yinhangx.liu@intel.com>
  */
 
-#include "cv_feature_match.h"
 #include "xcam_obj_debug.h"
 #include "image_file_handle.h"
+#include "cv_feature_match.h"
 #if HAVE_LIBCL
 #include <opencv2/core/ocl.hpp>
 #endif
@@ -31,8 +31,7 @@
 
 namespace XCam {
 CVFeatureMatch::CVFeatureMatch ()
-    : CVBaseClass ()
-    , FeatureMatch ()
+    : FeatureMatch ()
 {
 }
 
@@ -320,8 +319,7 @@ CVFeatureMatch::debug_write_image (
     VideoBufferInfo info = buf->get_video_info ();
 
     cv::Mat mat;
-    CVBaseClass cv_obj;
-    cv_obj.convert_to_mat (buf, mat);
+    convert_to_mat (buf, mat);
 
     cv::putText (mat, frame_str, cv::Point(rect.pos_x, 30), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
     cv::putText (mat, fm_idx_str, cv::Point(rect.pos_x, 70), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);

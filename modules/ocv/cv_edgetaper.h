@@ -22,16 +22,14 @@
 #ifndef XCAM_CV_EDGETAPER_H
 #define XCAM_CV_EDGETAPER_H
 
-#include <xcam_std.h>
-#include "cv_base_class.h"
+#include "cv_std.h"
 
 namespace XCam {
 
-class CVEdgetaper : public CVBaseClass
+class CVEdgetaper
 {
-
 public:
-    explicit CVEdgetaper ();
+    explicit CVEdgetaper () {}
     void edgetaper (const cv::Mat &image, const cv::Mat &psf, cv::Mat &output);
 
 private:

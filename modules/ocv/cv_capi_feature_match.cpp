@@ -24,10 +24,6 @@
 
 #define XCAM_CV_CAPI_FM_DEBUG 0
 
-#if XCAM_CV_CAPI_FM_DEBUG
-#include "cv_base_class.h"
-#endif
-
 namespace XCam {
 #if XCAM_CV_CAPI_FM_DEBUG
 static void
@@ -263,8 +259,7 @@ debug_write_image (
     VideoBufferInfo info = buf->get_video_info ();
 
     cv::Mat mat;
-    CVBaseClass cv_obj;
-    cv_obj.convert_to_mat (buf, mat);
+    convert_to_mat (buf, mat);
 
     cv::putText (mat, frame_str, cv::Point(rect.pos_x, 30), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
     cv::putText (mat, fm_idx_str, cv::Point(rect.pos_x, 70), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);

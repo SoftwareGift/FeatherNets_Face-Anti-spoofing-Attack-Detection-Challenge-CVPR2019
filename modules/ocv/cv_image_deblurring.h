@@ -22,9 +22,8 @@
 #ifndef XCAM_CV_FEATURE_DEBLURRING_H
 #define XCAM_CV_FEATURE_DEBLURRING_H
 
-#include <xcam_std.h>
 #include <video_buffer.h>
-#include "cv_base_class.h"
+#include "cv_std.h"
 #include "cv_image_process_helper.h"
 #include "cv_image_sharp.h"
 #include "cv_edgetaper.h"
@@ -41,9 +40,8 @@ struct CVIDConfig {
     }
 };
 
-class CVImageDeblurring : public CVBaseClass
+class CVImageDeblurring
 {
-
 public:
     explicit CVImageDeblurring ();
     void set_config (CVIDConfig config);

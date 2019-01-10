@@ -23,9 +23,9 @@
 #ifndef CV_CAPI_FEATURE_MATCH_H
 #define CV_CAPI_FEATURE_MATCH_H
 
-#include <xcam_std.h>
 #include <video_buffer.h>
 #include <interface/feature_match.h>
+#include "cv_utils.h"
 
 #ifdef ANDROID
 #include <cv.h>

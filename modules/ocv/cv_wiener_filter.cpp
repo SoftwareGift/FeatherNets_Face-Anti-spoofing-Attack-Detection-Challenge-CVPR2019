@@ -23,9 +23,7 @@
 
 namespace XCam {
 
-
 CVWienerFilter::CVWienerFilter ()
-    : CVBaseClass ()
 {
     _helpers = new CVImageProcessHelper ();
 }

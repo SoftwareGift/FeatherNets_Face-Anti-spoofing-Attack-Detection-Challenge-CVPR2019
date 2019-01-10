@@ -24,7 +24,7 @@
 #include <buffer_pool.h>
 #include <image_file_handle.h>
 #if (!defined(ANDROID) && (HAVE_OPENCV))
-#include "ocv/cv_base_class.h"
+#include "ocv/cv_utils.h"
 #endif
 
 #define XCAM_TEST_STREAM_DEBUG 0

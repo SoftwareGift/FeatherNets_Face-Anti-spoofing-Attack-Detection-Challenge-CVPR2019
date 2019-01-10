@@ -23,13 +23,6 @@
 
 namespace XCam {
 
-
-CVImageProcessHelper::CVImageProcessHelper ()
-    : CVBaseClass ()
-{
-
-}
-
 cv::Mat
 CVImageProcessHelper::erosion (const cv::Mat &image, int erosion_size, int erosion_type)
 {

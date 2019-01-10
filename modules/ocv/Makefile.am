@@ -1,7 +1,7 @@
 noinst_LTLIBRARIES = libxcam_ocv.la
 
 xcam_ocv_sources = \
-    cv_base_class.cpp            \
+    cv_utils.cpp                 \
     cv_image_process_helper.cpp  \
     cv_image_sharp.cpp           \
     cv_edgetaper.cpp             \
