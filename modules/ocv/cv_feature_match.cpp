@@ -260,46 +260,31 @@ CVFeatureMatch::optical_flow_feature_match (
                       _valid_count, _mean_offset, _x_offset, dst_width);
 
 #if XCAM_CV_FM_DEBUG
-    XCAM_ASSERT (_fm_idx >= 0);
-
-    char frame_str[64] = {'\0'};
-    std::snprintf (frame_str, 64, "frame:%d", _frame_num);
-    char fm_idx_str[64] = {'\0'};
-    std::snprintf (fm_idx_str, 64, "fm_idx:%d", _fm_idx);
-
-    char img_name[256] = {'\0'};
-    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_0.jpg", _frame_num, _fm_idx);
-    debug_write_image (left_buf, left_crop_rect, img_name, frame_str, fm_idx_str);
-
-    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_1.jpg", _frame_num, _fm_idx);
-    debug_write_image (right_buf, right_crop_rect, img_name, frame_str, fm_idx_str);
-
-    XCAM_LOG_INFO ("FeatureMatch(idx:%d): frame number:%d done", _fm_idx, _frame_num);
+    debug_write_image (left_buf, right_buf, left_crop_rect, right_crop_rect, _frame_num, _fm_idx);
     _frame_num++;
 #endif
 }
 
 void
 CVFeatureMatch::debug_write_image (
-    const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name, char *frame_str, char *fm_idx_str)
+    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
+    const Rect &left_rect, const Rect &right_rect, uint32_t frame_num, int fm_idx)
 {
-    cv::Scalar color = cv::Scalar(0, 0, 255);
-    VideoBufferInfo info = buf->get_video_info ();
+    XCAM_ASSERT (fm_idx >= 0);
 
-    cv::Mat mat;
-    convert_to_mat (buf, mat);
+    char frame_str[64] = {'\0'};
+    std::snprintf (frame_str, 64, "frame:%d", frame_num);
+    char fm_idx_str[64] = {'\0'};
+    std::snprintf (fm_idx_str, 64, "fm_idx:%d", fm_idx);
 
-    cv::putText (mat, frame_str, cv::Point(rect.pos_x, 30), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
-    cv::putText (mat, fm_idx_str, cv::Point(rect.pos_x, 70), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
+    char img_name[256] = {'\0'};
+    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_0.jpg", frame_num, fm_idx);
+    write_image (left_buf, left_rect, img_name, frame_str, fm_idx_str);
 
-    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y), cv::Point(rect.pos_x + rect.width, rect.pos_y), color, 1);
-    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y + rect.height),
-              cv::Point(rect.pos_x + rect.width, rect.pos_y + rect.height), color, 1);
+    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_1.jpg", frame_num, fm_idx);
+    write_image (right_buf, right_rect, img_name, frame_str, fm_idx_str);
 
-    cv::line (mat, cv::Point(rect.pos_x, 0), cv::Point(rect.pos_x, info.height), color, 2);
-    cv::line (mat, cv::Point(rect.pos_x + rect.width, 0), cv::Point(rect.pos_x + rect.width, info.height), color, 2);
-
-    cv::imwrite (img_name, mat);
+    XCAM_LOG_INFO ("FeatureMatch(idx:%d): frame number:%d done", fm_idx, frame_num);
 }
 
 }

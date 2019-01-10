@@ -25,11 +25,6 @@
 #define XCAM_CV_CAPI_FM_DEBUG 0
 
 namespace XCam {
-#if XCAM_CV_CAPI_FM_DEBUG
-static void
-debug_write_image (
-    const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name, char *frame_str, char *fm_idx_str);
-#endif
 
 CVCapiFeatureMatch::CVCapiFeatureMatch ()
     : FeatureMatch()
@@ -239,10 +234,9 @@ CVCapiFeatureMatch::optical_flow_feature_match (
 
     char img_name[256] = {'\0'};
     std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_0.jpg", _frame_num, _fm_idx);
-    debug_write_image (left_buf, left_crop_rect, img_name, frame_str, fm_idx_str);
-
+    write_image (left_buf, left_crop_rect, img_name, frame_str, fm_idx_str);
     std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_1.jpg", _frame_num, _fm_idx);
-    debug_write_image (right_buf, right_crop_rect, img_name, frame_str, fm_idx_str);
+    write_image (right_buf, right_crop_rect, img_name, frame_str, fm_idx_str);
 
     XCAM_LOG_INFO ("FeatureMatch(idx:%d): frame number:%d done", _fm_idx, _frame_num);
 
@@ -250,29 +244,5 @@ CVCapiFeatureMatch::optical_flow_feature_match (
 #endif
 }
 
-#if XCAM_CV_CAPI_FM_DEBUG
-static void
-debug_write_image (
-    const SmartPtr<VideoBuffer> &buf, const Rect &rect, char *img_name, char *frame_str, char *fm_idx_str)
-{
-    cv::Scalar color = cv::Scalar(0, 0, 255);
-    VideoBufferInfo info = buf->get_video_info ();
-
-    cv::Mat mat;
-    convert_to_mat (buf, mat);
-
-    cv::putText (mat, frame_str, cv::Point(rect.pos_x, 30), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
-    cv::putText (mat, fm_idx_str, cv::Point(rect.pos_x, 70), cv::FONT_HERSHEY_COMPLEX, 0.8f, color, 2, 8, false);
-
-    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y), cv::Point(rect.pos_x + rect.width, rect.pos_y), color, 1);
-    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y + rect.height),
-              cv::Point(rect.pos_x + rect.width, rect.pos_y + rect.height), color, 1);
-
-    cv::line (mat, cv::Point(rect.pos_x, 0), cv::Point(rect.pos_x, info.height), color, 2);
-    cv::line (mat, cv::Point(rect.pos_x + rect.width, 0), cv::Point(rect.pos_x + rect.width, info.height), color, 2);
-
-    cv::imwrite (img_name, mat);
-}
-#endif
 
 }

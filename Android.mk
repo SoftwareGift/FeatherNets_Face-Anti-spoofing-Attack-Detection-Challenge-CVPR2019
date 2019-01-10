@@ -67,7 +67,10 @@ XCAM_SOFT_SRC_FILES := \
     $(NULL)
 
 ifeq ($(ENABLE_OPENCV), 1)
-XCAM_SOFT_SRC_FILES += modules/ocv/cv_capi_feature_match.cpp
+XCAM_SOFT_SRC_FILES += \
+    modules/ocv/cv_utils.cpp \
+    modules/ocv/cv_capi_feature_match.cpp \
+    $(NULL)
 endif
 
 LOCAL_SRC_FILES := $(XCAM_XCORE_SRC_FILES) $(XCAM_SOFT_SRC_FILES)

@@ -30,6 +30,12 @@ namespace XCam {
     bool convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &img);
     bool convert_range_to_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &range, cv::Mat &img);
 
+    void write_image (
+        const SmartPtr<VideoBuffer> &buf, const char *img_name, const char *frame_str, const char *idx_str);
+    void write_image (
+        const SmartPtr<VideoBuffer> &buf, const Rect &draw_rect,
+        const char *img_name, const char *frame_str, const char *idx_str);
+
 }
 
 #endif // XCAM_CV_UTILS_H

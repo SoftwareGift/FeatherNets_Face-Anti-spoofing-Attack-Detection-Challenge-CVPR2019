@@ -298,21 +298,7 @@ CVFeatureMatchCluster::optical_flow_feature_match (
                               _mean_offset, _mean_offset_y, _x_offset, _y_offset);
 
 #if XCAM_CV_FM_DEBUG
-    XCAM_ASSERT (_fm_idx >= 0);
-
-    char frame_str[64] = {'\0'};
-    std::snprintf (frame_str, 64, "frame:%d", _frame_num);
-    char fm_idx_str[64] = {'\0'};
-    std::snprintf (fm_idx_str, 64, "fm_idx:%d", _fm_idx);
-
-    char img_name[256] = {'\0'};
-    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_0.jpg", _frame_num, _fm_idx);
-    debug_write_image (left_buf, left_crop_rect, img_name, frame_str, fm_idx_str);
-
-    std::snprintf (img_name, 256, "fm_in_stitch_area_%d_%d_1.jpg", _frame_num, _fm_idx);
-    debug_write_image (right_buf, right_crop_rect, img_name, frame_str, fm_idx_str);
-
-    XCAM_LOG_INFO ("FeatureMatch(idx:%d): frame number:%d done", _fm_idx, _frame_num);
+    debug_write_image (left_buf, right_buf, left_crop_rect, right_crop_rect, _frame_num, _fm_idx);
     _frame_num++;
 #endif
 

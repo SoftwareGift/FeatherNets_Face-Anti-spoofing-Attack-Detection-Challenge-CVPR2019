@@ -50,8 +50,12 @@ public:
 
 protected:
     bool get_crop_image_umat (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, cv::UMat &img, BufId id);
-
     void add_detected_data (cv::Mat image, cv::Ptr<cv::Feature2D> detector, std::vector<cv::Point2f> &corners);
+
+    void debug_write_image (
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
+        const Rect &left_rect, const Rect &right_rect, uint32_t frame_num, int fm_idx);
+
     void get_valid_offsets (std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
                             std::vector<uchar> &status, std::vector<float> &error,
                             std::vector<float> &offsets, float &sum, int &count,

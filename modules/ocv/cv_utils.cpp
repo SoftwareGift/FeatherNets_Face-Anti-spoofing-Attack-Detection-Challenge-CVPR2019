@@ -20,6 +20,9 @@
 
 #include "cv_utils.h"
 
+const static cv::Scalar color = cv::Scalar (0, 0, 255);
+const static int fontFace = cv::FONT_HERSHEY_COMPLEX;
+
 namespace XCam {
 
 bool convert_to_mat (const SmartPtr<VideoBuffer> &buffer, cv::Mat &img)
@@ -49,6 +52,46 @@ bool convert_range_to_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &rang
     buffer->unmap ();
 
     return true;
+}
+
+void write_image (
+    const SmartPtr<VideoBuffer> &buf, const char *img_name, const char *frame_str, const char *idx_str)
+{
+    XCAM_ASSERT (img_name);
+
+    cv::Mat mat;
+    convert_to_mat (buf, mat);
+
+    if(frame_str)
+        cv::putText (mat, frame_str, cv::Point(20, 50), fontFace, 2.0, color, 2, 8, false);
+    if(idx_str)
+        cv::putText (mat, idx_str, cv::Point(20, 110), fontFace, 2.0, color, 2, 8, false);
+
+    cv::imwrite (img_name, mat);
+}
+
+void write_image (
+    const SmartPtr<VideoBuffer> &buf, const Rect &draw_rect,
+    const char *img_name, const char *frame_str, const char *idx_str)
+{
+    XCAM_ASSERT (img_name && frame_str && idx_str);
+
+    cv::Mat mat;
+    convert_to_mat (buf, mat);
+
+    const Rect &rect = draw_rect;
+    cv::putText (mat, frame_str, cv::Point(rect.pos_x, 30), fontFace, 0.8f, color, 2, 8, false);
+    cv::putText (mat, idx_str, cv::Point(rect.pos_x, 70), fontFace, 0.8f, color, 2, 8, false);
+
+    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y), cv::Point(rect.pos_x + rect.width, rect.pos_y), color, 1);
+    cv::line (mat, cv::Point(rect.pos_x, rect.pos_y + rect.height),
+              cv::Point(rect.pos_x + rect.width, rect.pos_y + rect.height), color, 1);
+
+    VideoBufferInfo info = buf->get_video_info ();
+    cv::line (mat, cv::Point(rect.pos_x, 0), cv::Point(rect.pos_x, info.height), color, 2);
+    cv::line (mat, cv::Point(rect.pos_x + rect.width, 0), cv::Point(rect.pos_x + rect.width, info.height), color, 2);
+
+    cv::imwrite (img_name, mat);
 }
 
 }
