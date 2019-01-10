@@ -151,25 +151,15 @@ CVFeatureMatch::calc_of_match (
 
 #if XCAM_CV_FM_DEBUG
     cv::Mat mat;
-    cv::UMat umat;
     cv::Size img1_size = image1.size ();
     cv::Size size (img0_size.width + img1_size.width, img0_size.height);
 
-    if (image0.isUMat ()) {
-        umat.create (size, image0.type ());
-        debug_img = cv::_InputOutputArray (umat);
+    mat.create (size, image0.type ());
+    debug_img = cv::_InputOutputArray (mat);
 
-        image0.copyTo (umat (cv::Rect(0, 0, img0_size.width, img0_size.height)));
-        image1.copyTo (umat (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
-        umat.copyTo (debug_img);
-    } else {
-        mat.create (size, image0.type ());
-        debug_img = cv::_InputOutputArray (mat);
-
-        image0.copyTo (mat (cv::Rect(0, 0, img0_size.width, img0_size.height)));
-        image1.copyTo (mat (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
-        mat.copyTo (debug_img);
-    }
+    image0.copyTo (mat (cv::Rect(0, 0, img0_size.width, img0_size.height)));
+    image1.copyTo (mat (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
+    mat.copyTo (debug_img);
 
     cv::Size scale_size = size * XCAM_CV_OF_DRAW_SCALE;
     cv::resize (debug_img, debug_img, scale_size, 0, 0);
@@ -238,9 +228,6 @@ CVFeatureMatch::detect_and_match (
     std::vector<cv::Point2f> corner_left, corner_right;
     cv::Ptr<cv::Feature2D> fast_detector;
     cv::Size win_size = cv::Size (5, 5);
-
-    if (img_left.isUMat ())
-        win_size = cv::Size (16, 16);
 
     fast_detector = cv::FastFeatureDetector::create (20, true);
     add_detected_data (img_left, fast_detector, corner_left);
