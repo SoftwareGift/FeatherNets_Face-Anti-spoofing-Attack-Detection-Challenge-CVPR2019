@@ -66,6 +66,8 @@ public:
         const SmartPtr<CLContext> &context, CLBlenderScaleMode scale_mode, SurroundMode surround_mode,
         StitchResMode res_mode, int fisheye_num, bool all_in_one_img);
 
+    void set_feature_match (bool enable);
+
     bool set_stitch_info (StitchInfo stitch_info);
     StitchInfo get_stitch_info ();
     void set_output_size (uint32_t width, uint32_t height) {
@@ -128,7 +130,6 @@ private:
     SmartPtr<CLContext>         _context;
     CLFisheyeParams             _fisheye[XCAM_STITCH_FISHEYE_MAX_NUM];
     SmartPtr<CLBlender>         _blender[XCAM_STITCH_FISHEYE_MAX_NUM];
-    SmartPtr<FeatureMatch>      _feature_match[XCAM_STITCH_FISHEYE_MAX_NUM];
 
     uint32_t                    _output_width;
     uint32_t                    _output_height;
@@ -142,6 +143,9 @@ private:
 
     SurroundMode                _surround_mode;
     StitchResMode               _res_mode;
+
+    bool                        _enable_fm;
+    SmartPtr<FeatureMatch>      _feature_match[XCAM_STITCH_FISHEYE_MAX_NUM];
 
     bool                        _is_stitch_inited;
     int                         _fisheye_num;

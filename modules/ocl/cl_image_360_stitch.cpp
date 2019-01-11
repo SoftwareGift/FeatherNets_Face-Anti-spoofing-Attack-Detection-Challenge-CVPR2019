@@ -299,10 +299,26 @@ CLImage360Stitch::CLImage360Stitch (
     , _scale_mode (scale_mode)
     , _surround_mode (surround_mode)
     , _res_mode (res_mode)
+    , _enable_fm (true)
     , _is_stitch_inited (false)
     , _fisheye_num (fisheye_num)
     , _all_in_one_img (all_in_one_img)
 {
+#if !HAVE_OPENCV
+    _enable_fm = false;
+#endif
+}
+
+void
+CLImage360Stitch::set_feature_match (bool enable)
+{
+#if HAVE_OPENCV
+    _enable_fm = enable;
+#else
+    if (enable)
+        XCAM_LOG_WARNING ("non-OpenCV mode, feature match is unsupported, disable feature match");
+    _enable_fm = false;
+#endif
 }
 
 bool
@@ -750,8 +766,10 @@ CLImage360Stitch::prepare_parameters (SmartPtr<VideoBuffer> &input, SmartPtr<Vid
     XCamReturn ret = XCAM_RETURN_NO_ERROR;
     if (!_is_stitch_inited) {
 #if HAVE_OPENCV
-        init_opencv_ocl ();
-        init_feature_match ();
+        if (_enable_fm) {
+            init_opencv_ocl ();
+            init_feature_match ();
+        }
 #endif
         set_stitch_info (get_default_stitch_info (_res_mode));
     }
@@ -903,8 +921,10 @@ XCamReturn
 CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
 {
 #if HAVE_OPENCV
-    XCAM_ASSERT (handler.ptr ());
+    if (!_enable_fm)
+        return XCAM_RETURN_NO_ERROR;
 
+    XCAM_ASSERT (handler.ptr ());
     if (handler.ptr () == _fisheye[_fisheye_num - 1].handler.ptr ()) {
         int idx_next = 1;
         Rect crop_left, crop_right;

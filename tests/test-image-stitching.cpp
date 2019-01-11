@@ -148,6 +148,9 @@ void usage(const char* arg0)
             "\t--enable-seam       optional, enable seam finder in blending area, default: no\n"
             "\t--enable-fisheyemap optional, enable fisheye map, default: no\n"
             "\t--enable-lsc        optional, enable lens shading correction, default: no\n"
+#if HAVE_OPENCV
+            "\t--fm                optional, enable or disable feature match, default: true\n"
+#endif
             "\t--fisheye-num       optional, the number of fisheye lens, default: 2\n"
             "\t--all-in-one        optional, all fisheye in one image, select from [true/false], default: true\n"
             "\t--save              optional, save file or not, select from [true/false], default: true\n"
@@ -186,6 +189,9 @@ int main (int argc, char *argv[])
     bool enable_seam = false;
     bool enable_fisheye_map = false;
     bool enable_lsc = false;
+#if HAVE_OPENCV
+    bool need_fm = true;
+#endif
     CLBlenderScaleMode scale_mode = CLBlenderScaleLocal;
     StitchResMode res_mode = StitchRes1080P;
     SurroundMode surround_mode = SphereView;
@@ -220,6 +226,9 @@ int main (int argc, char *argv[])
         {"enable-seam", no_argument, NULL, 'S'},
         {"enable-fisheyemap", no_argument, NULL, 'F'},
         {"enable-lsc", no_argument, NULL, 'L'},
+#if HAVE_OPENCV
+        {"fm", required_argument, NULL, 'm'},
+#endif
         {"fisheye-num", required_argument, NULL, 'N'},
         {"all-in-one", required_argument, NULL, 'A'},
         {"save", required_argument, NULL, 's'},
@@ -296,6 +305,11 @@ int main (int argc, char *argv[])
         case 'L':
             enable_lsc = true;
             break;
+#if HAVE_OPENCV
+        case 'm':
+            need_fm = (strcasecmp (optarg, "false") == 0 ? false : true);
+            break;
+#endif
         case 'N':
             fisheye_num = atoi(optarg);
             if (fisheye_num > XCAM_STITCH_FISHEYE_MAX_NUM) {
@@ -389,6 +403,9 @@ int main (int argc, char *argv[])
     printf ("seam mask:\t\t%s\n", enable_seam ? "true" : "false");
     printf ("fisheye map:\t\t%s\n", enable_fisheye_map ? "true" : "false");
     printf ("shading correction:\t%s\n", enable_lsc ? "true" : "false");
+#if HAVE_OPENCV
+    printf ("feature match:\t\t%s\n", need_fm ? "true" : "false");
+#endif
     printf ("fisheye number:\t\t%d\n", fisheye_num);
     printf ("all in one:\t\t%s\n", all_in_one ? "true" : "false");
     printf ("save file:\t\t%s\n", need_save_output ? "true" : "false");
@@ -406,6 +423,9 @@ int main (int argc, char *argv[])
     XCAM_ASSERT (image_360.ptr ());
     image_360->set_output_size (output_width, output_height);
     image_360->set_pool_type (CLImageHandler::CLVideoPoolType);
+#if HAVE_OPENCV
+    image_360->set_feature_match (need_fm);
+#endif
 
     if (surround_mode == BowlView) {
         if (!parse_calibration_params (intrinsic_param, extrinsic_param, fisheye_num)) {
