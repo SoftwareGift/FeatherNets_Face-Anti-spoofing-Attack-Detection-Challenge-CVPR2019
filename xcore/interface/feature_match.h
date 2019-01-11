@@ -28,7 +28,7 @@
 
 namespace XCam {
 
-struct CVFMConfig {
+struct FMConfig {
     int sitch_min_width;
     int min_corners;           // number of minimum efficient corners
     float offset_factor;       // last_offset * offset_factor + cur_offset * (1.0f - offset_factor)
@@ -38,7 +38,7 @@ struct CVFMConfig {
     float max_valid_offset_y;  // valid maximum offset in vertical direction
     float max_track_error;     // maximum track error
 
-    CVFMConfig ()
+    FMConfig ()
         : sitch_min_width (56)
         , min_corners (8)
         , offset_factor (0.8f)
@@ -56,8 +56,8 @@ public:
     explicit FeatureMatch ();
     virtual ~FeatureMatch () {};
 
-    void set_config (CVFMConfig &config);
-    CVFMConfig get_config ();
+    void set_config (FMConfig &config);
+    FMConfig get_config ();
 
     void set_fm_index (int idx);
 
@@ -87,7 +87,7 @@ protected:
     float                _mean_offset;
     float                _mean_offset_y;
     int                  _valid_count;
-    CVFMConfig           _config;
+    FMConfig             _config;
 
     // debug parameters
     int                  _fm_idx;

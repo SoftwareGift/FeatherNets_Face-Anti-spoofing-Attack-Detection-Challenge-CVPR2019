@@ -400,7 +400,7 @@ StitcherImpl::init_config (uint32_t count)
 #if ENABLE_FEATURE_MATCH
         _overlaps[i].matcher = new CVCapiFeatureMatch;
 
-        CVFMConfig config;
+        FMConfig config;
         config.sitch_min_width = 136;
         config.min_corners = 4;
         config.offset_factor = 0.8f;

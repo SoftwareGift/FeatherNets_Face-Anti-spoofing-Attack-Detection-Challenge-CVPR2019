@@ -112,10 +112,10 @@ CLBlenderGlobalScaleKernel::get_output_info (
 }
 
 #if HAVE_OPENCV
-static CVFMConfig
+static FMConfig
 get_fm_sphere_config (StitchResMode res_mode)
 {
-    CVFMConfig config;
+    FMConfig config;
 
     switch (res_mode) {
     case StitchRes1080P: {
@@ -162,10 +162,10 @@ get_fm_sphere_config (StitchResMode res_mode)
     return config;
 }
 
-static CVFMConfig
+static FMConfig
 get_fm_bowl_config ()
 {
-    CVFMConfig config;
+    FMConfig config;
     config.sitch_min_width = 136;
     config.min_corners = 4;
     config.offset_factor = 0.95f;
@@ -725,7 +725,7 @@ CLImage360Stitch::init_feature_match ()
 {
 #if HAVE_OPENCV
     bool is_sphere = (_surround_mode == SphereView);
-    CVFMConfig config = is_sphere ? get_fm_sphere_config (_res_mode) : get_fm_bowl_config ();
+    FMConfig config = is_sphere ? get_fm_sphere_config (_res_mode) : get_fm_bowl_config ();
 
     for (int i = 0; i < _fisheye_num; i++) {
         _feature_match[i] = is_sphere ? new CVFeatureMatch () : new CVFeatureMatchCluster ();
