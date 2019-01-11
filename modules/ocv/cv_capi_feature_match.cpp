@@ -239,4 +239,13 @@ CVCapiFeatureMatch::feature_match (
 #endif
 }
 
+SmartPtr<FeatureMatch>
+FeatureMatch::create_capi_feature_match ()
+{
+    SmartPtr<CVCapiFeatureMatch> matcher = new CVCapiFeatureMatch ();
+    XCAM_ASSERT (matcher.ptr ());
+
+    return matcher;
+}
+
 }

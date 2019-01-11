@@ -56,6 +56,10 @@ public:
     explicit FeatureMatch ();
     virtual ~FeatureMatch () {};
 
+    static SmartPtr<FeatureMatch> create_default_feature_match ();
+    static SmartPtr<FeatureMatch> create_cluster_feature_match ();
+    static SmartPtr<FeatureMatch> create_capi_feature_match ();
+
     virtual void feature_match (
         const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf) = 0;
 

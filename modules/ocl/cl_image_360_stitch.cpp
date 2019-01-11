@@ -729,10 +729,10 @@ CLImage360Stitch::init_feature_match ()
 
     for (int i = 0; i < _fisheye_num; i++) {
         if (is_sphere) {
-            _feature_match[i] = new CVFeatureMatch ();
+            _feature_match[i] = FeatureMatch::create_default_feature_match ();
             _feature_match[i]->enable_adjust_crop_area ();
         } else {
-            _feature_match[i] = new CVFeatureMatchCluster ();
+            _feature_match[i] = FeatureMatch::create_cluster_feature_match ();
         }
         XCAM_ASSERT (_feature_match[i].ptr ());
 

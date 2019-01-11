@@ -304,4 +304,13 @@ CVFeatureMatchCluster::feature_match (
 #endif
 }
 
+SmartPtr<FeatureMatch>
+FeatureMatch::create_cluster_feature_match ()
+{
+    SmartPtr<CVFeatureMatchCluster> matcher = new CVFeatureMatchCluster ();
+    XCAM_ASSERT (matcher.ptr ());
+
+    return matcher;
+}
+
 }

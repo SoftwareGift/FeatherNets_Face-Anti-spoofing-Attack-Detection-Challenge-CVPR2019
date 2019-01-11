@@ -439,6 +439,12 @@ static void usage(const char* arg0)
             "\t--topview-h         optional, output height, default: 720\n"
             "\t--scale-mode        optional, scaling mode for geometric mapping,\n"
             "\t                    select from [singleconst/dualconst/dualcurve], default: singleconst\n"
+            "\t--fm-mode           optional, feature match mode,\n"
+#if HAVE_OPENCV
+            "\t                    select from [none/default/cluster/capi], default: none\n"
+#else
+            "\t                    select from [none], default: none\n"
+#endif
             "\t--frame-mode        optional, times of buffer reading, select from [single/multi], default: multi\n"
             "\t--save              optional, save file or not, select from [true/false], default: true\n"
             "\t--save-topview      optional, save top view video, select from [true/false], default: false\n"
@@ -462,6 +468,7 @@ int main (int argc, char *argv[])
     FrameMode frame_mode = FrameMulti;
     SVModule module = SVModuleNone;
     GeoMapScaleMode scale_mode = ScaleSingleConst;
+    FeatureMatchMode fm_mode = FMNone;
 
     int loop = 1;
     bool save_output = true;
@@ -481,6 +488,7 @@ int main (int argc, char *argv[])
         {"topview-w", required_argument, NULL, 'P'},
         {"topview-h", required_argument, NULL, 'V'},
         {"scale-mode", required_argument, NULL, 'S'},
+        {"fm-mode", required_argument, NULL, 'F'},
         {"frame-mode", required_argument, NULL, 'f'},
         {"save", required_argument, NULL, 's'},
         {"save-topview", required_argument, NULL, 't'},
@@ -558,6 +566,24 @@ int main (int argc, char *argv[])
                 return -1;
             }
             break;
+        case 'F':
+            XCAM_ASSERT (optarg);
+            if (!strcasecmp (optarg, "none"))
+                fm_mode = FMNone;
+#if HAVE_OPENCV
+            else if (!strcasecmp (optarg, "default"))
+                fm_mode = FMDefault;
+            else if (!strcasecmp (optarg, "cluster"))
+                fm_mode = FMCluster;
+            else if (!strcasecmp (optarg, "capi"))
+                fm_mode = FMCapi;
+#endif
+            else {
+                XCAM_LOG_ERROR ("surround view unsupported feature match mode: %s", optarg);
+                usage (argv[0]);
+                return -1;
+            }
+            break;
         case 'f':
             XCAM_ASSERT (optarg);
             if (!strcasecmp (optarg, "single"))
@@ -613,6 +639,8 @@ int main (int argc, char *argv[])
     printf ("topview height:\t\t%d\n", topview_height);
     printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" :
             ((scale_mode == ScaleDualConst) ? "dualconst" : "dualcurve"));
+    printf ("feature match mode:\t%s\n", (fm_mode == FMNone) ? "none" :
+            ((fm_mode == FMDefault ) ? "default" : ((fm_mode == FMCluster) ? "cluster" : "capi")));
     printf ("frame mode:\t\t%s\n", (frame_mode == FrameSingle) ? "singleframe" : "multiframe");
     printf ("save output:\t\t%s\n", save_output ? "true" : "false");
     printf ("save topview:\t\t%s\n", save_topview ? "true" : "false");
@@ -711,6 +739,7 @@ int main (int argc, char *argv[])
     stitcher->set_bowl_config (bowl);
     stitcher->set_output_size (output_width, output_height);
     stitcher->set_scale_mode (scale_mode);
+    stitcher->set_fm_mode (fm_mode);
 
     if (save_topview) {
         add_stream (outs, "topview", topview_width, topview_height);

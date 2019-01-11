@@ -31,6 +31,13 @@ enum SurroundMode {
     BowlView = 1
 };
 
+enum FeatureMatchMode {
+    FMNone = 0,
+    FMDefault,
+    FMCluster,
+    FMCapi
+};
+
 enum GeoMapScaleMode {
     ScaleSingleConst = 0,
     ScaleDualConst,

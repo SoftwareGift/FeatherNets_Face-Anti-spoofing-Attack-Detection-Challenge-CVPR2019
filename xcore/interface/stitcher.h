@@ -169,6 +169,13 @@ public:
         return _scale_mode;
     }
 
+    void set_fm_mode (FeatureMatchMode fm_mode) {
+        _fm_mode = fm_mode;
+    }
+    FeatureMatchMode get_fm_mode () {
+        return _fm_mode;
+    }
+
     virtual XCamReturn stitch_buffers (const VideoBufferList &in_bufs, SmartPtr<VideoBuffer> &out_buf) = 0;
 
 protected:
@@ -197,13 +204,6 @@ protected:
 private:
     XCAM_DEAD_COPY (Stitcher);
 
-protected:
-    ImageCropInfo               _crop_info[XCAM_STITCH_MAX_CAMERAS];
-    bool                        _is_crop_set;
-    GeoMapScaleMode             _scale_mode;
-    //update after each feature match
-    ScaleFactor                 _scale_factors[XCAM_STITCH_MAX_CAMERAS];
-
 private:
     uint32_t                    _alignment_x, _alignment_y;
     uint32_t                    _output_width, _output_height;
@@ -217,10 +217,19 @@ private:
     BowlDataConfig              _bowl_config;
     bool                        _is_overlap_set;
 
+    ImageCropInfo               _crop_info[XCAM_STITCH_MAX_CAMERAS];
+    bool                        _is_crop_set;
+
     //auto calculation
     CenterMark                  _center_marks[XCAM_STITCH_MAX_CAMERAS];
     bool                        _is_center_marked;
     CopyAreaArray               _copy_areas;
+
+    GeoMapScaleMode             _scale_mode;
+    //update after each feature match
+    ScaleFactor                 _scale_factors[XCAM_STITCH_MAX_CAMERAS];
+
+    FeatureMatchMode            _fm_mode;
 };
 
 class BowlModel {

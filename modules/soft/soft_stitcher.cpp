@@ -389,7 +389,25 @@ void
 StitcherImpl::init_feature_match (uint32_t idx)
 {
 #if ENABLE_FEATURE_MATCH
+
+#ifndef ANDROID
+    FeatureMatchMode fm_mode = _stitcher->get_fm_mode ();
+    if (fm_mode == FMNone)
+        return ;
+    else if (fm_mode == FMDefault)
+        _overlaps[idx].matcher = FeatureMatch::create_default_feature_match ();
+    else if (fm_mode == FMCluster)
+        _overlaps[idx].matcher = FeatureMatch::create_cluster_feature_match ();
+    else if (fm_mode == FMCapi)
+        _overlaps[idx].matcher = FeatureMatch::create_capi_feature_match ();
+    else {
+        XCAM_LOG_ERROR ("unsupported FeatureMatchMode: %d", fm_mode);
+        XCAM_ASSERT (false);
+    }
+#else
     _overlaps[idx].matcher = new CVCapiFeatureMatch;
+#endif
+    XCAM_ASSERT (_overlaps[idx].matcher.ptr ());
 
     FMConfig config;
     config.sitch_min_width = 136;
@@ -399,9 +417,8 @@ StitcherImpl::init_feature_match (uint32_t idx)
     config.recur_offset_error = 8.0f;
     config.max_adjusted_offset = 24.0f;
     config.max_valid_offset_y = 20.0f;
-#ifndef ANDROID
     config.max_track_error = 28.0f;
-#else
+#ifdef ANDROID
     config.max_track_error = 3600.0f;
 #endif
     _overlaps[idx].matcher->set_config (config);
@@ -680,20 +697,23 @@ StitcherImpl::start_overlap_tasks (
 
 #if ENABLE_FEATURE_MATCH
     //start feature match
-    if (cur_param.ptr ()) {
-        ret = start_feature_match (cur_param->in_buf, cur_param->in1_buf, idx);
-        XCAM_FAIL_RETURN (
-            ERROR, xcam_ret_is_ok (ret), ret,
-            "soft-stitcher:%s feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), idx);
-    }
+    if (_stitcher->get_fm_mode ()) {
+        if (cur_param.ptr ()) {
+            ret = start_feature_match (cur_param->in_buf, cur_param->in1_buf, idx);
+            XCAM_FAIL_RETURN (
+                ERROR, xcam_ret_is_ok (ret), ret,
+                "soft-stitcher:%s feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), idx);
+        }
 
-    if (prev_param.ptr ()) {
-        ret = start_feature_match (prev_param->in_buf, prev_param->in1_buf, pre_idx);
-        XCAM_FAIL_RETURN (
-            ERROR, xcam_ret_is_ok (ret), ret,
-            "soft-stitcher:%s feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), pre_idx);
+        if (prev_param.ptr ()) {
+            ret = start_feature_match (prev_param->in_buf, prev_param->in1_buf, pre_idx);
+            XCAM_FAIL_RETURN (
+                ERROR, xcam_ret_is_ok (ret), ret,
+                "soft-stitcher:%s feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), pre_idx);
+        }
     }
 #endif
+
     return XCAM_RETURN_NO_ERROR;
 }
 

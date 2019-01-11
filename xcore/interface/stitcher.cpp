@@ -77,9 +77,7 @@ split_area_by_out (
 }
 
 Stitcher::Stitcher (uint32_t align_x, uint32_t align_y)
-    : _is_crop_set (false)
-    , _scale_mode (ScaleSingleConst)
-    , _alignment_x (align_x)
+    : _alignment_x (align_x)
     , _alignment_y (align_y)
     , _output_width (0)
     , _output_height (0)
@@ -87,7 +85,10 @@ Stitcher::Stitcher (uint32_t align_x, uint32_t align_y)
     , _camera_num (0)
     , _is_round_view_set (false)
     , _is_overlap_set (false)
+    , _is_crop_set (false)
     , _is_center_marked (false)
+    , _scale_mode (ScaleSingleConst)
+    , _fm_mode (FMNone)
 {
     XCAM_ASSERT (align_x >= 1);
     XCAM_ASSERT (align_y >= 1);

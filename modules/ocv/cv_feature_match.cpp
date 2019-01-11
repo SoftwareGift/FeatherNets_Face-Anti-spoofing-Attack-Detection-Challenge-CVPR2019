@@ -313,4 +313,13 @@ CVFeatureMatch::debug_write_image (
     XCAM_LOG_INFO ("FeatureMatch(idx:%d): frame number:%d done", fm_idx, frame_num);
 }
 
+SmartPtr<FeatureMatch>
+FeatureMatch::create_default_feature_match ()
+{
+    SmartPtr<CVFeatureMatch> matcher = new CVFeatureMatch ();
+    XCAM_ASSERT (matcher.ptr ());
+
+    return matcher;
+}
+
 }
