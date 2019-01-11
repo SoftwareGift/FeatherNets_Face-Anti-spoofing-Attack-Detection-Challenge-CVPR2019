@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
             break;
         case 'e':
             usage (argv[0]);
-            return -1;
+            return 0;
         default:
             printf ("getopt_long return unknown value:%c \n", opt);
             usage (argv[0]);

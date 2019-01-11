@@ -337,7 +337,7 @@ int main (int argc, char *argv[])
             break;
         case 'e':
             usage (argv[0]);
-            return -1;
+            return 0;
         default:
             XCAM_LOG_ERROR ("getopt_long return unknown value:%c", opt);
             usage (argv[0]);

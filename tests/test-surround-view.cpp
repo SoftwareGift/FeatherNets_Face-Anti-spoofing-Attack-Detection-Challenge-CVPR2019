@@ -605,6 +605,9 @@ int main (int argc, char *argv[])
         case 'L':
             loop = atoi(optarg);
             break;
+        case 'e':
+            usage (argv[0]);
+            return 0;
         default:
             XCAM_LOG_ERROR ("getopt_long return unknown value: %c", opt);
             usage (argv[0]);
@@ -639,7 +642,7 @@ int main (int argc, char *argv[])
     printf ("topview height:\t\t%d\n", topview_height);
     printf ("scaling mode:\t\t%s\n", (scale_mode == ScaleSingleConst) ? "singleconst" :
             ((scale_mode == ScaleDualConst) ? "dualconst" : "dualcurve"));
-    printf ("feature match mode:\t%s\n", (fm_mode == FMNone) ? "none" :
+    printf ("feature match:\t\t%s\n", (fm_mode == FMNone) ? "none" :
             ((fm_mode == FMDefault ) ? "default" : ((fm_mode == FMCluster) ? "cluster" : "capi")));
     printf ("frame mode:\t\t%s\n", (frame_mode == FrameSingle) ? "singleframe" : "multiframe");
     printf ("save output:\t\t%s\n", save_output ? "true" : "false");
