@@ -181,10 +181,8 @@ public:
     XCamReturn stop ();
 
     XCamReturn fisheye_dewarp_to_table ();
-    XCamReturn feature_match (
-        const SmartPtr<VideoBuffer> &left_buf,
-        const SmartPtr<VideoBuffer> &right_buf,
-        const uint32_t idx);
+    XCamReturn start_feature_match (
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf, const uint32_t idx);
 
     bool get_and_reset_feature_match_factors (uint32_t idx, Factor &left, Factor &right);
 
@@ -198,6 +196,8 @@ private:
     void calc_factors (
         const uint32_t &idx, const Factor &last_left_factor, const Factor &last_right_factor,
         Factor &cur_left, Factor &cur_right);
+
+    void init_feature_match (uint32_t idx);
 
 private:
     FisheyeDewarp           _fisheye [XCAM_STITCH_MAX_CAMERAS];
@@ -385,6 +385,42 @@ StitcherImpl::create_copier (Stitcher::CopyArea area)
     return XCAM_RETURN_NO_ERROR;
 }
 
+void
+StitcherImpl::init_feature_match (uint32_t idx)
+{
+#if ENABLE_FEATURE_MATCH
+    _overlaps[idx].matcher = new CVCapiFeatureMatch;
+
+    FMConfig config;
+    config.sitch_min_width = 136;
+    config.min_corners = 4;
+    config.offset_factor = 0.8f;
+    config.delta_mean_offset = 120.0f;
+    config.recur_offset_error = 8.0f;
+    config.max_adjusted_offset = 24.0f;
+    config.max_valid_offset_y = 20.0f;
+#ifndef ANDROID
+    config.max_track_error = 28.0f;
+#else
+    config.max_track_error = 3600.0f;
+#endif
+    _overlaps[idx].matcher->set_config (config);
+    _overlaps[idx].matcher->set_fm_index (idx);
+
+    const Stitcher::ImageOverlapInfo &info = _stitcher->get_overlap (idx);
+    Rect left_ovlap = info.left;
+    Rect right_ovlap = info.right;
+    left_ovlap.pos_y = left_ovlap.height / 5;
+    left_ovlap.height = left_ovlap.height / 2;
+    right_ovlap.pos_y = right_ovlap.height / 5;
+    right_ovlap.height = right_ovlap.height / 2;
+    _overlaps[idx].matcher->set_crop_rect (left_ovlap, right_ovlap);
+#else
+    XCAM_LOG_ERROR ("FeatureMatch unsupported");
+    XCAM_ASSERT (false);
+#endif
+}
+
 XCamReturn
 StitcherImpl::init_config (uint32_t count)
 {
@@ -398,23 +434,7 @@ StitcherImpl::init_config (uint32_t count)
             "stitcher:%s init fisheye failed, idx:%d.", XCAM_STR (_stitcher->get_name ()), i);
 
 #if ENABLE_FEATURE_MATCH
-        _overlaps[i].matcher = new CVCapiFeatureMatch;
-
-        FMConfig config;
-        config.sitch_min_width = 136;
-        config.min_corners = 4;
-        config.offset_factor = 0.8f;
-        config.delta_mean_offset = 120.0f;
-        config.recur_offset_error = 8.0f;
-        config.max_adjusted_offset = 24.0f;
-        config.max_valid_offset_y = 20.0f;
-#ifndef ANDROID
-        config.max_track_error = 28.0f;
-#else
-        config.max_track_error = 3600.0f;
-#endif
-        _overlaps[i].matcher->set_config (config);
-        _overlaps[i].matcher->set_fm_index (i);
+        init_feature_match (i);
 #endif
 
         _overlaps[i].blender = create_soft_blender ().dynamic_cast_ptr<SoftBlender>();
@@ -549,24 +569,37 @@ Overlap::find_blender_param_in_map (
 }
 
 XCamReturn
-StitcherImpl::feature_match (
+StitcherImpl::start_single_blender (
+    const uint32_t idx,
+    const SmartPtr<BlenderParam> &param)
+{
+    SmartPtr<SoftBlender> blender = _overlaps[idx].blender;
+    const Stitcher::ImageOverlapInfo &overlap_info = _stitcher->get_overlap (idx);
+    uint32_t out_width, out_height;
+    _stitcher->get_output_size (out_width, out_height);
+
+    blender->set_output_size (out_width, out_height);
+    blender->set_merge_window (overlap_info.out_area);
+    blender->set_input_valid_area (overlap_info.left, 0);
+    blender->set_input_valid_area (overlap_info.right, 1);
+    blender->set_input_merge_area (overlap_info.left, 0);
+    blender->set_input_merge_area (overlap_info.right, 1);
+    return blender->execute_buffer (param, false);
+}
+
+XCamReturn
+StitcherImpl::start_feature_match (
     const SmartPtr<VideoBuffer> &left_buf,
     const SmartPtr<VideoBuffer> &right_buf,
     const uint32_t idx)
 {
-    const Stitcher::ImageOverlapInfo overlap_info = _stitcher->get_overlap (idx);
-    Rect left_ovlap = overlap_info.left;
-    Rect right_ovlap = overlap_info.right;
-    const VideoBufferInfo left_buf_info = left_buf->get_video_info ();
-
-    left_ovlap.pos_y = left_ovlap.height / 5;
-    left_ovlap.height = left_ovlap.height / 2;
-    right_ovlap.pos_y = right_ovlap.height / 5;
-    right_ovlap.height = right_ovlap.height / 2;
-
+#if ENABLE_FEATURE_MATCH
     _overlaps[idx].matcher->reset_offsets ();
-    _overlaps[idx].matcher->optical_flow_feature_match (
-        left_buf, right_buf, left_ovlap, right_ovlap, left_buf_info.width);
+    _overlaps[idx].matcher->feature_match (left_buf, right_buf);
+
+    Rect left_ovlap, right_ovlap;
+    _overlaps[idx].matcher->get_crop_rect (left_ovlap, right_ovlap);
+
     float left_offsetx = _overlaps[idx].matcher->get_current_left_offset_x ();
     Factor left_factor, right_factor;
 
@@ -595,25 +628,10 @@ StitcherImpl::feature_match (
     }
 
     return XCAM_RETURN_NO_ERROR;
-}
-
-XCamReturn
-StitcherImpl::start_single_blender (
-    const uint32_t idx,
-    const SmartPtr<BlenderParam> &param)
-{
-    SmartPtr<SoftBlender> blender = _overlaps[idx].blender;
-    const Stitcher::ImageOverlapInfo &overlap_info = _stitcher->get_overlap (idx);
-    uint32_t out_width, out_height;
-    _stitcher->get_output_size (out_width, out_height);
-
-    blender->set_output_size (out_width, out_height);
-    blender->set_merge_window (overlap_info.out_area);
-    blender->set_input_valid_area (overlap_info.left, 0);
-    blender->set_input_valid_area (overlap_info.right, 1);
-    blender->set_input_merge_area (overlap_info.left, 0);
-    blender->set_input_merge_area (overlap_info.right, 1);
-    return blender->execute_buffer (param, false);
+#else
+    XCAM_LOG_ERROR ("FeatureMatch unsupported");
+    return XCAM_RETURN_ERROR_PARAM;
+#endif
 }
 
 XCamReturn
@@ -663,14 +681,14 @@ StitcherImpl::start_overlap_tasks (
 #if ENABLE_FEATURE_MATCH
     //start feature match
     if (cur_param.ptr ()) {
-        ret = feature_match (cur_param->in_buf, cur_param->in1_buf, idx);
+        ret = start_feature_match (cur_param->in_buf, cur_param->in1_buf, idx);
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (ret), ret,
             "soft-stitcher:%s feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), idx);
     }
 
     if (prev_param.ptr ()) {
-        ret = feature_match (prev_param->in_buf, prev_param->in1_buf, pre_idx);
+        ret = start_feature_match (prev_param->in_buf, prev_param->in1_buf, pre_idx);
         XCAM_FAIL_RETURN (
             ERROR, xcam_ret_is_ok (ret), ret,
             "soft-stitcher:%s feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), pre_idx);

@@ -56,27 +56,24 @@ public:
     explicit FeatureMatch ();
     virtual ~FeatureMatch () {};
 
-    void set_config (FMConfig &config);
-    FMConfig get_config ();
+    virtual void feature_match (
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf) = 0;
 
     void set_fm_index (int idx);
+    void set_config (const FMConfig &config);
+
+    void set_crop_rect (const Rect &left_rect, const Rect &right_rect);
+    void get_crop_rect (Rect &left_rect, Rect &right_rect);
 
     void reset_offsets ();
+    float get_current_left_offset_x ();
+    float get_current_left_offset_y ();
 
-    virtual void optical_flow_feature_match (
-        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-        Rect &left_crop_rect, Rect &right_crop_rect, int dst_width = 0) = 0;
-
-    float get_current_left_offset_x () const {
-        return _x_offset;
-    }
-
-    float get_current_left_offset_y () const {
-        return _y_offset;
-    }
+    virtual void set_dst_width (int width);
+    virtual void enable_adjust_crop_area ();
 
 protected:
-    bool get_mean_offset (std::vector<float> &offsets, float sum, int &count, float &mean_offset);
+    bool get_mean_offset (const std::vector<float> &offsets, float sum, int &count, float &mean_offset);
 
 private:
     XCAM_DEAD_COPY (FeatureMatch);
@@ -89,9 +86,12 @@ protected:
     int                  _valid_count;
     FMConfig             _config;
 
+    Rect                 _left_rect;
+    Rect                 _right_rect;
+
     // debug parameters
     int                  _fm_idx;
-    uint                 _frame_num;
+    uint32_t             _frame_num;
 };
 
 }

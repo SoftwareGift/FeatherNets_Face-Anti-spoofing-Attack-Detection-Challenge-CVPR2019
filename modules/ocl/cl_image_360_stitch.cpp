@@ -725,10 +725,15 @@ CLImage360Stitch::init_feature_match ()
 {
 #if HAVE_OPENCV
     bool is_sphere = (_surround_mode == SphereView);
-    FMConfig config = is_sphere ? get_fm_sphere_config (_res_mode) : get_fm_bowl_config ();
+    const FMConfig &config = is_sphere ? get_fm_sphere_config (_res_mode) : get_fm_bowl_config ();
 
     for (int i = 0; i < _fisheye_num; i++) {
-        _feature_match[i] = is_sphere ? new CVFeatureMatch () : new CVFeatureMatchCluster ();
+        if (is_sphere) {
+            _feature_match[i] = new CVFeatureMatch ();
+            _feature_match[i]->enable_adjust_crop_area ();
+        } else {
+            _feature_match[i] = new CVFeatureMatchCluster ();
+        }
         XCAM_ASSERT (_feature_match[i].ptr ());
 
         _feature_match[i]->set_fm_index (i);
@@ -864,8 +869,8 @@ CLImage360Stitch::set_fm_buf_mem (
     cl_mem mem_left = cl_buf_left->get_mem_id ();
     cl_mem mem_right = cl_buf_right->get_mem_id ();
 
-    fm->set_cl_buf_mem (mem_left, CVFeatureMatch::BufId0);
-    fm->set_cl_buf_mem (mem_right, CVFeatureMatch::BufId1);
+    fm->set_cl_buf_mem (mem_left, CVFeatureMatch::BufIdLeft);
+    fm->set_cl_buf_mem (mem_right, CVFeatureMatch::BufIdRight);
 #else
     XCAM_LOG_ERROR ("non-OpenCV mode, failed to set feature match buffer memory");
 #endif
@@ -873,7 +878,7 @@ CLImage360Stitch::set_fm_buf_mem (
 
 #if HAVE_OPENCV
 static void
-convert_to_stitch_rect (Rect xcam_rect, Rect &stitch_rect, SurroundMode surround_mode)
+convert_to_stitch_rect (const Rect &xcam_rect, Rect &stitch_rect, SurroundMode surround_mode)
 {
     stitch_rect.pos_x = xcam_rect.pos_x;
     stitch_rect.width = xcam_rect.width;
@@ -887,7 +892,7 @@ convert_to_stitch_rect (Rect xcam_rect, Rect &stitch_rect, SurroundMode surround
 }
 
 static void
-convert_to_xcam_rect (Rect stitch_rect, Rect &xcam_rect)
+convert_to_xcam_rect (const Rect &stitch_rect, Rect &xcam_rect)
 {
     xcam_rect.pos_x = stitch_rect.pos_x;
     xcam_rect.width = stitch_rect.width;
@@ -912,18 +917,17 @@ CLImage360Stitch::sub_handler_execute_done (SmartPtr<CLImageHandler> &handler)
             convert_to_stitch_rect (_img_merge_info[i].right, crop_left, _surround_mode);
             convert_to_stitch_rect (_img_merge_info[idx_next].left, crop_right, _surround_mode);
             if (_surround_mode == SphereView) {
-                _feature_match[i]->optical_flow_feature_match (
-                    _fisheye[i].buf, _fisheye[idx_next].buf, crop_left, crop_right, _fisheye[i].width);
+                _feature_match[i]->set_dst_width (_fisheye[i].width);
+                _feature_match[i]->set_crop_rect (crop_left, crop_right);
+                _feature_match[i]->feature_match (_fisheye[i].buf, _fisheye[idx_next].buf);
 
+                _feature_match[i]->get_crop_rect (crop_left, crop_right);
                 convert_to_xcam_rect (crop_left, _img_merge_info[i].right);
                 convert_to_xcam_rect (crop_right, _img_merge_info[idx_next].left);
             } else {
-                Rect tmp_crop_left = crop_left;
-                Rect tmp_crop_right = crop_right;
-
                 _feature_match[i]->reset_offsets ();
-                _feature_match[i]->optical_flow_feature_match (
-                    _fisheye[i].buf, _fisheye[idx_next].buf, tmp_crop_left, tmp_crop_right, _fisheye[i].width);
+                _feature_match[i]->set_crop_rect (crop_left, crop_right);
+                _feature_match[i]->feature_match (_fisheye[i].buf, _fisheye[idx_next].buf);
 
                 update_scale_factors (i, crop_left, crop_right);
             }

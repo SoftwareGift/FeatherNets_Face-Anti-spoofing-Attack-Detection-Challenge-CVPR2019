@@ -32,12 +32,28 @@
 namespace XCam {
 CVFeatureMatch::CVFeatureMatch ()
     : FeatureMatch ()
+    , _dst_width (0)
+    , _need_adjust (false)
 {
+    xcam_mem_clear (_cl_buf_mem);
 }
 
 CVFeatureMatch::~CVFeatureMatch ()
 {
     xcam_mem_clear (_cl_buf_mem);
+}
+
+
+void
+CVFeatureMatch::set_dst_width (int width)
+{
+    _dst_width = width;
+}
+
+void
+CVFeatureMatch::enable_adjust_crop_area ()
+{
+    _need_adjust = true;
 }
 
 void
@@ -128,10 +144,8 @@ CVFeatureMatch::get_valid_offsets (
 
 void
 CVFeatureMatch::calc_of_match (
-    cv::Mat image0, cv::Mat image1,
-    std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
-    std::vector<uchar> &status, std::vector<float> &error,
-    int &last_count, float &last_mean_offset, float &out_x_offset)
+    cv::Mat image0, cv::Mat image1, std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
+    std::vector<uchar> &status, std::vector<float> &error)
 {
     cv::Mat debug_img;
     cv::Size img0_size = image0.size ();
@@ -139,11 +153,15 @@ CVFeatureMatch::calc_of_match (
     XCAM_ASSERT (img0_size.height == img1_size.height);
 
 #if XCAM_CV_FM_DEBUG
+    cv::Mat mat;
     cv::Size size (img0_size.width + img1_size.width, img0_size.height);
-    debug_img.create (size, image0.type ());
 
-    image0.copyTo (debug_img (cv::Rect(0, 0, img0_size.width, img0_size.height)));
-    image1.copyTo (debug_img (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
+    mat.create (size, image0.type ());
+    debug_img = cv::Mat (mat);
+
+    image0.copyTo (mat (cv::Rect(0, 0, img0_size.width, img0_size.height)));
+    image1.copyTo (mat (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
+    mat.copyTo (debug_img);
 
     cv::Size scale_size = size * XCAM_CV_OF_DRAW_SCALE;
     cv::resize (debug_img, debug_img, scale_size, 0, 0);
@@ -153,6 +171,7 @@ CVFeatureMatch::calc_of_match (
     float offset_sum = 0.0f;
     int count = 0;
     float mean_offset = 0.0f;
+    float last_mean_offset = _mean_offset;
     offsets.reserve (corner0.size ());
     get_valid_offsets (corner0, corner1, status, error,
                        offsets, offset_sum, count, debug_img, img0_size);
@@ -166,46 +185,48 @@ CVFeatureMatch::calc_of_match (
     bool ret = get_mean_offset (offsets, offset_sum, count, mean_offset);
     if (ret) {
         if (fabs (mean_offset - last_mean_offset) < _config.delta_mean_offset) {
-            out_x_offset = out_x_offset * _config.offset_factor + mean_offset * (1.0f - _config.offset_factor);
+            _x_offset = _x_offset * _config.offset_factor + mean_offset * (1.0f - _config.offset_factor);
 
-            if (fabs (out_x_offset) > _config.max_adjusted_offset)
-                out_x_offset = (out_x_offset > 0.0f) ? _config.max_adjusted_offset : (-_config.max_adjusted_offset);
+            if (fabs (_x_offset) > _config.max_adjusted_offset)
+                _x_offset = (_x_offset > 0.0f) ? _config.max_adjusted_offset : (-_config.max_adjusted_offset);
         }
     }
 
-    last_count = count;
-    last_mean_offset = mean_offset;
+    _valid_count = count;
+    _mean_offset = mean_offset;
 }
 
 void
-CVFeatureMatch::adjust_stitch_area (int dst_width, float &x_offset, Rect &stitch0, Rect &stitch1)
+CVFeatureMatch::adjust_crop_area ()
 {
-    if (fabs (x_offset) < 5.0f)
+    if (fabs (_x_offset) < 5.0f)
         return;
 
-    int last_overlap_width = stitch1.pos_x + stitch1.width + (dst_width - (stitch0.pos_x + stitch0.width));
-    // int final_overlap_width = stitch1.pos_x + stitch1.width + (dst_width - (stitch0.pos_x - x_offset + stitch0.width));
-    if ((stitch0.pos_x - x_offset + stitch0.width) > dst_width)
-        x_offset = dst_width - (stitch0.pos_x + stitch0.width);
-    int final_overlap_width = last_overlap_width + x_offset;
+    XCAM_ASSERT (_dst_width);
+
+    int last_overlap_width = _right_rect.pos_x + _right_rect.width +
+                              (_dst_width - (_left_rect.pos_x + _left_rect.width));
+    // int final_overlap_width = _right_rect.pos_x + _right_rect.width +
+    //                           (dst_width - (_left_rect.pos_x - x_offset + _left_rect.width));
+    if ((_left_rect.pos_x - _x_offset + _left_rect.width) > _dst_width)
+        _x_offset = _dst_width - (_left_rect.pos_x + _left_rect.width);
+    int final_overlap_width = last_overlap_width + _x_offset;
     final_overlap_width = XCAM_ALIGN_AROUND (final_overlap_width, 8);
     XCAM_ASSERT (final_overlap_width >= _config.sitch_min_width);
     int center = final_overlap_width / 2;
     XCAM_ASSERT (center >= _config.sitch_min_width / 2);
 
-    stitch1.pos_x = XCAM_ALIGN_AROUND (center - _config.sitch_min_width / 2, 8);
-    stitch1.width = _config.sitch_min_width;
-    stitch0.pos_x = dst_width - final_overlap_width + stitch1.pos_x;
-    stitch0.width = _config.sitch_min_width;
+    _right_rect.pos_x = XCAM_ALIGN_AROUND (center - _config.sitch_min_width / 2, 8);
+    _right_rect.width = _config.sitch_min_width;
+    _left_rect.pos_x = _dst_width - final_overlap_width + _right_rect.pos_x;
+    _left_rect.width = _config.sitch_min_width;
 
     float delta_offset = final_overlap_width - last_overlap_width;
-    x_offset -= delta_offset;
+    _x_offset -= delta_offset;
 }
 
 void
-CVFeatureMatch::detect_and_match (
-    cv::Mat img_left, cv::Mat img_right, Rect &crop_left, Rect &crop_right,
-    int &valid_count, float &mean_offset, float &x_offset, int dst_width)
+CVFeatureMatch::detect_and_match (cv::Mat img_left, cv::Mat img_right)
 {
     std::vector<float> err;
     std::vector<uchar> status;
@@ -224,43 +245,48 @@ CVFeatureMatch::detect_and_match (
         img_left, img_right, corner_left, corner_right, status, err, win_size, 3,
         cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 10, 0.01f));
 
-    calc_of_match (img_left, img_right, corner_left, corner_right,
-                   status, err, valid_count, mean_offset, x_offset);
+    calc_of_match (img_left, img_right, corner_left, corner_right, status, err);
 
-    adjust_stitch_area (dst_width, x_offset, crop_left, crop_right);
+    if (_need_adjust)
+        adjust_crop_area ();
 
-#if XCAM_CV_FM_DEBUG
-    XCAM_LOG_INFO (
-        "FeatureMatch(idx:%d): stiching area: left_area(pos_x:%d, width:%d), right_area(pos_x:%d, width:%d)",
-        _fm_idx, crop_left.pos_x, crop_left.width, crop_right.pos_x, crop_right.width);
+#if XCAM_CV_CAPI_FM_DEBUG
+    XCAM_LOG_INFO ("FeatureMatch(idx:%d): x_offset:%0.2f", _fm_idx, _x_offset);
+    if (_need_adjust) {
+        XCAM_LOG_INFO (
+            "FeatureMatch(idx:%d): stiching area: left_area(pos_x:%d, width:%d), right_area(pos_x:%d, width:%d)",
+            _fm_idx, _left_rect.pos_x, _left_rect.width, _right_rect.pos_x, _right_rect.width);
+    }
 #endif
 }
 
 void
-CVFeatureMatch::optical_flow_feature_match (
-    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-    Rect &left_crop_rect, Rect &right_crop_rect, int dst_width)
+CVFeatureMatch::feature_match (
+    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf)
 {
-#if HAVE_LIBCL
+    XCAM_ASSERT (_left_rect.width && _left_rect.height);
+    XCAM_ASSERT (_right_rect.width && _right_rect.height);
+
     cv::UMat left_umat, right_umat;
-    if (!get_crop_image_umat (left_buf, left_crop_rect, left_umat, BufId0)
-            || !get_crop_image_umat (right_buf, right_crop_rect, right_umat, BufId1))
-        return;
-
-    cv::Mat left_img = left_umat.getMat (cv::ACCESS_READ);
-    cv::Mat right_img = right_umat.getMat (cv::ACCESS_READ);
-#else
     cv::Mat left_img, right_img;
-    if (!convert_range_to_mat (left_buf, left_crop_rect, left_img)
-            || !convert_range_to_mat (right_buf, right_crop_rect, right_img))
-        return;
-#endif
 
-    detect_and_match (left_img, right_img, left_crop_rect, right_crop_rect,
-                      _valid_count, _mean_offset, _x_offset, dst_width);
+    if (_cl_buf_mem[BufIdLeft] && _cl_buf_mem[BufIdRight]) {
+        if (!get_crop_image_umat (left_buf, _left_rect, left_umat, BufIdLeft)
+                || !get_crop_image_umat (right_buf, _right_rect, right_umat, BufIdRight))
+            return;
+
+        left_img = left_umat.getMat (cv::ACCESS_READ);
+        right_img = right_umat.getMat (cv::ACCESS_READ);
+    } else {
+        if (!convert_range_to_mat (left_buf, _left_rect, left_img)
+                || !convert_range_to_mat (right_buf, _right_rect, right_img))
+            return;
+    }
+
+    detect_and_match (left_img, right_img);
 
 #if XCAM_CV_FM_DEBUG
-    debug_write_image (left_buf, right_buf, left_crop_rect, right_crop_rect, _frame_num, _fm_idx);
+    debug_write_image (left_buf, right_buf, _left_rect, _right_rect, _frame_num, _fm_idx);
     _frame_num++;
 #endif
 }

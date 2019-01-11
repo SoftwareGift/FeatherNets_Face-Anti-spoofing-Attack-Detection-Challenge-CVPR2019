@@ -42,33 +42,31 @@ class CVCapiFeatureMatch
 public:
     explicit CVCapiFeatureMatch ();
 
-    void optical_flow_feature_match (
-        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-        Rect &left_img_crop, Rect &right_img_crop, int dst_width = 0);
+    virtual void feature_match (
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf);
 
-protected:
-    bool get_crop_image (const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect,
-                         std::vector<char> &crop_image, CvMat &img);
+private:
+    bool get_crop_image (
+        const SmartPtr<VideoBuffer> &buffer, const Rect &crop_rect, std::vector<char> &crop_image, CvMat &img);
 
+    void detect_and_match (CvArr* img_left, CvArr* img_right);
     void add_detected_data (CvArr* image, std::vector<CvPoint2D32f> &corners);
-    void get_valid_offsets (std::vector<CvPoint2D32f> &corner0, std::vector<CvPoint2D32f> &corner1,
-                            std::vector<char> &status, std::vector<float> &error,
-                            std::vector<float> &offsets, float &sum, int &count,
-                            CvArr* out_image, CvSize &img0_size);
 
-    void calc_of_match (CvArr* image0, CvArr* image1,
-                        std::vector<CvPoint2D32f> &corner0, std::vector<CvPoint2D32f> &corner1,
-                        std::vector<char> &status, std::vector<float> &error,
-                        int &last_count, float &last_mean_offset, float &out_x_offset);
+    void calc_of_match (
+        CvArr* image0, CvArr* image1, std::vector<CvPoint2D32f> &corner0, std::vector<CvPoint2D32f> &corner1,
+        std::vector<char> &status, std::vector<float> &error);
 
-    void detect_and_match (CvArr* img_left, CvArr* img_right,
-                           int &valid_count, float &mean_offset, float &x_offset);
+    void get_valid_offsets (
+        std::vector<CvPoint2D32f> &corner0, std::vector<CvPoint2D32f> &corner1,
+        std::vector<char> &status, std::vector<float> &error,
+        std::vector<float> &offsets, float &sum, int &count,
+        CvArr* out_image, CvSize &img0_size);
 
 private:
     XCAM_DEAD_COPY (CVCapiFeatureMatch);
 
-    std::vector<char> _left_crop_image;
-    std::vector<char> _right_crop_image;
+    std::vector<char>    _left_crop_image;
+    std::vector<char>    _right_crop_image;
 };
 
 }

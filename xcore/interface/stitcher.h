@@ -157,7 +157,6 @@ public:
         _output_width = width; //XCAM_ALIGN_UP (width, XCAM_BLENDER_ALIGNED_WIDTH);
         _output_height = height;
     }
-
     void get_output_size (uint32_t &width, uint32_t &height) const {
         width = _output_width;
         height = _output_height;

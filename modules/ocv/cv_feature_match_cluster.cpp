@@ -183,12 +183,9 @@ CVFeatureMatchCluster::calc_mean_offset (
 }
 
 void
-CVFeatureMatchCluster::calc_of_match_cluster (
-    cv::Mat image0, cv::Mat image1,
-    std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
-    std::vector<uchar> &status, std::vector<float> &error,
-    float &last_mean_offset_x, float &last_mean_offset_y,
-    float &out_x_offset, float &out_y_offset)
+CVFeatureMatchCluster::calc_of_match (
+    cv::Mat image0, cv::Mat image1, std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
+    std::vector<uchar> &status, std::vector<float> &error)
 {
     cv::Mat debug_img;
     cv::Size img0_size = image0.size ();
@@ -196,13 +193,18 @@ CVFeatureMatchCluster::calc_of_match_cluster (
     XCAM_ASSERT (img0_size.height == img1_size.height);
 
 #if XCAM_CV_FM_DEBUG
+    cv::Mat mat;
     cv::Size size ((img0_size.width + img1_size.width) * 2, img0_size.height);
-    debug_img.create (size, image0.type ());
 
-    image0.copyTo (debug_img (cv::Rect(0, 0, img0_size.width, img0_size.height)));
-    image1.copyTo (debug_img (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
-    image0.copyTo (debug_img (cv::Rect(img0_size.width + img1_size.width, 0, img0_size.width, img0_size.height)));
-    image1.copyTo (debug_img (cv::Rect(2 * img0_size.width + img1_size.width, 0, img1_size.width, img1_size.height)));
+    mat.create (size, image0.type ());
+    debug_img = cv::Mat (mat);
+
+    image0.copyTo (mat (cv::Rect(0, 0, img0_size.width, img0_size.height)));
+    image1.copyTo (mat (cv::Rect(img0_size.width, 0, img1_size.width, img1_size.height)));
+    image0.copyTo (mat (cv::Rect(img0_size.width + img1_size.width, 0, img0_size.width, img0_size.height)));
+    image1.copyTo (mat (cv::Rect(2 * img0_size.width + img1_size.width, 0, img1_size.width, img1_size.height)));
+
+    mat.copyTo (debug_img);
 
     cv::Size scale_size = size * XCAM_CV_OF_DRAW_SCALE;
     cv::resize (debug_img, debug_img, scale_size, 0, 0);
@@ -210,7 +212,10 @@ CVFeatureMatchCluster::calc_of_match_cluster (
 
     float mean_offset_x = 0.0f;
     float mean_offset_y = 0.0f;
-    bool ret = calc_mean_offset (corner0, corner1, status, error, mean_offset_x, mean_offset_y, debug_img, img0_size, img1_size);
+    float last_mean_offset_x = _mean_offset;
+    float last_mean_offset_y = _mean_offset_y;
+    bool ret = calc_mean_offset (corner0, corner1, status, error, mean_offset_x, mean_offset_y,
+                                 debug_img, img0_size, img1_size);
 
 #if XCAM_CV_FM_DEBUG
     char file_name[256];
@@ -220,28 +225,26 @@ CVFeatureMatchCluster::calc_of_match_cluster (
 
     if (ret) {
         if (fabs (mean_offset_x - last_mean_offset_x) < _config.delta_mean_offset) {
-            out_x_offset = out_x_offset * _config.offset_factor + mean_offset_x * (1.0f - _config.offset_factor);
+            _x_offset = _x_offset * _config.offset_factor + mean_offset_x * (1.0f - _config.offset_factor);
 
-            if (fabs (out_x_offset) > _config.max_adjusted_offset)
-                out_x_offset = (out_x_offset > 0.0f) ? _config.max_adjusted_offset : (-_config.max_adjusted_offset);
+            if (fabs (_x_offset) > _config.max_adjusted_offset)
+                _x_offset = (_x_offset > 0.0f) ? _config.max_adjusted_offset : (-_config.max_adjusted_offset);
         }
 
         if (fabs (mean_offset_y - last_mean_offset_y) < _config.delta_mean_offset) {
-            out_y_offset = out_y_offset * _config.offset_factor + mean_offset_y * (1.0f - _config.offset_factor);
+            _y_offset = _y_offset * _config.offset_factor + mean_offset_y * (1.0f - _config.offset_factor);
 
-            if (fabs (out_y_offset) > _config.max_adjusted_offset)
-                out_y_offset = (out_y_offset > 0.0f) ? _config.max_adjusted_offset : (-_config.max_adjusted_offset);
+            if (fabs (_y_offset) > _config.max_adjusted_offset)
+                _y_offset = (_y_offset > 0.0f) ? _config.max_adjusted_offset : (-_config.max_adjusted_offset);
         }
     }
 
-    last_mean_offset_x = mean_offset_x;
-    last_mean_offset_y = mean_offset_y;
+    _mean_offset = mean_offset_x;
+    _mean_offset_y = mean_offset_y;
 }
 
 void
-CVFeatureMatchCluster::detect_and_match_cluster (
-    cv::Mat img_left, cv::Mat img_right, Rect &crop_left, Rect &crop_right,
-    float &mean_offset_x, float &mean_offset_y, float &x_offset, float &y_offset)
+CVFeatureMatchCluster::detect_and_match (cv::Mat img_left, cv::Mat img_right)
 {
     std::vector<float> err;
     std::vector<uchar> status;
@@ -260,49 +263,45 @@ CVFeatureMatchCluster::detect_and_match_cluster (
         img_left, img_right, corner_left, corner_right, status, err, win_size, 3,
         cv::TermCriteria (cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01f));
 
-    calc_of_match_cluster (img_left, img_right, corner_left, corner_right,
-                           status, err, mean_offset_x, mean_offset_y, x_offset, y_offset);
+    calc_of_match (img_left, img_right, corner_left, corner_right, status, err);
 
 #if XCAM_CV_FM_DEBUG
-    XCAM_LOG_INFO ("x_offset:%0.2f", x_offset);
+    XCAM_LOG_INFO ("x_offset:%0.2f", _x_offset);
     XCAM_LOG_INFO (
         "FeatureMatch(idx:%d): stiching area: left_area(pos_x:%d, width:%d), right_area(pos_x:%d, width:%d)",
-        _fm_idx, crop_left.pos_x, crop_left.width, crop_right.pos_x, crop_right.width);
+        _fm_idx, _left_rect.pos_x, _left_rect.width, _right_rect.pos_x, _right_rect.width);
 #endif
-
-    XCAM_UNUSED (crop_left);
-    XCAM_UNUSED (crop_right);
 }
 
 void
-CVFeatureMatchCluster::optical_flow_feature_match (
-    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-    Rect &left_crop_rect, Rect &right_crop_rect, int dst_width)
+CVFeatureMatchCluster::feature_match (
+    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf)
 {
-#if HAVE_LIBCL
+    XCAM_ASSERT (_left_rect.width && _left_rect.height);
+    XCAM_ASSERT (_right_rect.width && _right_rect.height);
+
     cv::UMat left_umat, right_umat;
-    if (!get_crop_image_umat (left_buf, left_crop_rect, left_umat, BufId0)
-            || !get_crop_image_umat (right_buf, right_crop_rect, right_umat, BufId1))
-        return;
-
-    cv::Mat left_img = left_umat.getMat (cv::ACCESS_READ);
-    cv::Mat right_img = right_umat.getMat (cv::ACCESS_READ);
-#else
     cv::Mat left_img, right_img;
-    if (!convert_range_to_mat (left_buf, left_crop_rect, left_img)
-            || !convert_range_to_mat (right_buf, right_crop_rect, right_img))
-        return;
-#endif
 
-    detect_and_match_cluster (left_img, right_img, left_crop_rect, right_crop_rect,
-                              _mean_offset, _mean_offset_y, _x_offset, _y_offset);
+    if (_cl_buf_mem[BufIdLeft] && _cl_buf_mem[BufIdRight]) {
+        if (!get_crop_image_umat (left_buf, _left_rect, left_umat, BufIdLeft)
+                || !get_crop_image_umat (right_buf, _right_rect, right_umat, BufIdRight))
+            return;
+
+        left_img = left_umat.getMat (cv::ACCESS_READ);
+        right_img = right_umat.getMat (cv::ACCESS_READ);
+    } else {
+        if (!convert_range_to_mat (left_buf, _left_rect, left_img)
+                || !convert_range_to_mat (right_buf, _right_rect, right_img))
+            return;
+    }
+
+    detect_and_match (left_img, right_img);
 
 #if XCAM_CV_FM_DEBUG
-    debug_write_image (left_buf, right_buf, left_crop_rect, right_crop_rect, _frame_num, _fm_idx);
+    debug_write_image (left_buf, right_buf, _left_rect, _right_rect, _frame_num, _fm_idx);
     _frame_num++;
 #endif
-
-    XCAM_UNUSED (dst_width);
 }
 
 }

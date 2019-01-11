@@ -31,26 +31,19 @@ class CVFeatureMatchCluster
 public:
     explicit CVFeatureMatchCluster ();
 
-    void optical_flow_feature_match (
-        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf,
-        Rect &left_img_crop, Rect &right_img_crop, int dst_width = 0);
+    virtual void feature_match (
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf);
 
-protected:
-    bool calc_mean_offset (std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
-                           std::vector<uchar> &status, std::vector<float> &error,
-                           float &mean_offset_x, float &mean_offset_y,
-                           cv::Mat debug_img, cv::Size &img0_size, cv::Size &img1_size);
+private:
+    virtual void detect_and_match (cv::Mat img_left, cv::Mat img_right);
+    virtual void calc_of_match (
+        cv::Mat image0, cv::Mat image1, std::vector<cv::Point2f> &corner0,
+        std::vector<cv::Point2f> &corner1, std::vector<uchar> &status, std::vector<float> &error);
 
-    void calc_of_match_cluster (cv::Mat image0, cv::Mat image1,
-                                std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1,
-                                std::vector<uchar> &status, std::vector<float> &error,
-                                float &last_mean_offset_x, float &last_mean_offset_y,
-                                float &out_x_offset, float &out_y_offset);
-
-    void detect_and_match_cluster (cv::Mat img_left, cv::Mat img_right, Rect &crop_left, Rect &crop_right,
-                                   float &mean_offset_x, float &mean_offset_y,
-                                   float &x_offset, float &y_offset);
-
+    bool calc_mean_offset (
+        std::vector<cv::Point2f> &corner0, std::vector<cv::Point2f> &corner1, std::vector<uchar> &status,
+        std::vector<float> &error, float &mean_offset_x, float &mean_offset_y,
+        cv::Mat debug_img, cv::Size &img0_size, cv::Size &img1_size);
 
 private:
     XCAM_DEAD_COPY (CVFeatureMatchCluster);

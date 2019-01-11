@@ -37,21 +37,29 @@ FeatureMatch::FeatureMatch ()
 }
 
 void
-FeatureMatch::set_config (FMConfig &config)
+FeatureMatch::set_fm_index (int idx)
+{
+    _fm_idx = idx;
+}
+
+void
+FeatureMatch::set_config (const FMConfig &config)
 {
     _config = config;
 }
 
-FMConfig
-FeatureMatch::get_config ()
+void
+FeatureMatch::set_crop_rect (const Rect &left_rect, const Rect &right_rect)
 {
-    return _config;
+    _left_rect = left_rect;
+    _right_rect = right_rect;
 }
 
 void
-FeatureMatch::set_fm_index (int idx)
+FeatureMatch::get_crop_rect (Rect &left_rect, Rect &right_rect)
 {
-    _fm_idx = idx;
+    left_rect = _left_rect;
+    right_rect = _right_rect;
 }
 
 void
@@ -63,8 +71,37 @@ FeatureMatch::reset_offsets ()
     _mean_offset_y = 0.0f;
 }
 
+float
+FeatureMatch::get_current_left_offset_x ()
+{
+    return _x_offset;
+}
+
+float
+FeatureMatch::get_current_left_offset_y ()
+{
+    return _y_offset;
+}
+
+void
+FeatureMatch::set_dst_width (int width)
+{
+    XCAM_UNUSED (width);
+
+    XCAM_LOG_ERROR ("dst width is not supported");
+    XCAM_ASSERT (false);
+}
+
+void
+FeatureMatch::enable_adjust_crop_area ()
+{
+    XCAM_LOG_ERROR ("adjust crop area is not supported");
+    XCAM_ASSERT (false);
+}
+
 bool
-FeatureMatch::get_mean_offset (std::vector<float> &offsets, float sum, int &count, float &mean_offset)
+FeatureMatch::get_mean_offset (
+    const std::vector<float> &offsets, float sum, int &count, float &mean_offset)
 {
     if (count < _config.min_corners || count <= 0)
         return false;
