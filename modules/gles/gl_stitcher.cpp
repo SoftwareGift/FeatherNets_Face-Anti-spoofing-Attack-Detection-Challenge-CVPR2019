@@ -25,6 +25,7 @@
 #include "gl_blender.h"
 #include "gl_copy_handler.h"
 #include "gl_stitcher.h"
+#include "interface/feature_match.h"
 
 #define GL_STITCHER_ALIGNMENT_X 16
 #define GL_STITCHER_ALIGNMENT_Y 4
@@ -99,8 +100,9 @@ struct Factor {
 };
 
 struct Overlap {
-    SmartPtr<GLBlender>    blender;
-    BlenderParams          param_map;
+    SmartPtr<FeatureMatch>    matcher;
+    SmartPtr<GLBlender>       blender;
+    BlenderParams             param_map;
 
     SmartPtr<BlenderParam> find_blender_param_in_map (
         const SmartPtr<GLStitcher::StitcherParam> &key,
@@ -110,6 +112,8 @@ struct Overlap {
 struct FisheyeDewarp {
     SmartPtr<GLGeoMapHandler>    dewarp;
     SmartPtr<BufferPool>         buf_pool;
+    Factor                       left_match_factor;
+    Factor                       right_match_factor;
 
     bool set_dewarp_factor ();
     XCamReturn set_dewarp_geo_table (
@@ -141,6 +145,9 @@ public:
 
     XCamReturn fisheye_dewarp_to_table ();
 
+    XCamReturn start_feature_match (
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf, uint32_t idx);
+
     const SmartPtr<GLComputeProgram> &get_sync_prog ();
 
 private:
@@ -149,12 +156,18 @@ private:
     XCamReturn init_fisheye (uint32_t idx);
     bool init_dewarp_factors (uint32_t idx);
 
+    void calc_dewarp_factors (
+        uint32_t idx, const Factor &last_left_factor, const Factor &last_right_factor,
+        Factor &cur_left, Factor &cur_right);
+
+    void init_feature_match (uint32_t idx);
+    bool get_and_reset_fm_factors (uint32_t idx, Factor &left, Factor &right);
+
 private:
     FisheyeDewarp                 _fisheye[XCAM_STITCH_MAX_CAMERAS];
     Overlap                       _overlaps[XCAM_STITCH_MAX_CAMERAS];
     Copiers                       _copiers;
 
-    Mutex                         _map_mutex;
     GLStitcher                   *_stitcher;
     SmartPtr<GLComputeProgram>    _sync_prog;
 };
@@ -166,9 +179,44 @@ StitcherImpl::get_sync_prog ()
         return _sync_prog;
 
     _sync_prog = GLComputeProgram::create_compute_program ("sync_program");
-    XCAM_FAIL_RETURN (ERROR, _sync_prog.ptr (), _sync_prog, "create sync program failed");
+    XCAM_FAIL_RETURN (
+        ERROR, _sync_prog.ptr (), _sync_prog,
+        "gl-stitcher(%s) create sync program failed",
+        XCAM_STR (_stitcher->get_name ()));
 
     return _sync_prog;
+}
+
+bool
+StitcherImpl::get_and_reset_fm_factors (uint32_t idx, Factor &left, Factor &right)
+{
+    uint32_t cam_num = _stitcher->get_camera_num ();
+    XCAM_FAIL_RETURN (
+        ERROR, idx < cam_num, false,
+        "gl-stitcher(%s) invalid camera index, idx(%d) > camera_num(%d)",
+        XCAM_STR (_stitcher->get_name ()), idx, cam_num);
+
+    left = _fisheye[idx].left_match_factor;
+    right = _fisheye[idx].right_match_factor;
+
+    _fisheye[idx].left_match_factor.reset ();
+    _fisheye[idx].right_match_factor.reset ();
+
+    return true;
+}
+
+void
+StitcherImpl::calc_dewarp_factors (
+    uint32_t idx, const Factor &last_left_factor, const Factor &last_right_factor,
+    Factor &cur_left, Factor &cur_right)
+{
+    Factor match_left_factor, match_right_factor;
+    get_and_reset_fm_factors (idx, match_left_factor, match_right_factor);
+
+    cur_left.x = last_left_factor.x * match_left_factor.x;
+    cur_left.y = last_left_factor.y * match_left_factor.y;
+    cur_right.x = last_right_factor.x * match_right_factor.x;
+    cur_right.y = last_right_factor.y * match_right_factor.y;
 }
 
 bool
@@ -176,7 +224,8 @@ StitcherImpl::init_dewarp_factors (uint32_t idx)
 {
     XCAM_FAIL_RETURN (
         ERROR, _fisheye[idx].dewarp.ptr (), false,
-        "FisheyeDewarp dewarp handler empty");
+        "gl-stitcher(%s) dewarp handler is empty",
+        XCAM_STR (_stitcher->get_name ()));
 
     Factor last_left_factor, last_right_factor, cur_left, cur_right;
     if (_stitcher->get_scale_mode () == ScaleSingleConst) {
@@ -188,8 +237,9 @@ StitcherImpl::init_dewarp_factors (uint32_t idx)
         }
         last_left_factor = last_right_factor = unify_factor;
 
-        unify_factor.x = (last_left_factor.x + last_right_factor.x) / 2.0f;
-        unify_factor.y = (last_left_factor.y + last_right_factor.y) / 2.0f;
+        calc_dewarp_factors (idx, last_left_factor, last_right_factor, cur_left, cur_right);
+        unify_factor.x = (cur_left.x + cur_right.x) / 2.0f;
+        unify_factor.y = (cur_left.y + cur_right.y) / 2.0f;
 
         _fisheye[idx].dewarp->set_factors (unify_factor.x, unify_factor.y);
     } else {
@@ -205,8 +255,9 @@ StitcherImpl::init_dewarp_factors (uint32_t idx)
             return true;
         }
 
-        dewarp->set_left_factors (last_left_factor.x, last_left_factor.y);
-        dewarp->set_right_factors (last_right_factor.x, last_right_factor.y);
+        calc_dewarp_factors (idx, last_left_factor, last_right_factor, cur_left, cur_right);
+        dewarp->set_left_factors (cur_left.x, cur_left.y);
+        dewarp->set_right_factors (cur_right.x, cur_right.y);
     }
 
     return true;
@@ -246,12 +297,18 @@ StitcherImpl::create_geo_mapper (const Stitcher::RoundViewSlice &view_slice)
     XCAM_UNUSED (view_slice);
 
     SmartPtr<GLGeoMapHandler> dewarp;
-    if (_stitcher->get_scale_mode () == ScaleSingleConst)
+    GeoMapScaleMode scale_mode = _stitcher->get_scale_mode ();
+    if (scale_mode == ScaleSingleConst)
         dewarp = new GLGeoMapHandler ("sitcher_singleconst_remapper");
-    else
+    else if (scale_mode == ScaleDualConst) {
         dewarp = new GLDualConstGeoMapHandler ("sitcher_dualconst_remapper");
-
+    } else {
+        XCAM_LOG_ERROR (
+            "gl-stitcher(%s) unsupported GeoMapScaleMode: %d",
+            XCAM_STR (_stitcher->get_name ()), scale_mode);
+    }
     XCAM_ASSERT (dewarp.ptr ());
+
     return dewarp;
 }
 
@@ -282,6 +339,59 @@ StitcherImpl::init_fisheye (uint32_t idx)
     return XCAM_RETURN_NO_ERROR;
 }
 
+void
+StitcherImpl::init_feature_match (uint32_t idx)
+{
+#if HAVE_OPENCV
+#ifndef ANDROID
+    FeatureMatchMode fm_mode = _stitcher->get_fm_mode ();
+    if (fm_mode == FMNone)
+        return ;
+    else if (fm_mode == FMDefault)
+        _overlaps[idx].matcher = FeatureMatch::create_default_feature_match ();
+    else if (fm_mode == FMCluster)
+        _overlaps[idx].matcher = FeatureMatch::create_cluster_feature_match ();
+    else if (fm_mode == FMCapi)
+        _overlaps[idx].matcher = FeatureMatch::create_capi_feature_match ();
+    else {
+        XCAM_LOG_ERROR (
+            "gl-stitcher(%s) unsupported FeatureMatchMode: %d",
+            XCAM_STR (_stitcher->get_name ()), fm_mode);
+    }
+#else
+    _overlaps[idx].matcher = FeatureMatch::create_capi_feature_match ();
+#endif
+    XCAM_ASSERT (_overlaps[idx].matcher.ptr ());
+
+    FMConfig config;
+    config.sitch_min_width = 136;
+    config.min_corners = 4;
+    config.offset_factor = 0.8f;
+    config.delta_mean_offset = 120.0f;
+    config.recur_offset_error = 8.0f;
+    config.max_adjusted_offset = 24.0f;
+    config.max_valid_offset_y = 20.0f;
+    config.max_track_error = 28.0f;
+#ifdef ANDROID
+    config.max_track_error = 3600.0f;
+#endif
+    _overlaps[idx].matcher->set_config (config);
+    _overlaps[idx].matcher->set_fm_index (idx);
+
+    const Stitcher::ImageOverlapInfo &info = _stitcher->get_overlap (idx);
+    Rect left_ovlap = info.left;
+    Rect right_ovlap = info.right;
+    left_ovlap.pos_y = left_ovlap.height / 5;
+    left_ovlap.height = left_ovlap.height / 2;
+    right_ovlap.pos_y = right_ovlap.height / 5;
+    right_ovlap.height = right_ovlap.height / 2;
+    _overlaps[idx].matcher->set_crop_rect (left_ovlap, right_ovlap);
+#else
+    XCAM_LOG_ERROR ("gl-stitcher(%s) feature match is unsupported", XCAM_STR (_stitcher->get_name ()));
+    XCAM_ASSERT (false);
+#endif
+}
+
 XCamReturn
 StitcherImpl::init_config (uint32_t count)
 {
@@ -291,13 +401,16 @@ StitcherImpl::init_config (uint32_t count)
             ERROR, xcam_ret_is_ok (ret), ret,
             "gl-stitcher(%s) init fisheye failed, idx:%d.", XCAM_STR (_stitcher->get_name ()), i);
 
+#if HAVE_OPENCV
+        init_feature_match (i);
+#endif
+
         _overlaps[i].blender = create_gl_blender ().dynamic_cast_ptr<GLBlender>();
         XCAM_ASSERT (_overlaps[i].blender.ptr ());
         SmartPtr<ImageHandler::Callback> blender_cb = new CbBlender (_stitcher);
         XCAM_ASSERT (blender_cb.ptr ());
         _overlaps[i].blender->set_callback (blender_cb);
         _overlaps[i].param_map.clear ();
-
     }
 
     Stitcher::CopyAreaArray areas = _stitcher->get_copy_area ();
@@ -380,6 +493,48 @@ StitcherImpl::start_dewarps (const SmartPtr<GLStitcher::StitcherParam> &param)
     return XCAM_RETURN_NO_ERROR;
 }
 
+XCamReturn
+StitcherImpl::start_feature_match (
+    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf, uint32_t idx)
+{
+#if HAVE_OPENCV
+    _overlaps[idx].matcher->reset_offsets ();
+    _overlaps[idx].matcher->feature_match (left_buf, right_buf);
+
+    Rect left_ovlap, right_ovlap;
+    _overlaps[idx].matcher->get_crop_rect (left_ovlap, right_ovlap);
+
+    float left_offsetx = _overlaps[idx].matcher->get_current_left_offset_x ();
+    Factor left_factor, right_factor;
+
+    uint32_t left_idx = idx;
+    float center_x = (float) _stitcher->get_center (left_idx).slice_center_x;
+    float feature_center_x = (float)left_ovlap.pos_x + (left_ovlap.width / 2.0f);
+    float range = feature_center_x - center_x;
+    XCAM_ASSERT (range > 1.0f);
+    right_factor.x = (range + left_offsetx / 2.0f) / range;
+    right_factor.y = 1.0f;
+    XCAM_ASSERT (right_factor.x > 0.0f && right_factor.x < 2.0f);
+
+    uint32_t right_idx = (idx + 1) % _stitcher->get_camera_num ();
+    center_x = (float) _stitcher->get_center (right_idx).slice_center_x;
+    feature_center_x = (float)right_ovlap.pos_x + (right_ovlap.width / 2.0f);
+    range = center_x - feature_center_x;
+    XCAM_ASSERT (range > 1.0f);
+    left_factor.x = (range + left_offsetx / 2.0f) / range;
+    left_factor.y = 1.0f;
+    XCAM_ASSERT (left_factor.x > 0.0f && left_factor.x < 2.0f);
+
+    _fisheye[left_idx].right_match_factor = right_factor;
+    _fisheye[right_idx].left_match_factor = left_factor;
+
+    return XCAM_RETURN_NO_ERROR;
+#else
+    XCAM_LOG_ERROR ("gl-stitcher(%s) feature match is unsupported", XCAM_STR (_stitcher->get_name ()));
+    return XCAM_RETURN_ERROR_PARAM;
+#endif
+}
+
 SmartPtr<BlenderParam>
 Overlap::find_blender_param_in_map (
     const SmartPtr<GLStitcher::StitcherParam> &key, uint32_t idx)
@@ -426,23 +581,18 @@ StitcherImpl::start_blenders (
     const uint32_t camera_num = _stitcher->get_camera_num ();
     uint32_t pre_idx = (idx + camera_num - 1) % camera_num;
 
-    {
-        SmartPtr<BlenderParam> param_b;
+    SmartPtr<BlenderParam> param_tmp = _overlaps[idx].find_blender_param_in_map (param, idx);
+    param_tmp->in_buf = buf;
+    if (param_tmp->in_buf.ptr () && param_tmp->in1_buf.ptr ()) {
+        cur_param = param_tmp;
+        _overlaps[idx].param_map.erase (param.ptr ());
+    }
 
-        SmartLock locker (_map_mutex);
-        param_b = _overlaps[idx].find_blender_param_in_map (param, idx);
-        param_b->in_buf = buf;
-        if (param_b->in_buf.ptr () && param_b->in1_buf.ptr ()) {
-            cur_param = param_b;
-            _overlaps[idx].param_map.erase (param.ptr ());
-        }
-
-        param_b = _overlaps[pre_idx].find_blender_param_in_map (param, pre_idx);
-        param_b->in1_buf = buf;
-        if (param_b->in_buf.ptr () && param_b->in1_buf.ptr ()) {
-            prev_param = param_b;
-            _overlaps[pre_idx].param_map.erase (param.ptr ());
-        }
+    param_tmp = _overlaps[pre_idx].find_blender_param_in_map (param, pre_idx);
+    param_tmp->in1_buf = buf;
+    if (param_tmp->in_buf.ptr () && param_tmp->in1_buf.ptr ()) {
+        prev_param = param_tmp;
+        _overlaps[pre_idx].param_map.erase (param.ptr ());
     }
 
     if (cur_param.ptr ()) {
@@ -460,6 +610,24 @@ StitcherImpl::start_blenders (
             ERROR, xcam_ret_is_ok (ret), ret,
             "gl-stitcher(%s) blend overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), pre_idx);
     }
+
+#if HAVE_OPENCV
+    if (_stitcher->get_fm_mode ()) {
+        if (cur_param.ptr ()) {
+            XCamReturn ret = start_feature_match (cur_param->in_buf, cur_param->in1_buf, idx);
+            XCAM_FAIL_RETURN (
+                ERROR, xcam_ret_is_ok (ret), ret,
+                "gl-stitcher(%s) feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), idx);
+        }
+
+        if (prev_param.ptr ()) {
+            XCamReturn ret = start_feature_match (prev_param->in_buf, prev_param->in1_buf, pre_idx);
+            XCAM_FAIL_RETURN (
+                ERROR, xcam_ret_is_ok (ret), ret,
+                "gl-stitcher(%s) feature-match overlap idx:%d failed", XCAM_STR (_stitcher->get_name ()), pre_idx);
+        }
+    }
+#endif
 
     return XCAM_RETURN_NO_ERROR;
 }

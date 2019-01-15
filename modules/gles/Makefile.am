@@ -13,6 +13,10 @@ XCAM_GLES_LIBS = \
     $(top_builddir)/xcore/libxcam_core.la \
     $(NULL)
 
+if HAVE_OPENCV
+XCAM_GLES_LIBS += $(top_builddir)/modules/ocv/libxcam_ocv.la
+endif
+
 xcam_gles_sources = \
     gles_std.cpp                \
     gl_buffer.cpp               \
