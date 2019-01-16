@@ -663,13 +663,13 @@ int main (int argc, char *argv[])
     }
 #else
     if (module == SVModuleGLES) {
-        XCAM_LOG_ERROR ("GLES module unsupported");
+        XCAM_LOG_ERROR ("GLES module is unsupported");
         return -1;
     }
 #endif
 
-#if HAVE_VULKAN
     if (module == SVModuleVulkan) {
+#if HAVE_VULKAN
         if (scale_mode != ScaleSingleConst) {
             XCAM_LOG_ERROR ("vulkan module only support singleconst scale mode currently");
             return -1;
@@ -681,13 +681,11 @@ int main (int argc, char *argv[])
         }
         XCAM_ASSERT (outs[IdxStitch].ptr ());
         outs[IdxStitch]->set_vk_device (vk_dev);
-    }
 #else
-    if (module == SVModuleVulkan) {
-        XCAM_LOG_ERROR ("vulkan module unsupported");
+        XCAM_LOG_ERROR ("vulkan module is unsupported");
         return -1;
-    }
 #endif
+    }
 
     VideoBufferInfo in_info;
     in_info.init (V4L2_PIX_FMT_NV12, input_width, input_height);

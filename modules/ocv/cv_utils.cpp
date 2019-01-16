@@ -49,7 +49,7 @@ bool convert_range_to_mat (const SmartPtr<VideoBuffer> &buffer, const Rect &rang
 
     uint8_t *start = mem + range.pos_y * info.strides[0] + range.pos_x;
     img = cv::Mat (range.height, range.width, CV_8UC1, start, info.strides[0]);
-    buffer->unmap ();
+    // buffer->unmap ();
 
     return true;
 }

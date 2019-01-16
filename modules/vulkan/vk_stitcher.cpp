@@ -24,6 +24,7 @@
 #include "vk_blender.h"
 #include "vk_copy_handler.h"
 #include "vk_stitcher.h"
+#include "interface/feature_match.h"
 
 #define DUMP_BUFFER 0
 
@@ -79,6 +80,11 @@ struct Factor {
     }
 };
 
+struct GeoMapFactors {
+    Factor left;
+    Factor right;
+};
+
 typedef std::vector<SmartPtr<VKCopyHandler>> Copiers;
 
 struct StitcherResource {
@@ -92,6 +98,9 @@ struct StitcherResource {
     SmartPtr<VKGeoMapHandler>             mapper[XCAM_STITCH_MAX_CAMERAS];
     SmartPtr<VKBlender>                   blender[XCAM_STITCH_MAX_CAMERAS];
     Copiers                               copiers;
+
+    SmartPtr<FeatureMatch>                matcher[XCAM_STITCH_MAX_CAMERAS];
+    GeoMapFactors                         mapper_factors[XCAM_STITCH_MAX_CAMERAS];
 
     StitcherResource ();
 };
@@ -109,6 +118,8 @@ public:
     XCamReturn start_geo_mappers (const SmartPtr<VKStitcher::StitcherParam> &param);
     XCamReturn start_blenders (const SmartPtr<VKStitcher::StitcherParam> &param, uint32_t idx);
     XCamReturn start_copier (const SmartPtr<VKStitcher::StitcherParam> &param, uint32_t idx);
+    XCamReturn start_feature_match (
+        const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf, uint32_t idx);
 
     XCamReturn stop ();
 
@@ -119,7 +130,11 @@ private:
     XCamReturn init_geo_mappers (const SmartPtr<VKDevice> &dev);
     XCamReturn init_blenders (const SmartPtr<VKDevice> &dev);
     XCamReturn init_copiers (const SmartPtr<VKDevice> &dev);
+    void init_feature_matchers ();
 
+    void calc_geomap_factors (
+        uint32_t idx, const Factor &last_left_factor, const Factor &last_right_factor,
+        Factor &cur_left, Factor &cur_right);
     bool update_geomap_factors (uint32_t idx);
     XCamReturn create_geomap_pool (const SmartPtr<VKDevice> &dev, uint32_t idx);
     XCamReturn set_geomap_table (
@@ -168,6 +183,23 @@ StitcherImpl::update_blender_sync (uint32_t idx)
     _res.blender_sync[idx]->increment ();
 }
 
+void
+StitcherImpl::calc_geomap_factors (
+    uint32_t idx, const Factor &last_left_factor, const Factor &last_right_factor,
+    Factor &cur_left, Factor &cur_right)
+{
+    const Factor &fm_left_factor = _res.mapper_factors[idx].left;
+    const Factor &fm_right_factor = _res.mapper_factors[idx].right;
+
+    cur_left.x = last_left_factor.x * fm_left_factor.x;
+    cur_left.y = last_left_factor.y * fm_left_factor.y;
+    cur_right.x = last_right_factor.x * fm_right_factor.x;
+    cur_right.y = last_right_factor.y * fm_right_factor.y;
+
+    _res.mapper_factors[idx].left.reset ();
+    _res.mapper_factors[idx].right.reset ();
+}
+
 bool
 StitcherImpl::update_geomap_factors (uint32_t idx)
 {
@@ -177,7 +209,7 @@ StitcherImpl::update_geomap_factors (uint32_t idx)
         "vk-stitcher(%s) geomap handler is empty, idx:%d", XCAM_STR (_stitcher->get_name ()), idx);
 
     if (_stitcher->get_scale_mode () == ScaleSingleConst) {
-        Factor unify_factor, last_left_factor, last_right_factor;
+        Factor unify_factor, cur_left, cur_right;
 
         mapper->get_factors (unify_factor.x, unify_factor.y);
         if (XCAM_DOUBLE_EQUAL_AROUND (unify_factor.x, 0.0f) ||
@@ -185,9 +217,9 @@ StitcherImpl::update_geomap_factors (uint32_t idx)
             return true;
         }
 
-        last_left_factor = last_right_factor = unify_factor;
-        unify_factor.x = (last_left_factor.x + last_right_factor.x) / 2.0f;
-        unify_factor.y = (last_left_factor.y + last_right_factor.y) / 2.0f;
+        calc_geomap_factors (idx, unify_factor, unify_factor, cur_left, cur_right);
+        unify_factor.x = (cur_left.x + cur_right.x) / 2.0f;
+        unify_factor.y = (cur_left.y + cur_right.y) / 2.0f;
 
         mapper->set_factors (unify_factor.x, unify_factor.y);
     } else {
@@ -375,6 +407,64 @@ StitcherImpl::init_copiers (const SmartPtr<VKDevice> &dev)
     return XCAM_RETURN_NO_ERROR;
 }
 
+void
+StitcherImpl::init_feature_matchers ()
+{
+#if HAVE_OPENCV
+    FeatureMatchMode fm_mode = _stitcher->get_fm_mode ();
+    if (fm_mode == FMNone)
+        return ;
+
+    uint32_t cam_num = _stitcher->get_camera_num ();
+    for (uint32_t idx = 0; idx < cam_num; ++idx) {
+        SmartPtr<FeatureMatch> &matcher = _res.matcher[idx];
+#ifndef ANDROID
+        if (fm_mode == FMDefault)
+            matcher = FeatureMatch::create_default_feature_match ();
+        else if (fm_mode == FMCluster)
+            matcher = FeatureMatch::create_cluster_feature_match ();
+        else if (fm_mode == FMCapi)
+            matcher = FeatureMatch::create_capi_feature_match ();
+        else {
+            XCAM_LOG_ERROR (
+                "vk-stitcher(%s) unsupported FeatureMatchMode: %d",
+                XCAM_STR (_stitcher->get_name ()), fm_mode);
+        }
+#else
+        matcher = FeatureMatch::create_capi_feature_match ();
+#endif
+        XCAM_ASSERT (matcher.ptr ());
+
+        FMConfig config;
+        config.sitch_min_width = 136;
+        config.min_corners = 4;
+        config.offset_factor = 0.8f;
+        config.delta_mean_offset = 120.0f;
+        config.recur_offset_error = 8.0f;
+        config.max_adjusted_offset = 24.0f;
+        config.max_valid_offset_y = 20.0f;
+        config.max_track_error = 28.0f;
+#ifdef ANDROID
+        config.max_track_error = 3600.0f;
+#endif
+        matcher->set_config (config);
+        matcher->set_fm_index (idx);
+
+        const Stitcher::ImageOverlapInfo &info = _stitcher->get_overlap (idx);
+        Rect left_ovlap = info.left;
+        Rect right_ovlap = info.right;
+        left_ovlap.pos_y = left_ovlap.height / 5;
+        left_ovlap.height = left_ovlap.height / 2;
+        right_ovlap.pos_y = right_ovlap.height / 5;
+        right_ovlap.height = right_ovlap.height / 2;
+        matcher->set_crop_rect (left_ovlap, right_ovlap);
+    }
+#else
+    XCAM_LOG_ERROR ("vk-stitcher(%s) feature match is unsupported", XCAM_STR (_stitcher->get_name ()));
+    XCAM_ASSERT (false);
+#endif
+}
+
 XCamReturn
 StitcherImpl::init_resource ()
 {
@@ -385,6 +475,10 @@ StitcherImpl::init_resource ()
     XCAM_FAIL_RETURN (
         ERROR, xcam_ret_is_ok (ret), ret,
         "vk-stitcher(%s) init dewarps failed", XCAM_STR (_stitcher->get_name ()));
+
+#if HAVE_OPENCV
+    init_feature_matchers ();
+#endif
 
     ret = init_blenders (dev);
     XCAM_FAIL_RETURN (
@@ -405,7 +499,8 @@ StitcherImpl::start_geo_mappers (const SmartPtr<VKStitcher::StitcherParam> &para
     uint32_t cam_num = _stitcher->get_camera_num ();
 
     for (uint32_t idx = 0; idx < cam_num; ++idx) {
-        update_geomap_factors (idx);
+        if (_stitcher->get_fm_mode ())
+            update_geomap_factors (idx);
 
         SmartPtr<GeoMapParam> &mapper_param = _res.mapper_param[idx];
         mapper_param->in_buf = param->in_bufs[idx];
@@ -423,6 +518,47 @@ StitcherImpl::start_geo_mappers (const SmartPtr<VKStitcher::StitcherParam> &para
     }
 
     return XCAM_RETURN_NO_ERROR;
+}
+
+XCamReturn
+StitcherImpl::start_feature_match (
+    const SmartPtr<VideoBuffer> &left_buf, const SmartPtr<VideoBuffer> &right_buf, uint32_t idx)
+{
+#if HAVE_OPENCV
+    _res.matcher[idx]->reset_offsets ();
+    _res.matcher[idx]->feature_match (left_buf, right_buf);
+
+    Rect left_ovlap, right_ovlap;
+    _res.matcher[idx]->get_crop_rect (left_ovlap, right_ovlap);
+    float left_offsetx = _res.matcher[idx]->get_current_left_offset_x ();
+
+    uint32_t left_idx = idx;
+    Factor left_factor, right_factor;
+    float center_x = (float) _stitcher->get_center (left_idx).slice_center_x;
+    float feature_center_x = (float)left_ovlap.pos_x + (left_ovlap.width / 2.0f);
+    float range = feature_center_x - center_x;
+    XCAM_ASSERT (range > 1.0f);
+    right_factor.x = (range + left_offsetx / 2.0f) / range;
+    right_factor.y = 1.0f;
+    XCAM_ASSERT (right_factor.x > 0.0f && right_factor.x < 2.0f);
+
+    uint32_t right_idx = (idx + 1) % _stitcher->get_camera_num ();
+    center_x = (float) _stitcher->get_center (right_idx).slice_center_x;
+    feature_center_x = (float)right_ovlap.pos_x + (right_ovlap.width / 2.0f);
+    range = center_x - feature_center_x;
+    XCAM_ASSERT (range > 1.0f);
+    left_factor.x = (range + left_offsetx / 2.0f) / range;
+    left_factor.y = 1.0f;
+    XCAM_ASSERT (left_factor.x > 0.0f && left_factor.x < 2.0f);
+
+    _res.mapper_factors[left_idx].right = right_factor;
+    _res.mapper_factors[right_idx].left = left_factor;
+
+    return XCAM_RETURN_NO_ERROR;
+#else
+    XCAM_LOG_ERROR ("vk-stitcher(%s) feature match is unsupported", XCAM_STR (_stitcher->get_name ()));
+    return XCAM_RETURN_ERROR_PARAM;
+#endif
 }
 
 XCamReturn
@@ -444,6 +580,15 @@ StitcherImpl::start_blender (
 
 #if DUMP_BUFFER
         dump_buf (param->out_buf, idx, "stitcher-blend");
+#endif
+
+#if HAVE_OPENCV
+    if (_stitcher->get_fm_mode ()) {
+        ret = start_feature_match (blend_param->in_buf, blend_param->in1_buf, idx);
+        XCAM_FAIL_RETURN (
+            ERROR, xcam_ret_is_ok (ret), ret,
+            "vk-stitcher(%s) start feature match failed, idx:%d", XCAM_STR (_stitcher->get_name ()), idx);
+    }
 #endif
 
     return XCAM_RETURN_NO_ERROR;
