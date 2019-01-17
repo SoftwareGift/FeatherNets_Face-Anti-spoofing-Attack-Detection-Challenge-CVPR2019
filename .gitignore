@@ -19,6 +19,7 @@ config.*
 /pkgconfig/*.pc
 .deps
 .libs
+.dirstamp
 
 # Object files
 *.o

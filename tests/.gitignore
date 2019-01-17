@@ -7,3 +7,7 @@ test-image-stitching
 test-pipe-manager
 test-video-stabilization
 test-soft-image
+test-gles-handler
+test-render-surround-view
+test-surround-view
+test-vk-handler
