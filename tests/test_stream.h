@@ -78,7 +78,7 @@ XCamReturn check_streams (const TType &streams)
 class Stream {
 public:
     explicit Stream (const char *file_name = NULL, uint32_t width = 0, uint32_t height = 0);
-    ~Stream ();
+    virtual ~Stream ();
 
     void set_buf_size (uint32_t width, uint32_t height);
     uint32_t get_width () const {
