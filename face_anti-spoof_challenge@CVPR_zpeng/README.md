@@ -20,7 +20,7 @@
 
 ##  install requeirements
 ```
-pip  install   -r requeirements.txt
+pip  install   -r requirements.txt
 ```
 
 
@@ -55,9 +55,9 @@ pip  install   -r requeirements.txt
 # Train the model
 
 ### Download pretrained models
-[FishNet150](https://github.com/kevin-ssy/FishNet)(Model trained without tricks )
+download [fishnet150](https://pan.baidu.com/s/1uOEFsBHIdqpDLrbfCZJGUg) pretrained model from [FishNet150](https://github.com/kevin-ssy/FishNet)(Model trained without tricks )
 
-[MobileNet V2 Model](https://github.com/tonylins/pytorch-mobilenet-v2)
+download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbkBp7HylaqR) pretrained model from [MobileNet V2](https://github.com/tonylins/pytorch-mobilenet-v2)
 
 **move them to  ./checkpoints/pre-trainedModels/**
 
