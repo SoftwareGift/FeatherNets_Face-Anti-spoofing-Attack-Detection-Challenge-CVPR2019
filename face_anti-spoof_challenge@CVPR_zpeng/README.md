@@ -1,4 +1,4 @@
-## FeatherNet for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
+## FeatherNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
 
 # Results on the validation set
 |model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|
@@ -24,7 +24,7 @@ pip  install   -r requirements.txt
 ```
 
 
-# Data
+## Data
 
 
 ### [CASIA-SURF Dataset](https://arxiv.org/abs/1812.00408)[2]
@@ -69,10 +69,10 @@ download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 > nohup python main.py --config="cfgs/mobilenetv2.yaml" --b 32 --lr 0.01 DIR --every-decay 40 --fl-gamma 2 >> mobilenetv2-bs32-train.log &
 
-###  3.train FNet54
+###  3.train FeatherNet54
 > nohup python main.py --config="cfgs/FeatherNet54-32.yaml" DIR --every-decay 60 -b 32 --lr 0.01 --fl-gamma 3 >>FNet54-bs32-train.log &
 
-###  4.train FNet54-SE
+###  4.train FeatherNet54-SE
 > nohup python main.py --config="cfgs/FeatherNet54-se-64.yaml" --b 64 --lr 0.01 DIR --every-decay 60 --fl-gamma 3 >> FNet54-se-bs64-train.log &
 
 
