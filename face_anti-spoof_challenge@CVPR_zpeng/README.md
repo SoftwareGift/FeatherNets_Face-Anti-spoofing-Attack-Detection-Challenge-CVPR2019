@@ -20,9 +20,8 @@
 
 ##  install requeirements
 ```
-pip  install   -r requirements.txt
+conda create --name pytorch --file requirements.txt
 ```
-
 
 ## Data
 
