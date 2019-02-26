@@ -11,14 +11,14 @@
 |MobileNet v2|0.00402246|0.9996|0.992623|51|1|7|
 |FeatherNet54|0.002419|1.0|0.99846|32|0|41|
 |FeatherNet54-se|0.002419|1.0|0.996994|32|0|69|
-|**ensemble**|0.0000|1.0|1.0|0|0|-|
+|**Ensembled all**|0.0000|1.0|1.0|0|0|-|
 
 
-**notice：** Choose a few models with large differences in prediction results
+
 
 # Prerequisites
 
-##  installrequeirements
+##  install requeirements
 ```
 pip  install   -r requeirements.txt
 ```
@@ -52,20 +52,21 @@ pip  install   -r requeirements.txt
 | Random PCA Lighting | 0.1 |
 
 
-# train the model
+# Train the model
 
 ### Download pretrained models
 [FishNet150](https://github.com/kevin-ssy/FishNet)(Model trained without tricks )
 
 [MobileNet V2 Model](https://github.com/tonylins/pytorch-mobilenet-v2)
 
-**Then move them to  ./checkpoints/pre-trainedModels/**
+**move them to  ./checkpoints/pre-trainedModels/**
 
 
 ### 1.train FishNet150
 
 > nohup python main.py --config="cfgs/fishnet150-32-5train.yaml" --b 32 --lr 0.01 --every-decay 30 DIR --fl-gamma 2 >> fishnet150-train.log &
 ###  2.train MobileNet V2
+
 > nohup python main.py --config="cfgs/mobilenetv2.yaml" --b 32 --lr 0.01 DIR --every-decay 40 --fl-gamma 2 >> mobilenetv2-bs32-train.log &
 
 ###  3.train FNet54
