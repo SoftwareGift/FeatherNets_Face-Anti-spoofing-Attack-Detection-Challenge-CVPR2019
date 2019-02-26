@@ -1,0 +1,1 @@
+Because in the previous stage, there is no open validation set label, the verification set used is made by ourselves according to the result returned by the submission, and there are some label errors, so the result in the test log is not completely correct.
