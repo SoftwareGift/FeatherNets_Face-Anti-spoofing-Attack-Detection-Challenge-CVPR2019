@@ -63,16 +63,16 @@ download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 ### 1.train FishNet150
 
-> nohup python main.py --config="cfgs/fishnet150-32-5train.yaml" --b 32 --lr 0.01 --every-decay 30 DIR --fl-gamma 2 >> fishnet150-train.log &
+> nohup python main.py --config="cfgs/fishnet150-32-5train.yaml" --b 32 --lr 0.01 --every-decay 30 --fl-gamma 2 >> fishnet150-train.log &
 ###  2.train MobileNet V2
 
-> nohup python main.py --config="cfgs/mobilenetv2.yaml" --b 32 --lr 0.01 DIR --every-decay 40 --fl-gamma 2 >> mobilenetv2-bs32-train.log &
+> nohup python main.py --config="cfgs/mobilenetv2.yaml" --b 32 --lr 0.01 --every-decay 40 --fl-gamma 2 >> mobilenetv2-bs32-train.log &
 
 ###  3.train FeatherNet54
-> nohup python main.py --config="cfgs/FeatherNet54-32.yaml" DIR --every-decay 60 -b 32 --lr 0.01 --fl-gamma 3 >>FNet54-bs32-train.log &
+> nohup python main.py --config="cfgs/FeatherNet54-32.yaml" --every-decay 60 -b 32 --lr 0.01 --fl-gamma 3 >>FNet54-bs32-train.log &
 
 ###  4.train FeatherNet54-SE
-> nohup python main.py --config="cfgs/FeatherNet54-se-64.yaml" --b 64 --lr 0.01 DIR --every-decay 60 --fl-gamma 3 >> FNet54-se-bs64-train.log &
+> nohup python main.py --config="cfgs/FeatherNet54-se-64.yaml" --b 64 --lr 0.01  --every-decay 60 --fl-gamma 3 >> FNet54-se-bs64-train.log &
 
 
 ## How to create a  submission file
