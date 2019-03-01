@@ -336,7 +336,7 @@ def validate(val_loader, model, criterion,epoch):
                     predicted_list.append(predicted[i_batch])
                     if args.val_save:
                         f = open('submission/{}_{}_{}_submission.txt'.format(time_stp, args.arch, epoch), 'a+')
-                        depth_dir = depth_dirs[i_batch].replace(os.getwcd() + '/data/','')
+                        depth_dir = depth_dirs[i_batch].replace(os.getcwd() + '/data/','')
                         rgb_dir = depth_dir.replace('depth','color')
                         ir_dir = depth_dir.replace('depth','ir')
                         f.write(rgb_dir + ' ' + depth_dir + ' '+ir_dir+' ' + str(preds[i_batch,1]) +'\n')
