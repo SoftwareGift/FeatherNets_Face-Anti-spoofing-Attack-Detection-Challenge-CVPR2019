@@ -1,17 +1,19 @@
 ## FeatherNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
 
 # Results on the validation set
-|model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|
-| ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|FishNet150| 0.00181|1.0|0.9996|24|0|52|
-|FishNet150| 0.00496467|0.998664|0.990648|48|8|16|
-|FishNet150| 0.01023724|0.995992|0.890782|131|2|11|
-|MobileNet v2|0.00228|0.9996|0.9993|28|1|5|
-|MobileNet v2|0.00387126|0.999433|0.997662|49|1|6|
-|MobileNet v2|0.00402246|0.9996|0.992623|51|1|7|
-|FeatherNet54|0.002419|1.0|0.99846|32|0|41|
-|FeatherNet54-se|0.002419|1.0|0.996994|32|0|69|
-|**Ensembled all**|0.0000|1.0|1.0|0|0|-|
+|model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|params|FLOPs|
+| ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+|FishNet150| 0.00181|1.0|0.9996|24|0|52|24.96M|6452.72M|
+|FishNet150| 0.00496467|0.998664|0.990648|48|8|16|24.96M|6452.72M|
+|FishNet150| 0.01023724|0.995992|0.890782|131|2|11|24.96M|6452.72M|
+|MobileNet v2|0.00228|0.9996|0.9993|28|1|5|2.23M|306.17M
+|MobileNet v2|0.00387126|0.999433|0.997662|49|1|6|2.23M|306.17M
+|MobileNet v2|0.00402246|0.9996|0.992623|51|1|7|2.23M|306.17M
+|FeatherNet54|0.002419|1.0|0.99846|32|0|41|0.57M|270.91M|
+|FeatherNet54-se|0.002419|1.0|0.996994|32|0|69|0.57M|270.91M|
+|MobileLiteNetA|0.00260535|1.00|0.961590|19|7|51|0.35M|79.99M|
+|MobileLiteNetB|0.00168|1.0|0.997662|20|1|48|0.35M|83.05M|
+|**Ensembled all**|0.0000|1.0|1.0|0|0|-|-|-|
 
 
 
@@ -73,11 +75,15 @@ download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 ###  4.train FeatherNet54-SE
 > nohup python main.py --config="cfgs/FeatherNet54-se-64.yaml" --b 64 --lr 0.01  --every-decay 60 --fl-gamma 3 >> FNet54-se-bs64-train.log &
+### 5.train MobileLiteNetA
+>nohup python main.py --config="cfgs/MobileLiteNetA-32.yaml" --b 32 --lr 0.01  --every-decay 60 --fl-gamma 3 >> MobileLiteNetA-bs32-train.log &
+### 6.train MobileLiteNetB
+>nohup python main.py --config="cfgs/MobileLiteNetB-32.yaml" --b 32 --lr 0.01  --every-decay 60 --fl-gamma 3 >> MobileLiteNetB-bs32--train.log &
 
 
 ## How to create a  submission file
 example:
-> python main.py --config="cfgs/shufflenetv2.yaml" --resume ./checkpoints/shufflenetv2_bs32/_34_best.pth.tar --val-save True
+> python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True--val-save True
 
 ## cfgs/config.yaml
 This file specifies the path to the train, test, model, and output directories.
