@@ -1,4 +1,4 @@
-# reference from https://github.com/tonylins/pytorch-mobilenet-v2
+
 # the code base on https://github.com/tonylins/pytorch-mobilenet-v2
 import torch.nn as nn
 import math
@@ -128,21 +128,14 @@ class MobileLiteNet(nn.Module):
                                   groups=input_channel, bias=False),
                                      )
 
-#         # building classifier
-#         self.classifier = nn.Sequential(
-#             nn.Dropout(0.2),
-#             nn.Linear(self.last_channel, n_class),
-#         )
 
         self._initialize_weights()
 
     def forward(self, x):
         x = self.features(x)
         x = self.final_DW(x)
-#         print(x.shape)
+
         x = x.view(x.size(0), -1)
-#         x = x.mean(3).mean(2)
-#         x = self.classifier(x)
         return x
 
     def _initialize_weights(self):
