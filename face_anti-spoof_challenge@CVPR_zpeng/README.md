@@ -41,6 +41,7 @@ conda create --name pytorch --file requirements.txt
 │   ├── our_realsense
 │   ├── Training
 │   ├── Val
+│   ├── Testing
 ```
 
 ### Data Augmentation
