@@ -43,6 +43,7 @@ conda create --name pytorch --file requirements.txt
 │   ├── Val
 │   ├── Testing
 ```
+Download and unzip our private Dataset into the ./data directory. Then run data/fileList.ipynb to prepare the file list.
 
 ### Data Augmentation
 
@@ -97,7 +98,7 @@ Note: If you are using the docker container, then you do not need to change the 
 
 ### for validation
 ```
-run submission/EnsembledCode_val.ipynb
+run EnsembledCode_val.ipynb
 ```
 ### for test
 ```

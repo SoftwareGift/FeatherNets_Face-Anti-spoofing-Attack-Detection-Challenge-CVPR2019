@@ -143,6 +143,7 @@ def main():
 
     # optionally resume from a checkpoint
     if args.resume:
+        print(os.getcwd())
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)

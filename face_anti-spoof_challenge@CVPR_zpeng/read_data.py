@@ -17,7 +17,7 @@ label_dir_test_file = os.getcwd() +'/data/label_val.txt' #val-label 100%
 
 # # CASIA-SURF Test data 
 # depth_dir_test_file = os.getcwd() +'/data/depth_test.txt'
-# label_dir_test_file = os.getcwd() +'/data/label_test.txt' 
+# label_dir_test_file = os.getcwd() +'/data/label_val.txt' 
 
 class CASIA(Dataset):
     def __init__(self, transform=None, phase_train=True, data_dir=None):
@@ -55,6 +55,7 @@ class CASIA(Dataset):
             depth_dir = self.depth_dir_test
             label_dir = self.label_dir_test
             label = int(label_dir[idx])
+#             label = int(0)
             label = np.array(label)
 
         depth = Image.open(depth_dir[idx])
