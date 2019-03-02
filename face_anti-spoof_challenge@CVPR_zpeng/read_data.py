@@ -1,9 +1,6 @@
-# from PIL import Image, ImageFile
-# ImageFile.LOAD_TRUNCATED_IMAGES = True
 from PIL import Image
 import numpy as np
 import scipy.io
-import imageio
 import h5py
 import os
 from torch.utils.data import Dataset
@@ -67,7 +64,6 @@ class CASIA(Dataset):
             label = int(label_dir[idx])
             label = np.array(label)
 
-#         depth = imageio.imread(depth_dir[idx])
         depth = Image.open(depth_dir[idx])
         depth = depth.convert('RGB')
 
