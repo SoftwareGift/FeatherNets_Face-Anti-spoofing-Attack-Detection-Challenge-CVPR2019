@@ -93,9 +93,15 @@ This is the only place that specifies the path to these directories.
 Any code that is doing I/O uses the appropriate base paths from config.yaml
 Note: If you are using the docker container, then you do not need to change the paths in this file.
 
-# Ensemble
+# Ensemble 
+
+### for validation
 ```
-run submission/EnsembledCode.ipynb
+run submission/EnsembledCode_val.ipynb
+```
+### for test
+```
+run EnsembledCode_test.ipynb
 ```
 **notice：**Choose a few models with large differences in prediction results
 
