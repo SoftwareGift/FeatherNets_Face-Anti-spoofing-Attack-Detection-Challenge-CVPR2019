@@ -84,7 +84,7 @@ class InvertedResidual(nn.Module):
 
 class MobileLiteNet(nn.Module):
     def __init__(self, n_class=2, input_size=224, se = False, avgdown=False, width_mult=1.):
-        super(MobileLiveNet, self).__init__()
+        super(MobileLiteNet, self).__init__()
         block = InvertedResidual
         input_channel = 32
         last_channel = 1024
@@ -152,16 +152,7 @@ class MobileLiteNet(nn.Module):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
-def load_weight(model,path):
-    checkpoint=torch.load(path)
-    model_dict = {}
-    state_dict = model.state_dict()
-    for (k, v) in checkpoint.items():
 
-        if 'classifier' not in k:
-            model_dict[k] = v
-    state_dict.update(model_dict)
-    return state_dict
 def mobilelitenetA():
     model = MobileLiteNet(se = True)
     return model
