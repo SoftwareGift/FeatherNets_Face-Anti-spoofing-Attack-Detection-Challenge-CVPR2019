@@ -134,7 +134,7 @@ class MobileLiteNet(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.final_DW(x)
-
+        
         x = x.view(x.size(0), -1)
         return x
 
