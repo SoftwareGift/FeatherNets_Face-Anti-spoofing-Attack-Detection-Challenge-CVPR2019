@@ -17,7 +17,7 @@ label_dir_test_file = os.getcwd() +'/data/label_val.txt' #val-label 100%
 
 # # CASIA-SURF Test data 
 # depth_dir_test_file = os.getcwd() +'/data/depth_test.txt'
-# label_dir_test_file = os.getcwd() +'/data/label_test.txt' #val-label 100%
+# label_dir_test_file = os.getcwd() +'/data/label_test.txt' 
 
 class CASIA(Dataset):
     def __init__(self, transform=None, phase_train=True, data_dir=None):
