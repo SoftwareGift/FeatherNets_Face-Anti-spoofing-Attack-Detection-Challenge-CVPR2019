@@ -249,7 +249,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # compute output
         output = model(input_var)
-        smoothL1Loss = torch.nn.SmoothL1Loss()
         loss = criterion(output, target_var)
         prec1,prec2 = accuracy(output.data, target_var,topk=(1,2))
 
