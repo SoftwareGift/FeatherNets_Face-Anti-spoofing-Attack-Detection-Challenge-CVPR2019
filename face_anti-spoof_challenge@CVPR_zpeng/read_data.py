@@ -17,11 +17,6 @@ import torchvision
 import torch
 
 
-
-# depth_dir_train_file = '/home/intel_peng/peng/TSNet-LW/data/casiasurf/depth_train.txt'
-# label_dir_train_file = '/home/intel_peng/peng/TSNet-LW/data/casiasurf/label_train.txt'
-
-
 # CASIA-SURF training dataset and our private dataset
 depth_dir_train_file = os.getcwd() +'/data/2depth_train.txt'
 label_dir_train_file = os.getcwd() + '/data/2label_train.txt'
