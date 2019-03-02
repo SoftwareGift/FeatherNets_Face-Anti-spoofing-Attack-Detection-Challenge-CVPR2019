@@ -7,7 +7,6 @@ import cv2
 import torchvision
 import torch
 
-
 # CASIA-SURF training dataset and our private dataset
 depth_dir_train_file = os.getcwd() +'/data/2depth_train.txt'
 label_dir_train_file = os.getcwd() + '/data/2label_train.txt'
