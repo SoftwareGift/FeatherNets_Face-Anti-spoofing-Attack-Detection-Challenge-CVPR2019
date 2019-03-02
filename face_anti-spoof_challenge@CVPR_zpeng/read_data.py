@@ -22,13 +22,17 @@ import torch
 # label_dir_train_file = '/home/intel_peng/peng/TSNet-LW/data/casiasurf/label_train.txt'
 
 
-# 官方加自己收集
+# CASIA-SURF training dataset and our private dataset
 depth_dir_train_file = os.getcwd() +'/data/2depth_train.txt'
 label_dir_train_file = os.getcwd() + '/data/2label_train.txt'
  
-# Val data 
+# CASIA-SURF Val data 
 depth_dir_test_file = os.getcwd() +'/data/depth_val.txt'
 label_dir_test_file = os.getcwd() +'/data/label_val.txt' #val-label 100%
+
+# # CASIA-SURF Test data 
+# depth_dir_test_file = os.getcwd() +'/data/depth_test.txt'
+# label_dir_test_file = os.getcwd() +'/data/label_test.txt' #val-label 100%
 
 class CASIA(Dataset):
     def __init__(self, transform=None, phase_train=True, data_dir=None):
