@@ -1,15 +1,9 @@
 from PIL import Image
 import numpy as np
-import scipy.io
-import h5py
 import os
 from torch.utils.data import Dataset
 import math
 import cv2
-import matplotlib
-import matplotlib.colors
-import skimage.transform
-import random
 import torchvision
 import torch
 
