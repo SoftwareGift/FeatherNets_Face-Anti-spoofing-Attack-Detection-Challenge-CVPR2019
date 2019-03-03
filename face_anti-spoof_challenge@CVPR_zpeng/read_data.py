@@ -37,7 +37,7 @@ class CASIA(Dataset):
             with open(label_dir_val_file, 'r') as f:
                 self.label_dir_val = f.read().splitlines()
             with open(depth_dir_test_file, 'r') as f:
-                self.label_dir_test = f.read().splitlines()
+                self.depth_dir_test = f.read().splitlines()
         except:
             print('can not open files, may be filelist is not exist')
             exit()
@@ -56,7 +56,7 @@ class CASIA(Dataset):
             label = np.array(label)
         else:
             if self.phase_test:
-                depth_dir = self.depth_dir_val
+                depth_dir = self.depth_dir_test
                 label = np.random.randint(0,2,1)
                 label = np.array(label)
             else:
