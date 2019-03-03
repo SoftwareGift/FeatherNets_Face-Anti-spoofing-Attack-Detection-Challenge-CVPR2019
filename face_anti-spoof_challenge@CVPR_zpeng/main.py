@@ -44,7 +44,7 @@ parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument("--random-seed", type=int, default=14,
                         help='Seed to provide (near-)reproducibility.')
-parser.add_argument('--gpus', type=str, default='0,1', help='use gpus training eg.--gups 0,1')
+parser.add_argument('--gpus', type=str, default='0', help='use gpus training eg.--gups 0,1')
 parser.add_argument('-b', '--batch-size', default=32, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
@@ -81,7 +81,7 @@ model_names = sorted(name for name in models.__dict__
 USE_GPU = torch.cuda.is_available()
 
 def main():
-    global args, best_prec1, USE_GPU
+    global args, best_prec1, USE_GPU,device
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -108,19 +108,17 @@ def main():
         model = models.__dict__[args.arch](**config['model'])
     else:
         model = models.__dict__[args.arch]()
-#     print(model)
+    device = torch.device('cuda:' + str(args.gpus[0]) if torch.cuda.is_available() else "cpu")
     str_input_size = '1x3x224x224'
     if args.summary: 
         input_size = tuple(int(x) for x in str_input_size.split('x'))
         stat(model,input_size)
         return
     if USE_GPU:
-        global device
         cudnn.benchmark = True
         torch.cuda.manual_seed_all(args.random_seed)
-        device = torch.device('cuda:' + str(args.gpus[0]) if torch.cuda.is_available() else "cpu")
         args.gpus = [int(i) for i in args.gpus.split(',')]
-        model = torch.nn.DataParallel(model,device_ids=[0])
+        model = torch.nn.DataParallel(model,args.gpus)
         model.to(device)
 
     
@@ -233,20 +231,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
-
-        if '1.0.0' in torch.__version__:
-            if USE_GPU:
-                input_var = torch.cuda.FloatTensor(input.cuda())
-                target_var = torch.cuda.LongTensor(target.cuda())
-            else:
-                input_var = torch.FloatTensor(input)
-                target_var = torch.LongTensor(target)
-        else:  # pytorch 0.3.1 or less compatible
-            if USE_GPU:
-                input = input.cuda()
-                target = target.cuda(async=True)
-            input_var = Variable(input)
-            target_var = Variable(target)
+        input_var = Variable(input).float().to(device)
+        target_var = Variable(target).long().to(device)
 
         # compute output
         output = model(input_var)
@@ -300,20 +286,8 @@ def validate(val_loader, model, criterion,epoch):
     with torch.no_grad():
         for i, (input, target,depth_dirs) in enumerate(val_loader):
             #  pytorch 1.0. compatible
-            if '1.0.' in torch.__version__:
-                with torch.no_grad():
-                    if USE_GPU:
-                        input_var = torch.cuda.FloatTensor(input.cuda())
-                        target_var = torch.cuda.LongTensor(target.cuda())
-                    else:
-                        input_var = torch.FloatTensor(input)
-                        target_var = torch.LongTensor(target)
-            else:  # pytorch 0.3.1 or less compatible
-                if USE_GPU:
-                    input = input.cuda()
-                    target = target.cuda(async=True)
-                input_var = Variable(input, volatile=True)
-                target_var = Variable(target, volatile=True)
+        input_var = Variable(input, volatile=True).float().to(device)
+        target_var = Variable(target, volatile=True).long().to(device)
 
             # compute output
             output = model(input_var)
