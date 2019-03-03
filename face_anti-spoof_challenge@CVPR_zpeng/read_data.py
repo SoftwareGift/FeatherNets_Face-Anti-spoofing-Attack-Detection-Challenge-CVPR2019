@@ -17,7 +17,7 @@ label_dir_val_file = os.getcwd() +'/data/label_val.txt' #val-label 100%
 
 # # CASIA-SURF Test data 
 depth_dir_test_file = os.getcwd() +'/data/depth_test.txt'
- 
+label_dir_test_file = os.getcwd() +'/data/label_test.txt'
 
 class CASIA(Dataset):
     def __init__(self, transform=None, phase_train=True, data_dir=None,phase_test=False):
@@ -36,8 +36,11 @@ class CASIA(Dataset):
                  self.depth_dir_val = f.read().splitlines()
             with open(label_dir_val_file, 'r') as f:
                 self.label_dir_val = f.read().splitlines()
-            with open(depth_dir_test_file, 'r') as f:
-                self.depth_dir_test = f.read().splitlines()
+            if self.phase_test:
+                with open(depth_dir_test_file, 'r') as f:
+                    self.depth_dir_test = f.read().splitlines()
+                with open(label_dir_test_file, 'r') as f:
+                    self.label_dir_test = f.read().splitlines()
         except:
             print('can not open files, may be filelist is not exist')
             exit()
@@ -46,7 +49,10 @@ class CASIA(Dataset):
         if self.phase_train:
             return len(self.depth_dir_train)
         else:
-            return len(self.depth_dir_val)
+            if self.phase_test:
+                return len(self.depth_dir_test)
+            else:
+                return len(self.depth_dir_val)
 
     def __getitem__(self, idx):
         if self.phase_train:
@@ -57,7 +63,9 @@ class CASIA(Dataset):
         else:
             if self.phase_test:
                 depth_dir = self.depth_dir_test
-                label = np.random.randint(0,2,1)
+                label_dir = self.label_dir_test
+                label = int(label_dir[idx])
+#                 label = np.random.randint(0,2,1)
                 label = np.array(label)
             else:
                 depth_dir = self.depth_dir_val
