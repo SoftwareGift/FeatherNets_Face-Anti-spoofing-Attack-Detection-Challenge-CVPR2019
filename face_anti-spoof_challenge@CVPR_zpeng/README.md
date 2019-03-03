@@ -1,6 +1,7 @@
-## FeatherNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
+## MobileLiteNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
 
 # Results on the validation set
+
 |model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|params|FLOPs|
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
 |FishNet150| 0.00144|0.999668|0.998330|19|0|27|24.96M|6452.72M|
@@ -87,12 +88,6 @@ download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 example:
 > python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True --val-save True
 
-## cfgs/config.yaml
-This file specifies the path to the train, test, model, and output directories.
-
-This is the only place that specifies the path to these directories.
-Any code that is doing I/O uses the appropriate base paths from config.yaml
-Note: If you are using the docker container, then you do not need to change the paths in this file.
 
 # Ensemble 
 

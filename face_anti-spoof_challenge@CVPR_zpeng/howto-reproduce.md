@@ -125,6 +125,7 @@ python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenet
 By running the following commands, the performance results of test set are store in the submission/ directory.
 choose best checkpoints to resume
 we choose these checkpoints to ensemble.
+performance in in the validation set
 
 |model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|params|FLOPs|
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
@@ -140,6 +141,7 @@ we choose these checkpoints to ensemble.
 |MobileLiteNetB|0.00168|1.0|0.997662|20|1|48|0.35M|83.05M|
 |**Ensembled all**|0.0000|1.0|1.0|0|0|-|-|-|
 
+you need choose your own checkpoints to resume
 
 ```
 python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_15_best.pth.tar --phase-test True --val True --val-save True
