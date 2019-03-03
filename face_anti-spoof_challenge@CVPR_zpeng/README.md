@@ -22,7 +22,7 @@
 
 ##  install requeirements
 ```
-conda create --name pytorch --file requirements.txt
+conda env create -n env_name -f env.yml
 ```
 
 ## Data
@@ -43,7 +43,7 @@ conda create --name pytorch --file requirements.txt
 │   ├── Val
 │   ├── Testing
 ```
-Download and unzip our private Dataset into the ./data directory. Then run data/fileList.ipynb to prepare the file list.
+Download and unzip our private Dataset into the ./data directory. Then run data/fileList.py to prepare the file list.
 
 ### Data Augmentation
 
@@ -85,7 +85,7 @@ download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 ## How to create a  submission file
 example:
-> python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True--val-save True
+> python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True --val-save True
 
 ## cfgs/config.yaml
 This file specifies the path to the train, test, model, and output directories.
@@ -104,7 +104,7 @@ run EnsembledCode_val.ipynb
 ```
 run EnsembledCode_test.ipynb
 ```
-**notice：**Choose a few models with large differences in prediction results
+**notice**:Choose a few models with large differences in prediction results
 
 # Serialized copy of the trained model
 You can download my artifacts folder which I used to generate my final submissions: Available Soon
