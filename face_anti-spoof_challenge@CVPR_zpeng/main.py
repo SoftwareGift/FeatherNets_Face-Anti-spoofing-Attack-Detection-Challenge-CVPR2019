@@ -60,15 +60,17 @@ parser.add_argument('--resume', default='', type=str, metavar='PATH',
 parser.add_argument('--val', '--evaluate', dest='evaluate', default=False, type=bool,
                     help='evaluate models on validation set')
 parser.add_argument('--val-save', default=False, type=bool,
-                    help='wether to save evaluate result')
+                    help='whether to save evaluate result')
+parser.add_argument('--phase-test', default=False, type=bool,
+                    help='whether testing in test dataset ')
 parser.add_argument('--train_image_list', default='', type=str, help='path to train image list')
 parser.add_argument('--input_size', default=224, type=int, help='img crop size')
 parser.add_argument('--image_size', default=224, type=int, help='ori img size')
 parser.add_argument('--model_name', default='', type=str, help='name of the models')
 parser.add_argument('--speed','--speed-test', default=False, type=bool,
-                    help='weather to speed test')
+                    help='whether to speed test')
 parser.add_argument('--summary', default=False, type=bool,
-                    help='weather to analysis network complexity')
+                    help='whether to analysis network complexity')
 parser.add_argument('--every-decay', default=40, type=int, help='how many epoch decay the lr')
 parser.add_argument('--fl-gamma', default=3, type=int, help='gamma for Focal Loss')
 
@@ -175,7 +177,7 @@ def main():
         transforms.CenterCrop(img_size),
         transforms.ToTensor(),
         normalize,
-    ]),phase_train=False)
+    ]),phase_train=False,phase_test=args.phase_test)
 
     train_sampler = None
     val_sampler = None
