@@ -50,3 +50,20 @@ depth.close()
 ir.close()
 label.close()
 
+# Use CASIA-SURF Test data for test
+import fileinput
+rgb = open('./rgb_test.txt','a')
+depth = open('./depth_test.txt','a')
+ir = open('./ir_test.txt','a')
+label = open('./label_test.txt','a')
+pwd = os.getcwd() +'/'# the val data path 
+for line in fileinput.input("test_private_list.txt"):
+    list = line.split(' ')
+    rgb.write(pwd +list[0]+'\n')
+    depth.write(pwd +list[1]+'\n')
+    ir.write(pwd +list[2]+'\n')
+    label.write(list[3])
+rgb.close()
+depth.close()
+ir.close()
+label.close()
