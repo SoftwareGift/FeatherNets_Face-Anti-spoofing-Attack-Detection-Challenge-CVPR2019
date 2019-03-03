@@ -285,49 +285,49 @@ def validate(val_loader, model, criterion,epoch):
     end = time.time()
     with torch.no_grad():
         for i, (input, target,depth_dirs) in enumerate(val_loader):
-            #  pytorch 1.0. compatible
-            input_var = Variable(input, volatile=True).float().to(device)
-            target_var = Variable(target, volatile=True).long().to(device)
+            with torch.no_grad():
+                input_var = Variable(input).float().to(device)
+                target_var = Variable(target).long().to(device)
 
-            # compute output
-            output = model(input_var)
-            loss = criterion(output, target_var)
+                # compute output
+                output = model(input_var)
+                loss = criterion(output, target_var)
 
-            # measure accuracy and record loss
-            prec1,prec2 = accuracy(output.data, target_var,topk=(1,2))
-            losses.update(loss.data, input.size(0))
-            top1.update(prec1[0], input.size(0))
+                # measure accuracy and record loss
+                prec1,prec2 = accuracy(output.data, target_var,topk=(1,2))
+                losses.update(loss.data, input.size(0))
+                top1.update(prec1[0], input.size(0))
 
-            soft_output = torch.softmax(output,dim=-1)
-            preds = soft_output.to('cpu').detach().numpy()
-            label = target.to('cpu').detach().numpy()
-            _,predicted = torch.max(soft_output.data, 1)
-            predicted = predicted.to('cpu').detach().numpy()
+                soft_output = torch.softmax(output,dim=-1)
+                preds = soft_output.to('cpu').detach().numpy()
+                label = target.to('cpu').detach().numpy()
+                _,predicted = torch.max(soft_output.data, 1)
+                predicted = predicted.to('cpu').detach().numpy()
 
-            for i_batch in range(preds.shape[0]):
-                    result_list.append(preds[i_batch,1])
-                    label_list.append(label[i_batch])
-                    predicted_list.append(predicted[i_batch])
-                    if args.val_save:
-                        f = open('submission/{}_{}_{}_submission.txt'.format(time_stp, args.arch, epoch), 'a+')
-                        depth_dir = depth_dirs[i_batch].replace(os.getcwd() + '/data/','')
-                        rgb_dir = depth_dir.replace('depth','color')
-                        ir_dir = depth_dir.replace('depth','ir')
-                        f.write(rgb_dir + ' ' + depth_dir + ' '+ir_dir+' ' + str(preds[i_batch,1]) +'\n')
+                for i_batch in range(preds.shape[0]):
+                        result_list.append(preds[i_batch,1])
+                        label_list.append(label[i_batch])
+                        predicted_list.append(predicted[i_batch])
+                        if args.val_save:
+                            f = open('submission/{}_{}_{}_submission.txt'.format(time_stp, args.arch, epoch), 'a+')
+                            depth_dir = depth_dirs[i_batch].replace(os.getcwd() + '/data/','')
+                            rgb_dir = depth_dir.replace('depth','color')
+                            ir_dir = depth_dir.replace('depth','ir')
+                            f.write(rgb_dir + ' ' + depth_dir + ' '+ir_dir+' ' + str(preds[i_batch,1]) +'\n')
 
-            # measure elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
-            if i % args.print_freq == 0:
-                line = 'Test: [{0}/{1}]\t' \
-                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t' \
-                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t' \
-                       'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(i, len(val_loader), batch_time=batch_time,
-                                loss=losses, top1=top1)
+                # measure elapsed time
+                batch_time.update(time.time() - end)
+                end = time.time()
+                if i % args.print_freq == 0:
+                    line = 'Test: [{0}/{1}]\t' \
+                           'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t' \
+                           'Loss {loss.val:.4f} ({loss.avg:.4f})\t' \
+                           'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(i, len(val_loader), batch_time=batch_time,
+                                    loss=losses, top1=top1)
 
-                with open('logs/{}_{}.log'.format(time_stp, args.arch), 'a+') as flog:
-                    flog.write('{}\n'.format(line))
-                    print(line)
+                    with open('logs/{}_{}.log'.format(time_stp, args.arch), 'a+') as flog:
+                        flog.write('{}\n'.format(line))
+                        print(line)
     tn, fp, fn, tp = confusion_matrix(label_list, predicted_list).ravel()
     apcer = fp/(tn + fp)
     npcer = fn/(fn + tp)
