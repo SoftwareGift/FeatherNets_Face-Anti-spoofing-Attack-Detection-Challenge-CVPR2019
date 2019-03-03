@@ -118,7 +118,7 @@ def main():
         cudnn.benchmark = True
         torch.cuda.manual_seed_all(args.random_seed)
         args.gpus = [int(i) for i in args.gpus.split(',')]
-        model = torch.nn.DataParallel(model,args.gpus)
+        model = torch.nn.DataParallel(model,device_ids=args.gpus)
         model.to(device)
 
     
