@@ -286,8 +286,8 @@ def validate(val_loader, model, criterion,epoch):
     with torch.no_grad():
         for i, (input, target,depth_dirs) in enumerate(val_loader):
             #  pytorch 1.0. compatible
-        input_var = Variable(input, volatile=True).float().to(device)
-        target_var = Variable(target, volatile=True).long().to(device)
+            input_var = Variable(input, volatile=True).float().to(device)
+            target_var = Variable(target, volatile=True).long().to(device)
 
             # compute output
             output = model(input_var)
