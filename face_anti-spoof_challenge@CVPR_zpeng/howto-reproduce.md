@@ -2,7 +2,7 @@
 
 If you have any questions, please contact us.
 
---Peng Zhang: m201772781@hust.edu.cn(peng3.zhang@intel.com)
+--Peng Zhang: m201772781@hust.edu.cn( or peng3.zhang@intel.com)
 
 --Zhiwen Wu: zhiwen.wu@intel.com
 
