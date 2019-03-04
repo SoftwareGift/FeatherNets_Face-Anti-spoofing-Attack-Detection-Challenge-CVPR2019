@@ -1,5 +1,7 @@
 # How to reproduce on Linux
 
+**Notice: We assume you are in the directory $PROJECT_TOP/face_anti-spoof_challenge@CVPR_zpeng**
+
 ## Prerequisites
 
 ### Install conda
@@ -20,14 +22,26 @@ We use 2 dataset for training our models. One is CASIA-SURF, another is created 
 
 Download CASIA-SURF
 
-Download MMFD(Download MMFD(https://pan.baidu.com/s/1vvjDNu0fAlg7HkuQz1kQPA 提取码: uuyv ,decryption key:OTC-MMFD-11846496 ).).
+Download MMFD (链接: https://pan.baidu.com/s/1vvjDNu0fAlg7HkuQz1kQPA 提取码: uuyv, decryption key: OTC-MMFD-11846496)
 
-Uncompressed and copy them to the data directory and run these commands (assume you are already in the source directory):
+Uncompressed and copy them to the ./data directory. You can see the contents like below:
 
-If you want check our pre-trained models,you can download here.(链接: https://pan.baidu.com/s/1pcsyZJoOOCjQE1YNTUKueA 提取码: se3s,decryption key:OTC-MMFD-11846496 ) Then move to ./checkpoints directory.
+```
+data
+├── fileList.ipynb
+├── fileList.py
+├── our_filelist
+├── our_realsense  # MMFD dataset
+├── Testing    #Test set
+├── Training    #Train set
+├── train_list.txt
+├── Val        #Val set
+├── val_label.txt #val set with label
+└── val_public_list.txt
+```
 
-**notice**:please put test_private_list.txt(test set list with label) file in the ./data directory,prepare for the test phase in advance.
-We default to the test_private_list.txt file format consistent with the train_list.txt file.
+**notice**: Please create a test_private_list.txt file that contains the labels for test dateset, and put it in the ./data directory, we will use it in test phase.
+The format of test_private_list.txt file is the same as train_list.txt, like below:
 
 ```
 Val/0000/000000-color.jpg Val/0000/000000-depth.jpg Val/0000/000000-ir.jpg 0
@@ -37,26 +51,8 @@ Val/0000/000003-color.jpg Val/0000/000003-depth.jpg Val/0000/000003-ir.jpg 0
 Val/0000/000004-color.jpg Val/0000/000004-depth.jpg Val/0000/000004-ir.jpg 0
 ```
 
-If everything works well, you can see the contents of data directory like these:
-
+And run these commands:
 ```
-data
-├── fileList.ipynb
-├── fileList.py
-├── our_filelist
-├── our_realsense  # MMFD dataset
-├── Testing    #Test set
-├── test_private_list.txt  # test set list with label
-├── Training    #Train set
-├── train_list.txt
-├── Val        #Val set
-├── val_label.txt #val set with label
-└── val_public_list.txt
-```
-
-
-```
-
 cd data
 python fileList.py
 ```
@@ -99,7 +95,9 @@ Download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 **move them to checkpoints/pre-trainedModels/**
 
-**if you have Multiple gpus ,you can use --gpus parameter to train your model in differet gpus.**
+If you want check our pre-trained models,you can download here.(链接: https://pan.baidu.com/s/1pcsyZJoOOCjQE1YNTUKueA 提取码: se3s,decryption key:OTC-MMFD-11846496 ) Then move to ./checkpoints directory.
+
+**if you have Multiple gpus, you can use "--gpus num" to train your model in differet gpus.**
 
 ### 1. Train FishNet150
 ```
@@ -167,6 +165,8 @@ performance in in the validation set
 you need choose your own checkpoints to resume
 
 ### How to choose suitable checkpoints to ensemble 
+[**important**]
+
 We saved each epoch weight for each model as different checkpoints.
 For each model, we select the best checkpoint with the best performance(ACER value) on the validation set, then we choose the secondory checkpoints that are complementary to the best checkpoint. 
 The select method of the secondory checkpoints is: 
@@ -198,7 +198,7 @@ like
 ```
 file_dir1='submission/2019-01-28_15:45:05_fishnet150_52_submission.txt'
 ```
-then run these commands
+then run command:
 
 ```
 
