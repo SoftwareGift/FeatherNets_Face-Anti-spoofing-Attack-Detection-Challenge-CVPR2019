@@ -154,8 +154,13 @@ performance in in the validation set
 you need choose your own checkpoints to resume
 
 ### How to choose suitable checkpoints to ensemble 
-We saved each epoch weight for each model. For each model, select the first checkpoint with the best performance on the validation set, then choose the other checkpoints that is complementary to the first checkpoint on the validation set. The models chosen in this way is different for the prediction results.
-The performance of the models we selected on the validation set can be viewed in the logs/ensemble_model_val_log.md file.
+We saved each epoch weight for each model as different checkpoints.
+For each model, we select the best checkpoint with the best performance(ACER value) on the validation set, then we choose the secondory checkpoints that are complementary to the best checkpoint. 
+The select method of the secondory checkpoints is: a. select a group checkpoints of good performance(top ACER value, each batch ACC value higher than 90); b. select out the batches with lower performance of the best checkpoint ; c.in the same batch, select out the checkpoints(1 or 2) with the best ACC value.
+In this way, the selected secondary-checkpoints can be able to provide complementary capabilities to the-best-checkpoint in the batches the-best-checkpoint can not provide good performance.
+The performance of the checkpoints we selected on the validation set can be reviewed in the logs/ensemble_model_val_log.md file.
+
+ensemble_model_val_log.md
 
 **notice**:You need to replace the path of --resume for your own checkpoints
 ```
