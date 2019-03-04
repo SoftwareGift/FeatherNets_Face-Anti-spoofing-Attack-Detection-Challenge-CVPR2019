@@ -86,6 +86,8 @@ Download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 **move them to checkpoints/pre-trainedModels/**
 
+**if you have Multiple gpus ,you can use --gpus parameter to train your model in differet gpus.**
+
 ### 1. Train FishNet150
 ```
 nohup python main.py --config="cfgs/fishnet150-32-5train.yaml" --b 32 --lr 0.01 --every-decay 30 --fl-gamma 2 >> fishnet150-train.log &
