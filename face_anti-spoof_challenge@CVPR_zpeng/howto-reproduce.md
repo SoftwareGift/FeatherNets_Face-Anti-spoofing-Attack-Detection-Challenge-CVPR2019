@@ -96,10 +96,10 @@ data
 
 ## Train
 
-### Download pretrained models
-Download [fishnet150](https://pan.baidu.com/s/1uOEFsBHIdqpDLrbfCZJGUg) pretrained model from [FishNet150](https://github.com/kevin-ssy/FishNet)(Model trained without tricks )
+### Download pretrained models(ImageNet)
+download [fishnet150](https://pan.baidu.com/s/1uOEFsBHIdqpDLrbfCZJGUg) pretrained model from [FishNet150 repo](https://github.com/kevin-ssy/FishNet)(Model trained without tricks )
 
-Download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbkBp7HylaqR) pretrained model from [MobileNet V2](https://github.com/tonylins/pytorch-mobilenet-v2)
+download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbkBp7HylaqR) pretrained model from [MobileNet V2 repo](https://github.com/tonylins/pytorch-mobilenet-v2)
 
 **move them to checkpoints/pre-trainedModels/**
 
@@ -138,7 +138,7 @@ nohup python main.py --config="cfgs/MobileLiteNetB-32.yaml" --b 32 --lr 0.01  --
 ```
 
 
-### How to create a submission file for val set
+### How to create a submission file for validation dataset
 ```
 python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True --val-save True
 ```
@@ -152,9 +152,8 @@ python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenet
 ### Predict the test set with several models
 By running the following commands, the performance results of test set are store in the submission/ directory.
 
-choose best checkpoints to resume
-we choose these checkpoints to ensemble.
-performance in in the validation set
+we choose these checkpoints to ensemble.And Their performance in validation dataset is as follows.
+
 
 |model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|params|FLOPs|
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
