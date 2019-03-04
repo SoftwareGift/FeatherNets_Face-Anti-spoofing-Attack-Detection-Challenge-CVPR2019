@@ -26,6 +26,19 @@ Uncompressed and copy them to the data directory and run these commands (assume 
 
 If you want check our pre-trained models,you can download here.(链接: https://pan.baidu.com/s/1pcsyZJoOOCjQE1YNTUKueA 提取码: se3s,decryption key:OTC-MMFD-11846496 ) Then move to ./checkpoints directory.
 
+**notice**:please put test_private_list.txt(test set list with label) file in the ./data directory,prepare for the test phase in advance.
+We default to the test_private_list.txt file format consistent with the train_list.txt file.
+
+```
+Val/0000/000000-color.jpg Val/0000/000000-depth.jpg Val/0000/000000-ir.jpg 0
+Val/0000/000001-color.jpg Val/0000/000001-depth.jpg Val/0000/000001-ir.jpg 0
+Val/0000/000002-color.jpg Val/0000/000002-depth.jpg Val/0000/000002-ir.jpg 0
+Val/0000/000003-color.jpg Val/0000/000003-depth.jpg Val/0000/000003-ir.jpg 0
+Val/0000/000004-color.jpg Val/0000/000004-depth.jpg Val/0000/000004-ir.jpg 0
+```
+
+If everything works well, you can see the contents of data directory like these:
+
 ```
 data
 ├── fileList.ipynb
