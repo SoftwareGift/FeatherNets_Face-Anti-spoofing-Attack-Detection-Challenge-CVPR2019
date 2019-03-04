@@ -38,7 +38,6 @@ score10,Prefix_str = splitscore(file_dir10)
 
 # scores =[score1,score2,score3,score4,score5,score6,score7,score8,score9]
 scores = [score1,score2,score3,score4,score5,score6,score7,score8,score9,score10]
-# print(scores[0][0])
 
 def Average(lst):
     return sum(lst) / len(lst)

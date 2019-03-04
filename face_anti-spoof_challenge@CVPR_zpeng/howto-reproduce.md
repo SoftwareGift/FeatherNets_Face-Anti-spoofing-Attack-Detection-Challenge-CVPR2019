@@ -20,9 +20,12 @@ We use 2 dataset for training our models. One is CASIA-SURF, another is created 
 
 Download CASIA-SURF
 
-Download MMFD(TODO: add url here).
+Download MMFD(Download MMFD(https://pan.baidu.com/s/1vvjDNu0fAlg7HkuQz1kQPA 提取码: uuyv ,decryption key:OTC-MMFD-11846496 ).).
 
 Uncompressed and copy them to the data directory and run these commands (assume you are already in the source directory):
+
+If you want check our pre-trained models,you can download here.(链接: https://pan.baidu.com/s/1pcsyZJoOOCjQE1YNTUKueA 提取码: se3s,decryption key:OTC-MMFD-11846496 ) Then move to ./checkpoints directory.
+
 ```
 data
 ├── fileList.ipynb
@@ -40,6 +43,7 @@ data
 
 
 ```
+
 cd data
 python fileList.py
 ```
@@ -70,6 +74,7 @@ data
 ├── Val        #Val set
 ├── val_label.txt
 └── val_public_list.txt
+
 ```
 
 ## Train
@@ -111,6 +116,7 @@ nohup python main.py --config="cfgs/MobileLiteNetA-32.yaml" --b 32 --lr 0.01  --
 nohup python main.py --config="cfgs/MobileLiteNetB-32.yaml" --b 32 --lr 0.01  --every-decay 60 --fl-gamma 3 >> MobileLiteNetB-bs32--train.log &
 ```
 
+
 ### How to create a submission file for val set
 ```
 python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True --val-save True
@@ -120,9 +126,11 @@ python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenet
 python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --phase-test True --val True --val-save True
 ```
 
+
 ## Test
 ### Predict the test set with several models
 By running the following commands, the performance results of test set are store in the submission/ directory.
+
 choose best checkpoints to resume
 we choose these checkpoints to ensemble.
 performance in in the validation set
@@ -143,6 +151,10 @@ performance in in the validation set
 
 you need choose your own checkpoints to resume
 
+### How to choose suitable models to ensemble
+We saved each epoch weight for each model. First select the model with the best label on the validation set, then choose the model that is complementary to the best model on the validation set. The model chosen in this way is different for the prediction results.
+The performance of the model we selected on the validation set can be viewed in the logs/ensemble_model_val_log.md file.
+
 ```
 python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_15_best.pth.tar --phase-test True --val True --val-save True
 python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_51_best.pth.tar --phase-test True --val True --val-save True
@@ -157,6 +169,7 @@ python main.py --config="cfgs/MobileLiteNetB-32.yaml" --resume ./checkpoints/mob
 ```
 
 ### Generate the final submission by assemble results from above models
+
 repalce file_dir1,file_dir2,.... to your generate submission files in gen_final_submission.py.
 like 
 ```
@@ -169,3 +182,4 @@ then run these commands
 python gen_final_submission.py
 ```
 finally you will see the final submission file(final_submission.txt) in the submission/ directory.
+
