@@ -90,7 +90,7 @@ Download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 ### 1. Train FishNet150
 ```
-nohup python main.py --config="cfgs/fishnet150-32-5train.yaml" --b 32 --lr 0.01 --every-decay 30 --fl-gamma 2 >> fishnet150-train.log &
+nohup python main.py --config="cfgs/fishnet150-32.yaml" --b 32 --lr 0.01 --every-decay 30 --fl-gamma 2 >> fishnet150-train.log &
 ```
 
 ### 2. Train MobileNet V2
@@ -153,14 +153,15 @@ performance in in the validation set
 
 you need choose your own checkpoints to resume
 
-### How to choose suitable models to ensemble
-We saved each epoch weight for each model. First select the model with the best label on the validation set, then choose the model that is complementary to the best model on the validation set. The model chosen in this way is different for the prediction results.
-The performance of the model we selected on the validation set can be viewed in the logs/ensemble_model_val_log.md file.
+### How to choose suitable checkpoints to ensemble 
+We saved each epoch weight for each model. For each model, select the first checkpoint with the best performance on the validation set, then choose the other checkpoints that is complementary to the first checkpoint on the validation set. The models chosen in this way is different for the prediction results.
+The performance of the models we selected on the validation set can be viewed in the logs/ensemble_model_val_log.md file.
 
+**notice**:You need to replace the path of --resume for your own checkpoints
 ```
-python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_15_best.pth.tar --phase-test True --val True --val-save True
+python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_15.pth.tar --phase-test True --val True --val-save True
 python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_51_best.pth.tar --phase-test True --val True --val-save True
-python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_10_best.pth.tar --phase-test True --val True --val-save True
+python main.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_26_best.pth.tar --phase-test True --val True --val-save True
 python main.py --config="cfgs/FeatherNet54-32.yaml" --resume ./checkpoints/FeatherNet54/_40_best.pth.tar --phase-test True --val True --val-save True
 python main.py --config="cfgs/FeatherNet54-se-64.yaml" --resume ./checkpoints/FeatherNet54-se/_68_best.pth.tar --phase-test True --val True --val-save True
 python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --phase-test True --val True --val-save True
