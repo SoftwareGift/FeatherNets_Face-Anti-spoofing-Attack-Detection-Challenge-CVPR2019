@@ -39,7 +39,7 @@ depth = open('./depth_val.txt','a')
 ir = open('./ir_val.txt','a')
 label = open('./label_val.txt','a')
 pwd = os.getcwd() +'/'# the val data path 
-for line in fileinput.input("val_label.txt"):
+for line in fileinput.input("val_private_list.txt"):
     list = line.split(' ')
     rgb.write(pwd +list[0]+'\n')
     depth.write(pwd +list[1]+'\n')
@@ -51,6 +51,7 @@ ir.close()
 label.close()
 
 # Use CASIA-SURF Test data for test
+# To make it easier for you to test, prepare the label for the test set.
 import fileinput
 rgb = open('./rgb_test.txt','a')
 depth = open('./depth_test.txt','a')
@@ -67,3 +68,17 @@ rgb.close()
 depth.close()
 ir.close()
 label.close()
+
+
+# replace '/home/zp/disk1T/libxcam-testset/' 
+f = open('ir_final_train.txt','w')
+ir_file = 'ir_final_train_tmp.txt'
+s = '/home/zp/disk1T/libxcam-testset'
+import os
+dir_pwd = os.getcwd() 
+with open(ir_file,'r') as fp:
+    lines = fp.read().splitlines()
+    for line in lines:
+        line = line.replace(s,dir_pwd)
+        f.write(line + '\n')
+f.close()
