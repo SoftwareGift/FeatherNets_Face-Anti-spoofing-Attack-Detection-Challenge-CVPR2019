@@ -73,6 +73,7 @@ parser.add_argument('--summary', default=False, type=bool,
                     help='whether to analysis network complexity')
 parser.add_argument('--every-decay', default=40, type=int, help='how many epoch decay the lr')
 parser.add_argument('--fl-gamma', default=3, type=int, help='gamma for Focal Loss')
+parser.add_argument('--phase-ir', default=0, type=int, help='phare for IR')
 
 best_prec1 = 0
 
@@ -171,13 +172,13 @@ def main():
             transforms.ToTensor(),
             ColorAugmentation(),
             normalize,
-        ]),phase_train=True)
+        ]),phase_train=True, phase_ir=args.phase_ir)
     val_dataset = CASIA( transforms.Compose([
         transforms.Resize(int(256 * ratio)),
         transforms.CenterCrop(img_size),
         transforms.ToTensor(),
         normalize,
-    ]),phase_train=False,phase_test=args.phase_test)
+    ]),phase_train=False,phase_test=args.phase_test,phase_ir=args.phase_ir)
 
     train_sampler = None
     val_sampler = None
