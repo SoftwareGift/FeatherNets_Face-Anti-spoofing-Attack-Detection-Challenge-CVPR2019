@@ -73,7 +73,7 @@ label.close()
 # replace '/home/zp/disk1T/libxcam-testset/' 
 f = open('ir_final_train.txt','w')
 ir_file = 'ir_final_train_tmp.txt'
-s = '/home/zp/disk1T/libxcam-testset'
+s = '/home/zp/disk1T/libxcam-testset/data'
 import os
 dir_pwd = os.getcwd() 
 with open(ir_file,'r') as fp:
