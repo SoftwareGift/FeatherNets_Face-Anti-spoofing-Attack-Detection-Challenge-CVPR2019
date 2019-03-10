@@ -172,13 +172,13 @@ def main():
             transforms.ToTensor(),
             ColorAugmentation(),
             normalize,
-        ]),phase_train=True, phase_ir=args.phase_ir)
+        ]),phase_train=True)
     val_dataset = CASIA( transforms.Compose([
         transforms.Resize(int(256 * ratio)),
         transforms.CenterCrop(img_size),
         transforms.ToTensor(),
         normalize,
-    ]),phase_train=False,phase_test=args.phase_test,phase_ir=args.phase_ir)
+    ]),phase_train=False,phase_test=args.phase_test)
 
     train_sampler = None
     val_sampler = None

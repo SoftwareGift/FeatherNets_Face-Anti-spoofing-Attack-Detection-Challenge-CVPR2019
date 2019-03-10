@@ -1,0 +1,29 @@
+!python main_wzw.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_15.pth.tar --phase-test True --val True --val-save True
+epoch: 16 EER: 0.006077 TPR@FPR=10E-2: 0.995018 TPR@FPR=10E-3: 0.985600 APCER:0.007003 NPCER:0.005905 AUC: 0.99972169 Acc:99.333 TN:39984 FP : 282 FN:103 TP:17341  ACER:0.00645402 
+
+!python main_wzw.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_51_best.pth.tar --phase-test True --val True --val-save True
+epoch: 52 EER: 0.002434 TPR@FPR=10E-2: 0.999713 TPR@FPR=10E-3: 0.992261 APCER:0.008543 NPCER:0.000401 AUC: 0.99995899 Acc:99.392 TN:39922 FP : 344 FN:7 TP:17437  ACER:0.00447224 
+
+!python main_wzw.py --config="cfgs/fishnet150-32.yaml" --resume ./checkpoints/fishnet150_bs32/_26_best.pth.tar --phase-test True --val True --val-save True
+epoch: 27 EER: 0.004892 TPR@FPR=10E-2: 0.998051 TPR@FPR=10E-3: 0.964114 APCER:0.008146 NPCER:0.002752 AUC: 0.99981854 Acc:99.348 TN:39938 FP : 328 FN:48 TP:17396  ACER:0.00544875 
+
+!python main_wzw.py --config="cfgs/FeatherNet54-32.yaml" --resume ./checkpoints/FeatherNet54/_40_best.pth.tar --phase-test True --val True --val-save True
+epoch: 41 EER: 0.006209 TPR@FPR=10E-2: 0.995956 TPR@FPR=10E-3: 0.980444 APCER:0.012318 NPCER:0.003669 AUC: 0.99971227 Acc:99.030 TN:39770 FP : 496 FN:64 TP:17380  ACER:0.00799348 
+
+!python main_wzw.py --config="cfgs/FeatherNet54-se-64.yaml" --resume ./checkpoints/FeatherNet54-se/_68_best.pth.tar --phase-test True --val True --val-save True
+epoch: 69 EER: 0.002426 TPR@FPR=10E-2: 0.999427 TPR@FPR=10E-3: 0.994783 APCER:0.007426 NPCER:0.000573 AUC: 0.99996120 Acc:99.465 TN:39967 FP : 299 FN:10 TP:17434  ACER:0.00399944 
+
+!python main_wzw.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --phase-test True --val True --val-save True
+epoch: 5 EER: 0.004549 TPR@FPR=10E-2: 0.997420 TPR@FPR=10E-3: 0.984415 APCER:0.009189 NPCER:0.002637 AUC: 0.99983729 Acc:99.279 TN:39896 FP : 370 FN:46 TP:17398  ACER:0.00591295 
+
+!python main_wzw.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_5.pth.tar --phase-test True --val True --val-save True
+epoch: 6 EER: 0.005000 TPR@FPR=10E-2: 0.997478 TPR@FPR=10E-3: 0.972487 APCER:0.012343 NPCER:0.002006 AUC: 0.99979989 Acc:99.078 TN:39769 FP : 497 FN:35 TP:17409  ACER:0.00717467 
+
+!python main_wzw.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_6.pth.tar --phase-test True --val True --val-save True
+epoch: 7 EER: 0.007691 TPR@FPR=10E-2: 0.994898 TPR@FPR=10E-3: 0.958610 APCER:0.015323 NPCER:0.002981 AUC: 0.99976072 Acc:98.841 TN:39649 FP : 617 FN:52 TP:17392  ACER:0.00915203 
+
+!python main_wzw.py --config="cfgs/MobileLiteNetA-32.yaml" --resume ./checkpoints/mobilelitenetA_bs32/_50_best.pth.tar --phase-test True --val True --val-save True
+epoch: 51 EER: 0.006482 TPR@FPR=10E-2: 0.995821 TPR@FPR=10E-3: 0.968528 APCER:0.002806 NPCER:0.013013 AUC: 0.99970129 Acc:99.411 TN:40153 FP : 113 FN:227 TP:17217  ACER:0.00790970 
+
+!python main_wzw.py --config="cfgs/MobileLiteNetB-32.yaml" --resume ./checkpoints/mobilelitenetB_bs32/_47_best.pth.tar --phase-test True --val True --val-save True
+epoch: 48 EER: 0.006765 TPR@FPR=10E-2: 0.995127 TPR@FPR=10E-3: 0.971337 APCER:0.007500 NPCER:0.006421 AUC: 0.99972949 Acc:99.283 TN:39964 FP : 302 FN:112 TP:17332  ACER:0.00696033 

@@ -30,7 +30,11 @@ We use 2 dataset for training our models. One is CASIA-SURF, another is created 
 
 Download CASIA-SURF
 
-Download MMFD (链接: https://pan.baidu.com/s/1vvjDNu0fAlg7HkuQz1kQPA 提取码: uuyv, decryption key: OTC-MMFD-11846496)
+Download MMFD (链接: https://pan.baidu.com/s/1wCrI7bp3E8-XCctDbGxEVQ 提取码: tqkt OTC-MMFD-11846496, decryption key: OTC-MMFD-11846496)
+
+
+
+
 
 Uncompressed and copy them to the ./data directory. You can see the contents like below:
 
@@ -103,7 +107,7 @@ download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbk
 
 **move them to checkpoints/pre-trainedModels/**
 
-If you want check our pre-trained models,you can download here.(链接: https://pan.baidu.com/s/1pcsyZJoOOCjQE1YNTUKueA 提取码: se3s,decryption key:OTC-MMFD-11846496 ) Then move to ./checkpoints directory.
+If you want check our pre-trained models,you can download here.(链接: https://pan.baidu.com/s/1eFwtvw4bsLdv5zxtc2tRqQ 提取码: y95k OTC-MMFD-11846496,decryption key:OTC-MMFD-11846496 ) Then move to ./checkpoints directory.
 
 **if you have Multiple gpus, you can use "--gpus num" to train your model in differet gpus.**
 
@@ -137,24 +141,47 @@ nohup python main.py --config="cfgs/MobileLiteNetA-32.yaml" --b 32 --lr 0.01  --
 nohup python main.py --config="cfgs/MobileLiteNetB-32.yaml" --b 32 --lr 0.01  --every-decay 60 --fl-gamma 3 >> MobileLiteNetB-bs32--train.log &
 ```
 
-
-### How to create a submission file for validation dataset
+### 7.Train MobileLiteNetB using IR image 
 ```
-python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True --val-save True
-```
-### How to create a submission file for test set
-```
-python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --phase-test True --val True --val-save True
-```
+Step1: Before running train command, please in read_data.py, comment line 11, 12, 21, 22 and uncomment line 15, 16, 25, 26 . 
+You code should like below:
+
+# CASIA-SURF training dataset and our private dataset
+depth_dir_train_file = os.getcwd() +'/data/2depth_train.txt'
+label_dir_train_file = os.getcwd() + '/data/2label_train.txt'
+
+# for IR train
+# depth_dir_train_file = os.getcwd() +'/data/ir_final_train.txt'
+# label_dir_train_file = os.getcwd() +'/data/label_ir_train.txt'
 
 
-## Test
-### Predict the test set with several models
-By running the following commands, the performance results of test set are store in the submission/ directory.
 
+# CASIA-SURF Val data 
+depth_dir_val_file = os.getcwd() +'/data/depth_val.txt'
+label_dir_val_file = os.getcwd() +'/data/label_val.txt' #val-label 100%
+
+
+# depth_dir_val_file = os.getcwd() +'/data/ir_val.txt'
+# label_dir_val_file = os.getcwd() +'/data/label_val.txt' #val-label 100%
+
+# # CASIA-SURF Test data 
+depth_dir_test_file = os.getcwd() +'/data/depth_test.txt'
+label_dir_test_file = os.getcwd() +'/data/label_test.txt'
+
+
+# depth_dir_test_file = os.getcwd() +'/data/ir_test.txt'
+# label_dir_test_file = os.getcwd() +'/data/label_test.txt'
+
+Step2: Running command line. Please note that, use the model "./checkpoints/mobilelitenetB_bs32/_47_best.pth.tar" as the pre-trained model.
+
+nohup python main.py --config="cfgs/MobileLiteNetB-32-ir.yaml" --resume ./checkpoints/mobilelitenetB_bs32/_47_best.pth.tar --lr 0.01 -b 32 --every-decay 100 --fl-gamma 2 >> ir_final_train_mb.log &
+```
+
+## Validation
+
+
+### Predict the validate dataset with several models
 we choose these checkpoints to ensemble.And Their performance in validation dataset is as follows.
-
-
 |model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|params|FLOPs|
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
 |FishNet150| 0.00144|0.999668|0.998330|19|0|27|24.96M|6452.72M|
@@ -170,6 +197,23 @@ we choose these checkpoints to ensemble.And Their performance in validation data
 |**Ensembled all**|0.0000|1.0|1.0|0|0|-|-|-|
 
 you need choose your own checkpoints to resume
+
+### How to create a submission file for validation dataset
+```
+python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --val True --val-save True
+```
+
+## Test
+
+### Use EnsembleCode_test.ipynb to run test commands and create final submission file
+By running the **EnsembleCode_test.ipynb**, the performance results of test set are store in the submission/ directory.
+We provided our result of test commands for 10 models predicting test dataset. See test_status.txt
+
+### How to create a submission file for test set
+```
+python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenetv2_bs32/_4_best.pth.tar --phase-test True --val True --val-save True
+```
+
 
 ### How to choose suitable checkpoints to ensemble 
 [**important**]
@@ -197,19 +241,4 @@ python main.py --config="cfgs/mobilenetv2.yaml" --resume ./checkpoints/mobilenet
 python main.py --config="cfgs/MobileLiteNetA-32.yaml" --resume ./checkpoints/mobilelitenetA_bs32/_50_best.pth.tar --phase-test True --val True --val-save True
 python main.py --config="cfgs/MobileLiteNetB-32.yaml" --resume ./checkpoints/mobilelitenetB_bs32/_47_best.pth.tar --phase-test True --val True --val-save True
 ```
-
-### Generate the final submission by assemble results from above models
-
-repalce file_dir1,file_dir2,.... to your generate submission files in gen_final_submission.py.
-like 
-```
-file_dir1='submission/2019-01-28_15:45:05_fishnet150_52_submission.txt'
-```
-then run command:
-
-```
-
-python gen_final_submission.py
-```
-finally you will see the final submission file(final_submission.txt) in the submission/ directory.
 
