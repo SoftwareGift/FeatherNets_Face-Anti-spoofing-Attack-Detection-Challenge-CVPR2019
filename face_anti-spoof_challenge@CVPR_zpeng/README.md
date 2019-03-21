@@ -1,5 +1,5 @@
 ## MobileLiteNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
-
+Code for 3rd ChaLearn Face Anti-spoofing Attack Detection Challenge @ CVPR2019 by zpeng (Feather)
 # Results on the validation set
 
 |model name | ACER|TPR@FPR=10E-2|TPR@FPR=10E-3|FP|FN|epoch|params|FLOPs|
