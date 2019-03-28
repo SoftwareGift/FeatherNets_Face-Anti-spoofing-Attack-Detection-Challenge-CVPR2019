@@ -1,0 +1,11 @@
+common:
+    arch: MobileLiteNet54
+    workers: 1
+    batch_size: 32
+    epochs: 200
+    policy: "step"
+    base_lr: 0.01
+    momentum: 0.9
+    weight_decay: 0.0001
+    print_freq: 10
+    save_path: checkpoints/MobileLiteNet54_bs32
