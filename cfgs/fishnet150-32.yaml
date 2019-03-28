@@ -1,0 +1,13 @@
+common:
+    arch: fishnet150
+    workers: 1
+    batch_size: 32
+
+    epochs: 100
+    policy: "step"
+    base_lr: 0.01
+    momentum: 0.9
+    weight_decay: 0.0001
+
+    print_freq: 10
+    save_path: checkpoints/fishnet150_bs32_5train
