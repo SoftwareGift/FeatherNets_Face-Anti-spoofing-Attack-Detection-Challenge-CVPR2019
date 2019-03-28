@@ -1,3 +1,0 @@
-[submodule "ext/atomisp"]
-    path = ext/atomisp
-    url = https://github.com/windyuan/atomisp_headers.git
