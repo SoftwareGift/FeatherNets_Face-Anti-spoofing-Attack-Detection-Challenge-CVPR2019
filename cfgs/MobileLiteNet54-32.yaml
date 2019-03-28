@@ -1,5 +1,5 @@
 common:
-    arch: FeatherNet54
+    arch: MobileLiteNet54
     workers: 1
     batch_size: 32
     epochs: 200
@@ -8,4 +8,4 @@ common:
     momentum: 0.9
     weight_decay: 0.0001
     print_freq: 10
-    save_path: checkpoints/FeatherNet54_bs32
+    save_path: checkpoints/MobileLiteNet54_bs32
