@@ -1,6 +1,6 @@
-## MobileLiteNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
+## FeatherNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
 
-# only 0.35M!!
+# Params only 0.35M!! FLOPs 80M !!
 
 
 # Results on the validation set
