@@ -64,7 +64,7 @@ Download and unzip our private Dataset into the ./data directory. Then run data/
 ### Download pretrained models
 download [fishnet150](https://pan.baidu.com/s/1uOEFsBHIdqpDLrbfCZJGUg) pretrained model from [FishNet150 repo](https://github.com/kevin-ssy/FishNet)(Model trained without tricks )
 
-download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbkBp7HylaqR) pretrained model from [MobileNet V2 repo](https://github.com/tonylins/pytorch-mobilenet-v2)
+download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbkBp7HylaqR) pretrained model from [MobileNet V2 repo](https://github.com/tonylins/pytorch-mobilenet-v2),or download from here,link: https://pan.baidu.com/s/13Yw_OISWhSZccCviMzZ5Sg password: y6es 
 
 **move them to  ./checkpoints/pre-trainedModels/**
 
