@@ -153,11 +153,11 @@ class MobileLiteNet(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
-def mobilelitenetA():
+def FeatherNetA():
     model = MobileLiteNet(se = True)
     return model
 
-def mobilelitenetB():
+def FeatherNetB():
     model = MobileLiteNet(se = True,avgdown=True)
     return model
 
