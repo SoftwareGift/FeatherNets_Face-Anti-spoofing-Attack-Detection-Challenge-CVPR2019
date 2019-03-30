@@ -149,21 +149,21 @@ class FeatherNet(nn.Module):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
-def FeatherNet54( **kwargs):
+def MobileLiteNet54( **kwargs):
     model = FeatherNet(InvertedResidual, [4, 4, 6, 3], num_classes=2,se = False, **kwargs)
     return model 
-def FeatherNet54_se( **kwargs):
+def MobileLiteNet54_se( **kwargs):
     model = FeatherNet(InvertedResidual, [4, 4, 6, 3], num_classes=2,se = True, **kwargs)
     return model
-def FeatherNet102( **kwargs):
+def MobileLiteNet102( **kwargs):
     model = FeatherNet(InvertedResidual, [3, 4, 23, 3], num_classes=2,se = False, **kwargs)
     return model 
-def FeatherNet105_se( **kwargs):
+def MobileLiteNet105_se( **kwargs):
     model = FeatherNet(InvertedResidual, [4, 4, 23, 3], num_classes=2,se = True, **kwargs)
     return model 
-def FeatherNet153( **kwargs):
+def MobileLiteNet153( **kwargs):
     model = FeatherNet(InvertedResidual, [3, 8, 36, 3], num_classes=2,se = False, **kwargs)
     return model 
-def FeatherNet156_se( **kwargs):
+def MobileLiteNet156_se( **kwargs):
     model = FeatherNet(InvertedResidual, [4, 8, 36, 3], num_classes=2,se = True, **kwargs)
     return model 
