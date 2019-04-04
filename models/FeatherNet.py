@@ -82,7 +82,7 @@ class InvertedResidual(nn.Module):
                 return self.conv(x)
 
 
-class MobileLiteNet(nn.Module):
+class FeatherNet(nn.Module):
     def __init__(self, n_class=2, input_size=224, se = False, avgdown=False, width_mult=1.):
         super(MobileLiteNet, self).__init__()
         block = InvertedResidual
@@ -154,11 +154,11 @@ class MobileLiteNet(nn.Module):
                 m.bias.data.zero_()
 
 def FeatherNetA():
-    model = MobileLiteNet(se = True)
+    model = FeatherNet(se = True)
     return model
 
 def FeatherNetB():
-    model = MobileLiteNet(se = True,avgdown=True)
+    model = FeatherNet(se = True,avgdown=True)
     return model
 
 

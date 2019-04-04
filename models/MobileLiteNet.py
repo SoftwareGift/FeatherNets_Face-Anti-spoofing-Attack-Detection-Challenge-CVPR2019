@@ -61,7 +61,7 @@ class InvertedResidual(nn.Module):
         
         return out
     
-class FeatherNet(nn.Module):
+class MobileLiteNet(nn.Module):
     def __init__(self,block,layers,num_classes = 2,se = False):
         
         super(FeatherNet, self).__init__()
@@ -150,20 +150,20 @@ class FeatherNet(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 def MobileLiteNet54( **kwargs):
-    model = FeatherNet(InvertedResidual, [4, 4, 6, 3], num_classes=2,se = False, **kwargs)
+    model = MobileLiteNet(InvertedResidual, [4, 4, 6, 3], num_classes=2,se = False, **kwargs)
     return model 
 def MobileLiteNet54_se( **kwargs):
-    model = FeatherNet(InvertedResidual, [4, 4, 6, 3], num_classes=2,se = True, **kwargs)
+    model = MobileLiteNet(InvertedResidual, [4, 4, 6, 3], num_classes=2,se = True, **kwargs)
     return model
 def MobileLiteNet102( **kwargs):
-    model = FeatherNet(InvertedResidual, [3, 4, 23, 3], num_classes=2,se = False, **kwargs)
+    model = MobileLiteNet(InvertedResidual, [3, 4, 23, 3], num_classes=2,se = False, **kwargs)
     return model 
 def MobileLiteNet105_se( **kwargs):
-    model = FeatherNet(InvertedResidual, [4, 4, 23, 3], num_classes=2,se = True, **kwargs)
+    model = MobileLiteNet(InvertedResidual, [4, 4, 23, 3], num_classes=2,se = True, **kwargs)
     return model 
 def MobileLiteNet153( **kwargs):
-    model = FeatherNet(InvertedResidual, [3, 8, 36, 3], num_classes=2,se = False, **kwargs)
+    model = MobileLiteNet(InvertedResidual, [3, 8, 36, 3], num_classes=2,se = False, **kwargs)
     return model 
 def MobileLiteNet156_se( **kwargs):
-    model = FeatherNet(InvertedResidual, [4, 8, 36, 3], num_classes=2,se = True, **kwargs)
+    model = MobileLiteNet(InvertedResidual, [4, 8, 36, 3], num_classes=2,se = True, **kwargs)
     return model 
