@@ -8,8 +8,12 @@ import torchvision
 import torch
 
 # CASIA-SURF training dataset and our private dataset
-depth_dir_train_file = os.getcwd() +'/data/2depth_train.txt'
-label_dir_train_file = os.getcwd() + '/data/2label_train.txt'
+# depth_dir_train_file = os.getcwd() +'/data/2depth_train.txt'
+# label_dir_train_file = os.getcwd() + '/data/2label_train.txt'
+
+# CASIA-SURF training dataset and our private dataset
+depth_dir_train_file = os.getcwd() +'/data/depth_train.txt'
+label_dir_train_file = os.getcwd() + '/data/label_train.txt'
 
 # for IR train
 # depth_dir_train_file = os.getcwd() +'/data/ir_final_train.txt'
