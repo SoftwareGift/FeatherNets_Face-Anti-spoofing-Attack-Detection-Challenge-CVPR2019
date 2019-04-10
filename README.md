@@ -24,6 +24,7 @@ But in the test phase, when we only use depth data, the best ACER is 0.0016.This
 ## Recent Update
 
 **2019.4.4**: updata data/fileList.py
+
 **2019.3.10**:code upload for the origanizers to reproduce.
 
 # Prerequisites
@@ -65,7 +66,7 @@ Download and unzip our private Dataset into the ./data directory. Then run data/
 
 # Train the model
 
-### Download pretrained models
+### Download pretrained models(trained on ImageNet2012)
 download [fishnet150](https://pan.baidu.com/s/1uOEFsBHIdqpDLrbfCZJGUg) pretrained model from [FishNet150 repo](https://github.com/kevin-ssy/FishNet)(Model trained without tricks )
 
 download [mobilenetv2](https://drive.google.com/open?id=1jlto6HRVD3ipNkAl1lNhDbkBp7HylaqR) pretrained model from [MobileNet V2 repo](https://github.com/tonylins/pytorch-mobilenet-v2),or download from here,link: https://pan.baidu.com/s/11Hz50zlMyp3gtR9Bhws-Dg password: gi46 
