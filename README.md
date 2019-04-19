@@ -1,6 +1,6 @@
 ## FeatherNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
 
-# Params only 0.35M!! FLOPs 80M !!
+# Params only 0.35M!! FLOPs 80M !! 10ms(CPU)
 
 In the first phase,we only use depth data for training ,and after ensemble ACER reduce to 0.0.
 But in the test phase, when we only use depth data, the best ACER is 0.0016.This result is not very satisfactory. If the security is not very high, just using single-mode data is a very good choice. In order to achieve better results, we use IR data to jointly predict the final result.
