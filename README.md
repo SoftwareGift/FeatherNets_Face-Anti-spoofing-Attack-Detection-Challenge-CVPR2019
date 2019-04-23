@@ -2,7 +2,9 @@
 
 ## The detail in our paper：[FeatherNets: Convolutional Neural Networks as Light as Feather for Face Anti-spoofing](https://arxiv.org/pdf/1904.09290)
 
-# Params only 0.35M!! FLOPs 80M !! 10ms(CPU)
+# FeatherNetB Inference Time **1.87ms** In CPU(i7,OpenVINO)
+
+# Params only 0.35M!! FLOPs 80M !! 
 
 In the first phase,we only use depth data for training ,and after ensemble ACER reduce to 0.0.
 But in the test phase, when we only use depth data, the best ACER is 0.0016.This result is not very satisfactory. If the security is not very high, just using single-mode data is a very good choice. In order to achieve better results, we use IR data to jointly predict the final result.
