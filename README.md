@@ -1,5 +1,7 @@
 ## FeatherNets for [Face Anti-spoofing Attack Detection Challenge@CVPR2019](https://competitions.codalab.org/competitions/20853#results)[1]
 
+## The detail in our paper：[FeatherNets: Convolutional Neural Networks as Light as Feather for Face Anti-spoofing](https://arxiv.org/pdf/1904.09290)
+
 # Params only 0.35M!! FLOPs 80M !! 10ms(CPU)
 
 In the first phase,we only use depth data for training ,and after ensemble ACER reduce to 0.0.
@@ -26,6 +28,8 @@ But in the test phase, when we only use depth data, the best ACER is 0.0016.This
 **2019.4.4**: updata data/fileList.py
 
 **2019.3.10**:code upload for the origanizers to reproduce.
+
+**2019.4.23**:add our paper FeatherNets
 
 # Prerequisites
 
