@@ -43,7 +43,7 @@ conda env create -n env_name -f env.yml
 ## Data
 
 
-### [CASIA-SURF Dataset](https://arxiv.org/abs/1812.00408)[2], you can also download from https://pan.baidu.com/share/init?surl=_caiA9r9SPjRI09fNKsscg password：9ooz, thank @121786404 for the data provided
+### [CASIA-SURF Dataset](https://arxiv.org/abs/1812.00408)[2]
 
 
 ### Our Private Dataset(Available Soon)
