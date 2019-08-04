@@ -6,6 +6,7 @@
 
 # Params only 0.35M!! FLOPs 80M !! 
 
+
 In the first phase,we only use depth data for training ,and after ensemble ACER reduce to 0.0.
 But in the test phase, when we only use depth data, the best ACER is 0.0016.This result is not very satisfactory. If the security is not very high, just using single-mode data is a very good choice. In order to achieve better results, we use IR data to jointly predict the final result.
 # Results on the validation set
@@ -24,6 +25,9 @@ But in the test phase, when we only use depth data, the best ACER is 0.0016.This
 |FeatherNetB|0.00168|1.0|0.997662|20|1|48|0.35M|83.05M|
 |**Ensembled all**|0.0000|1.0|1.0|0|0|-|-|-|
 
+# Our Pretrained Models(model checkpoints)
+Link:https://pan.baidu.com/s/1vlKePiWYFYNxefD9Ld16cQ 
+Key:xzv8
 
 ## Recent Update
 
@@ -32,6 +36,7 @@ But in the test phase, when we only use depth data, the best ACER is 0.0016.This
 **2019.3.10**:code upload for the origanizers to reproduce.
 
 **2019.4.23**:add our paper FeatherNets
+**2019.8.4**: release our model checkpoint
 
 # Prerequisites
 
