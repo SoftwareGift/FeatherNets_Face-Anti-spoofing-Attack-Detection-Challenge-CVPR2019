@@ -36,6 +36,7 @@ Key:xzv8
 **2019.3.10**:code upload for the origanizers to reproduce.
 
 **2019.4.23**:add our paper FeatherNets
+
 **2019.8.4**: release our model checkpoint
 
 # Prerequisites
