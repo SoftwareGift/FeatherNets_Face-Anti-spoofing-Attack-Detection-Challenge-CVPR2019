@@ -29,6 +29,7 @@ But in the test phase, when we only use depth data, the best ACER is 0.0016.This
 Link:https://pan.baidu.com/s/1vlKePiWYFYNxefD9Ld16cQ 
 Key:xzv8
 
+decryption key: OTC-MMFD-11846496
 ## Recent Update
 
 **2019.4.4**: updata data/fileList.py
