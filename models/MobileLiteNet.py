@@ -64,7 +64,7 @@ class InvertedResidual(nn.Module):
 class MobileLiteNet(nn.Module):
     def __init__(self,block,layers,num_classes = 2,se = False):
         
-        super(FeatherNet, self).__init__()
+        super(MobileLiteNet, self).__init__()
         self.se = se
         self.channels = [32, 16, 32, 48, 64]
         self.inplanes = self.channels[1]
